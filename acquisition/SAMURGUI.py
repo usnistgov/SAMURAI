@@ -133,13 +133,12 @@ class SAMURGUI:
         robot_addr = self.robot_addr_textbox.get()
         is_sim = self.check_menu.get_button_state('Simulation?')
         run_vna = self.check_menu.get_button_state('Run VNA?')
-        #print(is_sim);
-        #print(run_vna);
+
         self.check_menu.print_debug()
         #update working directoyr and run
-        #self.my_run_sam.set_directory(wdir);
+        self.my_run_sam.set_directory(wdir);
         print("Measuring and saving to "+os.getcwd())
-        #self.my_run_sam.measure(wdir,visa_addr,robot_addr,template_file,csv_file,note,is_sim,run_vna);
+        self.my_run_sam.measure(wdir,visa_addr,robot_addr,template_file,csv_file,note,is_sim,run_vna);
         
     def plot_points(self):
         print("Plotting CSV Points")
@@ -167,10 +166,10 @@ class RunSamurai:
         print(is_sim)
         mysam = SAMURAI_System(is_simulation=is_sim,vna_visa_address=visa_addr,template_path=temp_file,rx_positioner_address=robot_addr)
         print(mysam.is_simulation)
-        #mysam.connect_rx_positioner(); #connect positioner
-        #rt = mysam.csv_sweep(wdir,csv_file,run_vna);
-        #print("Ran in "+str(rt)+" seconds, Results in "+wdir);
-        #mysam.disconnect_rx_positioner();
+        mysam.connect_rx_positioner(); #connect positioner
+        rt = mysam.csv_sweep(wdir,csv_file,run_vna);
+        print("Ran in "+str(rt)+" seconds, Results in "+wdir);
+        mysam.disconnect_rx_positioner();
         
     def set_directory(self,dir_path):
         self.wdir = dir_path

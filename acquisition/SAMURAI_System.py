@@ -43,8 +43,8 @@ class SAMURAI_System():
             self.options[key] = value
         for key, value in six.iteritems(arg_options):
             self.options[key] = value
-        self.pnagrabber_template_path = pnagrabber_template_path
-        self.vna_visa_addr = vna_visa_addr
+        self.pnagrabber_template_path = self.options['template_path']
+        self.vna_visa_addr = self.options['vna_visa_address']
         self.is_connected = False
         self.set_simulation_mode(is_simulation)
         #self.connect_rx_positioner();
