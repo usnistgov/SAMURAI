@@ -12,15 +12,15 @@ This directory contains the code required to run the SAMURAI system. This curren
     2. Select the correct operating system and installer
     3. Download and run the executable and follow the installer to install Anaconda 3.X
 - Install pyvisa 
-    1. Type into the windows search 'Anaconda Prompt' and run the program
-    2. In the terminal run 'conda install -c conda-forge pyvisa' to install pyvisa
+    1. Type into the windows search 'anaconda prompt' and run the program
+    2. In the terminal run `conda install -c conda-forge pyvisa` to install pyvisa
 
 ## Subdirectories
 
 ### /support
 This subdirectory contains multiple classes and functions to run the SAMURAI system including control for the VNA and Meca500 Robot arm. This contains the following files
 - /support/autoPNAGrabber.py 
-    - python control of PNAGrabber. Requires PNAGrabber executable to be run from command line with '-r' flag to 'press' the 'meas all' button without opening the UI
+    - python control of PNAGrabber. Requires PNAGrabber executable to be run from command line with `-r` flag to 'press' the 'meas all' button without opening the UI
 - /support/Meca500.py 
     - Class for controlling Meca500 Robot
 - /support/metaFileController.py 
@@ -33,7 +33,13 @@ This subdirectory contains multiple classes and functions to run the SAMURAI sys
     - Some support functions to use. (mainly functions used when USC came out in Aug. 2018 for phased array calibration)
 
 # SAMURAI Hardware Information
-
+```mermaid
+graph TD;
+  A-->B;
+  A-->C;
+  B-->D;
+  C-->D;
+```
 (PICTURE OF SETUP)
 ## Hardware
 
@@ -65,16 +71,18 @@ Currently, the samurai system is run over a custom local network run through a s
 -Info on Remote KVM setup
 
 ### IP and VISA Addresses
-- PNA-X = 10.0.0.2
+- PNA-X = [10.0.0.2](http://10.0.0.2)
     - VISA Address = 'TCPIP0::10.0.0.2::inst0::INSTR'
-- Meca500 = 10.0.0.5
+- Meca500 = [10.0.0.5](http://10.0.0.5)
     - VISA Address = Could not get VISA to work correctly! Connect using sockets.
 
 # Running the SAMURAI Software
 This section covers the steps required to run a SAMURAI measurement
 
 ## Running from python command line interface (CLI)
-The following steps are to run a SAMURAI measurement from the python command line interface (CLI). The steps using the python CLI here are valid for the integrated command line within the spyder IDE. While these steps will be similar using a basic python setup, the importing of the SAMURAI classes and libraries may be a bit more complex.
+*[CLI]: Command Line Interface
+*[IDE]: Integrated Development Environment (e.g. Spyder)
+The following steps are to run a SAMURAI measurement from the python CLI. The steps using the python CLI here are valid for the integrated command line within the Spyder IDE. While these steps will be similar using a basic python setup, the importing of the SAMURAI classes and libraries may be a bit more complex.
 
 ### 1. Create a new SAMURAI measurement directory
 
@@ -96,3 +104,10 @@ The following steps are to run a SAMURAI measurement from the python command lin
 
 ## Running from the Graphical User Interface (GUI) SAMURGUI
 This code needs to be finished
+
+# Measurement TODO List
+- [x] Line of Sight Measurements
+- [ ] Cylinder Measurement
+
+
+# Code Editing TODO List
