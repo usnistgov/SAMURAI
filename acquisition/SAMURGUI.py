@@ -165,11 +165,15 @@ class RunSamurai:
         #mpc must be local because many things are directory based when it is initialized
         print(is_sim)
         mysam = SAMURAI_System(is_simulation=is_sim,vna_visa_address=visa_addr,template_path=temp_file,rx_positioner_address=robot_addr)
-        print(mysam.is_simulation)
-        mysam.connect_rx_positioner() #connect positioner
-        rt = mysam.csv_sweep(wdir,csv_file,run_vna)
-        print("Ran in "+str(rt)+" seconds, Results in "+wdir)
-        mysam.disconnect_rx_positioner()
+        try:
+            print(mysam.is_simulation)
+            mysam.connect_rx_positioner() #connect positioner
+            rt = mysam.csv_sweep(wdir,csv_file,run_vna)
+            print("Ran in "+str(rt)+" seconds, Results in "+wdir)
+        except:
+            mysam.disconnect_rx_positioner() #disconnect on failure
+            raise
+        mysam.disconnect_rx_positioner() #if it works correctly also disconnect
         
     def set_directory(self,dir_path):
         self.wdir = dir_path
