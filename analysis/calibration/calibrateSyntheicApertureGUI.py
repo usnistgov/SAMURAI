@@ -32,6 +32,7 @@ from PostProcPy import PostProcPy as pppy
 acquisition_support_path = '../../acquisition/support'
 sys.path.append(os.path.join(os.path.dirname(__file__),acquisition_support_path)) #path for tktools
 from samurai_tktools import DirPicker
+from samurai_tktools import FilePicker
 from samurai_tktools import EntryAndTitle
 from samurai_tktools import CheckGroup
 from samurai_tktools import HelpButton
@@ -42,8 +43,12 @@ import json
 import datetime
 import os
 from shutil import copyfile
-import Tkinter as tk
-import tkFileDialog
+try:
+    import Tkinter as tk
+    import tkFileDialog
+except:
+    import tkinter as tk
+    import tkinter.filedialog as tkFileDialog
 
 #this will create a tk gui that will calibrate based on a given solution.meas file
 
@@ -95,7 +100,7 @@ class CalSAGui:
         help_text+= 'In order to calibrate, simply select:\n'
         help_text+= '                    - A metafile tracking all raw measurements\n'
         help_text+= '                    - A solution (.meas or .s4p) file for the calibration\n'
-        help_text+= '                    - Switch terms for calibrating (.s2p,.switch) when using S-Parameters'
+        help_text+= '                    - Switch terms for calibrating (.s2p,.switch) when using S-Parameters\n'
         help_text+= '                    - An output directory to save the calibrated output\n'
         help_text+= '                    - (OPTIONAL FOR ADVANCED USAGE) A template for the post-processor calibration\n\n'
         help_text+= 'Once these have been selected, simply click calibrate to run the calibration and results will be in the output directory\n\n';
