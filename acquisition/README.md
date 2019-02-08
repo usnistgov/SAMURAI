@@ -102,7 +102,11 @@ The following steps are to run a SAMURAI measurement from the python CLI. The st
 
 ### 3. Import the SAMURAI_System Module
 1. Open the python CLI (e.g. the command window in Spyder)
-2. With the file opened in the Spyder IDE, click the green play button on the top toolbar OR type `runfile('<dir-of-code>/SAMURAI_System.py')` where `<dir-of-code>` is the directory where `SAMURAI_System.py` is located on the system
+2. With the file opened in the Spyder IDE, click the green play button on the top toolbar OR type the code below where `<dir-of-code>` is the directory where `SAMURAI_System.py` is located on the system.
+```
+runfile('<dir-of-code>/SAMURAI_System.py')
+```  
+
 
 ### 4. Create a SAMURAI_System Object
 1. With the SAMURAI_System module imported, create a SAMURAI_System object by typing `mysam = SAMURAI_System()` into the CLI.
