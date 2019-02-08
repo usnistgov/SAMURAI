@@ -362,16 +362,6 @@ class Meca500:
         '''
         return self.query('DeactivateSim')
     
-        
-        
-    #get robot status. returns a list with the following indexes
-    #[0] - Activation state
-    #[1] - Homing state
-    #[2] - Simulation mode
-    #[3] - Error status
-    #[4] - Pause status
-    #[5] - end of block?
-    #[6] - end of movement
     def get_status(self):
         '''
         @brief get the status of the robot as a list of flags and set flags in class. These values are: 
