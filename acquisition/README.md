@@ -46,18 +46,18 @@ graph TD;
 ### Meca 500 6 axis positioner
 Small 6 axis positioner.
 - [Website](https://www.mecademic.com/products/Meca500-small-robot-arm)
-- [User Guide](<file:///./hardware/datasheets/Meca500-R3-User-Manual.pdf>) (cannot be opened from browser)
-- [Programming Manual](<file:///U:\67Internal\DivisionProjects\Channel%20Model%20Uncertainty\Measurements\Hardware\datasheets\Meca500-R3-Programming-Manual.pdf>) (cannot be opened from browser)
+- [User Guide](hardware/datasheets/Meca500-R3-User-Manual.pdf)
+- [Programming Manual](hardware/datasheets/Meca500-R3-Programming-Manual.pdf)
 
 ### Keysight PNA-X (N5245A)
 10MHz to 50GHz VNA. Ports are 2.4mm Male typically with 2.4mm F-F connector savers on them.
-- [Datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/N5245.pdf>) (cannot be opened from browser)
+- [Datasheet](hardware/datasheets/N5245.pdf)
 
 ### Antennas
 - Sage-millimeter 17dBi WR-28 Horn antenna
-    - [Datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/17dBi_horn_sagemillimeter.pdf>) (cannot be opened from browser)
+    - [Datasheet](hardware/datasheets/17dBi_horn_sagemillimeter.pdf)
 - Sage-millimeter 23dBi WR-28 Horn antenna
-    - [Datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/23dBi_horn_sagemillimeter.pdf>) (cannot be opened from browser)
+    - [Datasheet](hardware/datasheets/23dBi_horn_sagemillimeter.pdf)
 
 ### Cables
 - Junkosha 2.4mm (M-M) 3m Cables
@@ -84,27 +84,66 @@ Currently, the samurai system is run over a custom local network run through a s
 This section covers the steps required to run a SAMURAI measurement
 
 ## Running from python command line interface (CLI)
-*[CLI]: Command Line Interface
-*[IDE]: Integrated Development Environment (e.g. Spyder)
+*[CLI]: Command Line Interface  
+*[IDE]: Integrated Development Environment (e.g. Spyder)  
 The following steps are to run a SAMURAI measurement from the python CLI. The steps using the python CLI here are valid for the integrated command line within the Spyder IDE. While these steps will be similar using a basic python setup, the importing of the SAMURAI classes and libraries may be a bit more complex.
 
 ### 1. Create a new SAMURAI measurement directory
+1. Make a copy of 'meas_template' in the directory `U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture`
+2. Rename the copy to the current date in the format `mm-dd-yyyy`
+    - From here on, this newly created directory will be referred to as `<working-directory>`
 
 ### 2. Perform 2 Port VNA Calibration
+1. In the windows file explorer navigate to `<working-directory>/cal/calibration_pre`
+2. double click on 'cal.pnagrabber' to start PNAGrabber for the calibration.
+3. Attach each of the standards to the calibration plane with the naming convention `<standard-port-1>_<standard-port-2>.s2p`
+    - (e.g. load_short.s2p is load on port 1 and short on port 2)
+4. When the calibration is completed, make a copy of each of the `.s2p` files generated and put them into the `<working-directory>/cal/calibration_pre/raw` folder
 
 ### 3. Import the SAMURAI_System Module
+1. Open the python CLI (e.g. the command window in Spyder)
+2. With the file opened in the Spyder IDE, click the green play button on the top toolbar OR type `runfile('<dir-of-code>/SAMURAI_System.py')` where `<dir-of-code>` is the directory where `SAMURAI_System.py` is located on the system
 
 ### 4. Create a SAMURAI_System Object
+1. With the SAMURAI_System module imported, create a SAMURAI_System object by typing `mysam = SAMURAI_System()` into the CLI.
 
 ### 5. Change directory to measurement directory
+1. Change the directory to `<working-directory>/synthetic_aperture/raw` by running the following set of commands:
+``` 
+import os
+os.chdir(<working-directory>/synthetic_aperture/raw)
+```
+OR in certain iPython CLIs  
+```
+cd <working-directory>/synthetic_aperture/raw
+```
 
 ### 6. Mount the Antennas
+1. Mount the Tx Antenna (usually port 2) to the fixed holder
+2. Move the SAMURAI Robot to the mountain position using the commands below 
+    - The `mysam` object must exist for this step to work
+    - Keep in mind, after this code the positioner is still connected and activated after these commands
+```
+mysam.connect_rx_positioner() #connect and home the positioner
+mysam.move_to_mounting_position() #move to an easy position to mount the antenna
+```
+3. Use the four m3 screws to attach the Antenna to the Meca500
+    
 
 ### 7. Run the Synthetic Aperture Sweep
+Before running the sweep we can perform the extra step of viewing the robot's movement and status through its web monitoring interface.
+To open up the web monitoring interface:
+1. Open a web browser (tested in chrome)
+2. type http://10.0.0.5 into the address bar
+3. In the web interface, click the 'Connect' button on the top toolbar.
+4. In the pop-up window select 'Monitoring' and click 'Connect'
+Now we can begin the sweep
+
 
 ### 8. Unmount the Antennas 
 
 ### 9. Collect and Save data
+1. copy data to raw
 
 ## Running from the Graphical User Interface (GUI) SAMURGUI
 This code needs to be finished
