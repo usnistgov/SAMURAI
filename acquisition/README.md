@@ -44,16 +44,20 @@ graph TD;
 ## Hardware
 
 ### Meca 500 6 axis positioner
-Info here
+Small 6 axis positioner.
+- [Website](https://www.mecademic.com/products/Meca500-small-robot-arm)
+- [User Guide](<file:///./hardware/datasheets/Meca500-R3-User-Manual.pdf>) (cannot be opened from browser)
+- [Programming Manual](<file:///U:\67Internal\DivisionProjects\Channel%20Model%20Uncertainty\Measurements\Hardware\datasheets\Meca500-R3-Programming-Manual.pdf>) (cannot be opened from browser)
 
 ### Keysight PNA-X (N5245A)
-Info here
+10MHz to 50GHz VNA. Ports are 2.4mm Male typically with 2.4mm F-F connector savers on them.
+- [Datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/N5245.pdf>) (cannot be opened from browser)
 
 ### Antennas
 - Sage-millimeter 17dBi WR-28 Horn antenna
-    - [datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/17dBi_horn_sagemillimeter.pdf>)
+    - [Datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/17dBi_horn_sagemillimeter.pdf>) (cannot be opened from browser)
 - Sage-millimeter 23dBi WR-28 Horn antenna
-    - [datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/23dBi_horn_sagemillimeter.pdf>)
+    - [Datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/23dBi_horn_sagemillimeter.pdf>) (cannot be opened from browser)
 
 ### Cables
 - Junkosha 2.4mm (M-M) 3m Cables
