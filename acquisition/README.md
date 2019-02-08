@@ -51,9 +51,9 @@ Info here
 
 ### Antennas
 - Sage-millimeter 17dBi WR-28 Horn antenna
-    - [datasheet](<file://U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/17dBi_horn_sagemillimeter.pdf>)
+    - [datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/17dBi_horn_sagemillimeter.pdf>)
 - Sage-millimeter 23dBi WR-28 Horn antenna
-    - [datasheet](<file://U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/23dBi_horn_sagemillimeter.pdf>)
+    - [datasheet](<file:///U:/67Internal/DivisionProjects/Channel%20Model%20Uncertainty/Measurements/Hardware/datasheets/23dBi_horn_sagemillimeter.pdf>)
 
 ### Cables
 - Junkosha 2.4mm (M-M) 3m Cables
