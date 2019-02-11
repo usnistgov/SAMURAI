@@ -25,7 +25,7 @@ import six
 import socket
 import re
 import numpy as np
-import itertools
+import time
 import os
 
 class Meca500:
@@ -56,10 +56,12 @@ class Meca500:
         self.active    = 0
         self.homed     = 0
         self.paused    = 0
-        self.err_flg = 0
+        self.err_flg   = 0
+        self.simulation_mode = 0; #this is the flag that is read from the device
         
         #is this a simulation
-        self.simulation_mode = simulation_mode
+        self.set_simulation_mode = simulation_mode #this will be set
+
         if(simulation_mode):
             print("INFO: Running in simulation mode")
       
@@ -68,7 +70,11 @@ class Meca500:
         '''
         @brief what to do when the object is deleted
         '''
-        self.disconnect() #run close to ensure we shut down correctly
+        if(self.connected): #socket has been made
+            try:
+                self.socket.close() #run close to ensure we shut down correctly
+            except:
+                print("It seems like the socket was still connected but could not be closed")
         
     def connect(self,ip_addr=None,port=None):
         '''
@@ -85,7 +91,8 @@ class Meca500:
             port = self.port
         #now connect the socket
         self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.socket.settimeout(30) #30 second timeout
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.settimeout(10) #10 second timeout
         self.socket.connect((ip_addr,port))
         self.connected = True
         #it should return the name
@@ -136,7 +143,7 @@ class Meca500:
         #check if were connected
         if(self.connected):
             #send
-            self.send(msg)
+            self.send(msg) #this works in blocking mode only (socket.setblocking(True))
             #then recive
             return self.recv(buf_size=buf_size)
         else:
@@ -149,27 +156,35 @@ class Meca500:
         @brief clear errors, zero, deactivate, and disconnect from robot
         @param[in] zero_flg - Whether or not to zero the robot (defaults to True)
         '''
-
+        srv=None; crv=None; drv=None; zrv=None; smrv=None; dirv=None
         #zero,deactivate,close socket
         if(self.connected): #only do any of this if were connected  
-            self.get_status() #update the status
+            srv=self.get_status() #update the status
             if(self.err_flg): #clear errors
-                self.clear_errors()
+                crv=self.clear_errors()
             if(self.active): #then zero and deactivate
-                if(zero_flg): #then zero
-                    self.zero() #zero
-                self.deactivate() #deactivate
+                #if(zero_flg): #then zero
+                #    zrv=self.zero() #zero
+                drv=self.deactivate() #deactivate
             if(self.simulation_mode): #do we run in simulation mode
-               self.deactivate_sim_mode()
-            self.disconnect()
-        self.connected=0
+               smrv=self.deactivate_sim_mode()
+            dirv=self.disconnect_socket()
+        #self.connected=0
+        return srv,crv,drv,zrv,smrv,dirv
+        
+    #alias
+    disconnect = close;
         
     #close socket
-    def disconnect(self):
+    def disconnect_socket(self):
         '''
         @brief close the socket to the robot
+        @return 0 on success
         '''
+        self.socket.shutdown(0)
         self.socket.close()
+        self.connected = 0  #no longer connected
+        return self.connected
     
     ##------------------------------------
     ## From here we have all our Wrappers
@@ -180,24 +195,28 @@ class Meca500:
     
     #run initialization routine. 
     #will connect,activate, then home
-    def initialize(self):
+    def initialize(self,ip_addr=None):
         '''
         @brief initialize the robot. Connect, Activate, Home
         '''
+        crv = None
+        srv = None
+        arv = None
+        hrv = None
         if not self.connected: 
-            self.connect()
-        if(self.simulation_mode): #do we run in simulation mode
-                self.activate_sim_mode()
+            crv = self.connect(ip_addr=ip_addr)
         self.get_status() #update the status after we connect
         if(not self.err_flg):
+            if(self.set_simulation_mode and not self.active):
+                srv = self.activate_sim_mode()
             if not self.active:
-                self.activate()
+                arv = self.activate()
             if not self.homed:
-                self.home()
+                hrv = self.home()
             print("Meca Ready to Move")
         else:
             print("Meca in error. Please run 'clear_errors' errors then re-run")
-        #return 1;
+        return crv,srv,arv,hrv
     
     #home the meca
     def home(self):
@@ -336,15 +355,44 @@ class Meca500:
                 so test run robot after this command is used before synthetic apertures are taken
         @param[in] reset_motion - OPTIONAL(True) whether or not to reset the motion
         '''
+        crv=None; prv=None
         rv = self.query('ResetError')
-        self.get_status() #update the status
-        if(self.paused and reset_motion): #unpause if we are paused
+        self.get_status(); #get the initial status
+        if(reset_motion): #unpause if we are paused
+            prv = self.query('ResumeMotion');
             crv = self.query('ClearMotion') #clear all motions because we were in error
+        else:
+            crv = "Motion Not Cleared"
+        if(self.paused):
             prv = self.query('ResumeMotion') #then resume our motion
         else:
             prv = "Not Paused"
-            crv = "Motion Not Cleared"
+
+        #clear the buffer. For some reason comms get off without this
+        self.flush_com_buffer(send_and_flush=True)
+        
+        self.get_status() #update the status
+ 
         return rv,crv,prv
+    
+    def flush_com_buffer(self,send_and_flush=False):
+        '''
+        @brief Flush communication buffer with robot if its in a weird state
+        @param[in] send_and_flush - do a query before flushing as needed after clearing errors for some reason
+        '''
+        #This is a strange order of events, but the robot socket does not recover correctly without it
+        self.socket.setblocking(False) #turn off non blocking
+        if(send_and_flush):
+            try: #something weird happens unless we send a command then recive two
+                self.get_status();
+            except BlockingIOError:
+                pass
+        time.sleep(0.5)
+        try: #pull any data out of the buffer
+            while(len(self.recv())): pass #flush buffer
+        except BlockingIOError:
+            pass
+        self.socket.setblocking(True) #return to blocking
     
     #activate simulation mode
     def activate_sim_mode(self):
@@ -374,15 +422,21 @@ class Meca500:
             [6] - end of movement
         @return a copy of the list recieved
         '''
-        rv = self.query('GetStatusRobot')
-        vals = rv.get_float_list() # get our values
-        #set the ones in question
-        self.active = int(vals[0])
-        self.homed  = int(vals[1])
-        self.err_flg= int(vals[3])
-        self.paused = int(vals[4]) #this occurs after errors
-        #and return the list
-        return vals
+        rv = "NOT CONNECTED"
+        if(self.connected):
+            rv = self.query('GetStatusRobot')
+            vals = rv.get_float_list() # get our values
+            #set the ones in question
+            self.active = int(vals[0])
+            self.homed  = int(vals[1])
+            self.simulation_mode = int(vals[2])
+            self.err_flg= int(vals[3])
+            self.paused = int(vals[4]) #this occurs after errors
+            #and return the list
+            vals.append(self.connected)
+        else:
+            vals = list(np.zeros(8)) #if not connected return all zeros
+        return vals,rv
     
     
     #once initialized corners of a cube
@@ -405,6 +459,9 @@ class Meca500:
 #this just gives a little more flexibility when handling the messages
 #automatically does some parsing and storage for us
 class MecaReturnMessage:
+    '''
+    @brief class to hold and parse messages from Meca500 Positioner
+    '''
     
     err_msg_nums = range(1000,1015) #these are the same over all instances
     
@@ -438,6 +495,10 @@ class MecaReturnMessage:
     #have the representation be the message
     def __repr__(self):
         return repr(self.msg)
+    
+    #len is of the raw message
+    def __len__(self):
+        return len(self.raw_msg);
     
 #exception could be made one for each but easier to just do one
 class MecaError(Exception):

@@ -98,9 +98,9 @@ class EntryAndTitle(tk.Frame):
     def get(self):
         return self.entry.get()
     
-class CheckGroup(tk.Frame):
+class CheckGroup(tk.LabelFrame):
     def __init__(self,root,title,check_button_name_list,pack_side=tk.LEFT,**kwargs):
-        tk.Frame.__init__(self,root,kwargs)
+        tk.LabelFrame.__init__(self,root,kwargs,text=title)
         self.check_button_name_list = check_button_name_list
         self.num_buttons = len(check_button_name_list)
         self.button_vars = [tk.IntVar() for i in range(self.num_buttons)] 
@@ -126,11 +126,71 @@ class CheckGroup(tk.Frame):
         for i in range(self.num_buttons):
             print("      %s : %d" %(self.check_button_name_list[i],self.get_button_state(i)))
             
+class ButtonGroup(tk.LabelFrame):
+    def __init__(self,root,title,button_name_list,button_function_list,pack_side=tk.LEFT,**kwargs):
+        tk.LabelFrame.__init__(self,root,kwargs,text=title)
+        self.button_name_list = button_name_list;
+        self.button_function_list = button_function_list
+        self.num_buttons = len(button_name_list)
+        self.button_vars = [tk.IntVar() for i in range(self.num_buttons)] 
+        self.buttons = []
+        for i in range(self.num_buttons):
+            self.buttons.append(tk.Button(self,text=self.button_name_list[i],command=self.button_function_list[i]))
+            self.buttons[i].pack(side=pack_side)
+            
+class NotificationGroup(tk.LabelFrame):
+    """
+    @brief: class to hold information on status of system this will update every given amount of time
+    """
+    def __init__(self,root,title,notification_name_list,notification_value_list,pack_side=tk.BOTTOM,**kwargs):
+        tk.LabelFrame.__init__(self,root,kwargs,text=title)
+        self.num_notifications = len(notification_name_list) #number of notificaitons
+        self.notifications = {} #dicitionary holding the key value combos
+        self.notification_vars = {}
+        self.notification_value_list = notification_value_list
+        self.notification_name_list = notification_name_list
+        self.sv = tk.StringVar()
+        self.sv.set("Testing")  
+        for name in notification_name_list: #generate text boxes
+            self.notification_vars[name] = tk.StringVar()
+            self.notifications[name] = tk.Label(root,textvariable=self.sv)#textvariable=self.notification_vars[name])
+            self.notifications[name].pack(side=pack_side);
+            #self.notification_vars[name].set("Not set")
+        #self.update_from_list(notification_value_list)
+        self.sv.set("Testing")  
+        
+    def update_from_list(self,value_list):
+        """ 
+        @brief update from list of variables (assuming correct order)
+        """
+        self.notification_value_list = value_list
+        i=0;
+        for key in self.notifications:
+            value = self.notification_value_list[i]
+            self.notification_vars[key].set("%15s : %10s" %(str(key),str(value)))
+            i+=1
+        
+    def update_from_dict(self,value_dict):
+        """
+        @brief update from dictionary
+        """
+        for key,value in value_dict:
+            self.notification_vars[key].set("%15s : %10s" %(str(key),str(value)))
+            
+    def get(self):
+        """ 
+        @brief get a dictionary of our values
+        """
+        rv = {}
+        for key in self.notifications:
+            rv[key] = self.notification_vars[key].get();
+        return rv;
+            
 #button that will open a new window and display help
 class HelpButton(tk.Button):
     
     def __init__(self,root,help_text,button_text='Need Help? Click Me.',help_window_title='Help Window',**kwargs):
-        tk.Button.__init__(self,root,kwargs,text=button_text,command=self.open_help_window)
+        tk.Button.__init__(self,root,kwargs=kwargs,text=button_text,command=self.open_help_window)
         self.root = root
         self.help_window_title = help_window_title
         self.help_text = help_text

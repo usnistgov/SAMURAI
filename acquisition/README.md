@@ -139,7 +139,7 @@ Before running the sweep we can perform the extra step of viewing the robot's mo
 To open up the web monitoring interface:
 1. Open a web browser (tested in chrome)
 2. type http://10.0.0.5 into the address bar
-3. In the web interface, click the 'Connect' button on the top toolbar.
+3. In the web interface, click the 'Connection' button on the top toolbar.
 4. In the pop-up window select 'Monitoring' and click 'Connect'
 Now we can begin the sweep
 
