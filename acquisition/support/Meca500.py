@@ -57,7 +57,7 @@ class Meca500:
         self.homed     = 0
         self.paused    = 0
         self.err_flg   = 0
-        self.simulation_mode = 0; #this is the flag that is read from the device
+        self.simulation_mode = 0 #this is the flag that is read from the device
         
         #is this a simulation
         self.set_simulation_mode = simulation_mode #this will be set
@@ -173,7 +173,7 @@ class Meca500:
         return srv,crv,drv,zrv,smrv,dirv
         
     #alias
-    disconnect = close;
+    disconnect = close
         
     #close socket
     def disconnect_socket(self):
@@ -357,9 +357,9 @@ class Meca500:
         '''
         crv=None; prv=None
         rv = self.query('ResetError')
-        self.get_status(); #get the initial status
+        self.get_status() #get the initial status
         if(reset_motion): #unpause if we are paused
-            prv = self.query('ResumeMotion');
+            prv = self.query('ResumeMotion')
             crv = self.query('ClearMotion') #clear all motions because we were in error
         else:
             crv = "Motion Not Cleared"
@@ -384,7 +384,7 @@ class Meca500:
         self.socket.setblocking(False) #turn off non blocking
         if(send_and_flush):
             try: #something weird happens unless we send a command then recive two
-                self.get_status();
+                self.get_status()
             except BlockingIOError:
                 pass
         time.sleep(0.5)
@@ -437,7 +437,36 @@ class Meca500:
         else:
             vals = list(np.zeros(8)) #if not connected return all zeros
         return vals,rv
-    
+
+    def set_default_frames_and_velocity(self):
+        '''
+        @brief this sets default values for the positioner
+        '''
+        self.set_wrf(self.options['wrf_pos']) #set reference frames (VERY IMPORTANT)
+        self.set_trf(self.options['trf_pos'])
+        self.set_velocity(10)
+
+    def move_to_mounting_position(self,side='left',rotation=-120):
+        '''
+        @brief move our system to mounting position. Set default values first to ensure our frames and velocity are correct
+            This is the same as the function in SAMURAI_System.py
+        @param[in] side - whcih side of the robot to move to 
+        @param[in] rotation - how much to rotate the arm
+        '''
+        #check if connected
+        if not self.connected:
+            print("Positioner Not Connected")
+            return 'Positioner Not Connected'
+        #mounting position in [x,y,z,alpha,beta,gamma]
+        #this is all done with respect to the SAMURAI reference frames (trf rotated to match wrf and wrf at base directly below trf when zerod)
+        if(side.lower()=='left'):
+            mounting_position = [-250,445,140,0,rotation,90]
+        if(side.lower()=='right'):
+            mounting_position = [-250,-445,140,0,rotation,-90]
+        
+        self.set_default_frames_and_velocity()
+        rv = self.set_position(mounting_position)
+        return rv
     
     #once initialized corners of a cube
     def demo(self):
@@ -498,7 +527,7 @@ class MecaReturnMessage:
     
     #len is of the raw message
     def __len__(self):
-        return len(self.raw_msg);
+        return len(self.raw_msg)
     
 #exception could be made one for each but easier to just do one
 class MecaError(Exception):

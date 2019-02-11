@@ -26,22 +26,22 @@ class pnaController():
     def __init__(self,visa_address):#='TCPIP0::10.0.0.2::inst0::INSTR')
         #damirs vna is USB0::0x0957::0x0118::SG49151009::0::INSTR
         #dylans vna USB0::0x0957::0x0118::US49150144::INSTR
-        self.visa_addr = visa_address;
+        self.visa_addr = visa_address
         
         #init our pna info 
-        self.info        = -1;
-        self.ifbw        = -1.;
-        self.freq_start  = -1.;
-        self.freq_stop   = -1.;
-        self.freq_step   = -1.;
-        self.freq_span   = -1.;
-        self.freq_cent   = -1.;
-        self.num_pts     =  0 ;
-        self.dwell_time  = -1.;
-        self.sdelay_time = -1.;
-        self.power       = -1e32;
-        self.sweep_type  = 'NO READ';
-        self.sweep_time  = 0;
+        self.info        = -1
+        self.ifbw        = -1.
+        self.freq_start  = -1.
+        self.freq_stop   = -1.
+        self.freq_step   = -1.
+        self.freq_span   = -1.
+        self.freq_cent   = -1.
+        self.num_pts     =  0 
+        self.dwell_time  = -1.
+        self.sdelay_time = -1.
+        self.power       = -1e32
+        self.sweep_type  = 'NO READ'
+        self.sweep_time  = 0
         
         self.info = 'NO INFO'
         

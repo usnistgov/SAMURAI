@@ -11,7 +11,7 @@ import numpy as np
 import signal
 import atexit
 
-from Meca500 import Meca500;
+from Meca500 import Meca500
 from samurai_tktools import NotificationGroup
 from samurai_tktools import ButtonGroup
 from samurai_tktools import EntryAndTitle
@@ -31,7 +31,7 @@ class Meca500_GUI:
     
     def __init__(self,tkroot,**options):
         
-        defaults={'robot_addr':'10.0.0.5','status_update_interval':0.5}
+        defaults={'robot_addr':'10.0.0.5','status_update_interval':1}
         #take in our values
         self.options = {}
         for key, value in six.iteritems(defaults):
@@ -40,7 +40,7 @@ class Meca500_GUI:
             self.options[key] = value
             
         #positioner class
-        self.meca = Meca500();
+        self.meca = Meca500()
         
         #notifications
         meca_status_list = ['Activated','Homed','Simulation','Error','Paused','EOB','EOM','Connected']
@@ -64,20 +64,24 @@ class Meca500_GUI:
         self.activation_button_group.pack()
         
         #moving buttons
-        self.location_button_group = ButtonGroup(tkroot,'Movement',['Home','Mounting Position'],[self.home,self.move_mounting_position])
+        self.location_button_group = ButtonGroup(tkroot,'Movement',['Home','Mounting Position'],[self.home,self.move_to_mounting_position])
+        self.location_button_group.pack()
+
+        #sim buttons
+        self.location_button_group = ButtonGroup(tkroot,'Movement',['Simulation On','Simulation Off'],[self.activate_sim,self.deactivate_sim])
         self.location_button_group.pack()
         
         #meca address input
-        self.robot_addr_textbox = EntryAndTitle(tkroot,"Robot IP Address",self.options['robot_addr'],width=50);
-        self.robot_addr_textbox.pack(side=tk.RIGHT);
+        self.robot_addr_textbox = EntryAndTitle(tkroot,"Robot IP Address",self.options['robot_addr'],width=50)
+        self.robot_addr_textbox.pack(side=tk.BOTTOM)
         
         # meca return value
-        self.meca_rv_sv = tk.StringVar();
+        self.meca_rv_sv = tk.StringVar()
         self.meca_rv_sv.set("No Return Value")
-        self.meca_rv_frame = tk.LabelFrame(tkroot,text='Meca Return Message',width=100)
-        self.meca_rv_text = tk.Label(self.meca_rv_frame,textvariable=self.meca_rv_sv)
+        self.meca_rv_frame = tk.LabelFrame(tkroot,text='Meca Return Message')
+        self.meca_rv_text = tk.Label(self.meca_rv_frame,textvariable=self.meca_rv_sv,width=100)
         self.meca_rv_text.pack()
-        self.meca_rv_frame.pack()
+        self.meca_rv_frame.pack(side=tk.BOTTOM)
         
         #register sigterm to kill status thread
         signal.signal(signal.SIGTERM,self.exit_function) #CTRL-C
@@ -89,7 +93,7 @@ class Meca500_GUI:
         #self.sch.enter(self.options['status_update_interval'],1,self.update_meca_status,())
         #self.status_update_thread = threading.Thread(target=self.sch.run)
         self.status_update_thread = threading.Thread(target=self.update_meca_status)
-        self.status_update_thread.daemon = True;
+        self.status_update_thread.daemon = True
         self.status_update_thread.start()
  
         
@@ -97,33 +101,52 @@ class Meca500_GUI:
         self.meca_rv_sv.set(val_str)
         
     def connect(self):
-        print('Connected')
-        self.meca_status.update_from_list([1,0,1,0,1,0,1,0])
+        rv = self.meca.connect(ip_addr=self.robot_addr_textbox.get()) #connect to ip address
+        rv2 = self.meca.set_default_frames_and_velocity() #ensure we set defaults so nothing breaks
+        self.meca_rv_sv.set(str([rv,rv2]))
         
     def disconnect(self):
-        print('Disconnected')
+        rv = self.meca.disconnect_socket() #connect to ip address
+        self.meca_rv_sv.set(str(rv))
         
     def update_meca_status(self):
         #self.meca_status.update
         #if(self.run_thread):
         #    self.sch.enter(self.options['status_update_interval'],1,self.update_meca_status,())
         while self.run_thread:
-            print("Update Status")
+            [status_list,_] = self.meca.get_status() #get the status list
+            self.meca_status.update_from_list(status_list)
             time.sleep(self.options['status_update_interval'])
         return
         
         
     def home(self):
-        print("Homing")
+        rv=self.meca.home()
+        self.meca_rv_sv.set(str(rv))
+
+    def zero(self):
+        rv=self.meca.zero()
+        self.meca_rv_sv.set(str(rv))
         
-    def move_mounting_position(self):
-        print("Moving to Mounting Position")
+    def move_to_mounting_position(self):
+        rv=self.meca.move_to_mounting_position()
+        self.meca_rv_sv.set(str(rv))
         
     def activate(self):
-        print("Activating")
+        rv=self.meca.activate()
+        self.meca_rv_sv.set(str(rv))
         
     def deactivate(self):
-        print("Deactivating")
+        rv=self.meca.deactivate()
+        self.meca_rv_sv.set(str(rv))
+
+    def activate_sim(self):
+        rv=self.meca.activate_sim_mode()
+        self.meca_rv_sv.set(str(rv))
+        
+    def deactivate_sim(self):
+        rv=self.meca.deactivate_sim_mode()
+        self.meca_rv_sv.set(str(rv))
         
     def exit_function(self):
         self.run_thread=False #stop our threads

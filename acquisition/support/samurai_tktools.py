@@ -13,7 +13,7 @@ except ImportError:
     from tkinter import filedialog as tkFileDialog
 #import tkFileDialog
 import os
-
+from collections import OrderedDict
 #class Al_TkTools():
 
 #Class that gives an input and browse button for choosing a file
@@ -145,8 +145,8 @@ class NotificationGroup(tk.LabelFrame):
     def __init__(self,root,title,notification_name_list,notification_value_list,pack_side=tk.BOTTOM,**kwargs):
         tk.LabelFrame.__init__(self,root,kwargs,text=title)
         self.num_notifications = len(notification_name_list) #number of notificaitons
-        self.notifications = {} #dicitionary holding the key value combos
-        self.notification_vars = {}
+        self.notifications = OrderedDict() #dicitionary holding the key value combos
+        self.notification_vars = OrderedDict()
         self.notification_value_list = notification_value_list
         self.notification_name_list = notification_name_list
         self.sv = tk.StringVar()
@@ -165,7 +165,7 @@ class NotificationGroup(tk.LabelFrame):
         @brief update from list of variables (assuming correct order)
         """
         self.notification_value_list = value_list
-        i=0;
+        i=0
         for key in self.notifications:
             value = self.notification_value_list[i]
             self.notification_vars[key].set("%15s : %10s" %(str(key),str(bool(value))))
@@ -191,7 +191,7 @@ class NotificationGroup(tk.LabelFrame):
 class HelpButton(tk.Button):
     
     def __init__(self,root,help_text,button_text='Need Help? Click Me.',help_window_title='Help Window',**kwargs):
-        tk.Button.__init__(self,root,kwargs=kwargs,text=button_text,command=self.open_help_window)
+        tk.Button.__init__(self,root,kwargs,text=button_text,command=self.open_help_window)
         self.root = root
         self.help_window_title = help_window_title
         self.help_text = help_text
