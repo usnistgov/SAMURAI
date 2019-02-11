@@ -40,7 +40,7 @@ class Meca500_GUI:
         meca_status_list = ['Activated','Homed','Simulation','Error','Paused','EOB','EOM','Connected']
         meca_status_init = list(np.zeros(len(meca_status_list)))
         
-        self.meca_status = NotificationGroup(tkroot,'Meca Status',meca_status_list,list(np.zeros(len(meca_status_list))))
+        self.meca_status = NotificationGroup(tkroot,'Meca Status',meca_status_list,meca_status_init)
         self.meca_status.pack()
         print(self.meca_status.get())
     
@@ -58,6 +58,7 @@ class Meca500_GUI:
         
     def connect(self):
         print('Connected')
+        self.meca_status.update_from_list([1,0,1,0,1,0,1,0])
         
     def disconnect(self):
         print('Disconnected')
