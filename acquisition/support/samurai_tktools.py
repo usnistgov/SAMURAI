@@ -153,9 +153,10 @@ class NotificationGroup(tk.LabelFrame):
         self.sv.set("Testing")  
         for name in notification_name_list: #generate text boxes
             self.notification_vars[name] = tk.StringVar()
-            self.notifications[name] = tk.Label(root,textvariable=self.notification_vars[name])
+            self.notification_vars[name].set("Not Set")
+            self.notifications[name] = tk.Label(self,textvariable=self.notification_vars[name],justify=tk.LEFT)
             self.notifications[name].pack(side=pack_side);
-            self.notification_vars[name].set("Not set")
+            #self.notification_vars[name].set("Not set")
         self.update_from_list(notification_value_list)
         #self.sv.set("Testing")  
         
@@ -167,7 +168,7 @@ class NotificationGroup(tk.LabelFrame):
         i=0;
         for key in self.notifications:
             value = self.notification_value_list[i]
-            self.notification_vars[key].set("%15s : %10s" %(str(key),str(value)))
+            self.notification_vars[key].set("%15s : %10s" %(str(key),str(bool(value))))
             i+=1
         
     def update_from_dict(self,value_dict):
@@ -175,7 +176,7 @@ class NotificationGroup(tk.LabelFrame):
         @brief update from dictionary
         """
         for key,value in value_dict:
-            self.notification_vars[key].set("%15s : %10s" %(str(key),str(value)))
+            self.notification_vars[key].set("%15s : %10s" %(str(key),str(bool(value))))
             
     def get(self):
         """ 
