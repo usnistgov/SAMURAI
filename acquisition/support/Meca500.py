@@ -687,7 +687,23 @@ def gen_offset_position_csv(csv_name_in, shift_value_list,flip_flg=True):
         write_nparray_to_csv(os.path.join(ind_shift_dir,fname_no_extension)+'_shift_'+str(i)+'.csv',shift_list[i])
     return shift_full
     
-        
+
+def cat_positions_csv(csv_path_1,csv_path_2,csv_out_path,flip_flg=True):
+    '''
+    @brief - concatenate positions in two files
+    @param[in] csv_path_1 - first file to concatenate
+    @param[in] csv_path_2 - second file to concatenate
+    @param[in] csv_out_path - output file name
+    @param[in/optional] flip_flg - DEFAULT=True - do we flip(reverse) the second csv data
+    '''
+    #load the data
+    data_1 = read_points_from_csv(csv_path_1)
+    data_2 = read_points_from_csv(csv_path_2)
+    if(flip_flg):
+        data_2 = np.flipud(data_2) #reverse data if requested
+    cat_data = np.concatenate((data_1,data_2)) #concatenate data
+    write_nparray_to_csv(csv_out_path,cat_data) #write out
+    return cat_data
     
 
 #generate cylindrical scan grid around a given center point. Sweep -sweep_angle/2 to +sweep_angle/2 from origin

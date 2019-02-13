@@ -79,13 +79,13 @@ class SAMURGUI:
         self.wdir = self.defaults['search_dir']
 
         #--- output directory ---#
-        self.output_picker = DirPicker(self.tkroot,"Output Directory",self.defaults['output_dir'],bd=5,highlightbackground="gray",highlightcolor="black",highlightthickness=5)
+        self.output_picker = DirPicker(self.tkroot,"Output Directory",self.defaults['output_dir'],bd=5,highlightcolor="black",highlightthickness=5)
         self.output_picker.pack()
 
         #---csv input ---#
         ftypes = (("Position List","*.csv"),)
-        self.csv_frame = tk.Frame(self.tkroot,bd=5,highlightbackground="gray",highlightcolor="black",highlightthickness=5,width=100)
-        self.csv_picker = FilePicker(self.csv_frame,"CSV File",self.defaults['csv_path'],filetypes=ftypes,width=90)
+        self.csv_frame = tk.Frame(self.tkroot,bd=5,highlightcolor="black",highlightthickness=5,width=90)
+        self.csv_picker = FilePicker(self.csv_frame,"CSV File",self.defaults['csv_path'],filetypes=ftypes,width=90,bd=5)
         self.csv_picker.pack(side=tk.LEFT)
         self.csv_plot_button = tk.Button(self.csv_frame,text='Plot Points',command=self.plot_points)
         self.csv_plot_button.pack(side=tk.RIGHT)
@@ -93,7 +93,7 @@ class SAMURGUI:
         
         #---template input---#
         ftypes = (("PNA Grabber Menu","*.pnagrabber"),)
-        self.template_picker = FilePicker(self.tkroot,"Template File",self.defaults['template_path'],filetypes=ftypes,bd=5,highlightbackground="gray",highlightcolor="black",highlightthickness=5)
+        self.template_picker = FilePicker(self.tkroot,"Template File",self.defaults['template_path'],filetypes=ftypes,bd=5,highlightcolor="black",highlightthickness=5)
         self.template_picker.pack()
         
         self.addr_frame = tk.Frame(self.tkroot)
@@ -107,8 +107,8 @@ class SAMURGUI:
         self.robot_addr_textbox.pack(side=tk.RIGHT)
         
         #now build checkboxes for w2p select and binary select and whether or not to simulate
-        button_list = ['Simulation?','Run VNA?']
-        self.check_menu = CheckGroup(self.tkroot,'Options',button_list)
+        check_button_list = ['Simulation?','Run VNA?']
+        self.check_menu = CheckGroup(self.tkroot,'Options',check_button_list)
         self.check_menu.pack()
         
         
@@ -116,6 +116,14 @@ class SAMURGUI:
         self.meas_note_box = tk.Text(self.tkroot,width = note_width,height=note_height,bd=10)
         self.meas_note_box.insert(tk.END,"Put information on the measurement here.")
         self.meas_note_box.pack()
+
+        # meca return value
+        self.meca_rv_sv = tk.StringVar()
+        self.meca_rv_sv.set("No Return Value")
+        self.meca_rv_frame = tk.LabelFrame(tkroot,text='Meca Return Message')
+        self.meca_rv_text = tk.Label(self.meca_rv_frame,textvariable=self.meca_rv_sv,width=100)
+        self.meca_rv_text.pack()
+        self.meca_rv_frame.pack(side=tk.BOTTOM)
         
 
         #vna menu
@@ -158,6 +166,7 @@ class RunSamurai:
         #where our template is
         #elf.template_path = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/USC/software/template.pnagrabber'
         #self.set_directory(wdir);
+        self.run_update_thread = True
         
         
     def measure(self,wdir,visa_addr,robot_addr,temp_file,csv_file,note,is_sim,run_vna):   
@@ -178,6 +187,16 @@ class RunSamurai:
     def set_directory(self,dir_path):
         self.wdir = dir_path
         os.chdir(dir_path)
+
+    def update_meca_status(self):
+        #self.meca_status.update
+        #if(self.run_thread):
+        #    self.sch.enter(self.options['status_update_interval'],1,self.update_meca_status,())
+        while self.run_update_thread:
+            #[status_list,_] = self.meca.get_status() #get the status list
+            #self.meca_status.update_from_list(status_list)
+            #time.sleep(self.options['status_update_interval'])
+        return
         
 
 
