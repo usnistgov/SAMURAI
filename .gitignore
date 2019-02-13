@@ -2,3 +2,4 @@
 #ignore vscode info
 .vscode/
 *.pyc
+~$*
