@@ -442,9 +442,10 @@ class Meca500:
         '''
         @brief this sets default values for the positioner
         '''
-        self.set_wrf(self.options['wrf_pos']) #set reference frames (VERY IMPORTANT)
-        self.set_trf(self.options['trf_pos'])
+        rv1=self.set_wrf(self.options['wrf_pos']) #set reference frames (VERY IMPORTANT)
+        rv2=self.set_trf(self.options['trf_pos'])
         self.set_velocity(10)
+        return [rv1,rv2]
 
     def move_to_mounting_position(self,side='left',rotation=-120):
         '''
