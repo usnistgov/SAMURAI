@@ -17,14 +17,14 @@ from collections import OrderedDict
 #class Al_TkTools():
 
 #Class that gives an input and browse button for choosing a file
-class FilePicker(tk.Frame):
+class FilePicker(tk.LabelFrame):
     def __init__(self,root,title,default_val='Enter Value',prompt="Select File",width=100,filetypes=(('All Files','*.*'),),**kwargs):
         #print(kwargs)
-        tk.Frame.__init__(self,root,kwargs)
+        tk.LabelFrame.__init__(self,root,kwargs,text=title)
         self.prompt = prompt
         self.main_frame = self
-        self.title = tk.Label(self.main_frame,text=title,width=width)
-        self.title.pack()
+        #self.title = tk.Label(self.main_frame,text=title,width=width)
+        #self.title.pack()
         self.picker_frame = tk.Frame(self.main_frame)
         self.entry = tk.Entry(self.picker_frame,width=width)
         self.entry.insert(0,default_val)
@@ -46,14 +46,14 @@ class FilePicker(tk.Frame):
     def get(self):
         return self.entry.get()
     
-class DirPicker(tk.Frame):
+class DirPicker(tk.LabelFrame):
     def __init__(self,root,title,default_val='Enter Value',prompt="Select File",width=100,**kwargs):
         #print(kwargs)
-        tk.Frame.__init__(self,root,kwargs)
+        tk.LabelFrame.__init__(self,root,kwargs,text=title)
         self.prompt = prompt
         self.main_frame = self
-        self.title = tk.Label(self.main_frame,text=title,width=width)
-        self.title.pack()
+        #self.title = tk.Label(self.main_frame,text=title,width=width)
+        #self.title.pack()
         self.picker_frame = tk.Frame(self.main_frame)
         self.entry = tk.Entry(self.picker_frame,width=width)
         self.entry.insert(0,default_val)
@@ -73,18 +73,18 @@ class DirPicker(tk.Frame):
         return self.entry.get()
         
 #calDir   = os.path.join(wdir,'./preCal_vnauncert_Results/')
-class EntryAndTitle(tk.Frame):
+class EntryAndTitle(tk.LabelFrame):
 
     def __init__(self,tkroot,title,default_entry='default',title_loc=tk.TOP,width=10,**kwargs):
         self.root=tkroot
-        tk.Frame.__init__(self,tkroot,kwargs)
-        self.title_loc = title_loc
+        tk.LabelFrame.__init__(self,tkroot,kwargs,text=title)
+        #self.title_loc = title_loc
         self.width = width
         self.frame = self
-        self.label_var = tk.StringVar()
-        self.title = tk.Label(self.frame,text=title,textvariable=self.label_var,width=width)
-        self.label_var.set(title)
-        self.title.pack()
+        #self.label_var = tk.StringVar()
+        #self.title = tk.Label(self.frame,text=title,textvariable=self.label_var,width=width)
+        #self.label_var.set(title)
+        #self.title.pack()
         self.entry = tk.Entry(self.frame,width=width)
         self.entry.insert(0,default_entry)
         self.entry.pack()
@@ -129,7 +129,7 @@ class CheckGroup(tk.LabelFrame):
 class ButtonGroup(tk.LabelFrame):
     def __init__(self,root,title,button_name_list,button_function_list,pack_side=tk.LEFT,**kwargs):
         tk.LabelFrame.__init__(self,root,kwargs,text=title)
-        self.button_name_list = button_name_list;
+        self.button_name_list = button_name_list
         self.button_function_list = button_function_list
         self.num_buttons = len(button_name_list)
         self.button_vars = [tk.IntVar() for i in range(self.num_buttons)] 
@@ -155,7 +155,7 @@ class NotificationGroup(tk.LabelFrame):
             self.notification_vars[name] = tk.StringVar()
             self.notification_vars[name].set("Not Set")
             self.notifications[name] = tk.Label(self,textvariable=self.notification_vars[name],justify=tk.LEFT)
-            self.notifications[name].pack(side=pack_side);
+            self.notifications[name].pack(side=pack_side)
             #self.notification_vars[name].set("Not set")
         self.update_from_list(notification_value_list)
         #self.sv.set("Testing")  
@@ -184,8 +184,8 @@ class NotificationGroup(tk.LabelFrame):
         """
         rv = {}
         for key in self.notifications:
-            rv[key] = self.notification_vars[key].get();
-        return rv;
+            rv[key] = self.notification_vars[key].get()
+        return rv
             
 #button that will open a new window and display help
 class HelpButton(tk.Button):
