@@ -23,8 +23,6 @@ class FilePicker(tk.LabelFrame):
         tk.LabelFrame.__init__(self,root,kwargs,text=title)
         self.prompt = prompt
         self.main_frame = self
-        #self.title = tk.Label(self.main_frame,text=title,width=width)
-        #self.title.pack()
         self.picker_frame = tk.Frame(self.main_frame)
         self.entry = tk.Entry(self.picker_frame,width=width)
         self.entry.insert(0,default_val)
@@ -52,8 +50,6 @@ class DirPicker(tk.LabelFrame):
         tk.LabelFrame.__init__(self,root,kwargs,text=title)
         self.prompt = prompt
         self.main_frame = self
-        #self.title = tk.Label(self.main_frame,text=title,width=width)
-        #self.title.pack()
         self.picker_frame = tk.Frame(self.main_frame)
         self.entry = tk.Entry(self.picker_frame,width=width)
         self.entry.insert(0,default_val)
@@ -78,13 +74,8 @@ class EntryAndTitle(tk.LabelFrame):
     def __init__(self,tkroot,title,default_entry='default',title_loc=tk.TOP,width=10,**kwargs):
         self.root=tkroot
         tk.LabelFrame.__init__(self,tkroot,kwargs,text=title)
-        #self.title_loc = title_loc
         self.width = width
         self.frame = self
-        #self.label_var = tk.StringVar()
-        #self.title = tk.Label(self.frame,text=title,textvariable=self.label_var,width=width)
-        #self.label_var.set(title)
-        #self.title.pack()
         self.entry = tk.Entry(self.frame,width=width)
         self.entry.insert(0,default_entry)
         self.entry.pack()
