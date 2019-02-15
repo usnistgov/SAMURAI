@@ -48,21 +48,28 @@ class SAMURAI_System():
         self.is_connected = False
         self.set_simulation_mode(is_simulation)
         #self.connect_rx_positioner();
-        
+        self.rx_positioner = Meca500() #meca500 positioner
+
         
     def connect_rx_positioner(self,run_simulation=None):
         if not run_simulation:
             run_simulation = self.is_simulation #set to default unless overwritten
-        if(run_simulation):
+            rv1=self.rx_positioner.set_simulation_mode=False
+        else:
             print("Running in Simulation Mode")
-        self.rx_positioner = Meca500(self.options['rx_positioner_address'],self.is_simulation) #meca500 positioner
+            rv1=self.rx_positioner.set_simulation_mode=True
         self.is_connected = True
-        self.rx_positioner.initialize() #start up the meca
+        rv2=self.rx_positioner.initialize(ip_addr=self.options['rx_positioner_address']) #start up the meca
         #SETTING REFERENCE PLANES IS A MUST!!! DO NOT SKIP THIS STEP
-        self.rx_positioner.set_wrf(self.options['wrf_pos']) #set reference frames (VERY IMPORTANT)
-        self.rx_positioner.set_trf(self.options['trf_pos'])
-        self.rx_positioner.set_velocity(10)
+        rv3=self.rx_positioner.set_wrf(self.options['wrf_pos']) #set reference frames (VERY IMPORTANT)
+        rv4=self.rx_positioner.set_trf(self.options['trf_pos'])
+        rv5=self.rx_positioner.set_velocity(10)
         self.is_connected = True
+        return [rv1,rv2,rv3,rv4,rv5]
+        
+    def get_rx_positioner_status(self):
+        #self.meca_status.update
+        return self.rx_positioner.get_status() #get the status list
     
     def disconnect_rx_positioner(self,zero_flg=True):
         self.rx_positioner.close(zero_flg)
@@ -80,6 +87,13 @@ class SAMURAI_System():
         #else we return success after setting simulation
         self.is_simulation = on_off
         return 0 #success
+    
+    def set_options(self,**arg_options):
+        '''
+        @brief easy way to set options
+        '''
+        for key, value in six.iteritems(arg_options):
+            self.options[key] = value
         
    # def __del__(self):
    #    self.disconnect_rx_positioner(False);
@@ -95,6 +109,7 @@ class SAMURAI_System():
         #output_file_type should match that of pnagrabber
         defaults = {'note':'none','output_directory':'./','output_name':'meas','output_file_type':'s2p','template_path':'./template.pnagrabber'}
         defaults['settling_time'] = .1 #settling time in seconds
+        defaults['info_string_var'] = None #be able to set outside stringvar for update info
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -107,6 +122,9 @@ class SAMURAI_System():
             pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'],pnagrabber_output_path=pnag_out_path)
         mf = smf.metaFile(csv_path,self.options['vna_visa_address'],wdir=data_out_dir)
         mf.init(notes=options['note'])
+        
+        if(defaults['info_string_var']):
+            defaults['info_string_var'].set('Metafile Initilialized')
         
         #zero positioner (always start from zero positoin to ensure everything is safe)
         self.rx_positioner.zero()
@@ -159,7 +177,7 @@ class SAMURAI_System():
         if(side.lower()=='right'):
             mounting_position = [-250,-445,140,0,rotation,-90]
             
-        self.set_position(mounting_position)
+        return self.set_position(mounting_position)
         
     #wrapper of rx_positioner set_position to check for bounds
     def set_position(self,pos_vals,software_limits=True):

@@ -34,6 +34,7 @@ Before running
 import os
 import sys
 import numpy as np
+import time, threading #imports for updating meca status
 #sam_control_path = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Software/SAMURAI_Control'
 #sys.path.append(sam_control_path)
 from SAMURAI_System import SAMURAI_System
@@ -46,6 +47,8 @@ from support.samurai_tktools import FilePicker
 from support.samurai_tktools import DirPicker
 from support.samurai_tktools import EntryAndTitle
 from support.samurai_tktools import CheckGroup
+from support.samurai_tktools import NotificationGroup
+from support.samurai_tktools import ButtonGroup
 
 try: #backward compatability with 2.7
     import Tkinter as tk
@@ -70,8 +73,8 @@ class SAMURGUI:
         self.tkroot = tkroot
         self.tkroot.title("SAMURAI Measurement tool")
         
-        self.runButton = tk.Button(tkroot,text='Measure',command=self.measure)
-        self.runButton.pack(side=tk.TOP)
+        self.control_buttons = ButtonGroup(tkroot,'SAMURAI Control',['Measure','Move To Mounting Position'],[self.measure,self.move_to_mounting_position],pack_side=tk.TOP)
+        self.control_buttons.pack(side=tk.TOP)
         
         self.setupOptions = tk.LabelFrame(self.tkroot,text='Setup')
         self.setupOptions.pack(side= tk.LEFT)
@@ -96,6 +99,12 @@ class SAMURGUI:
         self.template_picker = FilePicker(self.tkroot,"Template File",self.defaults['template_path'],filetypes=ftypes,bd=5,highlightcolor="black",highlightthickness=5)
         self.template_picker.pack()
         
+        #notifications about meca status
+        meca_status_list = ['Activated','Homed','Simulation','Error','Paused','EOB','EOM','Connected']
+        meca_status_init = list(np.zeros(len(meca_status_list)))
+        self.meca_status = NotificationGroup(tkroot,'Meca Status',meca_status_list,meca_status_init)
+        self.meca_status.pack(side=tk.RIGHT)
+        
         self.addr_frame = tk.Frame(self.tkroot)
         self.addr_frame.pack()
         #visa address input
@@ -110,6 +119,7 @@ class SAMURGUI:
         check_button_list = ['Simulation?','Run VNA?']
         self.check_menu = CheckGroup(self.tkroot,'Options',check_button_list)
         self.check_menu.pack()
+        
         
         
         note_width = 100;note_height=5
@@ -129,7 +139,13 @@ class SAMURGUI:
         #vna menu
         self.vnaMenu = []
         
-        self.my_run_sam = RunSamurai()
+        self.my_run_sam = RunSamurai(self.meca_rv_sv)
+        
+        #update status threading
+        self.run_update_thread = True
+        self.status_update_thread = threading.Thread(target=self.update_meca_status)
+        self.status_update_thread.daemon = True
+        self.status_update_thread.start()
         
         
     def measure(self):
@@ -146,6 +162,7 @@ class SAMURGUI:
         #update working directoyr and run
         self.my_run_sam.set_directory(wdir)
         print("Measuring and saving to "+os.getcwd())
+        #self.meas_thread = threading.Thread(self.my_run_sam.measure,())
         self.my_run_sam.measure(wdir,visa_addr,robot_addr,template_file,csv_file,note,is_sim,run_vna)
         
     def plot_points(self):
@@ -156,47 +173,66 @@ class SAMURGUI:
         plot_points(csv_data)
         #return fig; 
         
+    def update_meca_status(self):
+        while self.run_update_thread:
+            [status_list,_] = self.my_run_sam.mysam.get_rx_positioner_status() #get the status list
+            self.meca_status.update_from_list(status_list)
+            time.sleep(.5)
+        return
     
-         
+    def move_to_mounting_position(self):
+        self.my_run_sam.move_to_mounting_position()
+    
+    def __del__(self):
+        self.run_update_thread = False
+    
 
 class RunSamurai:
     
-    def __init__(self):
+    def __init__(self,info_string_var):
         next
         #where our template is
         #elf.template_path = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/USC/software/template.pnagrabber'
         #self.set_directory(wdir);
-        self.run_update_thread = True
-        
+        self.info_string_var = info_string_var
+        self.mysam = SAMURAI_System() #initialize samuray system
         
     def measure(self,wdir,visa_addr,robot_addr,temp_file,csv_file,note,is_sim,run_vna):   
         self.set_directory(wdir)
         #mpc must be local because many things are directory based when it is initialized
         print(is_sim)
-        mysam = SAMURAI_System(is_simulation=is_sim,vna_visa_address=visa_addr,template_path=temp_file,rx_positioner_address=robot_addr)
+        self.mysam.set_options(vna_visa_address=visa_addr,rx_positioner_address=robot_addr)
+        rvs = self.mysam.set_simulation_mode(is_sim) #set simulation mode
+        self.info_string_var.set(str(rvs))
+        
         try:
-            print(mysam.is_simulation)
-            mysam.connect_rx_positioner() #connect positioner
-            rt = mysam.csv_sweep(wdir,csv_file,run_vna)
+            if(self.mysam.is_connected):
+                rv=self.mysam.connect_rx_positioner() #connect positioner if not connected
+                self.info_string_var.set(str(rv))
+            rt = self.mysam.csv_sweep(wdir,csv_file,run_vna)
             print("Ran in "+str(rt)+" seconds, Results in "+wdir)
+            rv = ("Completed Ran in "+str(rt)+" seconds, Results in "+wdir)
+            self.info_string_var.set(rv)
         except:
-            mysam.disconnect_rx_positioner() #disconnect on failure
+            rv = self.mysam.disconnect_rx_positioner() #disconnect on failure
+            rv = 'EXCEPTION RAISED IN SWEEP: %s' %(str(rv))
+            self.info_string_var.set(rv)
             raise
-        mysam.disconnect_rx_positioner() #if it works correctly also disconnect
+        self.mysam.disconnect_rx_positioner() #if it works correctly also disconnect
         
     def set_directory(self,dir_path):
         self.wdir = dir_path
         os.chdir(dir_path)
+        
+    def move_to_mounting_position(self):
+        rv1 = None
+        if(self.mysam.is_connected):
+            rv1=self.mysam.connect_rx_positioner() #connect positioner if not connected
+        rv2=self.mysam.move_to_mounting_position()
+        self.info_string_var.set(str([rv1,rv2]))
+        
 
-    def update_meca_status(self):
-        #self.meca_status.update
-        #if(self.run_thread):
-        #    self.sch.enter(self.options['status_update_interval'],1,self.update_meca_status,())
-        while self.run_update_thread:
-            #[status_list,_] = self.meca.get_status() #get the status list
-            #self.meca_status.update_from_list(status_list)
-            #time.sleep(self.options['status_update_interval'])
-        return
+
         
 
 
