@@ -1,6 +1,6 @@
 # Calibration
-This directory contains code used to calibrate the synthetic apertures provided by SAMURAI
 
+This directory contains code used to calibrate the synthetic apertures provided by SAMURAI
 
 ## Calibration Steps
 
@@ -11,5 +11,5 @@ This directory contains code used to calibrate the synthetic apertures provided 
 
 ### 2. Generate calibration solution
 
-1. go to calibration folder (insert path)
-2. run swap_script_s-params.py
+1. go to calibration folder `<working_directory>/cal/calibration_<pre,post>`
+2. run `swap_script_s-params.py` by double clicking on it
