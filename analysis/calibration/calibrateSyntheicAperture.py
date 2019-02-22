@@ -34,8 +34,8 @@ except ImportError:
 #wdir = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements//processed/meas/syntheticAperture_Elevation/'
 
 #have user select metafile
-root = tk.Tk();
-root.withdraw();
+root = tk.Tk()
+root.withdraw()
 metaPath = tkFileDialog.askopenfilename(initialdir='../../',title='Select Metadata File',filetypes=(('Synthetic Aperture MetaFile','*.json'),));
 #assume directory of metaFile is working dir
 [wdir, metafile] = os.path.split(metaPath)
@@ -61,21 +61,21 @@ newWdir = os.path.join(wdir,calOutDir)
     
 #make directory
 if not os.path.exists(dateWdir):
-    os.makedirs(dateWdir);
+    os.makedirs(dateWdir)
 
 #make directory
 if not os.path.exists(newWdir):
-    os.makedirs(newWdir);
+    os.makedirs(newWdir)
     #move calibrated results
 
 
 
 
 #set our new working directory
-jsonData['working_directory'] = os.path.abspath(newWdir);
+jsonData['working_directory'] = os.path.abspath(newWdir)
 
 #load our measurements from the metadata
-measurements = jsonData['measurements'];
+measurements = jsonData['measurements']
     
 #for each measurement
 for meas in measurements:
@@ -86,8 +86,8 @@ for meas in measurements:
    curPath.replace('raw','processed'); #change to processed directory JUST IN CASE Shouldnt be needed anymore
    #fname = curPath.split('//')[-1]
    #fname = fname.split('/')[-1]
-   curPath = curPath.strip();
-   [_,fname] = os.path.split(curPath);
+   curPath = curPath.strip()
+   [_,fname] = os.path.split(curPath)
    #fname = fname.strip();
    fnameNoEnd = fname.split('.')[0]
    
@@ -98,16 +98,16 @@ for meas in measurements:
    calibratedPath = os.path.abspath(calDir+'./DUTs/'+fnameNoEnd+'_Support/'+fnameNoEnd+'_0.s2p')
    copyfile(calibratedPath,fpathOut)
    
-   meas['calibration_file'] = os.path.relpath(os.path.abspath(calDir+'./Solutions/Solution_0.s4p'),newWdir);
+   meas['calibration_file'] = os.path.relpath(os.path.abspath(calDir+'./Solutions/Solution_0.s4p'),newWdir)
    
    #now name our files correctly
-   meas['filename'] = os.path.relpath(fpathOut,newWdir);
+   meas['filename'] = os.path.relpath(fpathOut,newWdir)
    meas.update({'calibrated':True})
 
 #write updated measurement stuff to json data
 jsonData['measurements']=measurements
 #write back out our metadata file into outdir
-outMetaPath = newWdir+'./metaFile.json';
+outMetaPath = newWdir+'./metaFile.json'
 with open(outMetaPath,'w+') as jsonFile:
     json.dump(jsonData,jsonFile,indent=4);     
 
