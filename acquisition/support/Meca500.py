@@ -829,6 +829,17 @@ def plot_points(data_points,fig_handle='default',magnitude=10):
     ax.text3D(0,0,0,'WRF Origin',horizontalalignment='left')
     return fig
 
+def plot_points_csv(csv_fname,fig_handle='default',magnitude=10):
+    '''
+    @brief - plot positions from a CSV file
+    @param[in] csv_fname - file name of CSV positions
+    @param[in] OPTIONAL fig_handle - what figure handle to use
+    @param[in] OPTIONAL mangnitude - mangitude of plotted vectors
+    '''
+    data_points = read_points_from_csv(csv_fname)
+    return plot_points(data_points,fig_handle,magnitude)
+    
+
 #load values in from CSV
 def read_points_from_csv(fname):
     vals = np.loadtxt(fname,delimiter=',')
