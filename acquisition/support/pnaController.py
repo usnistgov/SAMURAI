@@ -61,7 +61,7 @@ class pnaController():
             try:
                 self.pna = self.vrm.open_resource(self.visa_addr)
                 self.info = self.pna.query('*IDN?')
-                self.pna.timeout = 60000; #timeout wasnt working at 3 or 10
+                self.pna.timeout = 60000 #timeout wasnt working at 3 or 10
             except:
                 print("Unable to connect to PNA")
                 return
@@ -73,7 +73,7 @@ class pnaController():
         #not my favorite way to do this but prevents timeouts when writing 100 values to segment table for source
         #i wish there was a :LIST command for segment source like there is for segment recievers
         #seems to work though regardless
-        ready = False
+        #ready = False
         self.pna.write('*WAI')
        # while(not ready):
        #     try:
@@ -154,9 +154,9 @@ class pnaController():
         #self.disconnect();
         
         
-    def set_start_freq(self,start_freq):
+    def set_start_freq(self,start_freq,chan=0):
         self.connect()
-        self.write()
+        self.write("SENS%d:FREQ:STAR %e" % (chan,start_freq))
         #self.disconnect();
         
     def get_start_freq(self):
@@ -227,10 +227,10 @@ class pnaController():
             print("Please select source 1 or 2")
             return -1
         
-        rng_num = src_num*2; #change to range number
+        rng_num = src_num*2 #change to range number
         
         com = "SENS:FOM:RANG%d:COUP %s" % (rng_num,on_off.upper())
-        self.write(com);  
+        self.write(com) 
         
     #freq ranges are going to be a list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
     #these values cannot overlap else the vna will not set them correctly
@@ -263,7 +263,7 @@ class pnaController():
         com = 'SENS:SEGM:LIST SSTOP,'+str(num_pts)+','
         
         self.pna.write('FORM:BORD NORM')
-        dat_out = list(chain(*seg_table)); #flatten list of tuples
+        dat_out = list(chain(*seg_table)) #flatten list of tuples
         self.pna.write_binary_values(com,dat_out,datatype='d')
         #self.write(com);
         
@@ -342,7 +342,7 @@ class pnaController():
         #after uncouple/recouple segment table will be the same as measurement segment table
         #so just loop through this table and change the values
         #num_vals = int(mypnac.pna.query('SENS:FOM:RANG4:SEGM:COUN?'));
-        num_vals = len(seg_table); #THIS MUST BE THE SAME SIZE TABLE THAT THE RECIEVERS ARE SET TOO!!! (and same numpts)
+        num_vals = len(seg_table) #THIS MUST BE THE SAME SIZE TABLE THAT THE RECIEVERS ARE SET TOO!!! (and same numpts)
         #if seg_table is longer the end values will not be used. These values must be set carefully
         for i in range(num_vals):
             #ensure roundoff error of floats doesnt crush us
