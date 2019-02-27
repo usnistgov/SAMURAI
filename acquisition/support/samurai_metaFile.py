@@ -15,7 +15,7 @@ import six
 class metaFile:
     # init our class
     def __init__(self,csvFile,pna_addr,wdir='./', metaDir='./',metaName='metaFile'
-                 ,csvDir='./',jsonHeader={},delimiter=',',calPath='./calibration.s4p',):
+                 ,csvDir='./',delimiter=',',calPath='./calibration.s4p',**options):
         #change directory
         os.chdir(wdir)
         #set csv dir and metadir to root dir unless specified
@@ -38,11 +38,12 @@ class metaFile:
         self.calpath = calPath
         
         #1.02 added relative paths to working directory in metafile
+        #1.03 changed most inputs to dictionary for easy setting from outside
         
         #some info about the system
-        self.extJsonHeader      = jsonHeader
-        self.jsonHeader         = {}
-        self.metafile_version   = 1.02
+        self.jsonHeader         = {} #just initialize our header
+        #defaults
+        self.metafile_version   = 1.03
         self.experiment         = 'software testing'
         self.experiment_version = 1.0
         self.positioner         = 'Meca500'
@@ -135,6 +136,7 @@ class metaFile:
             jhd.update({'antennas':self.antennas})
             jhd.update({'notes':notes})
             self.jsonHeader=jhd
+            
         #now loop through json file to add measurements
         self.jsonData = self.jsonHeader
         self.jsonData.update({'total_measurements':0})
@@ -356,6 +358,9 @@ def cleanFileName(fileName,num=-1):
         fout = fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
         fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
     return fout,i
+
+#alias
+MetaFile = metaFile    
 
 #os.chdir('U:/67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\VNA_Drift/3-16-18_driftData\processed_data')
 #mf = metaFile();

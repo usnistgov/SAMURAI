@@ -110,6 +110,7 @@ class SAMURAI_System():
         defaults = {'note':'none','output_directory':'./','output_name':'meas','output_file_type':'s2p','template_path':'./template.pnagrabber'}
         defaults['settling_time'] = .1 #settling time in seconds
         defaults['info_string_var'] = None #be able to set outside stringvar for update info
+        defaults['metafile_header_values'] = None
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
