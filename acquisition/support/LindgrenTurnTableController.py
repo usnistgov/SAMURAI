@@ -14,6 +14,7 @@ import time
 import pyvisa as visa
 
 class LindgrenTurnTableController:
+
     def __init__(self,visa_addr = 'ASRL6::INSTR',init_speed=1,init_lims=[-50,50],set_new_origin=False,origin=180):
         self.vrm = visa.ResourceManager()
         self.lims = init_lims
@@ -30,7 +31,6 @@ class LindgrenTurnTableController:
             print("Restarting python may be required to")
             print("Reset the visa driver also          ")
             print("------------------------------------")
-            return -1
         try:
             self.info = self.dev.query('*IDN?')
             if(set_new_origin):
@@ -102,7 +102,7 @@ class LindgrenTurnTableController:
     #set the current position as origin and move everything negative and positive from here
     def set_origin(self,center_angle=180):
         self.center_angle=center_angle
-        self.set_current_position(center_angle); #use 360 degrees as our origin
+        self.set_current_position(center_angle) #use 360 degrees as our origin
         self.origin = self.get_angle(raw=True)
         self.set_lims(self.lims[0],self.lims[1])
     
