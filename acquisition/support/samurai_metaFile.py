@@ -15,7 +15,7 @@ import six
 class metaFile:
     # init our class
     def __init__(self,csvFile,pna_addr,wdir='./', metaDir='./',metaName='metaFile'
-                 ,csvDir='./',delimiter=',',calPath='./calibration.s4p',**options):
+                 ,csvDir='./',delimiter=',',calPath='./calibration.s4p',**arg_options):
         #change directory
         os.chdir(wdir)
         #set csv dir and metadir to root dir unless specified
@@ -26,6 +26,9 @@ class metaFile:
         if(metaDir=='./'):
             metaDir = wdir
         
+        #input options
+        self.options = OrderedDict({})
+
         #Data used for later continuation of process
         self.rootdir = os.path.abspath(wdir)
         self.csvFile = csvFile
@@ -35,43 +38,67 @@ class metaFile:
         self.pna_addr = pna_addr
         
         #default calPath
-        self.calpath = calPath
+        self.options['cal_path'] = calPath
         
         #1.02 added relative paths to working directory in metafile
         #1.03 changed most inputs to dictionary for easy setting from outside
         
         #some info about the system
-        self.jsonHeader         = {} #just initialize our header
         #defaults
-        self.metafile_version   = 1.03
-        self.experiment         = 'software testing'
-        self.experiment_version = 1.0
-        self.positioner         = 'Meca500'
-        self.user               = 'ajw'
-        self.units              = 'mm'
-        self.posKey             = ['X','Y','Z','alpha','beta','gamma']
-        self.vnaInfo            = {'info':'NO VNA QUERIED',"start":26.5e9,"stop":40e9,"step":20e6,"ifbw":10,"power":0}
-        self.antennas           = []
+        self.options['metafile_version']   = 1.03
+        self.options['experiment']         = 'SAMURAI Measurements'
+        self.options['experiment_version'] = 1.0
+        self.options['positioner']         = 'Meca500'
+        self.options['user']               = 'ajw'
+        self.options['units']              = 'mm'
+        self.options['position_key']       = ['X','Y','Z','alpha','beta','gamma']
+        self.options['vna_info']           = {'info':'NO VNA QUERIED',"start":26.5e9,"stop":40e9,"step":20e6,"ifbw":10,"power":0}
+        self.options['antennas']           = []
         
         #get our vna information if possible
         self.get_vna_params(pna_addr=pna_addr)
 
         #this is an example. should allow user to add in antenna
-        antenna1 = OrderedDict({"name":"Sage_mm 17dBi rectangular horn"})
-        antenna1.update({"txrx":"tx","Location":"Back wall"})
-        antenna1.update({"gain": 17,"beamwidth_e":23,"beamwidth_h":24})
-        antenna1.update({"serial_number":"12345"})
-        antenna2 = OrderedDict({"name":"Sage_mm 17dBi rectangular horn"})
-        antenna2.update({"txrx":"rx","Location":"Mounted on Meca500 Positioner"})
-        antenna2.update({"gain": 17,"beamwidth_e":23,"beamwidth_h":24})
-        antenna2.update({"serial_number":"54321"})
-        self.antennas.append(antenna1)
-        self.antennas.append(antenna2)
+        antenna1 = OrderedDict()
+        antenna1["name"]          = "Sage Millimeter 17dBi rectangular horn"
+        antenna1["txrx"]          = "tx"
+        antenna1["location"]      = "Far end of table on optical post"
+        antenna1["gain_dbi"]      = 17
+        antenna1["beamwidth_e"]   = 23
+        antenna1["beamwidth_h"]   = 24
+        antenna1["serial_number"] = "14172-02"
+        antenna2 = OrderedDict()
+        antenna2["name"]          = "Sage Millimeter 17dBi rectangular horn"
+        antenna2["txrx"]          = "rx"
+        antenna2["location"]      = "Mounted on Meca500 Positioner"
+        antenna2["gain_dbi"]      = 17
+        antenna2["beamwidth_e"]   = 23
+        antenna2["beamwidth_h"]   = 24
+        antenna2["serial_number"] = "14172-01"
+        self.options['antennas'].append(antenna1)
+        self.options['antennas'].append(antenna2)
+
+        #write any input options
+        for key,value in six.iteritems(arg_options):
+            self.options[key] = value
+
         #delimeter of csv file (typically ',')
         self.delimiter = delimiter
         #build our file names
         self.makeFileNames(csvFile=csvFile,metaName=metaName,csvDir=csvDir,metaDir=metaDir)
     
+    def add_antenna(self,antenna,idx=None):
+        '''
+        @brief add info on an antenna. This can be in whatever format
+        @param[in] antenna - information on antenna (usually a dictionary)
+        @param[in] OPTIONAL idx - if provided, overwrite given slot in antenna
+        '''
+        if(idx):
+            self.options['antennas'][idx] = antenna
+        else:
+            self.options['antennas'].append(antenna)
+
+
      #clean and create file names
     def makeFileNames(self,csvFile,metaName='metaFile',csvDir='./',metaDir='./',clean=1):
         #build file paths
@@ -84,8 +111,8 @@ class metaFile:
         #build JSON template
         #first check if we already have a metaFile rename if needed
         if(clean==1):
-            [self.jsonPath,iij]=cleanFileName(self.jsonPath)
-            [self.tmpfPath,iit]=cleanFileName(self.tmpfPath,iij)
+            [self.jsonPath,iij]=clean_file_name(self.jsonPath)
+            [self.tmpfPath,_  ]=clean_file_name(self.tmpfPath,iij)
         
     #get parameters from vna
     def get_vna_params(self,pna_addr):
@@ -93,17 +120,17 @@ class metaFile:
         try:
             pnaCont = pnaController.pnaController(pna_addr)
             pnaCont.getParams()
-            self.vnaInfo.update({'info':pnaCont.info})
-            self.vnaInfo.update({'start':pnaCont.freq_start})
-            self.vnaInfo.update({'stop':pnaCont.freq_stop})
-            self.vnaInfo.update({'step':pnaCont.freq_step})
-            self.vnaInfo.update({'ifbw':pnaCont.ifbw})
-            self.vnaInfo.update({'num_pts':pnaCont.num_pts})
-            self.vnaInfo.update({'dwell_time':pnaCont.dwell_time})
-            self.vnaInfo.update({'sweep_delay':pnaCont.sdelay_time})
-            self.vnaInfo.update({'power':pnaCont.power})
-            self.vnaInfo.update({'sweep_type':pnaCont.sweep_type})
-            self.vnaInfo.update({'sweep_time':pnaCont.sweep_time})
+            self.options['vna_info'].update({'info':pnaCont.info})
+            self.options['vna_info'].update({'start':pnaCont.freq_start})
+            self.options['vna_info'].update({'stop':pnaCont.freq_stop})
+            self.options['vna_info'].update({'step':pnaCont.freq_step})
+            self.options['vna_info'].update({'ifbw':pnaCont.ifbw})
+            self.options['vna_info'].update({'num_pts':pnaCont.num_pts})
+            self.options['vna_info'].update({'dwell_time':pnaCont.dwell_time})
+            self.options['vna_info'].update({'sweep_delay':pnaCont.sdelay_time})
+            self.options['vna_info'].update({'power':pnaCont.power})
+            self.options['vna_info'].update({'sweep_type':pnaCont.sweep_type})
+            self.options['vna_info'].update({'sweep_time':pnaCont.sweep_time})
         except:
             print("Unable to get parameters from VNA, Using defaults")
         
@@ -118,30 +145,29 @@ class metaFile:
 
         
     #build the initial template for our json file
-    def buildJsonTemplate(self,notes='none'):
+    def buildJsonTemplate(self,**additional_header_info):
         #first build header
-        if(self.extJsonHeader):
-            print("External JSON Header Used")
-            self.jsonHeader = self.extJsonHeader
-        else: #else we use our default
-            jhd = OrderedDict({"working_directory":self.rootdir})
-            jhd.update({'metafile_path':os.path.relpath(self.jsonPath,self.rootdir)})
-            jhd.update({'rawfile_path':os.path.relpath(self.tmpfPath,self.rootdir)})
-            jhd.update({"metafile_version":self.metafile_version})
-            jhd.update({'experiment':self.experiment})
-            jhd.update({'experiment_version':self.experiment_version})
-            jhd.update({'positioner':self.positioner})
-            jhd.update({'user':self.user})
-            jhd.update({'vna_info':self.vnaInfo})
-            jhd.update({'antennas':self.antennas})
-            jhd.update({'notes':notes})
-            self.jsonHeader=jhd
+        jhd = OrderedDict({})
+        jhd["working_directory"]  = self.rootdir
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.rootdir)
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.rootdir)
+        jhd["metafile_version"]   = self.options['metafile_version']
+        jhd['experiment']         = self.options['experiment']
+        jhd['experiment_version'] = self.options['experiment_version']
+        jhd['positioner']         = self.options['positioner']
+        jhd['user']               = self.options['user']
+        jhd['vna_info']           = self.options['vna_info']
+        jhd['antennas']           = self.options['antennas']
+        jhd['notes']              = None
+
+        for key,val in six.iteritems(additional_header_info):
+            jhd[key] = val
             
         #now loop through json file to add measurements
-        self.jsonData = self.jsonHeader
-        self.jsonData.update({'total_measurements':0})
-        self.jsonData.update({'completed_measurements':0})
-        self.jsonData.update({'measurements':[]})
+        self.jsonData = jhd  #add the header data
+        self.jsonData['total_measurements']     = 0
+        self.jsonData['completed_measurements'] = 0
+        self.jsonData['measurements']           = [] #now add the measurement data
 
         with open(self.csvPath,'r') as csvfile:
             for line in csvfile:
@@ -153,9 +179,9 @@ class metaFile:
                     strArr = line.split(self.delimiter)
                     pos = [float(i) for i in strArr]
                     self.jsonData['measurements'].append(OrderedDict({'ID':locId}))
-                    self.jsonData['measurements'][locId].update({'position_key':self.posKey})
+                    self.jsonData['measurements'][locId].update({'position_key':self.options['position_key']})
                     self.jsonData['measurements'][locId].update({'position':pos})
-                    self.jsonData['measurements'][locId].update({'units':self.units})
+                    self.jsonData['measurements'][locId].update({'units':self.options['units']})
                     self.jsonData['measurements'][locId].update({'notes':'none'})
                     self.jsonData['measurements'][locId].update({'filename':'INCOMPLETE'})
                     self.jsonData['measurements'][locId].update({'timestamp':'INCOMPLETE'})
@@ -168,28 +194,28 @@ class metaFile:
             json.dump(self.jsonData,jsonFile,indent=4)
             
     #can be built after all raw measurements have been taken
-    def buildJsonFromRaw(self,rawFilePath='default',notes='none'):
+    def buildJsonFromRaw(self,rawFilePath='default',**additional_header_info):
         if(rawFilePath=='default'):
             rawFilePath = self.tmpfPath
         #first build header
-        if(self.extJsonHeader):
-            print("External JSON Header Used")
-            self.jsonHeader = self.extJsonHeader
-        else: #else we use our default
-            jhd = OrderedDict({"working_directory":self.rootdir})
-            jhd.update({'metafile_path':os.path.relpath(self.jsonPath,self.rootdir)})
-            jhd.update({'rawfile_path':os.path.relpath(self.tmpfPath,self.rootdir)})
-            jhd.update({"metafile_version":self.metafile_version})
-            jhd.update({'experiment':self.experiment})
-            jhd.update({'experiment_version':self.experiment_version})
-            jhd.update({'positioner':self.positioner})
-            jhd.update({'user':self.user})
-            jhd.update({'vna_info':self.vnaInfo})
-            jhd.update({'antennas':self.antennas})
-            jhd.update({'notes':notes})
-            self.jsonHeader=jhd
+        jhd = OrderedDict({})
+        jhd["working_directory"]  = self.rootdir
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.rootdir)
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.rootdir)
+        jhd["metafile_version"]   = self.options['metafile_version']
+        jhd['experiment']         = self.options['experiment']
+        jhd['experiment_version'] = self.options['experiment_version']
+        jhd['positioner']         = self.options['positioner']
+        jhd['user']               = self.options['user']
+        jhd['vna_info']           = self.options['vna_info']
+        jhd['antennas']           = self.options['antennas']
+        jhd['notes']              = None
+        
+        for key,val in six.iteritems(additional_header_info):
+            jhd[key] = val
+
         #now loop through json file to add measurements
-        self.jsonData = self.jsonHeader
+        self.jsonData = jhd
         rfp = os.path.join(self.rootdir,rawFilePath)
         #GET number of measurements from raw file
         rawLineCount = 0
@@ -198,9 +224,9 @@ class metaFile:
                 rawLineCount+=1
             rawLineCount-=1 #remove header
             
-        self.jsonData.update({'total_measurements':0})
-        self.jsonData.update({'completed_measurements':0})
-        self.jsonData.update({'measurements':[]})
+        self.jsonData['total_measurements']     = 0
+        self.jsonData['completed_measurements'] = 0
+        self.jsonData['measurements']           = []
 
         with open(rfp,'r') as rawfile:
             next(rawfile) #skip header
@@ -244,11 +270,10 @@ class metaFile:
         #now write this out to our JSON file
         with open(self.jsonPath,'w+') as jsonFile:
             json.dump(self.jsonData,jsonFile,indent=4)
- 
     
     #update temporary metaFile
     def update(self,filePath,position,**arg_options):#,calFilePath='default',note='none',measID=-1):
-        defaults = {'cal_file_path':self.calpath,'note':'none','measID':-1}
+        defaults = {'cal_file_path':self.options['cal_path'],'note':'none','measID':-1}
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -263,7 +288,7 @@ class metaFile:
         else: #else it already exists
             #find the measID if not given
             if(options['measID']==-1):
-                measID=self.getLastMeasID()+1
+                measID=self.get_last_meas_id()+1
             writeType = 'a'
             headerLine = ''
             
@@ -321,13 +346,13 @@ class metaFile:
         
         
     #laod from previous session
-    def loadSession(self,metaName):
+    def load_session(self,metaName):
         print("DO THIS")
         #build file with info to continue then delete at end when finished
         
      
     #get the file id of the last entry
-    def getLastMeasID(self):
+    def get_last_meas_id(self):
         with open(self.tmpfPath,'r') as fp:
             #get last line
             for line in fp:
@@ -338,7 +363,7 @@ class metaFile:
 
       
 #check if file exists and change name if it does
-def cleanFileName(fileName,num=-1):
+def clean_file_name(fileName,num=-1):
     fout=fileName
     i=0
     if(num==-1):
