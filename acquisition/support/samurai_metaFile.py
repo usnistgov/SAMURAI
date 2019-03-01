@@ -5,8 +5,8 @@ import os
 import json
 import numpy as np
 from datetime import datetime as dt
-#import support.pnaController as pnaController
-import pnaController as pnaController
+import support.pnaController as pnaController
+#import pnaController as pnaController
 import six
 
 #class for meta file with JSON and temp file
