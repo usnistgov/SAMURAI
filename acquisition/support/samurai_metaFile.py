@@ -5,7 +5,8 @@ import os
 import json
 import numpy as np
 from datetime import datetime as dt
-import support.pnaController as pnaController
+#import support.pnaController as pnaController
+import pnaController as pnaController
 import six
 
 #class for meta file with JSON and temp file
@@ -14,31 +15,20 @@ import six
 #Written by Alec Weiss 2018
 class metaFile:
     # init our class
-    def __init__(self,csvFile,pna_addr,wdir='./', metaDir='./',metaName='metaFile'
-                 ,csvDir='./',delimiter=',',calPath='./calibration.s4p',**arg_options):
-        #change directory
-        os.chdir(wdir)
-        #set csv dir and metadir to root dir unless specified
-        if(wdir[-1]!='/'):
-            wdir = wdir+'/'
-        if(csvDir=='./'):
-            csvDir = wdir
-        if(metaDir=='./'):
-            metaDir = wdir
-        
+    def __init__(self,csv_file,pna_addr,**arg_options):
+
         #input options
         self.options = OrderedDict({})
 
-        #Data used for later continuation of process
-        self.rootdir = os.path.abspath(wdir)
-        self.csvFile = csvFile
-        self.csvDir  = csvDir
-        self.metaDir = metaDir
-        self.metaName = metaName
-        self.pna_addr = pna_addr
+        #Some default values
+        self.options['root_dir'] = os.path.abspath('./')
+        self.options['csv_path'] = csv_file
+        self.options['metafile_name'] = 'metafile'
+        self.options['pna_address'] = pna_addr
+        self.options['csv_delimiter'] = ','
         
         #default calPath
-        self.options['cal_path'] = calPath
+        self.options['cal_path'] = './calibration.s4p'
         
         #1.02 added relative paths to working directory in metafile
         #1.03 changed most inputs to dictionary for easy setting from outside
@@ -75,17 +65,22 @@ class metaFile:
         antenna2["beamwidth_e"]   = 23
         antenna2["beamwidth_h"]   = 24
         antenna2["serial_number"] = "14172-01"
-        self.options['antennas'].append(antenna1)
-        self.options['antennas'].append(antenna2)
+        self.add_antenna(antenna1)
+        self.add_antenna(antenna2)
 
         #write any input options
         for key,value in six.iteritems(arg_options):
+            if(key=='root_dir'): #get abspath if rootdir
+                value = os.path.abspath(value)
             self.options[key] = value
 
+        #change to working directory
+        os.chdir(self.options['root_dir'])
+
         #delimeter of csv file (typically ',')
-        self.delimiter = delimiter
+
         #build our file names
-        self.makeFileNames(csvFile=csvFile,metaName=metaName,csvDir=csvDir,metaDir=metaDir)
+        self.makeFileNames()
     
     def add_antenna(self,antenna,idx=None):
         '''
@@ -98,16 +93,23 @@ class metaFile:
         else:
             self.options['antennas'].append(antenna)
 
+    def set_options(self,**options):
+        '''
+        @brief set values in the options dictionary.
+        @param[in] options - key value pairs of options to set
+        '''
+        for key,value in six.iteritems(options):
+            self.options[key] = value
 
      #clean and create file names
-    def makeFileNames(self,csvFile,metaName='metaFile',csvDir='./',metaDir='./',clean=1):
+    def makeFileNames(self,clean=1):
         #build file paths
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
-        self.jsonPath = os.path.join(self.metaDir,metaName+'.json')
-        self.tmpfPath = os.path.join(self.metaDir,metaName+'.raw')
+        self.jsonPath = self.options['metafile_name']+'.json'
+        self.tmpfPath = self.options['metafile_name']+'.raw'
         self.raw_path = self.tmpfPath
-        self.csvPath  = os.path.join(self.csvDir,csvFile)
+        self.csvPath  = self.options['csv_file']
         #build JSON template
         #first check if we already have a metaFile rename if needed
         if(clean==1):
@@ -148,9 +150,9 @@ class metaFile:
     def buildJsonTemplate(self,**additional_header_info):
         #first build header
         jhd = OrderedDict({})
-        jhd["working_directory"]  = self.rootdir
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.rootdir)
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.rootdir)
+        jhd["working_directory"]  = self.options['root_dir']
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['root_dir'])
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['root_dir'])
         jhd["metafile_version"]   = self.options['metafile_version']
         jhd['experiment']         = self.options['experiment']
         jhd['experiment_version'] = self.options['experiment_version']
@@ -176,7 +178,7 @@ class metaFile:
                     self.jsonData['total_measurements']+=1
                     locId = self.jsonData['total_measurements']-1
                     #extract our position from the csv file
-                    strArr = line.split(self.delimiter)
+                    strArr = line.split(self.options['csv_delimiter'])
                     pos = [float(i) for i in strArr]
                     self.jsonData['measurements'].append(OrderedDict({'ID':locId}))
                     self.jsonData['measurements'][locId].update({'position_key':self.options['position_key']})
@@ -199,9 +201,9 @@ class metaFile:
             rawFilePath = self.tmpfPath
         #first build header
         jhd = OrderedDict({})
-        jhd["working_directory"]  = self.rootdir
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.rootdir)
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.rootdir)
+        jhd["working_directory"]  = self.options['root_dir']
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['root_dir'])
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['root_dir'])
         jhd["metafile_version"]   = self.options['metafile_version']
         jhd['experiment']         = self.options['experiment']
         jhd['experiment_version'] = self.options['experiment_version']
@@ -216,7 +218,7 @@ class metaFile:
 
         #now loop through json file to add measurements
         self.jsonData = jhd
-        rfp = os.path.join(self.rootdir,rawFilePath)
+        rfp = os.path.join(self.options['root_dir'],rawFilePath)
         #GET number of measurements from raw file
         rawLineCount = 0
         with open(rfp,'r') as rawfile:
@@ -237,7 +239,7 @@ class metaFile:
                     locId = self.jsonData['total_measurements']-1
                     ls = line.split('|')
                     measId = int(ls[1])
-                    fname  = os.path.relpath(ls[2].strip(),self.rootdir)
+                    fname  = os.path.relpath(ls[2].strip(),self.options['root_dir'])
                     cfname = ls[3]
                     time   = ls[4]
                     notes  = ls[6]
@@ -254,7 +256,7 @@ class metaFile:
                     except ValueError:
                         pos_out = 'NO Positioner'
                     #extract our position from the csv file
-                    #strArr = line.split(self.delimiter);
+                    #strArr = line.split(self.options['csv_delimiter']);
                     #pos = [float(i) for i in strArr];
                     self.jsonData['measurements'].append(OrderedDict({'ID':measId}))
                     self.jsonData['measurements'][locId].update({'position_key':'Unknown'})
@@ -294,7 +296,7 @@ class metaFile:
             
         #build the file line from our parameters
         with open(self.tmpfPath,writeType) as metafile:
-            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(filePath,self.rootdir)+"    |    "+os.path.relpath(options['cal_file_path'],self.rootdir)+'   |   '
+            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(filePath,self.options['root_dir'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['root_dir'])+'   |   '
                     +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+'   |\n')
             metafile.write(headerLine)
             metafile.write(line)
