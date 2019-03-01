@@ -100,6 +100,7 @@ class SAMURAI_System():
     
     #Here we will have various setup and run options we encounter
     #generic sweep from csv file and measure with pnagrabber 
+    #need to pass arg_options as unpacked dict or named args
     def csv_sweep(self,data_out_dir,csv_path,run_vna=True,**arg_options):
         #check if connected
         if not self.is_connected:
@@ -122,7 +123,7 @@ class SAMURAI_System():
             pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
             pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'],pnagrabber_output_path=pnag_out_path)
         mf = smf.metaFile(csv_path,self.options['vna_visa_address'],wdir=data_out_dir)
-        mf.init(notes=options['note'])
+        mf.init(notes=options['note'],**arg_options)
         
         if(defaults['info_string_var']):
             defaults['info_string_var'].set('Metafile Initilialized')

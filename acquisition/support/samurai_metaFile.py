@@ -15,14 +15,14 @@ import six
 #Written by Alec Weiss 2018
 class metaFile:
     # init our class
-    def __init__(self,csv_file,pna_addr,**arg_options):
+    def __init__(self,csv_path,pna_addr,**arg_options):
 
         #input options
         self.options = OrderedDict({})
 
         #Some default values
         self.options['root_dir'] = os.path.abspath('./')
-        self.options['csv_path'] = csv_file
+        self.options['csv_path'] = csv_path
         self.options['metafile_name'] = 'metafile'
         self.options['pna_address'] = pna_addr
         self.options['csv_delimiter'] = ','
@@ -109,7 +109,7 @@ class metaFile:
         self.jsonPath = self.options['metafile_name']+'.json'
         self.tmpfPath = self.options['metafile_name']+'.raw'
         self.raw_path = self.tmpfPath
-        self.csvPath  = self.options['csv_file']
+        self.csvPath  = self.options['csv_path']
         #build JSON template
         #first check if we already have a metaFile rename if needed
         if(clean==1):
