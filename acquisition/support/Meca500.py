@@ -163,8 +163,8 @@ class Meca500:
             if(self.err_flg): #clear errors
                 crv=self.clear_errors()
             if(self.active): #then zero and deactivate
-                #if(zero_flg): #then zero
-                #    zrv=self.zero() #zero
+                if(zero_flg): #then zero
+                    zrv=self.zero() #zero
                 drv=self.deactivate() #deactivate
             if(self.simulation_mode): #do we run in simulation mode
                smrv=self.deactivate_sim_mode()
