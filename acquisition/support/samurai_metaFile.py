@@ -137,9 +137,9 @@ class metaFile:
     #init function to be called after all values set by user
     #This will call init JSON and other files to build template.
     #parameters after this cannot be changed
-    def init(self,notes='none'):
+    def init(self,**additional_header_info):
         #build our json file template
-        self.buildJsonTemplate(notes=notes)
+        self.buildJsonTemplate(**additional_header_info)
         #init our continuation file in case of failure
  #       self.initContFile();
 
