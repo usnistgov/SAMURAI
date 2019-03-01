@@ -123,7 +123,7 @@ class SAMURAI_System():
             pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
             pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'],pnagrabber_output_path=pnag_out_path)
         mf = smf.metaFile(csv_path,self.options['vna_visa_address'],wdir=data_out_dir)
-        mf.init(notes=options['note'],**arg_options)
+        mf.init(notes=options['note'],**defaults['metafile_header_values'])
         
         if(defaults['info_string_var']):
             defaults['info_string_var'].set('Metafile Initilialized')
