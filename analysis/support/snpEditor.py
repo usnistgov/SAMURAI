@@ -508,20 +508,17 @@ class s1pEditor:
  
 
 #acutally is the same as snpParam
-class WnpParam(np.ndarray):
+class WnpParam:
     
     def __init__(self,freq_list,raw_list):
         self.update(freq_list,raw_list)
         
     def sort(self):
-        myzipped = zip(self.freq_list,self.raw,self.mag,self.phase,self.phase_d)
+        myzipped = zip(self.freq_list,self.raw)
         list(myzipped).sort()
-        freq_list,raw,mag,phase,phase_d = zip(*myzipped)
+        freq_list,raw = zip(*myzipped)
         self.freq_list = np.array(freq_list)
         self.raw = np.array(raw)
-        self.mag = np.array(mag)
-        self.phase = np.array(phase)
-        self.phase_d = np.array(phase_d)
         
     #crop out all frequencies outside a window given by lo and hi frequencies (in Hz)
     def crop(self,lo_freq=0,hi_freq=1e60):
@@ -537,9 +534,6 @@ class WnpParam(np.ndarray):
         #self.del_idx = del_idx;
         self.freq_list = np.delete(self.freq_list,del_idx)
         self.raw = np.delete(self.raw,del_idx)
-        self.mag = np.delete(self.mag,del_idx)
-        self.phase = np.delete(self.phase,del_idx)
-        self.phase_d = np.delete(self.phase_d,del_idx)
         
     #cut out all frequencies insides a window given by lo and hi frequencies (in Hz)
     def cut(self,lo_freq=0,hi_freq=1e60):
@@ -555,9 +549,6 @@ class WnpParam(np.ndarray):
         #self.del_idx = del_idx;
         self.freq_list = np.delete(self.freq_list,del_idx)
         self.raw = np.delete(self.raw,del_idx)
-        self.mag = np.delete(self.mag,del_idx)
-        self.phase = np.delete(self.phase,del_idx)
-        self.phase_d = np.delete(self.phase_d,del_idx)
     
     #round frequency list to nearest hz
     #useful for writing out 
@@ -568,14 +559,25 @@ class WnpParam(np.ndarray):
     #put new values into the class
     def update(self,freq_list,raw_list):
         self.freq_list = freq_list
-        self.raw  = raw_list
-        self.mag     = [abs(i) for i in raw_list]
-        self.phase   = [cmath.phase(i) for i in raw_list]
-        self.phase_d = [cmath.phase(i)*180/np.pi for i in raw_list]
+        self.raw = raw_list
         
     @property
     def mag(self):
         return [abs(i) for i in self]
+
+    @property
+    def phase(self):
+        return [cmath.phase(i) for i in self]
+
+    @property
+    def phase_d(self):
+        return [cmath.phase(i)*180/np.pi for i in self]
+    
+    def __get__(self,instance,owner):
+        return self.raw
+    
+    def __getitem__(self,idx):
+        return self.raw[idx]
         
 class SnpParam(WnpParam):
      
