@@ -4,7 +4,7 @@ Created on Mon Apr 23 11:02:53 2018
 edit .snp files (.s2p,.s4p,etc...)
 @author: ajw5
 """
-
+import os
 import cmath 
 import numpy as np
 import re
@@ -210,6 +210,87 @@ class W2pEditor:
        my_snp.S[22].update(self.A[22].freq_list,S22_vals)
        return my_snp
     
+class SnPEditor:
+    
+    
+    def __init__(self,inputFile):\
+    '''
+    @brief #inputFile automatically laods an snp file. for now file must be given
+    @param[in] input_file  name of file to import
+    '''
+    
+        self.options['header'] = []
+        self.options['comments'] = []
+        self.S = dict()
+        self.dict_keys = []
+        #get the number of ports from the file extension
+        [_,file_ext] = os.path.splitext(fname)[-1]
+        self.options['num_ports'] = int(''.join(re.findall('\d',file_ext)))
+        #now set our keys
+        self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
+
+    
+                
+    
+    #load from file
+    def load(self,filePath,ftype='default',delimiter=','):
+        
+        #check if were loading a .meas file first and update input accordingly
+        if(filePath.split('.')[-1]=='meas'):
+            filePath = get_unperturbed_meas(filePath)
+            
+        if(ftype=='default'):
+            if(filePath.split('_')[-1]=='binary'):
+                ftype='binary'
+            else:
+                ftype='text'        
+        
+        s11raw = []
+        s21raw = []
+        s12raw = []
+        s22raw = []
+        freqList = []
+        
+        if(ftype=='binary'):
+            with open(filePath,'rb') as fp: #open file
+                [num_rows,num_cols] = np.fromfile(fp,dtype=np.uint32,count=2) #read header
+                #num_rows.append(num_rows);num_cols.append(cur_num_cols); #keep track from each file
+                #now read all our data but store line by line to rearrange later
+                for j in range(num_rows):
+                    #read in and unpack
+                    cur_data = np.fromfile(fp,count=num_cols,dtype=np.float64)
+                    freqList.append(cur_data[0])
+                    s11raw.append(cur_data[1]+1j*cur_data[2])
+                    s21raw.append(cur_data[3]+1j*cur_data[4])
+                    s12raw.append(cur_data[5]+1j*cur_data[6])
+                    s22raw.append(cur_data[7]+1j*cur_data[8])
+    
+        elif(ftype=='text'):
+            with open(filePath,'r') as fp:
+                self.header = []
+                self.comments = []
+                for line in fp:
+                    if(line.strip()[0]=='#'):
+                       self.header.append(line)
+                    elif(line.strip()[0]=='!'):
+                       self.comments.append(line)
+                    else: #else its data
+                        llist = re.split(r'['+delimiter+r'\|\s]+',line) #split on lots of charactors and given delimeter
+                        llist = [l.strip() for l in llist]
+                        freqList.append(float(llist[0]))
+                     #   print(line)
+                        s11raw.append(np.float64(llist[1])+1j*np.float64(llist[2]))
+                        s21raw.append(np.float64(llist[3])+1j*np.float64(llist[4]))
+                        s12raw.append(np.float64(llist[5])+1j*np.float64(llist[6]))
+                        s22raw.append(np.float64(llist[7])+1j*np.float64(llist[8]))
+            
+        self.freq_list = freqList
+        #this is a better method
+        self.dict_keys = [11,21,12,22]
+        self.S[11] = self.S11
+        self.S[21] = self.S21
+        self.S[12] = self.S12
+        self.S[22] = self.S22
 
 class S2pEditor:
     #inputFile automatically laods an s2p file. if not given, S2P file with all zeros will be generated with freq_list frequencies (if provided) frequencies provided in GHz
