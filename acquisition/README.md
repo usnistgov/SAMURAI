@@ -106,7 +106,8 @@ Currently, the samurai system is run over a custom local network run through a s
     3. Click on `TCP/IPv4` and then click `Properties`
     4. Click the radio button for `Use the following IP address` and type in the following parameters
       - IP address = 10.0.0.1
-      - subnet mask
+      - subnet mask = 255.0.0.0
+      - Default gateway = DO NOT POPULATE
     5. Then click `OK` and `Close` to close out of the properties menu. You should now be able to access items on the local network.
 
 # Running the SAMURAI Software
