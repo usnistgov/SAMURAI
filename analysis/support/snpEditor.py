@@ -508,7 +508,7 @@ class s1pEditor:
  
 
 #acutally is the same as snpParam
-class WnpParam:
+class WnpParam(np.ndarray):
     
     def __init__(self,freq_list,raw_list):
         self.update(freq_list,raw_list)
@@ -572,6 +572,10 @@ class WnpParam:
         self.mag     = [abs(i) for i in raw_list]
         self.phase   = [cmath.phase(i) for i in raw_list]
         self.phase_d = [cmath.phase(i)*180/np.pi for i in raw_list]
+        
+    @property
+    def mag(self):
+        return [abs(i) for i in self]
         
 class SnpParam(WnpParam):
      

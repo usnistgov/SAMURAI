@@ -140,6 +140,11 @@ elif exp == '021319':
     experimentDir = '2-13-2019'
     subdir = 'synthetic_aperture'
     jsonFile = 'metaFile_split_0.json'
+    
+dataDir = r"U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\\calibrated\\"
+experimentDir = '3-1-2019'
+subdir = 'aperture_0'
+jsonFile = 'metafile.json'
 
 
 measFolder = os.path.join(os.path.join(dataDir, experimentDir), subdir)

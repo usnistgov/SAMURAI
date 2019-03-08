@@ -20,37 +20,41 @@ sys.path.append(snpEdPath)
 from snpEditor import s2pEditor as s2p
 
 
-class metaFileController():
+class metaFileController(OrderedDict):
     
-    def __init__(self,metafile='',wdir='./',suppress_empty_warning=0):
+    def __init__(self,metafile_path,suppress_empty_warning=0):
         #self.root = tk.Tk();
         #self.root.withdraw();
         #load in our json file
-        self.load(metafile,wdir,suppress_empty_warning)
+        super().__init__() #initialize ordereddict
+        self.load(metafile_path,suppress_empty_warning)
         
        
     #load file
-    def load(self,metafile,wdir='./',suppress_empty_warning=0):
+    def load(self,metafile_path,suppress_empty_warning=0):
         
-        metaPath = os.path.join(wdir,metafile)
+        metaPath = metafile_path
         
         #if(prompt):
         #    metaPath = tkFileDialog.askopenfilename(initialdir='../../',title='Select Metadata File',filetypes=(('Synthetic Aperture MetaFile','*.json'),));
 
         #create an empty class if no metafile was defined
-        if not metafile:
+        if not os.path.exists(metafile_path):
             if not suppress_empty_warning:
                 print("No metafile specified - Creating empty file")
-            self.metafile = 'metafile.json'
-            self.metadir  = os.path.abspath('./')
-            self.jsonData = OrderedDict()
+            [metadir,metafile]= os.path.split(metaPath)
+            self.metafile = metafile
+            self.metadir  = metadir
+            #self.jsonData = OrderedDict()
         else:
             #here we assume the working directory is the location of our metafile
             [metadir,metafile]= os.path.split(metaPath)
             self.metafile = metafile
             self.metadir     = metadir
             with open(metaPath,'r') as jsonFile:
-                self.jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
+                #self.jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
+                self.update(json.load(jsonFile, object_pairs_hook=OrderedDict))
+                self.jsonData = self
             
     def get_wdir(self):
         return self.jsonData['working_directory'].strip()
@@ -106,12 +110,21 @@ class metaFileController():
             
     #now functions for dealing with the data
     def load_all_meas(self):
+        '''
+        @brief load s2p files into this class DEPRECATED
+        @DEPRECATED use load_data method
+        '''
         self.s2pData = []
         self.numLoadedMeas = 0
         measurements = self.jsonData['measurements']
         for meas in measurements:
             self.s2pData.append(s2p(meas['filename'].strip()))
             self.numLoadedMeas+=1
+            
+    def load_data(self):
+        '''
+        @brief load up all measurements into list of snp or wnp files
+        @return list of snp or wnp classes
             
     def get_filename_list(self,abs_path=False):
         fnames = []
