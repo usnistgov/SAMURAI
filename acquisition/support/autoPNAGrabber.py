@@ -150,4 +150,7 @@ def cleanFileName(fileName,num=-1):
         fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
     return fout,i
 
+#alisases
+PnaGrabber = pnaGrabber
 PNAGrabber = pnaGrabber
+

@@ -15,27 +15,21 @@ Before running
 import sys
 import os
 
-analysis_support_path = '../support'
-sys.path.append(os.path.join(os.path.dirname(__file__),analysis_support_path,'snp_editor')) #add relative path for local support
-from snpEditor import s2pEditor as s2p
-sys.path.append(os.path.join(os.path.dirname(__file__),analysis_support_path,'metafile_control')) 
-from metaFileController import metaFileController as mfc
-from metaFileController import update_wdir
-sys.path.append(os.path.join(os.path.dirname(__file__),analysis_support_path,'auto_post_processor_muf')) 
-from PostProcPy import PostProcPy as pppy
+from samurai.analysis.support.snpEditor import s2pEditor as s2p
+from samurai.analysis.support.metaFileController import metaFileController as mfc
+from samurai.analysis.support.metaFileController import update_wdir
+from samurai.analysis.support.PostProcPy import PostProcPy as pppy
 #pppy_template = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Software/synthetic_aperture';
 
 
 #import my tktools
 #tktoolsPath = 'Q:/public/Quimby/Students/Alec/Useful_Code/Al_TkTools.py'
 #sys.path.append(tktoolsPath)
-acquisition_support_path = '../../acquisition/support'
-sys.path.append(os.path.join(os.path.dirname(__file__),acquisition_support_path)) #path for tktools
-from samurai_tktools import DirPicker
-from samurai_tktools import FilePicker
-from samurai_tktools import EntryAndTitle
-from samurai_tktools import CheckGroup
-from samurai_tktools import HelpButton
+from samurai.acquisition.support.samurai_tktools import DirPicker
+from samurai.acquisition.support.samurai_tktools import FilePicker
+from samurai.acquisition.support.samurai_tktools import EntryAndTitle
+from samurai.acquisition.support.samurai_tktools import CheckGroup
+from samurai.acquisition.support.samurai_tktools import HelpButton
 
 
 from collections import OrderedDict

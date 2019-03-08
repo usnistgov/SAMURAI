@@ -98,6 +98,17 @@ Currently, the samurai system is run over a custom local network run through a s
   - VISA Address = 'TCPIP0::10.0.0.2::inst0::INSTR'
 - Meca500 = [10.0.0.5](http://10.0.0.5)
   - VISA Address = Could not get VISA to work correctly! Connect using sockets.
+- Computer = [10.0.0.1](http://10.0.0.1)
+  - VISA Address = N/A (local loopback is 127.0.0.1)
+  - Setting Network adapter settings for local network:
+    1. Go to `Control Panel->Network and Internet->Network Connections`
+    2. Right click on the network controller for the local network and select `Properties` (admin status required)
+    3. Click on `TCP/IPv4` and then click `Properties`
+    4. Click the radio button for `Use the following IP address` and type in the following parameters
+      - IP address = 10.0.0.1
+      - subnet mask = 255.0.0.0
+      - Default gateway = DO NOT POPULATE
+    5. Then click `OK` and `Close` to close out of the properties menu. You should now be able to access items on the local network.
 
 # Running the SAMURAI Software
 

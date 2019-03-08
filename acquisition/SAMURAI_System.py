@@ -4,15 +4,11 @@ Created on Wed Oct 31 13:47:17 2018
 Full High level system controls for samurai
 @author: ajw5
 """
-import sys
-#include our support libs
-#samurai_support_libs_dir = './support'
-#sys.path.append(samurai_support_libs_dir)
-import support.autoPNAGrabber   as pnag    #for running pnagrabber
-import support.pnaController    as pnac    #for getting and setting settings on pna
-import support.samurai_metaFile as smf     #for keeping track of data
-from support.Meca500  import Meca500       #our posisioner
-import support.samurai_support  as ss      #some other functions
+
+from samurai.acquisition.support import autoPNAGrabber as pnag    #for running pnagrabber
+from samurai.acquisition.support import samurai_metaFile as smf     #for keeping track of data
+from samurai.acquisition.support.Meca500  import Meca500       #our posisioner
+import samurai.acquisition.support.samurai_support  as ss      #some other functions
 
 import six
 
