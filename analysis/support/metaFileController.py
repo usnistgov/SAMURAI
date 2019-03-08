@@ -125,6 +125,14 @@ class metaFileController(OrderedDict):
         '''
         @brief load up all measurements into list of snp or wnp files
         @return list of snp or wnp classes
+        '''
+        snpData = []
+        numLoadedMeas = 0
+        measurements = self.jsonData['measurements']
+        for meas in measurements:
+            snpData.append(s2p(meas['filename'].strip()))
+            numLoadedMeas+=1
+        return snpData,numLoadedMeas
             
     def get_filename_list(self,abs_path=False):
         fnames = []
@@ -217,7 +225,7 @@ def split_metafile(metafile_path,meas_split,label='split'):
     num_splits = np.size(meas_split,0)
     for i in range(num_splits):
         # Open blank metafile, then add header and our measurements
-        split_mfc = metaFileController(suppress_empty_warning=1) 
+        split_mfc = metaFileController(metafile_path,suppress_empty_warning=1) 
         split_mfc.jsonData.update(mymfc_header)
         meas_nums = meas_split[i]
         split_mfc.jsonData['total_measurements'] = len(meas_nums)
