@@ -25,13 +25,11 @@ from samurai.analysis.support.PostProcPy import PostProcPy as pppy
 #import my tktools
 #tktoolsPath = 'Q:/public/Quimby/Students/Alec/Useful_Code/Al_TkTools.py'
 #sys.path.append(tktoolsPath)
-acquisition_support_path = '../../acquisition/support'
-sys.path.append(os.path.join(os.path.dirname(__file__),acquisition_support_path)) #path for tktools
-from samurai_tktools import DirPicker
-from samurai_tktools import FilePicker
-from samurai_tktools import EntryAndTitle
-from samurai_tktools import CheckGroup
-from samurai_tktools import HelpButton
+from samurai.acquisition.support.samurai_tktools import DirPicker
+from samurai.acquisition.support.samurai_tktools import FilePicker
+from samurai.acquisition.support.samurai_tktools import EntryAndTitle
+from samurai.acquisition.support.samurai_tktools import CheckGroup
+from samurai.acquisition.support.samurai_tktools import HelpButton
 
 
 from collections import OrderedDict
