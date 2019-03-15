@@ -20,7 +20,16 @@ import xml.etree.ElementTree as et
 #default pnagrabber path for windows from pnagrabber installer
 pnagrabber_exe_path_default = r'C:\\Program Files (x86)\\NIST\\Uncertainty Framework\\PNAGrabber.exe'
 
-class pnaGrabber:
+class PnaGrabber:
+    '''
+    @brief a class to run pnagrabber from python. This relies on using the executable with a -r option
+    @param[in] **options - options for the class are as follows:
+                                wdir - working directory for the run (usually './')
+                                pnagrabber_template_path - where to get the template for pnagrabber
+                                pnagrabber_exe_path - where the executable is (defaults to typical install location)
+                                pnagrabber_output_path - the path of the output from pnagrabber (defaults to the first measurement from the template)
+    '''
+
     def __init__(self,**options):
         self.options = {}
         defaults = {}
@@ -45,6 +54,11 @@ class pnaGrabber:
 
     #run pnagrabber (for single file)
     def run(self,newPath,clean=-1):
+        '''
+        @brief run pnagrabber from the template file and rename to newPath
+        @param[in] newPath - name to move the output to
+        @param[in/OPT] clean - append this value to the output. If -1 it will auto increment (reccomended)
+        '''
         #get file and time
         ts = time.time()
         runCommand = self.options['pnagrabber_exe_path']+" -r "+self.options['pnagrabber_template_path']
@@ -71,8 +85,10 @@ class pnaGrabber:
     
     #get list of enabled measurements from template path
     def get_meas_list(self):
-        #get list of measurements from pnagrabber template menu
-        #this returns only enabled elements
+        '''
+        @brief get a list of measurements from the pnagrabber template menu
+        @return list of measurement names
+        '''
         controls = self.root.find('Controls')
         num_text_boxes = 14 #this is hardcoded into the MUF
         meas_list = []
@@ -82,13 +98,17 @@ class pnaGrabber:
             if is_enabled:
                 meas_list.append(tb_element.attrib['ControlText'])
         return meas_list
+#alisases for our class
+pnaGrabber = PnaGrabber
+PNAGrabber = PnaGrabber
         
-        
-  
-#this class will track and print statistics on measurements running in a loop. Just set the start and stop point
-#tot_vals is the total values the loop will iterate throuhg, and print_mod is how often it should print (n%print_mod)
+
 class LoopTimeReport:
-    
+    '''
+    @brief class to track and print statistics on measurement loop
+    @param[in] tot_vals - number of total measurement being performed in the loop
+    @param[in] print_mod - print every how many measurements (defaults to every measurement)
+    '''
     def __init__(self,tot_vals,print_mod=1):
         self.tot_vals = tot_vals
         self.print_mod = print_mod
@@ -117,7 +137,12 @@ class LoopTimeReport:
       
 
 #check to see if the directory exists, if it does increment and do unitl it doesnt
-def cleanDirName(dir_name):
+def clean_dir_name(dir_name):
+    '''
+    @brief clean a directory name. if the directory exists increment until it doesnt (appends '_#')
+    @param[in] dir_name - name of the directory to clean
+    @return name for cleaned directory
+    '''
     end_num = 0
     dir_name = os.path.abspath(dir_name)
     while(os.path.isdir(dir_name)):
@@ -126,11 +151,16 @@ def cleanDirName(dir_name):
             dir_name= dir_name.rsplit('_',1)[0]
         dir_name += "_"+str(end_num)
     return end_num,dir_name
+#alias for working with old code
+cleanDirName=clean_dir_name
 
-
-#check if file exists and change name if it does
-def cleanFileName(fileName,num=-1):
-    fout=fileName
+def clean_file_name(file_name,num=-1):
+    '''
+    @brief clean a file name. if the directory exists increment until it doesnt (appends '(#)')
+    @param[in] file_name - name of the file to clean
+    @return name for cleaned file
+    '''
+    fout=file_name
     i=0
     if(num==-1):
         while(os.path.isfile(fout)==True):
@@ -140,17 +170,15 @@ def cleanFileName(fileName,num=-1):
             if(len(fout.split('('))>1):
                 fout = fout.split('(')[0]+fout.split(')')[-1]
             fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-            fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
+            fout = '/'.join(file_name.split('/')[0:-1])+'/'+fout
     elif(num==0):#no need to add thing on
-        fout = fileName
+        fout = file_name
     else:
         i=num
         fout = fout.split('/')[-1]
         fout = fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-        fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
+        fout = '/'.join(file_name.split('/')[0:-1])+'/'+fout
     return fout,i
-
-#alisases
-PnaGrabber = pnaGrabber
-PNAGrabber = pnaGrabber
+#function alias to work with old code
+cleanFileName = clean_file_name
 
