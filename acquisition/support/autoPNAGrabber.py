@@ -21,7 +21,7 @@ import xml.etree.ElementTree as et
 pnagrabber_exe_path_default = r'C:\\Program Files (x86)\\NIST\\Uncertainty Framework\\PNAGrabber.exe'
 
 class pnaGrabber:
-    def __init__(self,**options):#PNAoutDir='wdir',exePath=PNAGrabberPath):
+    def __init__(self,**options):
         self.options = {}
         defaults = {}
         defaults['wdir'] = './'
@@ -38,8 +38,8 @@ class pnaGrabber:
         except IOError:
             print('ERROR: Template path %s does not exist!' %(self.options['pnagrabber_template_path']))
             raise #still quit here
-        if not 'pnagrabber_output_path' in self.options: #if not passed in, set default
-            self.options['pnagrabber_output_path'] = self.get_meas_list()[0] #os.path.join(defaults['wdir'],'unnamed.s2p');
+        if not 'pnagrabber_output_path' in self.options: #if not passed in, set default (i.e. grab the value from pnagrabber)
+            self.options['pnagrabber_output_path'] = self.get_meas_list()[0] 
 
         
 
