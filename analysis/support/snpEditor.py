@@ -10,6 +10,105 @@ import numpy as np
 import re
 from xml.dom.minidom import parse 
 
+class WnpEditor:
+   def __init__(self,input_file='none'):
+       
+        self.options['header'] = []
+        self.options['comments'] = []
+        self.S = dict()
+        self.dict_keys = [] #keys for our measurement dictionary
+        #now load the file
+        self.load(input_file)
+
+            
+   def load(self,input_file,ftype='auto'):
+       
+       #check if were loading a .meas file first and update input accordingly
+        if(input_file.split('.')[-1]=='meas'):
+            input_file = get_unperturbed_meas(input_file)
+            
+       #if we default grab from end of file path
+        if(ftype=='auto'):
+            if(input_file.split('_')[-1]=='binary'):
+                ftype='binary'
+            else:
+                ftype='text'
+                
+        #get the number of ports from the file extension
+        [_,file_ext] = os.path.splitext(fname)[-1]
+        self.options['num_ports'] = int(''.join(re.findall('\d',file_ext)))
+        #now set our keys
+        self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
+        
+        if(ftype=='binary'):
+            with open(input_file,'rb') as fp: #open file
+                [num_rows,num_cols] = np.fromfile(fp,dtype=np.uint32,count=2) #read header
+                #num_rows.append(num_rows);num_cols.append(cur_num_cols); #keep track from each file
+                #now read all our data but store line by line to rearrange later
+                num_ports_from_file = int(round(np.sqrt((num_cols-1)/2)))
+                if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
+                    raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
+                    
+                for j in range(num_rows):
+                    #read in and unpack
+                    cur_data = np.fromfile(fp,count=num_cols,dtype=np.float64)
+                    freqs.append(cur_data[0])
+                    a11_raw.append(cur_data[1]+1j*cur_data[2])
+                    b11_raw.append(cur_data[3]+1j*cur_data[4])
+                    a21_raw.append(cur_data[5]+1j*cur_data[6])
+                    b21_raw.append(cur_data[7]+1j*cur_data[8])
+                    a12_raw.append(cur_data[9]+1j*cur_data[10])
+                    b12_raw.append(cur_data[11]+1j*cur_data[12])
+                    a22_raw.append(cur_data[13]+1j*cur_data[14])
+                    b22_raw.append(cur_data[15]+1j*cur_data[16])
+                    
+        elif(ftype=='text'):
+            #first read in comments
+            with open(input_file,'r') as fp: 
+                for line in fp:
+                    if(line.strip()[0]=='#'):
+                       self.header.append(line)
+                    elif(line.strip()[0]=='!'):
+                       self.comments.append(line)
+                    else: #else its data
+                        pass
+                    
+            #now read in data from the file
+            raw_dat = np.loadtxt(input_file,comments=['#','!'])
+            #now split the data
+            freqs = raw_data[:,0] #extract our frequencies
+            num_cols = np.size(raw_data) #get the number of columns
+            num_ports_from_file = int(round(np.sqrt((num_cols-1)/4))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
+            if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
+                raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
+            #file is good if we make it here so continue
+            complex_data = raw_dat[range(1,num_cols,2),range(2,num_cols,2)]
+            
+                        #llist = re.split(delimiter+r'*\|*\t* *',line) #split on lots of charactors and given delimeter
+                        #llist = [l.strip() for l in llist]
+                        #freqs.append(np.float64(llist[0]))
+                        #a11_raw.append(np.float64(llist[1])+1j*np.float64(llist[2]))
+                        #a21_raw.append(np.float64(llist[5])+1j*np.float64(llist[6]))
+                        #a12_raw.append(np.float64(llist[9])+1j*np.float64(llist[10]))
+                        #a22_raw.append(np.float64(llist[13])+1j*np.float64(llist[14]))
+                        #b11_raw.append(np.float64(llist[3])+1j*np.float64(llist[4]))
+                        #b21_raw.append(np.float64(llist[7])+1j*np.float64(llist[8]))
+                        #b12_raw.append(np.float64(llist[11])+1j*np.float64(llist[12]))
+                        #b22_raw.append(np.float64(llist[15])+1j*np.float64(llist[16]))
+            
+        
+        #
+        #pack into dictionary for easy extension
+        self.A.update({11:WnpParam(np.array(freqs),np.array(a11_raw))})
+        self.A.update({21:WnpParam(np.array(freqs),np.array(a21_raw))})
+        self.A.update({12:WnpParam(np.array(freqs),np.array(a12_raw))})
+        self.A.update({22:WnpParam(np.array(freqs),np.array(a22_raw))})
+        self.B.update({11:WnpParam(np.array(freqs),np.array(b11_raw))})
+        self.B.update({21:WnpParam(np.array(freqs),np.array(b21_raw))})
+        self.B.update({12:WnpParam(np.array(freqs),np.array(b12_raw))})
+        self.B.update({22:WnpParam(np.array(freqs),np.array(b22_raw))})
+        
+
 class W2pEditor:
    def __init__(self,input_file='none',ftype='default'):
        
@@ -213,12 +312,11 @@ class W2pEditor:
 class SnPEditor:
     
     
-    def __init__(self,inputFile):\
-    '''
-    @brief #inputFile automatically laods an snp file. for now file must be given
-    @param[in] input_file  name of file to import
-    '''
-    
+    def __init__(self,fname):
+        '''
+        @brief #inputFile automatically laods an snp file. for now file must be given
+        @param[in] input_file  name of file to import
+        '''
         self.options['header'] = []
         self.options['comments'] = []
         self.S = dict()
@@ -674,5 +772,23 @@ def get_unperturbed_meas(fname):
     unpt = msp.getElementsByTagName('Item').item(0)
     unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
     return unpt_name
+
+
+class SnpError(Exception):
+    '''
+    @brief custom exception for errors in snp handling
+    '''
+    def __init__(self,err_msg):
+        self.err_msg = err_msg
+    def __str__(self):
+        return repr("SnP/WnP ERROR: %s" %(self.err_msg)) 
+    
+class MalformedSnpError(SnpError):
+    '''
+    @brief snp/wnp file is not formed correctly error
+    '''
+    def __init__(self,err_msg):
+        super().__init__(err_msg)
+    
     
         
