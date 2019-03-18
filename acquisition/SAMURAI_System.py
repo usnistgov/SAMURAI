@@ -116,8 +116,8 @@ class SAMURAI_System():
          
         if run_vna:
         #open PNAGrabber instance
-            pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
-            pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'],pnagrabber_output_path=pnag_out_path)
+            #pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
+            pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'])
         mf = smf.metaFile(csv_path,self.options['vna_visa_address'],wdir=data_out_dir)
         mf.init(**options['metafile_header_values'])
         
