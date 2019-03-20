@@ -57,7 +57,7 @@ class WnpEditor:
             b_dict = {} #declare dictionaries for these
             b_start = num_cols-1
             for i in range(len(self.dict_keys)):
-                
+                a[self.dict_keys[i]] = raw_data[]
                 
                 raw_a = raw_data[range(2,raw_size,raw_skip_size)] + raw_data[range(3,raw_size,raw_skip_size)]*1j
             raw_b = raw_data[range(4,raw_size,raw_skip_size)] + raw_data[range(5,raw_size,raw_skip_size)]*1j  
