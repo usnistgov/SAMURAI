@@ -37,30 +37,22 @@ class WnpEditor:
                 ftype='text'
                 
         #get the number of ports from the file extension
-        [_,file_ext] = os.path.splitext(input_file)[-1]
+        file_ext = os.path.splitext(input_file)[-1]
         self.options['num_ports'] = int(''.join(re.findall(u'\d',file_ext)))
         #now set our keys
         self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
         
+        #if we have a binary file (e.g. *.w2p_binary)
         if(ftype=='binary'):
             #first read the header
+            self.options['header'] = 'GHz S RI 50'
+            self.options['comments'] = 'data read from binary file'
             [num_rows,num_cols] = np.fromfile(input_file,dtype=np.uint32,count=2) 
-            num_ports_from_file = int(round(np.sqrt((num_cols-1)/4))) #get the number of ports
-            if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
-                raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
-            #now read the data
             raw_data = np.fromfile(input_file,dtype=np.float64) #read raw data
-            raw_size = raw_data.size #get size
-            freqs = raw_data[range(1,raw_size,num_cols)] #read freqs skipping header
-            #now get the data for each port
-            raw_skip_size = 4
-            a_dict = {}
-            b_dict = {} #declare dictionaries for these
-            b_start = num_cols-1
-            for i in range(len(self.dict_keys)):              
-                raw_a = raw_data[range(2,raw_size,raw_skip_size)] + raw_data[range(3,raw_size,raw_skip_size)]*1j
-                raw_b = raw_data[range(4,raw_size,raw_skip_size)] + raw_data[range(5,raw_size,raw_skip_size)]*1j  
-                    
+            raw_data = raw_data[1:] #remove header
+            raw_data = raw_data.reshape((num_rows,num_cols)) #match the text output
+            
+        #if we have a text file (e.g. *.w2p)
         elif(ftype=='text'):
             #first read in comments
             with open(input_file,'r') as fp: 
@@ -70,35 +62,35 @@ class WnpEditor:
                     elif(line.strip()[0]=='!'):
                        self.options['comments'].append(line)
                     else: #else its data
-                        pass
-                    
+                        pass       
             #now read in data from the file with many possible delimiters in cases
             #of badly formated files
             with open(input_file) as fp:
                 regex_str = r'[ ,|\t]+'
                 rc = re.compile(regex_str)
-                raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!'])
-            #now split the data
-            freqs = raw_data[:,0] #extract our frequencies
-            num_rows = np.size(raw_data,0)
-            num_cols = np.size(raw_data,1) #get the number of columns
-            num_ports_from_file = int(round(np.sqrt((num_cols-1)/4))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
-            if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
-                raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
-            #file is good if we make it here so continue
-            raw_size = raw_data.size
-            freqs = raw_data[range(0,raw_size,num_cols)] #read freqs skipping header
-            #now get the data for each port
-            raw_skip_size = 4
-            raw_a = raw_data[range(1,raw_size,raw_skip_size)] + raw_data[range(2,raw_size,raw_skip_size)]*1j
-            raw_b = raw_data[range(3,raw_size,raw_skip_size)] + raw_data[range(4,raw_size,raw_skip_size)]*1j  
-                    
-        #for i in range(len(self.dict_keys)):
-        #    self.A.update({key,WnpParam(np.array(freqs),np.array()))}
+                raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!'])                  
+                num_rows = np.size(raw_data,0)
+                num_cols = np.size(raw_data,1) #get the number of columns
+                
+        #now split the data (text and binary input should be formatted the same here)
+        #first check if our file is named correctly
+        num_ports_from_file = int(round(np.sqrt((num_cols-1)/4))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
+        if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
+            raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
         
-        #pack into dictionary for easy extension
-        self.A = a_dict
-        self.B = b_dict
+        #file is good if we make it here so continue to unpacking
+        freqs = raw_data[:,0] #extract our frequencies
+        
+        #now get the data for each port. This assumes that the keys are in the same order as the file info (which they should be)
+        for i in range(len(self.dict_keys)):
+            a_idx = i*4+1
+            a_data = raw_data[:,a_idx]+raw_data[:,a_idx+1]*1j
+            self.A[self.dict_keys[i]] = WnpParam(np.array(freqs),np.array(a_data))
+            b_idx = i*4+3
+            b_data = raw_data[:,a_idx]+raw_data[:,a_idx+1]*1j
+            self.B[self.dict_keys[i]] = WnpParam(np.array(freqs),np.array(a_data))
+        
+
         
 
 class W2pEditor:
