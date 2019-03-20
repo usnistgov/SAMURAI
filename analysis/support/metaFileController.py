@@ -20,13 +20,13 @@ sys.path.append(snpEdPath)
 from snpEditor import s2pEditor as s2p
 
 
-class metaFileController(OrderedDict):
+class MetaFileController(OrderedDict):
     
     def __init__(self,metafile_path,suppress_empty_warning=0):
         #self.root = tk.Tk();
         #self.root.withdraw();
         #load in our json file
-        super().__init__() #initialize ordereddict
+        super(MetaFileController).__init__() #initialize ordereddict
         self.load(metafile_path,suppress_empty_warning)
         
        
@@ -198,7 +198,8 @@ class metaFileController(OrderedDict):
     def get_metafile_name_no_extension(self):
         return self.metafile.split('.')[-2]
         
-            
+#alias
+metaFileController = MetaFileController         
 
       
 #update to current directory

@@ -130,7 +130,7 @@ class calSynthAp:
 #with open(metaPath,'r') as jsonFile:
 #    jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
     def __init__(self, metaFile,out_dir,in_cal_path,post_proc_template,gthru_file_path):
-        self.mfc = mfc(metafile=metaFile)
+        self.mfc = mfc(metaFile)
         self.metaFile = metaFile
         
         self.post_proc_template = post_proc_template
