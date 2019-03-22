@@ -17,8 +17,7 @@ import numpy as np
 import time
 import os
 
-#default values
-#pnagrabber_template_path = r'U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Software\SAMURAI_Control\support\template.pnagrabber'
+#these are default values. These seem to change with the system realatively often so they are placed here at the top
 pnagrabber_template_path = './template.pnagrabber'
 vna_visa_addr = 'TCPIP0::10.0.0.2::inst0::INSTR'
 rx_positioner_address = '10.0.0.5'
