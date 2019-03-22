@@ -98,6 +98,15 @@ Currently, the samurai system is run over a custom local network run through a s
   - VISA Address = 'TCPIP0::10.0.0.2::inst0::INSTR'
 - Meca500 = [10.0.0.5](http://10.0.0.5)
   - VISA Address = Could not get VISA to work correctly! Connect using sockets.
+- IP Webcam = [10.0.0.101](http://10.0.0.101)
+  - Username: `admin` -- Password: `123456`
+  - A live stream will show up if you go to the above address and login
+  - A VLC stream has higher latency but can be connected by the following steps:
+    1. Open VideoLAN (VLC with the construction cone icon)
+    2. Select `Media->Open Network Stream...`
+    3. Enter `rtsp://admin:123456@10.0.0.101:554/cam1/mpeg4` and click connect
+    4. To take a snapshot click `Video->Take Snapshot`. This will save a snapshot to the users `Pictures` folder from which it can then be renamed and copied
+      - The VLC stream has not always been reliable and may freeze. For this reason it is recommended to use the web interface except when taking snapshots of the setup
 - Computer = [10.0.0.1](http://10.0.0.1)
   - VISA Address = N/A (local loopback is 127.0.0.1)
   - Setting Network adapter settings for local network:
@@ -140,11 +149,12 @@ The following steps are to run a SAMURAI measurement from the python CLI. The st
 ### 3. Import the SAMURAI_System Module
 
 1. Open the python CLI (e.g. the command window in Spyder)
-2. With the file opened in the Spyder IDE, click the green play button on the top toolbar OR type the code below where `<dir-of-code>` is the directory where `SAMURAI_System.py` is located on the system.
+2. Within the command line type the following
 
   ```python
-  runfile('<dir-of-code>/SAMURAI_System.py')
+  from samurai.acquisition.SAMURAI_System import SAMURAI_System
   ```  
+  - NOTE: FOR NEW COMPUTERS ONLY - the code must be cloned from the gitlab repo and the directory containing the cloned `samurai` directory must be added the systems `PYTHONPATH`.
 
 ### 4. Create a SAMURAI_System Object
 
@@ -217,6 +227,32 @@ Now we can begin the sweep
 1. copy data from `<working-directory>/synthetic_aperture/raw` to `<working-directory>/synthetic_aperture/`
 2. Perform post-calibration in `<working-directory>/cal/calibration_post` (refer to 'Perform 2 Port VNA Calibration' section)
 
+### Example python script
+Here we have an example python script to run the sweep. This is assuming we have already created a `<working-directory>`. This also assumes we have placed a pnagrabber template named `template.pnagrabber` and a list of positions called `positions.csv` in `<working-directory>/synthetic_aperture/raw`.
+```python
+import os #import os for chdir
+from samurai.acquisition.SAMURAI_System import SAMURAI_System #import the samurai system class
+
+mysam = SAMURAI_System() #create a samurai system object
+mysam.connect_rx_positioner() #connect to the Meca500 (or other positioner)
+mysam.move_to_mounting_position() #move to the position to unmount the antenna for calibration
+
+###################################
+# Unmount antenna from Meca500
+###
+# PERFORM CALIBRATION HERE
+###
+# Mount antenna onto Meca500
+###################################
+
+mysam.zero() #return the robot to its zero position
+os.chdir('<working-directory>/syntetic_aperture/raw') #change into our measurement directory
+mysam.csv_sweep('./','./positions.csv',template_path='./template.pnagrabber') #run the csv sweep with the vna
+
+mysam.disconnect_rx_positioner() #disconnect from the Meca500 when finished
+
+```
+
 ## Running from the Graphical User Interface (GUI) SAMURGUI
 
 This code needs to be finished
@@ -226,9 +262,19 @@ This code needs to be finished
 - [x] Line of Sight Measurements
 - [x] Cylinder Measurement
 - [x] Cylinder non-LOS measurement
+- [ ] Active (2 source) AoA measurements
 
 # Code Editing TODO List
 
+## Current Work
+- [ ] Beamforming code for 3D and cylinder
+- [ ] Angular resolution for each different aperture
+- [ ] Read on AoA verification work
+- [ ] Read on AoA algorithm work
+- [ ] Create basic MUSIC, SAGE, Etc. algorithms
+- [ ] Speed these up
+
+## On backburner
 - [ ] allow user to move_to_mounting_position from SAMURGUI
 - [ ] allow user to run csv_sweep without connect/disconnect from SAMURGUI
 - [ ] add metafile editing interface to SAMURGUI
