@@ -227,6 +227,32 @@ Now we can begin the sweep
 1. copy data from `<working-directory>/synthetic_aperture/raw` to `<working-directory>/synthetic_aperture/`
 2. Perform post-calibration in `<working-directory>/cal/calibration_post` (refer to 'Perform 2 Port VNA Calibration' section)
 
+### Example python script
+Here we have an example python script to run the sweep. This is assuming we have already created a `<working-directory>`. This also assumes we have placed a pnagrabber template named `template.pnagrabber` and a list of positions called `positions.csv` in `<working-directory>/synthetic_aperture/raw`.
+```python
+import os #import os for chdir
+from samurai.acquisition.SAMURAI_System import SAMURAI_System #import the samurai system class
+
+mysam = SAMURAI_System() #create a samurai system object
+mysam.connect_rx_positioner() #connect to the Meca500 (or other positioner)
+mysam.move_to_mounting_position() #move to the position to unmount the antenna for calibration
+
+###################################
+# Unmount antenna from Meca500
+###
+# PERFORM CALIBRATION HERE
+###
+# Mount antenna onto Meca500
+###################################
+
+mysam.zero() #return the robot to its zero position
+os.chdir('<working-directory>/syntetic_aperture/raw') #change into our measurement directory
+mysam.csv_sweep('./','./positions.csv',template_path='./template.pnagrabber') #run the csv sweep with the vna
+
+mysam.disconnect_rx_positioner() #disconnect from the Meca500 when finished
+
+```
+
 ## Running from the Graphical User Interface (GUI) SAMURGUI
 
 This code needs to be finished
