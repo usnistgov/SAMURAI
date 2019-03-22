@@ -30,6 +30,14 @@ class SAMURAI_System():
     
     #to run as simulation simply pass is_simualtion=true
     def __init__(self,is_simulation=False,**arg_options):
+        '''
+        @brief initialize class to control SAMURAI measurement system
+        @param[in/OPT] is_simulation - whether or not to run the Meca500 in simultion mode (defaults to NO simulation)
+        @param[in/OPT] arg_options - optional keyword arguments as follows:
+            template_path - where the pnagrabber template is located
+            vna_visa_address - visa address of the VNA
+            rx_positioner_address - address of the rx positioner. for Meca500 this is a IP address
+        '''
         defaults = {'template_path':pnagrabber_template_path,'vna_visa_address':vna_visa_addr,'rx_positioner_address':rx_positioner_address}
         tool_length = 131 #length of tool off face in mm. Change for weird tools
         defaults['trf_pos'] = [0,0,tool_length,0,-90,0] #tool reference frame (-90 to align axes with wrf). THE frame here is different and seems to be in ([z,y,z,gamma,beta,alpha]) compared to world frame
@@ -48,6 +56,12 @@ class SAMURAI_System():
 
         
     def connect_rx_positioner(self,run_simulation=None):
+        '''
+        @brief connect and ready our rx positioner (Meca500) for movement
+        @param[in/OPT] run_simulation - whther to run in sim mode (defaults to NO)
+        @return list of Meca return values as follows
+            [set_sim_mode_rv,init_rx_pos_rv,set_wrf_rv,set_trf_rv,set_velocity_rv]
+        '''
         if not run_simulation:
             run_simulation = self.is_simulation #set to default unless overwritten
             rv1=self.rx_positioner.set_simulation_mode=False
@@ -99,6 +113,19 @@ class SAMURAI_System():
     #need to pass arg_options as unpacked dict or named args
     def csv_sweep(self,data_out_dir,csv_path,run_vna=True,**arg_options):
         #check if connected
+        '''
+        @brief measure a synthetic aperture with the SAMURAI system using positions from a CSV (comma separated value) file
+        @param[in] data_out_dir - where the data will be output 
+        @param[in] csv_path - path to the comma separated value (CSV) file
+        @param[in/OPT] run_vna - whether or not to run the VNA when sweeping (default to true=run the vna)
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            note - note to put in the metafile  (defaults to '')
+            output_name - name of the output files (defaults to 'meas')
+            template_path - location of pnagrabber template to run from (default './template.pnagrabber')
+            settling time - time in seconds to let robot settle (default 0.1s)
+            metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)
+        @return sweep time
+        '''
         if not self.is_connected:
             print("Positioner Not Connected")
             return
@@ -164,6 +191,12 @@ class SAMURAI_System():
     #left is close to vna
     #right is close to sink (BE CAREFUL NOT TO PULL CABLE ON RIGHT)
     def move_to_mounting_position(self,side='left',rotation=-120):
+        '''
+        @brief move the Meca500 to a predetermined moutning position. 
+        @param[in/OPT] side - what side of the table to move to looking from behind the meca. (defaults 'left') CAUTION: 'right' MAY BE DANGEROUS
+        @param[in/OPT] rotation - how much to rotate the arm at the mounting position (default -120 degrees) CAUTION: UNTESTED ANGLES MAY BE DANGEROUS
+        @return the return of set_position() (I believe it is nothing right now)
+        '''
         #check if connected
         if not self.is_connected:
             print("Positioner Not Connected")
@@ -179,6 +212,12 @@ class SAMURAI_System():
         
     #wrapper of rx_positioner set_position to check for bounds
     def set_position(self,pos_vals,software_limits=True):
+        '''
+        @brief set the position of our Meca500 robot (or other positioner if changed)
+        @param[in] pos_vals - position of robot. For meca this is in [x,y,z,alpha,beta,gamma] in mm and degrees
+        @param[in/OPT] software_limits - whether or not to software limit the robot (defaults to true. These limits have been pre-tested and are hardcoded)
+        @return nothing
+        '''
         if(software_limits):
             np_pos_vals = np.array(pos_vals)
             np_lower_bound = np.array([-1e3,-1e3,50,-360,-360,-360]) #just limit z axis
@@ -194,6 +233,9 @@ class SAMURAI_System():
         return
         
     def zero(self):
+        '''
+        @brief bring the rx_positioner to its zero position
+        '''
         self.rx_positioner.zero()
         
     
