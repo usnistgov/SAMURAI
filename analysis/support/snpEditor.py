@@ -11,8 +11,19 @@ import re
 from xml.dom.minidom import parse 
 
 class WnpEditor:
+   '''
+   @brief init arbitrary port wave parameter class
+   @param[in] input_file - path of file to load in. 
+               A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
+               measurement with n ports and frequencies [f1,f2,...] 
+   '''
    def __init__(self,input_file):
-       
+        '''
+        @brief init arbitrary port wave parameter class
+        @param[in] input_file - path of file to load in. 
+                    A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
+                    measurement with n ports and frequencies [f1,f2,...] 
+        '''
         self.options = {}
         self.options['header'] = []
         self.options['comments'] = []
@@ -20,12 +31,19 @@ class WnpEditor:
         self.B = dict()
         self.dict_keys = [] #keys for our measurement dictionary
         #now load the file
-        self.load(input_file)
-
+        if(type(input_file)==str):
+            self.load(input_file)
+        elif(type(input_file)==tuple or type(input_file)==list):
+            self.load_empty(input_file[0],input_file[1])
+        
             
    def load(self,input_file,ftype='auto'):
-       
-       #check if were loading a .meas file first and update input accordingly
+        '''
+        @brief load a wave parameter file and parse into the class
+        @param[in] input_file - path of file to load
+        @param[in/OPT] ftype  - type of file we are loading (e.g. 'text' or 'binary')
+        '''
+        #check if were loading a .meas file first and update input accordingly
         if(input_file.split('.')[-1]=='meas'):
             input_file = get_unperturbed_meas(input_file)
             
@@ -45,8 +63,8 @@ class WnpEditor:
         #if we have a binary file (e.g. *.w2p_binary)
         if(ftype=='binary'):
             #first read the header
-            self.options['header'] = 'GHz S RI 50'
-            self.options['comments'] = 'data read from binary file'
+            self.options['header'].append('GHz S RI 50')
+            self.options['comments'].append('data read from binary file')
             [num_rows,num_cols] = np.fromfile(input_file,dtype=np.uint32,count=2) 
             raw_data = np.fromfile(input_file,dtype=np.float64) #read raw data
             raw_data = raw_data[1:] #remove header
@@ -58,9 +76,9 @@ class WnpEditor:
             with open(input_file,'r') as fp: 
                 for line in fp:
                     if(line.strip()[0]=='#'):
-                       self.options['header'].append(line)
+                       self.options['header'].append(line.strip()[1:])
                     elif(line.strip()[0]=='!'):
-                       self.options['comments'].append(line)
+                       self.options['comments'].append(line.strip()[1:])
                     else: #else its data
                         pass       
             #now read in data from the file with many possible delimiters in cases
@@ -87,10 +105,148 @@ class WnpEditor:
             a_data = raw_data[:,a_idx]+raw_data[:,a_idx+1]*1j
             self.A[self.dict_keys[i]] = WnpParam(np.array(freqs),np.array(a_data))
             b_idx = i*4+3
-            b_data = raw_data[:,a_idx]+raw_data[:,a_idx+1]*1j
-            self.B[self.dict_keys[i]] = WnpParam(np.array(freqs),np.array(a_data))
+            b_data = raw_data[:,b_idx]+raw_data[:,b_idx+1]*1j
+            self.B[self.dict_keys[i]] = WnpParam(np.array(freqs),np.array(b_data))
+    
+   def load_empty(self,num_ports,freqs):
+        '''
+        @brief create a WnpEditor class with all values as 0
+        @param[in] num_ports - number of ports for the class
+        @param[in] num_measurements - number of measurements per parameter (i.e. number of frequencies)
+        '''
+        self.options['num_ports'] = num_ports #set the number of ports
+        #now set our keys
+        self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
         
+        #and pack the port data with 0s
+        for i in range(len(self.dict_keys)):
+            self.A[self.dict_keys[i]] = WnpParam(np.array(freqs),np.zeros(len(freqs)))
+            self.B[self.dict_keys[i]] = WnpParam(np.array(freqs),np.zeros(len(freqs)))
+       
+   def write(self,out_file,ftype='default',delimiter=' '):
+        '''
+        @brief write out data to wave parameter file (e.g. '.w2p')
+        @param[in] out_file - path of file name to write to
+        @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)
+        @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')
+        '''
+        if(ftype=='default'):
+            if(out_file.split('_')[-1]=='binary'):
+                ftype='binary'
+            else:
+                ftype='text'
+       
+        #round frequencies to nearest Hz
+        self.round_freq_lists()
+        
+        #make sure the frequency lists are equal before writing; just in case somthing went wrong
+        for i in range(1,len(self.dict_keys)):
+            if(not np.equal(self.A[self.dict_keys[i]].freq_list,self.B[self.dict_keys[i]].freq_list).all()
+            or not np.equal(self.A[self.dict_keys[i]].freq_list,self.A[self.dict_keys[i-1]].freq_list).all()
+            or not np.equal(self.B[self.dict_keys[i]].freq_list,self.B[self.dict_keys[i-1]].freq_list).all()):
+               print("ERROR: Frequency Ranges are not all equal! Aborting")
+               return -1 
+        
+        #pack into correct data list
+        #assume all parameters are same length
+        if(ftype=='binary'):
+            num_rows = len(self.A[11].freq_list)
+            temp_list = [self.A[11].freq_list]
+            for k in self.dict_keys:
+                temp_list += [self.A[k].raw.real,self.A[k].raw.imag]
+                temp_list += [self.B[k].raw.real,self.B[k].raw.imag]
+                
+            data = np.transpose(np.array(temp_list))
+            
+            with open(out_file,'wb') as fp:
+                num_cols = len(self.dict_keys)*4+1
+                np.array([num_rows,num_cols],dtype=np.uint32).tofile(fp)
+                data.tofile(fp)
+                
+        elif(ftype=='text'):
+            with open(out_file,'w+') as fp:
+                #write our comments
+                for i in range(len(self.options['comments'])):
+                    fp.write('!%s\n' %(self.options['comments'][i]))
+                #write our header
+                for i in range(len(self.options['header'])):
+                    fp.write('#%s\n' %(self.options['header'][i]))
+                #now write data
+                for i in range(len(self.A[11].raw)):
+                    line_vals = [self.A[11].freq_list[i]]
+                    for k in self.dict_keys:
+                        line_vals += [self.A[k].raw[i].real,self.A[k].raw[i].imag]
+                        line_vals += [self.B[k].raw[i].real,self.B[k].raw[i].imag]
 
+                    fp.write(delimiter.join([str(v) for v in line_vals])+'\n')
+                
+        else:
+            print('Write Type not implemented')
+            
+   def __eq__(self,other):
+       '''
+       @brief override default to check equality of each port. 
+         we will return whther number of ports match, then lists of A matching and B matching
+       @param[in] other - Wnp Editor to compare to 
+       @return list of equality for each port for A and B [num_ports_eq,[A,A,A,A],[B,B,B,B]]
+           if the number of ports arent equal just return [num_ports_eq,num_ports_self,num_ports_other]
+       '''
+       num_ports_eq = self.options['num_ports']==other.options['num_ports']
+       if(not num_ports_eq): #dont check more if number of ports arent equal
+           return [num_ports_eq,self.options['num_ports'],other.options['num_ports']]
+       a_list = [];
+       b_list = [];
+       for k in self.dict_keys:
+           a_list.append(self.A[k]==other.A[k])
+           b_list.append(self.B[k]==other.B[k])
+       return [num_ports_eq,a_list,b_list]   
+    
+    
+   def sort(self):
+       '''
+       @brief sort each of our parameters by frequency
+       '''
+       for k in self.dict_keys:
+           self.A[k].sort()
+           self.B[k].sort()
+
+       
+   def crop(self,lo_freq=0,hi_freq=1e60):
+       '''
+       @brief remove values outside a window
+       '''
+       for k in self.dict_keys:
+           self.A[k].crop(lo_freq,hi_freq)
+           self.B[k].crop(lo_freq,hi_freq)
+       
+   def cut(self,lo_freq=0,hi_freq=1e60):
+       '''
+       @brief remove values inside a window
+       '''
+       for k in self.dict_keys:
+           self.A[k].cut(lo_freq,hi_freq)
+           self.B[k].cut(lo_freq,hi_freq)
+           
+   def round_freq_lists(self):
+       '''
+       @brief round frequencies to nearest hz (assuming they are in GHz)
+       '''
+       for k in self.dict_keys:
+           self.A[k].round_freq_list()
+           self.B[k].round_freq_list()
+           
+   #always assume mixing up negative will mix down
+   #frequency in Ghz. 
+   #very simply ideal mixing (add our LO freqeuncy)
+   #this allows easy if/rf measurement fixing
+   def mix_port(self,port,LO_freq = 26e9):
+       for k in self.dict_keys:
+        if(int(k/10)==port): #see if its port 2
+            self.A[k].freq_list += np.round(LO_freq/1e9)
+            self.B[k].freq_list += np.round(LO_freq/1e9)
+            #now round the frequencies to nearest Hz
+            self.A[k].round_freq_list()
+            self.B[k].round_freq_list()
         
 
 class W2pEditor:
@@ -591,11 +747,21 @@ class s1pEditor:
 
 #acutally is the same as snpParam
 class WnpParam:
-    
+    '''
+    @brief class for a single wave parameter (e.g. A[11])
+    '''
     def __init__(self,freq_list,raw_list):
+        '''
+        @brief initialize our parameter
+        @param[in] freq_list - list of frequencies for the parameter data
+        @param[in] raw_list  - raw complex data for the parameter
+        '''
         self.update(freq_list,raw_list)
         
     def sort(self):
+        '''
+        @brief sort the parameter by frequency
+        '''
         myzipped = zip(self.freq_list,self.raw)
         list(myzipped).sort()
         freq_list,raw = zip(*myzipped)
@@ -604,7 +770,9 @@ class WnpParam:
         
     #crop out all frequencies outside a window given by lo and hi frequencies (in Hz)
     def crop(self,lo_freq=0,hi_freq=1e60):
-        
+        '''
+        @brief remove all frequencies and their corresponding values outside a given window
+        '''
         lo_val = np.round(lo_freq/1e9,decimals=9)
         hi_val = np.round(hi_freq/1e9,decimals=9)
         #data is in ghz in files
@@ -619,7 +787,9 @@ class WnpParam:
         
     #cut out all frequencies insides a window given by lo and hi frequencies (in Hz)
     def cut(self,lo_freq=0,hi_freq=1e60):
-        
+        '''
+        @brief remove all frequencies and their corresponding values inside a given window
+        '''
         lo_val = np.round(lo_freq/1e9,decimals=9)
         hi_val = np.round(hi_freq/1e9,decimals=9)
         #data is in ghz in files
@@ -635,24 +805,44 @@ class WnpParam:
     #round frequency list to nearest hz
     #useful for writing out 
     def round_freq_list(self):
+        '''
+        @brief round frequency list to nearest hz assuming values are in GHz
+        '''
         #assume frequency values are in GHz and we round to Hz
         self.freq_list=np.round(self.freq_list,decimals=9)
     
     #put new values into the class
     def update(self,freq_list,raw_list):
+        '''
+        @brief put new values into the class
+        @param[in] freq_list - list of frequencies for the parameter data
+        @param[in] raw_list  - raw complex data for the parameter
+        '''
         self.freq_list = freq_list
         self.raw = raw_list
         
     @property
     def mag(self):
+        '''
+        @brief property for magnitude
+        @return list of magnitude data
+        '''
         return [abs(i) for i in self]
 
     @property
     def phase(self):
+        '''
+        @brief property for phase in radians
+        @return list of phase data in radians
+        '''
         return [cmath.phase(i) for i in self]
 
     @property
     def phase_d(self):
+        '''
+        @brief property for phase in degrees
+        @return list of phase data in degrees
+        '''
         return [cmath.phase(i)*180/np.pi for i in self]
     
     def __get__(self,instance,owner):
@@ -660,6 +850,15 @@ class WnpParam:
     
     def __getitem__(self,idx):
         return self.raw[idx]
+    
+    def __eq__(self,other):
+        '''
+        @brief check equality of frequency and data in parameter
+        @return [freq_eq,data_eq]
+        '''
+        freq_eq = np.equal(self.freq_list,other.freq_list).all()
+        data_eq = np.equal(self.raw,other.raw).all()
+        return freq_eq,data_eq
         
 class SnpParam(WnpParam):
      
