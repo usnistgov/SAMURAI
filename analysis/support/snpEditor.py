@@ -526,7 +526,7 @@ class S2pEditor:
                     elif(line.strip()[0]=='!'):
                        self.comments.append(line)
                     else: #else its data
-                        llist = re.split(r'['+delimiter+r'\|\s]+',line) #split on lots of charactors and given delimeter
+                        llist = re.split((r'[ ,|\t%s]+' %(delimiter)),line) #split on lots of charactors and given delimeter
                         llist = [l.strip() for l in llist]
                         freqList.append(float(llist[0]))
                      #   print(line)
@@ -534,7 +534,7 @@ class S2pEditor:
                         s21raw.append(np.float64(llist[3])+1j*np.float64(llist[4]))
                         s12raw.append(np.float64(llist[5])+1j*np.float64(llist[6]))
                         s22raw.append(np.float64(llist[7])+1j*np.float64(llist[8]))
-            
+
         #now write to ports keep this for backward compatability
         self.S11 = SnpParam(np.array(freqList),np.array(s11raw))
         self.S21 = SnpParam(np.array(freqList),np.array(s21raw))
