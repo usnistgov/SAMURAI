@@ -14,10 +14,7 @@ import os
 from shutil import copyfile
 import numpy as np
 
-import sys
-snpEdPath = 'Q://public//Quimby//Students//Alec//Useful_Code//'
-sys.path.append(snpEdPath)
-from snpEditor import s2pEditor as s2p
+from samurai.analysis.support.snpEditor import s2pEditor as s2p
 
 
 class MetaFileController(OrderedDict):
@@ -26,7 +23,7 @@ class MetaFileController(OrderedDict):
         #self.root = tk.Tk();
         #self.root.withdraw();
         #load in our json file
-        super(MetaFileController,self).__init__() #initialize ordereddict
+        super(OrderedDict,self).__init__() #initialize ordereddict
         self.load(metafile_path,suppress_empty_warning)
         
        
@@ -146,9 +143,10 @@ class MetaFileController(OrderedDict):
         '''
         snpData = []
         numLoadedMeas = 0
+        wdir = self.wdir
         measurements = self.jsonData['measurements']
         for meas in measurements:
-            snpData.append(s2p(meas['filename'].strip()))
+            snpData.append(s2p(os.path.join(wdir,meas['filename'].strip())))
             numLoadedMeas+=1
         return snpData,numLoadedMeas
     
@@ -172,7 +170,7 @@ class MetaFileController(OrderedDict):
         @brief property to get list of filenames with absolute paths
         '''
         return self.get_filename_list(abs_path=True)  
-        
+
     def get_filename_list(self,abs_path=False):
         fnames = []
         measurements = self.jsonData['measurements']
