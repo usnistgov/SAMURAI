@@ -260,16 +260,22 @@ class SnpEditor:
                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                measurement with n ports and frequencies [f1,f2,...] 
    '''
-   def __init__(self,input_file):
+   def __init__(self,input_file,**arg_options):
         '''
         @brief init arbitrary port wave parameter class
         @param[in] input_file - path of file to load in. 
                     A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                     measurement with n ports and frequencies [f1,f2,...] 
+        @param[in/OPT] arg_options - keyword argument options. options are as follows:
+                        'read_header' - whether or not to read the header. defaults to true, false may be faster on text files
         '''
+        #default options
         self.options = {}
         self.options['header'] = []
         self.options['comments'] = []
+        self.options['read_header'] = True
+        for key,val in arg_options: #overwrite defaults with inputs
+            self.options[key] = val 
         self.S = dict()
         self.dict_keys = [] #keys for our measurement dictionary
         #now load the file
@@ -339,7 +345,7 @@ class SnpEditor:
                 
         #now split the data (text and binary input should be formatted the same here)
         #first check if our file is named correctly
-        num_ports_from_file = int(round(np.sqrt((num_cols-1)/4))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
+        num_ports_from_file = int(round(np.sqrt((num_cols-1)/2))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
         if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
             raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
         
