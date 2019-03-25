@@ -14,7 +14,7 @@ import os
 from shutil import copyfile
 import numpy as np
 
-from samurai.analysis.support.snpEditor import s2pEditor as s2p
+from samurai.analysis.support.snpEditor import SnpEditor as snp
 
 
 class MetaFileController(OrderedDict):
@@ -133,22 +133,23 @@ class MetaFileController(OrderedDict):
         self.numLoadedMeas = 0
         measurements = self.jsonData['measurements']
         for meas in measurements:
-            self.s2pData.append(s2p(meas['filename'].strip()))
+            self.s2pData.append(snp(meas['filename'].strip()))
             self.numLoadedMeas+=1
             
-    def load_data(self,verbose=False):
+    def load_data(self,verbose=False,read_header=False):
         '''
         @brief load up all measurements into list of snp or wnp files
         @param[in/OPT] verbose - whether or not to be verbose when loading
+        @param[in/OPT] read_header - whether or not to skip reading the header. Should be faster with false
         @return list of snp or wnp classes
         '''
         snpData = []
         numLoadedMeas = 0
         wdir = self.wdir
         measurements = self.jsonData['measurements']
-        if verbose: print("Loading Measurement %5d" %(0))
+        if verbose: print("Loading Measurement %5d" %(0),end='')
         for meas in measurements:
-            snpData.append(s2p(os.path.join(wdir,meas['filename'].strip())))
+            snpData.append(snp(os.path.join(wdir,meas['filename'].strip()),read_header=read_header))
             numLoadedMeas+=1
             if verbose: print("%s %5d" %('\b'*5,numLoadedMeas),end='')
         if verbose: print("\nLoading Complete")
