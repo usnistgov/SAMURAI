@@ -8,6 +8,7 @@ import os
 import cmath 
 import numpy as np
 import re
+import six
 from xml.dom.minidom import parse 
 
 class WnpEditor:
@@ -17,7 +18,7 @@ class WnpEditor:
                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                measurement with n ports and frequencies [f1,f2,...] 
    '''
-   def __init__(self,input_file):
+   def __init__(self,input_file,**arg_options):
         '''
         @brief init arbitrary port wave parameter class
         @param[in] input_file - path of file to load in. 
@@ -27,12 +28,15 @@ class WnpEditor:
         self.options = {}
         self.options['header'] = []
         self.options['comments'] = []
+        self.options['read_header'] = True
+        for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
+            self.options[key] = val 
         self.A = dict()
         self.B = dict()
         self.dict_keys = [] #keys for our measurement dictionary
         #now load the file
         if(type(input_file)==str):
-            self.load(input_file)
+            self.load(input_file,read_header=self.options['read_header'])
         elif(type(input_file)==tuple or type(input_file)==list):
             self.load_empty(input_file[0],input_file[1])
         
@@ -274,13 +278,13 @@ class SnpEditor:
         self.options['header'] = []
         self.options['comments'] = []
         self.options['read_header'] = True
-        for key,val in arg_options: #overwrite defaults with inputs
+        for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
             self.options[key] = val 
         self.S = dict()
         self.dict_keys = [] #keys for our measurement dictionary
         #now load the file
         if(type(input_file)==str):
-            self.load(input_file)
+            self.load(input_file,read_header=self.options['read_header'])
         elif(type(input_file)==tuple or type(input_file)==list):
             self.load_empty(input_file[0],input_file[1])
         
