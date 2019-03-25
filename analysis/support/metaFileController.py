@@ -23,7 +23,7 @@ class MetaFileController(OrderedDict):
         #self.root = tk.Tk();
         #self.root.withdraw();
         #load in our json file
-        super(OrderedDict,self).__init__() #initialize ordereddict
+        super(MetaFileController,self).__init__() #initialize ordereddict
         self.load(metafile_path,suppress_empty_warning)
         
        
@@ -136,18 +136,22 @@ class MetaFileController(OrderedDict):
             self.s2pData.append(s2p(meas['filename'].strip()))
             self.numLoadedMeas+=1
             
-    def load_data(self):
+    def load_data(self,verbose=False):
         '''
         @brief load up all measurements into list of snp or wnp files
+        @param[in/OPT] verbose - whether or not to be verbose when loading
         @return list of snp or wnp classes
         '''
         snpData = []
         numLoadedMeas = 0
         wdir = self.wdir
         measurements = self.jsonData['measurements']
+        if verbose: print("Loading Measurement %5d" %(0))
         for meas in measurements:
             snpData.append(s2p(os.path.join(wdir,meas['filename'].strip())))
             numLoadedMeas+=1
+            if verbose: print("%s %5d" %('\b'*5,numLoadedMeas),end='')
+        if verbose: print("\nLoading Complete")
         return snpData,numLoadedMeas
     
     def get_positions(self,meas_num=-1):
