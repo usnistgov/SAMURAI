@@ -151,7 +151,9 @@ class MetaFileController(OrderedDict):
         for meas in measurements:
             snpData.append(snp(os.path.join(wdir,meas['filename'].strip()),read_header=read_header))
             numLoadedMeas+=1
-            if verbose: if numLoadedMeas%10: print("%s %5d" %('\b'*6,numLoadedMeas),end='')
+            if verbose: 
+                if numLoadedMeas%10: 
+                    print("%s %5d" %('\b'*6,numLoadedMeas),end='')
         if verbose: print("\nLoading Complete")
         return snpData,numLoadedMeas
     
