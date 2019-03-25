@@ -55,7 +55,14 @@ class MetaFileController(OrderedDict):
                 #self.jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
                 self.update(json.load(jsonFile, object_pairs_hook=OrderedDict))
                 self.jsonData = self
-            
+    
+    @property
+    def wdir(self):
+        '''
+        @brief property to return working directory
+        '''
+        return self.get_wdir()
+
     def get_wdir(self):
         return self.jsonData['working_directory'].strip()
         
@@ -74,6 +81,13 @@ class MetaFileController(OrderedDict):
         [ts_date, ts_time] = filter(None,ts.split())
         [ts_year,ts_month,ts_day] = ts_date.split('-')
         return ts, ts_month, ts_day, ts_year, ts_time
+    
+    @property
+    def measurements(self):
+        '''
+        @brief property to quickly access measurements
+        '''
+        return self.jsonData['measurements']
     
     def get_meas(self,measNum=-1):
         if not hasattr(measNum,'__iter__'):#first change to list if its a single input
@@ -102,6 +116,10 @@ class MetaFileController(OrderedDict):
             self.jsonData['measurements'][measNum] = measurements
         
     def write(self,outPath='default'):
+        '''
+        @brief write out edited metafile
+        @param[in/OPT] outPath - path where to write out file. If not specified, use the previous filename
+        '''
         self.saved = 1
         if(outPath=='default'):
             outPath = os.path.join(self.metadir,self.metafile)
@@ -133,7 +151,28 @@ class MetaFileController(OrderedDict):
             snpData.append(s2p(meas['filename'].strip()))
             numLoadedMeas+=1
         return snpData,numLoadedMeas
-            
+    
+    def get_positions(self,meas_num=-1):
+        '''
+        @brief get all of the location vectors for each measurement
+        @param[in/OPT] meas_num which measurement position to load (-1 for all)
+        @return np array of measurement locations or a single set of location data
+        '''
+        if(meas_num<0):
+            loc_list = []
+            for meas in self.measurements:
+                loc_list.append(meas['position'])
+            return np.array(loc_list)
+        else:
+            return meas[meas_num]['position']
+
+    @property
+    def filenames(self):
+        '''
+        @brief property to get list of filenames with absolute paths
+        '''
+        return self.get_filename_list(abs_path=True)  
+        
     def get_filename_list(self,abs_path=False):
         fnames = []
         measurements = self.jsonData['measurements']
