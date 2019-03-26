@@ -23,7 +23,7 @@ class MetaFileController(OrderedDict):
         #self.root = tk.Tk();
         #self.root.withdraw();
         #load in our json file
-        OrderedDict.__init__() #initialize ordereddict
+        OrderedDict.__init__(self) #initialize ordereddict
         self.load(metafile_path,suppress_empty_warning)
         
        
