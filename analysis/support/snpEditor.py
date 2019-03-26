@@ -11,6 +11,8 @@ import re
 import six
 from xml.dom.minidom import parse 
 
+from samurai.analysis.support.generic import deprecated
+
 class WnpEditor:
    '''
    @brief init arbitrary port wave parameter class
@@ -378,7 +380,7 @@ class SnpEditor:
        
    def write(self,out_file,ftype='default',delimiter=' '):
         '''
-        @brief write out data to wave parameter file (e.g. '.w2p')
+        @brief write out data to S parameter file (e.g. '.s2p')
         @param[in] out_file - path of file name to write to
         @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)
         @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')
@@ -489,6 +491,7 @@ class SnpEditor:
 
         
 #############################################################################################
+@deprecated("User WnpEditor class")
 class W2pEditor:
    '''
    @brief class for w2p files
@@ -693,6 +696,7 @@ class W2pEditor:
        my_snp.S[22].update(self.A[22].freq_list,S22_vals)
        return my_snp
 
+@deprecated("Use SnpEditor class")
 class S2pEditor:
     #inputFile automatically laods an s2p file. if not given, S2P file with all zeros will be generated with freq_list frequencies (if provided) frequencies provided in GHz
     def __init__(self,inputFile='none',freq_list_ghz=[]):\
@@ -909,7 +913,8 @@ def crop_s2p(file_in,file_out,freq_lo,freq_hi):
     s = s2pEditor(file_in)
     s.crop(freq_lo,freq_hi)
     s.write(file_out)
-    
+
+@deprecated("use SnpEditor Class")
 class s1pEditor:   
     def __init__(self,inputFile='none',rawData='',freqList='',sParam='',header=[],comments=[]):
         if(inputFile!='none'):
