@@ -411,7 +411,7 @@ class SnpEditor:
             data = np.transpose(np.array(temp_list))
             
             with open(out_file,'wb') as fp:
-                num_cols = len(self.dict_keys)*4+1
+                num_cols = len(self.dict_keys)*2+1
                 np.array([num_rows,num_cols],dtype=np.uint32).tofile(fp)
                 data.tofile(fp)
                 
