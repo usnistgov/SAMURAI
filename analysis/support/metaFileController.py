@@ -15,6 +15,7 @@ from shutil import copyfile
 import numpy as np
 
 from samurai.analysis.support.snpEditor import SnpEditor as snp
+from samurai.analysis.support.generic import deprecated
 
 
 class MetaFileController(OrderedDict):
@@ -29,7 +30,11 @@ class MetaFileController(OrderedDict):
        
     #load file
     def load(self,metafile_path,suppress_empty_warning=0):
-        
+        '''
+        @brief load a json metafile
+        @param[in] metafile_path - path to the metafile to load, create one if it doesnt exist
+        @param[in] suppress_empty_warning - if true suprress the warning that an empty file was created
+        '''
         metaPath = metafile_path
         
         #if(prompt):
@@ -57,14 +62,29 @@ class MetaFileController(OrderedDict):
     def wdir(self):
         '''
         @brief property to return working directory
+        @return the working directory
         '''
         return self.get_wdir()
+    
+    @wdir.setter
+    def wdir(self,path):
+        '''
+        @brief set the wdir property
+        '''
+        self.set_wdir(path)
 
     def get_wdir(self):
+        '''
+        @brief get the working directory
+        '''
         return self.jsonData['working_directory'].strip()
         
     #update working directory to current location
     def set_wdir(self,wdir=''):
+        '''
+        @brief set the working directory
+        @param[in/OPT] wdir - the new working directory to set. if '' use the directory the file was opened from
+        '''
         if(wdir!=''):
             self.metadir = wdir
         wdir = os.path.abspath(self.metadir)
@@ -87,6 +107,10 @@ class MetaFileController(OrderedDict):
         return self.jsonData['measurements']
     
     def get_meas(self,measNum=-1):
+        '''
+        @brief get measurement info from the metafile
+        @param[in/OPT] measNum - which measurement number to get. -1 will return a list of all of them
+        '''
         if not hasattr(measNum,'__iter__'):#first change to list if its a single input
                 measNum = [measNum]
         if(measNum[0]<0):
@@ -96,6 +120,10 @@ class MetaFileController(OrderedDict):
             return [self.jsonData['measurements'][num] for num in measNum]
         
     def get_meas_path(self,measNum=-1):
+        '''
+        @brief get the measurement path
+        @param[in/OPT] measNum - which measurement to get. -1 will return a list of all of them
+        '''
         if(measNum<0):
             #load all
             wdir = self.get_wdir()
@@ -105,6 +133,11 @@ class MetaFileController(OrderedDict):
             return os.path.join(self.get_wdir(),self.jsonData['measurements'][measNum])
         
     def set_meas(self,measurements,measNum=-1):
+        '''
+        @brief set measurement data
+        @param[in] measurement - dictionary of list of dictionaries describing th emeasurements
+        @param[in/OPT] measNum - which measurement to change. if -1, set the whole 'measurement' list
+        '''
         self.saved = 0
         if(measNum<0):
             #write whole list
@@ -124,6 +157,7 @@ class MetaFileController(OrderedDict):
             json.dump(self.jsonData,jsonFile,indent=4) 
             
     #now functions for dealing with the data
+    @deprecated("Use MetaFileController.load_data() method")
     def load_all_meas(self):
         '''
         @brief load s2p files into this class DEPRECATED
@@ -136,7 +170,7 @@ class MetaFileController(OrderedDict):
             self.s2pData.append(snp(meas['filename'].strip()))
             self.numLoadedMeas+=1
             
-    def load_data(self,verbose=False,read_header=False):
+    def load_data(self,verbose=False,read_header=True):
         '''
         @brief load up all measurements into list of snp or wnp files
         @param[in/OPT] verbose - whether or not to be verbose when loading
@@ -176,7 +210,7 @@ class MetaFileController(OrderedDict):
         '''
         @brief property to get list of filenames with absolute paths
         '''
-        return self.get_filename_list(abs_path=True)  
+        return self.get_filename_list(abs_path=True)
 
     def get_filename_list(self,abs_path=False):
         fnames = []
@@ -192,6 +226,11 @@ class MetaFileController(OrderedDict):
     #write filenames, default to whole list
     #assumes with respect to working directory
     def set_filename(self,fnames,meas_num=-1):
+        '''
+        @brief set the filenames of measurements
+        @param[in] fnames - name or list of names of the files
+        @param[in/OPT] meas_num - which measurement to set. -1 for all
+        '''
         if(meas_num<0):
             num_meas = len(self.jsonData['measurements']) #get the number of measurements
             if(num_meas!=len(fnames)):
@@ -248,6 +287,9 @@ metaFileController = MetaFileController
       
 #update to current directory
 def update_wdir(metaFile='metafile.json'):
+    '''
+    @brief set the wdir to the current directory
+    '''
     mymfc = metaFileController(metaFile)
     mymfc.set_wdir() #set current directory as working directory
     mymfc.write()
@@ -307,8 +349,30 @@ def evenly_split_metafile(metafile_path,num_splits,label='split'):
             return -1
     meas_split = [range(int(start),int(stop)) for start,stop in meas_split_boundaries]
     split_metafile(metafile_path,meas_split)
-    
-        
-        
+
+
+from shutil import copyfile
+
+def copy_s_param_measurement_to_binary(metafile_path,output_directory):
+    '''
+    @brief move a metafile and corresponding measurements from s2p to s2p_binary
+    @param[in] metafile_path - path of the metafile to move 
+    @param[in] output_directory - location to output the binary data to 
+    @return name of the new metafile (will simply append '_binary')
+    '''
+    mfc = MetaFileController(metafile_path) #load the metafile
+
+    #now load in and save out all of the measurements
+    for i,f in enumerate(mfc.filenames):
+        print("Moving : %s" %(f))
+        s = snp(f) #load in the file
+        [_,name] = os.path.split(f) #get the file name
+        name = name+'_binary' #append _binary to extension
+        s.write(os.path.join(output_directory,name)) #write the file out
+        mfc.set_filename(name,i) #update the file name in the metafile
+    mfc.set_wdir(output_directory) #set the working directory to the output directory
+    new_name = 'metafile_binary.json'
+    mfc.write(os.path.join(output_directory,new_name)) #write out the metafile
+    return new_name
             
             
