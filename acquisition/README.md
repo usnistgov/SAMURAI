@@ -37,6 +37,10 @@ This subdirectory contains multiple classes and functions to run the SAMURAI sys
   - Class for creating metafile for SAMURAI measurements
 - /support/samurai_support.py
   - Some support functions to use. (mainly functions used when USC came out in Aug. 2018 for phased array calibration)
+- /support/BislideController.py
+  - A class to control a Velmex Bislide
+- /support/samurai_tktools.py
+  - Some functions for quick building of GUIs with Tkinter (Tk)
 
 # SAMURAI Hardware Information
 
@@ -90,7 +94,8 @@ Currently, the samurai system is run over a custom local network run through a s
 
 ### Remote PNA-X control
 
--Info on Remote KVM setup
+A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, and a mouse to be placed far away from our VNA and a single CAT-5 cable (ethernet) to be run between the two. This comprises of a small box with 2 usb ports and a VGA connection. This box is then connected directly via a CAT-5 Cable near the VNA with a usb-B output and a second VGA connection. These two boxes provide remote control over the VNA
+  - NOTE: This is not connected to the local network. These two boxes are only connected to one another and cannot be run over a network. They simply translate the usb and VGA info and transmit over a CAT-5 cable.
 
 ### IP and VISA Addresses
 
@@ -255,7 +260,7 @@ mysam.disconnect_rx_positioner() #disconnect from the Meca500 when finished
 
 ## Running from the Graphical User Interface (GUI) SAMURGUI
 
-This code needs to be finished
+Code not currently complete
 
 # Measurement TODO List
 
