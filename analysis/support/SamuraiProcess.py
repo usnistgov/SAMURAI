@@ -263,7 +263,7 @@ class CalculatedSyntheticAperture:
         #ax.plot_surface(self.elevation,self.AZIMUTH,plot_data,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
 
-        plotly_surf = [go.Surface(z = plot_data, x = self.AZIMUTH, y = self.elevation)]
+        plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
         layout = go.Layout(
             title='UV Beamformed Plot',
             scene = dict(
@@ -389,6 +389,62 @@ class CalculatedSyntheticAperture:
                                             tickvals=[0,db_range],
                                             ticktext=[str(round(caxis_min,2)),str(round(caxis_max,2))]
                                             ))]
+        layout = go.Layout(
+            title='Beamformed Data (%s)' %(plot_type),
+            scene = dict(
+                xaxis = dict(title='X'),
+                yaxis = dict(title='Y'),
+                zaxis = dict(title='Z')
+            ),
+            autosize=True,
+            margin=dict(
+                l=65,
+                r=50,
+                b=65,
+                t=90
+            ),
+        )
+        fig = go.Figure(data=plotly_surf,layout=layout)
+        ploff.plot(fig,filename=out_name)
+       
+        
+    def plot_scatter_3d(self,plot_type='mag_db',out_name='test'):
+        '''
+        @brief scatter plot calculated data in 3d space (radiation pattern)
+        @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
+        @return a handle for the figure
+        '''
+        plot_data_dict = {
+            'mag_db':self.mag_db,
+            'mag':self.mag,
+            'phase':self.phase,
+            'phase_d':self.phase_d,
+            'real':self.real,
+            'imag':self.imag
+            }
+        #get our data
+        plot_data = plot_data_dict[plot_type] #get the type of plot
+        #minimum value if were plotting db
+        if(plot_type=='mag_db'):
+            #mask out lower values
+            db_range = 60 #lower than the max
+            caxis_min = plot_data.max()-db_range
+            caxis_max = plot_data.max()
+            plot_data = plot_data-(plot_data.max()-db_range) #shift the values
+            plot_data = mask_value(plot_data,plot_data<=0)
+        else: 
+            #Zero the data
+            caxis_min = plot_data.min()
+            caxis_max = plot_data.max()
+            plot_data = plot_data-plot_data.min()
+        
+        #now get our xyz values
+        X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        
+        #and plot
+        plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y)]
         layout = go.Layout(
             title='Beamformed Data (%s)' %(plot_type),
             scene = dict(
@@ -550,7 +606,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @param[in/OPT] keyword args as follows:
             None Yet!
         '''
-        [self.azimuth,self.elevation,self.complex_values] = self.load(pattern_file)
+        self.load(pattern_file)
     
     def load(self,pattern_file):
         '''
@@ -562,7 +618,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @param[in] pattern_file - file to load
         @return [azimuth,elevation,values(complex)]
         '''
-        file_ext = os.path.split(pattern_file)[-1]
+        file_ext = os.path.splitext(pattern_file)[-1]
         load_functs = {
                 '.csv':self.load_csv
                 }
@@ -573,7 +629,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
     def load_csv(self,pattern_file):
         '''
         @brief method to load pattern data from CSV 
-            data should be in the format 'azimuth, elevation, value (complex)'
+            data should be in the format 'azimuth, elevation, real(value),imag(value)'
             all angles should be in degrees with 0,90=az,el pointing boresight
         @param[in] pattern_file - file to load
         @return [azimuth,elevation,values(complex)]
@@ -593,7 +649,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
             rc = re.compile(regex_str)
             raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!'])                  
                                   
-        return [raw_data[:,0],raw_data[:,1],raw_data[:,2]]
+        return [raw_data[:,0],raw_data[:,1],raw_data[:,2]+raw_data[:,3]*1j]
     
     
     
@@ -625,15 +681,19 @@ def mask_value(arr,mask,value=0):
 
     
 if __name__=='__main__':
-    test_path = r"Q:\public\Quimby\Students\Alec\SAMURAI\Code\beamforming\data\binary_aperture\metafile_binary.json"
-    mysp = SamuraiProcess(test_path)
+    #test_path = r".\binary_aperture\metafile_binary.json"
+   # mysp = SamuraiProcess(test_path)
     #[mycsa_list,sv,s21,x,y,z,dr] = mysp.beamforming_farfield(np.arange(60,120),np.arange(-30,30),40e9,verbose=True)
     #[mycsa_list,sv,s21,x,y,z,dr] = mysp.beamforming_farfield(np.arange(0,180),np.arange(-90,90),40e9,verbose=True)
-    mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
+    #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
     #mycsa_list = mysp.beamforming_farfield_uv(np.arange(-1,1,0.01),np.arange(-1,1,0.01),40e9,verbose=True)
-    mycsa = mycsa_list[0]
+   # mycsa = mycsa_list[0]
     #mycsa.plot_uv()
-    mycsa.plot_3d()
+    #mycsa.plot_3d()
+    
+    test_ant_path = './test_ant_pattern.csv'
+    myant = Antenna(test_ant_path)
+    myant['pattern'].plot_scatter_3d()
     
 
     
