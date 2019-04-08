@@ -15,7 +15,7 @@ from plotting_help import increase_meshing_3D
 
 from samurai.analysis.support.metaFileController import MetaFileController 
    
-class SamuraiProcess(MetaFileController):
+class SamuraiPostProcess(MetaFileController):
     '''
     @brief this is a class to inherit from for processing samurai data
         This will implement generic things like loading metadata used for all
@@ -29,7 +29,7 @@ class SamuraiProcess(MetaFileController):
                         No keyword args yet!
         '''
         self.loaded_flg = False #whether data has been loaded to memory or not
-        super(SamuraiProcess,self).__init__(metafile_path,arg_options) # load in our metafile
+        super(SamuraiPostProcess,self).__init__(metafile_path,arg_options) # load in our metafile
     
     def load_s_params_to_memory(self,verbose=False,load_key=21):
         '''
@@ -40,177 +40,14 @@ class SamuraiProcess(MetaFileController):
         '''
         #load from files if not done already
         if not self.loaded_flg: #then we load
-            [s_data,num_loaded] = self.load_data(verbose=verbose)
+            [s_data,_] = self.load_data(verbose=verbose)
             self.loaded_data = s_data #store all of the data for if we change (may want to adjust this later for memory conservation)
             self.loaded_flg = True
         #now get the values we are looking for
         s_vals = np.array([s.S[load_key].raw for s in self.loaded_data]) #turn the s parameters into an array
         freq_list = self.loaded_data[0].S[load_key].freq_list #get frequencies from first file (assume theyre all the same)
         return freq_list,s_vals
-            
-    def beamforming_farfield(self,theta_vals,phi_vals,freq_list='all',verbose=False):
-        '''
-        @brief calculate the beamforming assuming farfield for angles in spherical coordinates
-            All locations will be pulled from the metafile positions
-        @param[in] theta_vals - theta angles in elevation
-        @param[in] phi_vals   - phi angles in azimuth from x
-        @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
-        @param[in/OPT] verbose    - whether or not to be verbose
-        @note theta and phi vals will be created into a meshgrid
-        @return list of CalculatedSyntheticAperture objects
-        '''
-        #list of calulcated synthetic apertures
-        csa_list = []
-        
-        #get our s-parameter data
-        if verbose: print("Loading S-parameter data")
-        [s_freq_list,s21_vals] = self.load_s_params_to_memory(verbose=verbose,load_key=21)
-        s_freq_list = s_freq_list*1e9 #change to ghz
-        #set our frequency list
-        if freq_list=='all': #make all frequcnies if 'all'
-            freq_list = s_freq_list
-        if not hasattr(freq_list,'__iter__'): #make a list if its not
-            freq_list = [freq_list] 
-        freq_list = np.array(freq_list)
-        
-        #get our position data
-        if verbose: print("Reading measurement positions")
-        pos = self.get_positions() #get all of our positions
-        unit_mult = 0.001 #multiply to get in meters
-        x_locs = np.reshape(pos[:,0],(-1,1))*unit_mult; x_locs = x_locs-x_locs.mean() #and unpack all the data
-        y_locs = np.reshape(pos[:,1],(-1,1))*unit_mult; y_locs = y_locs-y_locs.mean() #this is all in mm to change to meters
-        z_locs = np.reshape(pos[:,2],(-1,1))*unit_mult; z_locs = z_locs-z_locs.mean() #all values must be positive so subtract from lowest point
-        #theta_locs = pos[:,5] #angle of the antenna
-        
-        #now lets create the meshgrid for our theta and phi values
-        if verbose: print("Creating angular meshgrid")
-        [THETA,PHI] = np.meshgrid(theta_vals,phi_vals)
-        theta_mesh_rad = np.deg2rad(np.reshape(THETA,(1,-1))) #reshape to 1D array
-        phi_mesh_rad   = np.deg2rad(np.reshape(PHI,(1,-1)))
-        
-        #now lets use this data to get our delta_r beamforming values
-        #this delta_r will be a 2D array with the first dimension being for each position
-        # the second dimeino will be each of the theta/phi pairs for the angles
-        if verbose: print("Finding delta-r")
-        x_r = x_locs*np.cos(theta_mesh_rad)*np.cos(phi_mesh_rad)
-        y_r = y_locs*np.cos(theta_mesh_rad)*np.sin(phi_mesh_rad)
-        z_r = z_locs*np.sin(theta_mesh_rad)
-        #delta_r = np.sqrt(x_r**2+y_r**2+z_r**2) #we have no direction here...
-        delta_r = x_r+y_r+z_r
-        #delta_r = np.sqrt(y_r**2+z_r**2)
-        
-        #now lets loop through each of our frequencies in freq_list
-        if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
-        for freq in freq_list:
-            if verbose: print("    Calculating for %f Hz" %(freq))
-            freq_idx = np.where(s_freq_list==freq)[0]
-            if(freq_idx.size<1):
-                print("    WARNING: Frequency %f Hz not found. Aborting." %(freq))
-                continue # dont beamform on this frequency
-            elif(freq_idx.size>1):
-                print("    WARNING: More than one frequency %f Hz found. Aborting" %(freq))
-                continue
-            else:
-                freq_idx = freq_idx[0]
-            #if we make it here the frequency exists. now get our s params for the current frequency
-            s21_current = s21_vals[:,freq_idx]
-            #now we can calculate the beam phases for each of the angles at each position
-            #here we add a
-            lam = sp_consts.c/freq
-            k = 2.*np.pi/lam
-            steering_vectors = np.exp(-1j*k*delta_r)
-        
-            # sum(value_at_position*steering_vector) for each angle
-            # now calculate the values at each angle
-            beamformed_vals = np.dot(s21_current,steering_vectors)/len(s21_current)
-            
-            #now pack into our CSA (CaluclateSynbteticAperture)
-            csa_list.append(CalculatedSyntheticAperture(THETA,PHI,np.reshape(beamformed_vals,THETA.shape)))
-        
-        return csa_list
-        #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
-    
-    def beamforming_farfield_uv(self,u_vals,v_vals,freq_list='all',verbose=False):
-        '''
-        @brief wrapper around typical beamforming to calculate in uv domain. Unfortunately this doesnt work right now because we have u**2+v**2>1
-        @param[in] u_vals - vector of u locations (azimuth)
-        @param[in] v_vals - vector of v locations (elevation)
-        @param[in/OPT] freq_list - what frequencies to calculate for
-        @param[in/OPT] verbose - do we wanna be verbose?
-        @return list of CalculatedSyntheticAperture objects
-        @TODO DO THIS CORRECTLY it is currenlty copied from the farfiedl azel
-        '''
-        #list of calulcated synthetic apertures
-        csa_list = []
-        
-        #get our s-parameter data
-        if verbose: print("Loading S-parameter data")
-        [s_freq_list,s21_vals] = self.load_s_params_to_memory(verbose=verbose,load_key=21)
-        s_freq_list = s_freq_list*1e9 #change to ghz
-        #set our frequency list
-        if freq_list=='all': #make all frequcnies if 'all'
-            freq_list = s_freq_list
-        if not hasattr(freq_list,'__iter__'): #make a list if its not
-            freq_list = [freq_list] 
-        freq_list = np.array(freq_list)
-        
-        #get our position data
-        if verbose: print("Reading measurement positions")
-        pos = self.get_positions() #get all of our positions
-        unit_mult = 0.001 #multiply to get in meters
-        x_locs = np.reshape(pos[:,0],(-1,1))*unit_mult; x_locs = x_locs-x_locs.mean() #and unpack all the data
-        y_locs = np.reshape(pos[:,1],(-1,1))*unit_mult; y_locs = y_locs-y_locs.mean() #this is all in mm to change to meters
-        z_locs = np.reshape(pos[:,2],(-1,1))*unit_mult; z_locs = z_locs-z_locs.mean() #all values must be positive so subtract from lowest point
-        #theta_locs = pos[:,5] #angle of the antenna
-        
-        #now lets create the meshgrid for our theta and phi values
-        if verbose: print("Creating angular meshgrid")
-        [THETA,PHI] = np.meshgrid(theta_vals,phi_vals)
-        theta_mesh_rad = np.deg2rad(np.reshape(THETA,(1,-1))) #reshape to 1D array
-        phi_mesh_rad   = np.deg2rad(np.reshape(PHI,(1,-1)))
-        
-        #now lets use this data to get our delta_r beamforming values
-        #this delta_r will be a 2D array with the first dimension being for each position
-        # the second dimeino will be each of the theta/phi pairs for the angles
-        if verbose: print("Finding delta-r")
-        x_r = x_locs*np.cos(theta_mesh_rad)*np.cos(phi_mesh_rad)
-        y_r = y_locs*np.cos(theta_mesh_rad)*np.sin(phi_mesh_rad)
-        z_r = z_locs*np.sin(theta_mesh_rad)
-        #delta_r = np.sqrt(x_r**2+y_r**2+z_r**2) #we have no direction here...
-        delta_r = x_r+y_r+z_r
-        #delta_r = np.sqrt(y_r**2+z_r**2)
-        
-        #now lets loop through each of our frequencies in freq_list
-        if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
-        for freq in freq_list:
-            if verbose: print("    Calculating for %f Hz" %(freq))
-            freq_idx = np.where(s_freq_list==freq)[0]
-            if(freq_idx.size<1):
-                print("    WARNING: Frequency %f Hz not found. Aborting." %(freq))
-                continue # dont beamform on this frequency
-            elif(freq_idx.size>1):
-                print("    WARNING: More than one frequency %f Hz found. Aborting" %(freq))
-                continue
-            else:
-                freq_idx = freq_idx[0]
-            #if we make it here the frequency exists. now get our s params for the current frequency
-            s21_current = s21_vals[:,freq_idx]
-            #now we can calculate the beam phases for each of the angles at each position
-            #here we add a
-            lam = sp_consts.c/freq
-            k = 2.*np.pi/lam
-            steering_vectors = np.exp(-1j*k*delta_r)
-        
-            # sum(value_at_position*steering_vector) for each angle
-            # now calculate the values at each angle
-            beamformed_vals = np.dot(s21_current,steering_vectors)/len(s21_current)
-            
-            #now pack into our CSA (CaluclateSynbteticAperture)
-            csa_list.append(CalculatedSyntheticAperture(THETA,PHI,np.reshape(beamformed_vals,THETA.shape)))
-        
-        return csa_list
-        #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
-        
+
 #import matplotlib.pyplot as plt
 #from matplotlib import cm
 #from mpl_toolkits.mplot3d import Axes3D
@@ -235,8 +72,8 @@ class CalculatedSyntheticAperture:
         @return CalculatedSyntheticAperture class
         '''
         self.options = {}
-        self.elevation = ELEVATION;
-        self.azimuth   = AZIMUTH;
+        self.elevation = ELEVATION
+        self.azimuth   = AZIMUTH
         self.complex_values  = complex_values
     
     def plot_azel(self,plot_type='mag_db',out_name='test'):
@@ -308,7 +145,7 @@ class CalculatedSyntheticAperture:
             }
         #get our data
         plot_data = plot_data_dict[plot_type] #get the type of plot
-        U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.AZIMUTH))
+        U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
         V = np.sin(np.deg2rad(self.elevation))
         #[Un,Vn,Dn] = increase_meshing_3D(U,V,plot_data,4)
         Un = U
@@ -424,19 +261,6 @@ class CalculatedSyntheticAperture:
             }
         #get our data
         plot_data = plot_data_dict[plot_type] #get the type of plot
-        #minimum value if were plotting db
-        if(plot_type=='mag_db'):
-            #mask out lower values
-            db_range = 60 #lower than the max
-            caxis_min = plot_data.max()-db_range
-            caxis_max = plot_data.max()
-            plot_data = plot_data-(plot_data.max()-db_range) #shift the values
-            plot_data = mask_value(plot_data,plot_data<=0)
-        else: 
-            #Zero the data
-            caxis_min = plot_data.min()
-            caxis_max = plot_data.max()
-            plot_data = plot_data-plot_data.min()
         
         #now get our xyz values
         X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
