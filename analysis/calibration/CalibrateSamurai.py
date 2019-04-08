@@ -27,8 +27,8 @@ import os
 from shutil import copyfile
 
 #default paths
-default_pp_cal_template = os.path.join(os.path.dirname(__file__),'cal_template.post').encode()
-default_pp_cal_template_wnp = os.path.join(os.path.dirname(__file__),'cal_template_wave_parameters.post').encode()
+default_pp_cal_template = os.path.join(os.path.dirname(__file__),'templates/cal_template.post').encode()
+default_pp_cal_template_wnp = os.path.join(os.path.dirname(__file__),'templates/cal_template_wave_param.post').encode()
 #this default is for s2p_files not w2p calibration (theyre different)
 
 class CalibrateSamurai:
