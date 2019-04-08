@@ -11,17 +11,11 @@ Before running
 
 @author: ajw5
 """
-
-import sys
 import os
 
 from samurai.analysis.calibration.CalibrateSamurai import CalibrateSamurai
-#pppy_template = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Software/synthetic_aperture';
 
-
-#import my tktools
-#tktoolsPath = 'Q:/public/Quimby/Students/Alec/Useful_Code/Al_TkTools.py'
-#sys.path.append(tktoolsPath)
+#tk tools
 from samurai.acquisition.support.samurai_tktools import DirPicker
 from samurai.acquisition.support.samurai_tktools import FilePicker
 from samurai.acquisition.support.samurai_tktools import EntryAndTitle
