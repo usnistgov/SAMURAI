@@ -21,9 +21,11 @@ from samurai.analysis.support.generic import deprecated
 class MetaFileController(OrderedDict):
     
     def __init__(self,metafile_path,suppress_empty_warning=0):
-        #self.root = tk.Tk();
-        #self.root.withdraw();
-        #load in our json file
+        '''
+        @brief initialize our class to control our metafile and the data within it
+        @param[in] metafile_path - path to the metafile to load (if it doesnt exist it will be created)
+        @param[in/OPT] supress_empty_warning - dont give a warning if the file loaded doesnt exist or is empty
+        '''
         OrderedDict.__init__(self) #initialize ordereddict
         self.load(metafile_path,suppress_empty_warning)
         
