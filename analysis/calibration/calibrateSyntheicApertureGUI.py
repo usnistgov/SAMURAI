@@ -82,14 +82,12 @@ class CalSAGui:
         self.raw_meas_metafile_entry = FilePicker(self.tkroot,'Measurement Metafile',default_val=self.initMetaSearchDir,filetypes=(('MetaFile','*.json'),),highlightthickness=5,highlightbackground="gray",highlightcolor="black")
         self.cal_solution_file_entry = FilePicker(self.tkroot,'Measurement Calibration Solution',default_val=self.initMetaSearchDir,filetypes=(('Calibration Solution File','*.meas'),('Calibration Solution File','*.s4p'),),highlightthickness=5,highlightbackground="gray",highlightcolor="black")
         self.gthru_file_entry = FilePicker(self.tkroot,'Measurement Switch Terms',default_val=self.initMetaSearchDir,filetypes=(('S2P File','*.s2p'),('Switch Terms','*.switch'),),highlightthickness=5,highlightbackground="gray",highlightcolor="black")
-        self.output_meas_directory_entry = DirPicker(self.tkroot,"Output Directory",self.default_output_dir,bd=5,highlightbackground="gray",highlightcolor="black",highlightthickness=5);
-        self.post_proc_cal_template_entry = FilePicker(self.tkroot,'Post Processor Calibration Template',default_val=self.default_pp_cal_template,filetypes=(('MUF Post Processor Menu','*.post'),),highlightthickness=5,highlightbackground="gray",highlightcolor="black")
-
+        self.output_meas_directory_entry = DirPicker(self.tkroot,"Output Directory",self.default_output_dir,bd=5,highlightbackground="gray",highlightcolor="black",highlightthickness=5)
+        
         self.raw_meas_metafile_entry.pack()
         self.cal_solution_file_entry.pack()
         self.gthru_file_entry.pack()
         self.output_meas_directory_entry.pack()
-        self.post_proc_cal_template_entry.pack()
         
                 #help button
         help_text = 'This is a GUI that will calibrate synthetic aperture data taken by the SAMURAI System. \n'
@@ -101,28 +99,25 @@ class CalSAGui:
         help_text+= '                    - An output directory to save the calibrated output\n'
         help_text+= 'Once these have been selected, simply click calibrate to run the calibration and results will be in the output directory\n\n'
         help_text+= 'This script relies on a few common python libraries (Tkinter,numpy,xml.dom.minidom,etc) and a few custom libraries, most of\n'
-        #help_text+= '  which are found in Q:/public/Quimby/Students/Alec/Useful_Code/'
+        help_text+= '  which are found in this git repo'
         self.help_button = HelpButton(tkroot,help_text,button_text='Need Help? Click Me.')
         self.help_button.pack(side=tk.BOTTOM)
 
         
         
     def calData(self):
+        #create our calibration class
         csa = CalibrateSamurai(self.raw_meas_metafile_entry.get(),self.output_meas_directory_entry.get(),
-                         self.cal_solution_file_entry.get(),self.post_proc_cal_template_entry.get(),self.gthru_file_entry.get())
-      #  wp_flg = self.check_options.get_button_state(0);
-        convert_flg = self.check_options.get_button_state(1)
-        #print(self.check_options.print_debug());
-        #csa.populate_post_proc_and_calibrate(wp_flg,convert_flg);
-        csa.populate_post_proc_and_calibrate_s2p(convert_flg)
+                         self.cal_solution_file_entry.get(),self.gthru_file_entry.get())
+        #convert_flg = self.check_options.get_button_state(1)
+        csa.populate_post_proc_and_calibrate()
         print('DONE. Results in '+self.output_meas_directory_entry.get())
         
         
     def move_data_and_update_metafile(self):
         print("Moving Calibrated Results and Updating Metafile")
         csa = CalibrateSamurai(self.raw_meas_metafile_entry.get(),self.output_meas_directory_entry.get(),
-                         self.cal_solution_file_entry.get(),self.post_proc_cal_template_entry.get(),self.gthru_file_entry.get())
-        
+                         self.cal_solution_file_entry.get(),self.gthru_file_entry.get())
         csa.update_metafile_and_move()
     
   
