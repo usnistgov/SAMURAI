@@ -26,35 +26,51 @@ import datetime
 import os
 from shutil import copyfile
 
+#default paths
+default_pp_cal_template = os.path.join(os.path.dirname(__file__),'cal_template.post').encode()
+default_pp_cal_template_wnp = os.path.join(os.path.dirname(__file__),'cal_template_wave_parameters.post').encode()
+#this default is for s2p_files not w2p calibration (theyre different)
+
 class CalibrateSamurai:
     
 ##load in our metadata file
 #with open(metaPath,'r') as jsonFile:
 #    jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
-    def __init__(self, metaFile,out_dir,in_cal_path,post_proc_template,gthru_file_path):
+    def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path=''):
         '''
         @brief initialize the class
         @param[in] metaFile - path to metafile of measurement to calibrate
         @param[in] out_dir  - output directory to place the calibrated measurements
         @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
         '''
+        #options dictionaruy
+        self.options = {}
+
         self.mfc = mfc(metaFile)
         self.metaFile = metaFile
         
-        self.post_proc_template = post_proc_template
+        #get the type of file (snp or wnp)
+        first_meas_name = self.mfc.get_filename(0) 
+        meas_ext = os.path.splitext(first_meas_name)[-1] #get our measurement extension
+        #at this point we will have .s#p,.s#p_binary, .w#p, or .w#p_binary
+        if(meas_ext[1]=='w'):
+            self.options['wave_params_flg'] = True
+            self.post_proc_template = default_pp_cal_template_wnp
+        elif(meas_ext[1]=='s'):
+            self.options['wave_params_flg'] = False
+            self.post_proc_template = default_pp_cal_template
+        else:
+            print("ERROR: bad extension please check the file extensions start with .s or .w") #<@todo replace with real exception
         
         self.times = self.mfc.get_timestamp_data()
       
         self.out_dir = out_dir
         #path to our .meas error box file
         self.in_cal_path = in_cal_path
-        self.switch_terms_path = gthru_file_path
-        #self.dateWdir = os.path.join(self.calWdir,self.dateWdir)
-        #self.calOutDir = os.path.join(self.dateWdir,'calibrated_data_'+os.path.split(self.wdir)[1])
-        #self.newWdir = os.path.join(self.wdir,self.calOutDir)
+        self.switch_terms_path = gthru_file_path #only used for s parameters
   
     #calibrate in post processor and save in output directory
-    def populate_post_proc_and_calibrate_s2p(self,convert_to_s2p_flg):
+    def populate_post_proc_and_calibrate(self):
         #ensure our metafile is updated to the current folder
         self.mfc.set_wdir()
         #get our list of values from the old folder both with and without absolute path
@@ -66,7 +82,8 @@ class CalibrateSamurai:
         self.ppc.rename(os.path.join(self.out_dir,out_name))
         #now set cal path
         self.ppc.setCalPath(self.in_cal_path)
-        self.ppc.setSwitchTerms(self.switch_terms_path)
+        if not (self.options['wave_params_flg']): #only set switch terms for wave params
+            self.ppc.setSwitchTerms(self.switch_terms_path)
         #and populate the duts
         self.ppc.setDUTFromList(fnames_abs)
         #now check our checkboxes to see what we want to do
@@ -100,15 +117,7 @@ class CalibrateSamurai:
         #our calibration folder name
         cal_folder_name = os.path.split(self.post_proc_template)[1].split('.')[0]
         cal_folder_full = os.path.join(self.out_dir,cal_folder_name+'_post_Results') #full path to our calibration folder
-        #we now we go into the subdirectories and copy the s2p file which is named based on the post processor template
-       # if(wave_params_flg):
-       #     ftype = '.w2p';
-       # else:
-       #     ftype = 's2p';
-       # if(convert_to_s2p_flg): #if we converted we need to change to s2p and overwrite whatever was there
-       #     ftype = '.s2p' 
         
-        #snp_name = cal_folder_name+'_0'+ftype;
         fname_out_list = []
         #now lets copy
         for fname in fnames:
