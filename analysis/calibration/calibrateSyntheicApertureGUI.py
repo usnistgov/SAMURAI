@@ -15,10 +15,6 @@ Before running
 import sys
 import os
 
-from samurai.analysis.support.snpEditor import s2pEditor as s2p
-from samurai.analysis.support.metaFileController import metaFileController as mfc
-from samurai.analysis.support.metaFileController import update_wdir
-from samurai.analysis.support.PostProcPy import PostProcPy as pppy
 from samurai.analysis.calibration.CalibrateSamurai import CalibrateSamurai
 #pppy_template = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Software/synthetic_aperture';
 
@@ -32,12 +28,6 @@ from samurai.acquisition.support.samurai_tktools import EntryAndTitle
 from samurai.acquisition.support.samurai_tktools import CheckGroup
 from samurai.acquisition.support.samurai_tktools import HelpButton
 
-
-from collections import OrderedDict
-import json
-import datetime
-import os
-from shutil import copyfile
 try:
     import Tkinter as tk
     import tkFileDialog
