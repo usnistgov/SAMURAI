@@ -52,14 +52,11 @@ class CalSAGui:
         
         self.default_output_dir = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/calibrated'
         #template paths
-        self.default_pp_cal_template = os.path.join(os.path.dirname(__file__),'cal_template.post').encode()
-        self.default_pp_cal_template_wnp = os.path.join(os.path.dirname(__file__),'cal_template_wave_parameters.post').encode()
-        #this default is for s2p_files not w2p calibration (theyre different)
         
         #our check button group
-        cb_list = ['Wave Params', 'Convert to S-Params']
-        self.check_options = CheckGroup(tkroot,'Options',cb_list)
-        self.check_options.pack(side=tk.TOP)
+        #cb_list = ['Wave Params', 'Convert to S-Params']
+        #self.check_options = CheckGroup(tkroot,'Options',cb_list)
+        #self.check_options.pack(side=tk.TOP)
         
         
         
