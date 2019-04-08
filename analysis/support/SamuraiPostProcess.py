@@ -505,18 +505,11 @@ def mask_value(arr,mask,value=0):
 
     
 if __name__=='__main__':
-    #test_path = r".\binary_aperture\metafile_binary.json"
-   # mysp = SamuraiProcess(test_path)
-    #[mycsa_list,sv,s21,x,y,z,dr] = mysp.beamforming_farfield(np.arange(60,120),np.arange(-30,30),40e9,verbose=True)
-    #[mycsa_list,sv,s21,x,y,z,dr] = mysp.beamforming_farfield(np.arange(0,180),np.arange(-90,90),40e9,verbose=True)
-    #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
-    #mycsa_list = mysp.beamforming_farfield_uv(np.arange(-1,1,0.01),np.arange(-1,1,0.01),40e9,verbose=True)
-   # mycsa = mycsa_list[0]
-    #mycsa.plot_uv()
-    #mycsa.plot_3d()
     
     test_ant_path = './test_ant_pattern.csv'
     myant = Antenna(test_ant_path)
+    myap = myant['pattern']
+    myap.type = {'dimensions':1,'plane':'azimuth'}
     myant['pattern'].plot_scatter_3d()
     
 

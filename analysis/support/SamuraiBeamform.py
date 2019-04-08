@@ -26,7 +26,7 @@ class SamuraiBeamform(SamuraiPostProcess):
         super(SamuraiBeamform,self).__init__(metafile_path,**arg_options)
     
                
-    def beamforming_farfield(self,theta_vals,phi_vals,freq_list='all',verbose=False):
+    def beamforming_farfield(self,theta_vals,phi_vals,freq_list='all',verbose=False,antenna_pattern=None):
         '''
         @brief calculate the beamforming assuming farfield for angles in spherical coordinates
             All locations will be pulled from the metafile positions
@@ -34,6 +34,7 @@ class SamuraiBeamform(SamuraiPostProcess):
         @param[in] phi_vals   - phi angles in azimuth from x
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
         @param[in/OPT] verbose    - whether or not to be verbose
+        @param[in/OPT] antenna    - optional AntennaPattern Class parameter to include
         @note theta and phi vals will be created into a meshgrid
         @return list of CalculatedSyntheticAperture objects
         '''
@@ -116,7 +117,8 @@ class SamuraiBeamform(SamuraiPostProcess):
         @param[in/OPT] freq_list - what frequencies to calculate for
         @param[in/OPT] verbose - do we wanna be verbose?
         @return list of CalculatedSyntheticAperture objects
-        @TODO DO THIS CORRECTLY it is currenlty copied from the farfiedl azel
+        @TODO Ensure that the math behind this is correct (currently just used bens math)
+        @TODO make the values for UV be between -1,1 with sqrt(u**2+v**2)<1
         '''
         #list of calulcated synthetic apertures
         csa_list = []
@@ -155,7 +157,7 @@ class SamuraiBeamform(SamuraiPostProcess):
         y_r = y_locs*np.sin(u_mesh_rad)
         z_r = z_locs*np.sqrt(1-(np.sin(v_mesh_rad)**2+np.sin(u_mesh_rad)**2))
         #delta_r = np.sqrt(x_r**2+y_r**2+z_r**2) #we have no direction here...
-        delta_r = x_r+y_r+z_r
+        delta_r = x_r+y_r#+z_r
         #delta_r = np.sqrt(y_r**2+z_r**2)
         
         #now lets loop through each of our frequencies in freq_list
@@ -195,5 +197,6 @@ if __name__=='__main__':
     test_path = r".\\data\\binary_aperture\\metafile_binary.json"
     mysp = SamuraiBeamform(test_path)
     #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
-    #mycsa = mycsa_list[0]
-    #mycsa.plot_3d()
+    mycsa_list = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True)
+    mycsa = mycsa_list[0]
+    mycsa.plot_uv()
