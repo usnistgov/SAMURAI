@@ -27,8 +27,8 @@ import os
 from shutil import copyfile
 
 #default paths
-default_pp_cal_template = os.path.join(os.path.dirname(__file__),'templates/cal_template.post').encode()
-default_pp_cal_template_wnp = os.path.join(os.path.dirname(__file__),'templates/cal_template_wave_param.post').encode()
+default_pp_cal_template     = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template.post')
+default_pp_cal_template_wnp = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template_wave_param.post')
 #this default is for s2p_files not w2p calibration (theyre different)
 
 class CalibrateSamurai:
@@ -76,6 +76,7 @@ class CalibrateSamurai:
         #get our list of values from the old folder both with and without absolute path
         fnames_abs = self.mfc.get_filename_list(True)
         #open our post proc object and rename to our new directory
+        print(self.post_proc_template)
         self.ppc = pppy(self.post_proc_template)
         out_name = os.path.split(self.post_proc_template)[1] #get the file name
         #now rename
