@@ -213,6 +213,10 @@ class MetaFileController(OrderedDict):
         return self.get_filename_list(abs_path=True)
 
     def get_filename_list(self,abs_path=False):
+        '''
+        @brief get a list of the filenames from the metafile
+        @param[in/OPT] abs_path - whether or not to return an absolute path (default False)
+        '''
         fnames = []
         measurements = self.jsonData['measurements']
         for meas in measurements:
@@ -222,6 +226,19 @@ class MetaFileController(OrderedDict):
                 cur_fname = os.path.join(self.get_wdir(),cur_fname)
             fnames.append(cur_fname)
         return fnames
+
+    def get_filename(self,meas_num,abs_path=False):
+        '''
+        @brief get a single filename metafile
+        @param[in] meas_num - which measurement to get the filename of (index from 0)
+        @param[in/OPT] abs_path - whether or not to return an absolute path (default False)
+        '''
+        meas = self.jsonData['measurements'][meas_num]
+        fname = meas['filename'].strip()
+        if(abs_path):
+            #then add the wdir
+            fname = os.path.join(self.get_wdir(),fname)
+        return fname
     
     #write filenames, default to whole list
     #assumes with respect to working directory
