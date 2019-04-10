@@ -101,7 +101,7 @@ class CalibrateSamurai:
         
         
         
-    def update_metafile_and_move(self,convert_to_s2p_flg=0,wave_params_flg=0):
+    def update_metafile_and_move(self):
         
         self.move_calibrated_results()
         self.mfc.set_calibration_file(self.in_cal_path)
@@ -110,7 +110,7 @@ class CalibrateSamurai:
         self.mfc.write()
 
     #This will copy each of the calibrated measurements
-    def move_calibrated_results(self,convert_to_s2p_flg=0,wave_params_flg=0):
+    def move_calibrated_results(self):
 
         #we now assume given path already exists. This is easier to use
         #get our file names. These names will be the same in the calibration folder

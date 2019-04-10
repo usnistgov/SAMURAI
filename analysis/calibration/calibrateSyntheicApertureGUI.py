@@ -103,10 +103,10 @@ class CalSAGui:
     
   
 
-       
-root = tk.Tk()
-cdg = CalSAGui(root)
-root.mainloop()
+if __name__=='__main__':     
+    root = tk.Tk()
+    cdg = CalSAGui(root)
+    root.mainloop()
 
 
 
