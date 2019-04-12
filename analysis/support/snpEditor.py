@@ -193,6 +193,15 @@ class WnpEditor:
                 
         else:
             print('Write Type not implemented')
+
+   def __getitem__(self,key):
+        '''
+        @brief override of [] operator to get S parameters
+            This is a shortcut that will return freqeuncy/complex value data
+        @param[in] key - key of A,B parameters to get
+        @return [frequency_list,A_complex_values,B_complex_values] list of lists from the S parameter
+        '''
+        return [self.A[key].freq_list,self.A[key].raw,self.B[key].raw]
             
    def __eq__(self,other):
        '''
@@ -488,6 +497,15 @@ class SnpEditor:
             self.S[k].freq_list += np.round(LO_freq/1e9)
             #now round the frequencies to nearest Hz
             self.S[k].round_freq_list()
+
+   def __getitem__(self,key):
+        '''
+        @brief override of [] operator to get S parameters
+            This is a shortcut that will return freqeuncy/complex value data
+        @param[in] key - key of s parameters to get
+        @return [frequency_list,complex_values] list of lists from the S parameter
+        '''
+        return [self.S[key].freq_list,self.S[key].raw]
 
         
 #############################################################################################
