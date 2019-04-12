@@ -512,7 +512,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
                 'el':el
             }
             pts = pts_dict[self.type['plane']] #get the points to interpolate (elevation or azimuth)
-            new_vals = interp.griddata(pts,vals,new_pts) #interpolate
+            new_vals = interp.griddata(pts,vals,new_pts,fill_value=0) #interpolate
             #now write out correctly
             if(self.type['plane']=='az'): #azimuth cut
                 new_az = new_pts
