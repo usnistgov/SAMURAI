@@ -264,6 +264,18 @@ class CalculatedSyntheticAperture:
             }
         #get our data
         plot_data = plot_data_dict[plot_type] #get the type of plot
+        if(plot_type=='mag_db'):
+            #mask out lower values
+            db_range = 60 #lower than the max
+            caxis_min = plot_data.max()-db_range
+            caxis_max = plot_data.max()
+            plot_data = plot_data-(plot_data.max()-db_range) #shift the values
+            plot_data = mask_value(plot_data,plot_data<=0)
+        else: 
+            #Zero the data
+            caxis_min = plot_data.min()
+            caxis_max = plot_data.max()
+            plot_data = plot_data-plot_data.min()
         
         #now get our xyz values
         X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
@@ -271,7 +283,17 @@ class CalculatedSyntheticAperture:
         Z = plot_data*np.sin(np.deg2rad(self.elevation))
         
         #and plot
-        plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y)]
+        plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
+                                    mode = 'markers',
+                                    marker = dict(
+                                            color=plot_data,
+                                            colorbar=dict(
+                                                title=plot_type,
+                                                tickvals=[0,db_range],
+                                                ticktext=[str(round(caxis_min,2)),str(round(caxis_max,2))]
+                                                )
+                                            )
+                                    )]
         layout = go.Layout(
             title='Beamformed Data (%s)' %(plot_type),
             scene = dict(
@@ -407,14 +429,14 @@ class Antenna(OrderedDict):
         #now load file if given
         self.antenna_pattern = None #set to none in case one isnt given
         if(pattern_file_path):
-            self.load_pattern(pattern_file_path)
+            self.load_pattern(pattern_file_path,**antenna_info)
             
     def load_pattern(self,pattern_file_path,**antenna_info):
         '''
         @brief load an antenna pattern from a file
         @param[in] pattern_file_path - pattern file to load. For more information see AntennaPattern.load()
         '''
-        self['pattern'] = AntennaPattern(pattern_file_path)
+        self['pattern'] = AntennaPattern(pattern_file_path,**antenna_info)
         
 
 import os
@@ -512,18 +534,21 @@ class AntennaPattern(CalculatedSyntheticAperture):
                 'el':el
             }
             pts = pts_dict[self.type['plane']] #get the points to interpolate (elevation or azimuth)
-            new_vals = interp.griddata(pts,vals,new_pts,fill_value=0) #interpolate
+            new_vals = interp.griddata(pts,vals,new_pts,fill_value=np.mean([vals[0],vals[-1]])) #interpolate (fill with min of pattern)
             #now write out correctly
-            if(self.type['plane']=='az'): #azimuth cut
-                new_az = new_pts
-                new_el = static_pts
-            elif(self.type['plane']=='el'):
-                new_az = static_pts
+            if(self.type['plane']=='el'): #elevation cut
                 new_el = new_pts
+                new_az = static_pts
+            else: #else azimuth cut
+                new_el = static_pts
+                new_az = new_pts
+                
+        else:
+            raise ReferenceError("Dimension argument not implemented")
 
         return [new_az,new_el,new_vals]
 
-    def get_value(self,az_u,el_v,coord='azel'):
+    def get_values(self,az_u,el_v,coord='azel'):
         '''
         @brief get list of values from our antenna pattern
         @param[in] az_u - azimuth or u coord to get pattern value
@@ -558,7 +583,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         [search_vals,in_vals] = search_vals_dict[self.type['plane']] #values to find indexes for
         #THIS ASSUMES AZIMUTH AND ELEVATION VALUES ARE SORTED LO to HI and GRIDDED to self.grid_degrees!!!
         min_val = search_vals.min() #get minimum of our angles to index from
-        idx_vals = np.round((in_vals-min_val)/self.grid_degrees) #this should give us our indices
+        idx_vals = np.round((in_vals-min_val)/self.grid_degrees).astype(int) #this should give us our indices
         vals = self.complex_values[idx_vals]
         return vals
 
@@ -600,10 +625,12 @@ def mask_value(arr,mask,value=0):
 if __name__=='__main__':
     
     test_ant_path = './test_ant_pattern.csv'
-    myant = Antenna(test_ant_path,dimension=2,plane='az')
+    myant = Antenna(test_ant_path,dimension=1,plane='az')
     myap = myant['pattern']
     print(myap.type)
+    #myap.plot_scatter_3d()
     #myant['pattern'].plot_scatter_3d()
+    print(myap.get_values([0,0.5,1,45,-45],[0,0,0,0,0]))
     
 
     
