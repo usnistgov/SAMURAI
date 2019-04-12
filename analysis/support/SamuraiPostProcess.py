@@ -8,12 +8,15 @@ Created on Fri Mar 22 15:41:34 2019
 import numpy as np #import constants
 import math #for vectorize math functions
 import scipy.constants as sp_consts #import constants for speed of light
+import scipy.interpolate as interp
 import cmath #cmath for phase
 from numba import vectorize
+import six
 
 from plotting_help import increase_meshing_3D
 
 from samurai.analysis.support.metaFileController import MetaFileController 
+from samurai.analysis.support.generic import incomplete
    
 class SamuraiPostProcess(MetaFileController):
     '''
@@ -406,7 +409,7 @@ class Antenna(OrderedDict):
         if(pattern_file_path):
             self.load_pattern(pattern_file_path)
             
-    def load_pattern(self,pattern_file_path):
+    def load_pattern(self,pattern_file_path,**antenna_info):
         '''
         @brief load an antenna pattern from a file
         @param[in] pattern_file_path - pattern file to load. For more information see AntennaPattern.load()
@@ -428,11 +431,12 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @brief class constructor
         @param[in] pattern file - file to load the pattern from
         @param[in/OPT] keyword args as follows:
-            None Yet!
+            dimension - dimension of the loaded file (1D for single cut or 2D for full pattern)
+            plane     - plane of 1D cut ('az' or 'el' only required for 1D cut)
         '''
-        self.load(pattern_file)
+        self.load(pattern_file,**arg_options)
     
-    def load(self,pattern_file):
+    def load(self,pattern_file,**arg_options):
         '''
         @brief method to load pattern data from a file
             Currently the following filetypes are supported:
@@ -440,14 +444,29 @@ class AntennaPattern(CalculatedSyntheticAperture):
                 comma separated value files with the format
                 'azimuth, elevation, value (complex)' are supported
         @param[in] pattern_file - file to load
+        @param[in/OPT] keyword args as follows:
+                dimension - dimension of the loaded file (1D for single cut or 2D for full pattern)
+                plane     - plane of 1D cut ('az' or 'el' only required for 1D cut)
+                grid      - grid increment to fit to in degrees. 
+                    This data will be fit to a grid for finding our values. Defaults to 1 degree
         @return [azimuth,elevation,values(complex)]
         '''
+        #our options
+        options = {}
+        options['dimension'] = 2 #default to 2D pattern (full spherical pattern)
+        options['plane']     = None
+        options['grid']      = 1 #interp to 1 degree grid
+        for key,val in six.iteritems(arg_options): #get input options
+            options[key] = val
+        #now load the file
         file_ext = os.path.splitext(pattern_file)[-1]
         load_functs = {
                 '.csv':self.load_csv
                 }
         load_funct = load_functs[file_ext]
         [az,el,vals] = load_funct(pattern_file)
+        self.type = {'dimension':options['dimension'],'plane':options['plane']}
+        [az,el,vals] = self.interp_to_grid(az,el,vals) #interp to our grid
         super(AntennaPattern,self).__init__(el,az,vals) #init the superclass
     
     def load_csv(self,pattern_file):
@@ -455,6 +474,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @brief method to load pattern data from CSV 
             data should be in the format 'azimuth, elevation, real(value),imag(value)'
             all angles should be in degrees with 0,90=az,el pointing boresight
+            all field values should be E fields (20*log10(val) for dB)
         @param[in] pattern_file - file to load
         @return [azimuth,elevation,values(complex)]
         '''
@@ -475,9 +495,66 @@ class AntennaPattern(CalculatedSyntheticAperture):
                                   
         return [raw_data[:,0],raw_data[:,1],raw_data[:,2]+raw_data[:,3]*1j]
     
+    def interp_to_grid(self,az,el,vals):
+        '''
+        @brief interpolate our input pattern to a grid
+        @param[in] az - azimuth locations of values
+        @param[in] el - elevation locations of values
+        @param[in] vals - list of corresponding complex values
+        @return [interp_az,interp_el,interp_vals] - list of our interpolated values interpolated to self.type['grid'] degrees
+        '''
+        if(self.type['dimension']==1): #1D interp using griddata
+            dim_vals = np.arange(-180,180+self.options['grid'],self.options['grid']) #build our values in our dimensino given (az or el)
+            static_vals = np.zeros(dim_vals.shape)  #then the az or el that doesnt have a pattern
+            self.complex_values
+
+        return []
+
+    def get_value(self,az_u,el_v,coord='azel'):
+        '''
+        @brief get list of values from our antenna pattern
+        @param[in] az_u - azimuth or u coord to get pattern value
+        @param[in] el_v - elevation or v coord to get pattern value
+        @param[in] coord - type of system 'azel' or 'uv' (currently only 'azel' supported)
+        @todo - implement 'uv' coordinates
+        @return list of linear complex values at the angles specified
+        '''
+        #first get the function on whether its 1D or 2D data
+        getter_dict = {
+            1:self.get_value_1D,
+            2:self.get_value_2D
+        }
+        getter_funct = getter_dict[self.type['dimension']]
+        #perform uv2azel conversion here
+        az = az_u
+        el = el_v
+        return getter_funct(az,el) #return our values
+
     
-    
-#        if()
+    def get_value_1D(self,az,el):
+        '''
+        @brief get list of values for a 1D pattern ONLY supports azel
+        @param[in] az - list of azimuth values to get
+        @param[in] el - list of elevation values to get
+        '''
+        #here we are going to find the plane
+        search_vals_dict = { #could extend to UV here
+            'az': self.azimuth,
+            'el': self.elevation
+        }
+        search_vals = search_vals_dict[self.type['plane']] #values to find indexes for
+
+        return []
+
+    @incomplete("Not at all implemented right now")
+    def get_value_2D(self,az,el):
+        '''
+        @brief get a list of values for a 2D pattern ONLY supports azel
+        @param[in] az - list of azimuth values to get
+        @param[in] el - list of elevation values to get
+        @todo IMPLEMENT
+        '''
+        return []
     
 @vectorize(['float32(float32,float32,float32)'],target='cuda')
 def vector_dist(dx,dy,dz):
@@ -507,10 +584,10 @@ def mask_value(arr,mask,value=0):
 if __name__=='__main__':
     
     test_ant_path = './test_ant_pattern.csv'
-    myant = Antenna(test_ant_path)
+    myant = Antenna(test_ant_path,dimension=2,plane='az')
     myap = myant['pattern']
-    myap.type = {'dimensions':1,'plane':'azimuth'}
-    myant['pattern'].plot_scatter_3d()
+    print(myap.type)
+    #myant['pattern'].plot_scatter_3d()
     
 
     
