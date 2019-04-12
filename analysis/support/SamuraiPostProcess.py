@@ -566,6 +566,9 @@ class AntennaPattern(CalculatedSyntheticAperture):
         #perform uv2azel conversion here
         az = az_u
         el = el_v
+        #wrap to ensure -180 to 180 degrees
+        az = np.mod(az+180,360)-180
+        el = np.mod(az+180,360)-180
         return getter_funct(az,el) #return our values
 
     
