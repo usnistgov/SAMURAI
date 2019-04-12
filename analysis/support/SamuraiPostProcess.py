@@ -458,6 +458,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         options['grid']      = 1 #interp to 1 degree grid
         for key,val in six.iteritems(arg_options): #get input options
             options[key] = val
+        self.grid_degrees = options['grid']
         #now load the file
         file_ext = os.path.splitext(pattern_file)[-1]
         load_functs = {
@@ -501,14 +502,26 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @param[in] az - azimuth locations of values
         @param[in] el - elevation locations of values
         @param[in] vals - list of corresponding complex values
-        @return [interp_az,interp_el,interp_vals] - list of our interpolated values interpolated to self.type['grid'] degrees
+        @return [interp_az,interp_el,interp_vals] - list of our interpolated values interpolated to self.grid_degrees
         '''
         if(self.type['dimension']==1): #1D interp using griddata
-            dim_vals = np.arange(-180,180+self.options['grid'],self.options['grid']) #build our values in our dimensino given (az or el)
-            static_vals = np.zeros(dim_vals.shape)  #then the az or el that doesnt have a pattern
-            self.complex_values
+            new_pts = np.arange(-180,180+self.grid_degrees,self.grid_degrees) #build our values in our dimensino given (az or el)
+            static_pts = np.zeros(new_pts.shape) #make a zero vector for our other values
+            pts_dict = {
+                'az':az,
+                'el':el
+            }
+            pts = pts_dict[self.type['plane']] #get the points to interpolate (elevation or azimuth)
+            new_vals = interp.griddata(pts,vals,new_pts) #interpolate
+            #now write out correctly
+            if(self.type['plane']=='az'): #azimuth cut
+                new_az = new_pts
+                new_el = static_pts
+            elif(self.type['plane']=='el'):
+                new_az = static_pts
+                new_el = new_pts
 
-        return []
+        return [new_az,new_el,new_vals]
 
     def get_value(self,az_u,el_v,coord='azel'):
         '''
@@ -521,8 +534,8 @@ class AntennaPattern(CalculatedSyntheticAperture):
         '''
         #first get the function on whether its 1D or 2D data
         getter_dict = {
-            1:self.get_value_1D,
-            2:self.get_value_2D
+            1:self.get_values_1D,
+            2:self.get_values_2D
         }
         getter_funct = getter_dict[self.type['dimension']]
         #perform uv2azel conversion here
@@ -531,7 +544,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         return getter_funct(az,el) #return our values
 
     
-    def get_value_1D(self,az,el):
+    def get_values_1D(self,az,el):
         '''
         @brief get list of values for a 1D pattern ONLY supports azel
         @param[in] az - list of azimuth values to get
@@ -539,15 +552,18 @@ class AntennaPattern(CalculatedSyntheticAperture):
         '''
         #here we are going to find the plane
         search_vals_dict = { #could extend to UV here
-            'az': self.azimuth,
-            'el': self.elevation
+            'az': [self.azimuth,az],
+            'el': [self.elevation,el]
         }
-        search_vals = search_vals_dict[self.type['plane']] #values to find indexes for
-
-        return []
+        [search_vals,in_vals] = search_vals_dict[self.type['plane']] #values to find indexes for
+        #THIS ASSUMES AZIMUTH AND ELEVATION VALUES ARE SORTED LO to HI and GRIDDED to self.grid_degrees!!!
+        min_val = search_vals.min() #get minimum of our angles to index from
+        idx_vals = np.round((in_vals-min_val)/self.grid_degrees) #this should give us our indices
+        vals = self.complex_values[idx_vals]
+        return vals
 
     @incomplete("Not at all implemented right now")
-    def get_value_2D(self,az,el):
+    def get_values_2D(self,az,el):
         '''
         @brief get a list of values for a 2D pattern ONLY supports azel
         @param[in] az - list of azimuth values to get
