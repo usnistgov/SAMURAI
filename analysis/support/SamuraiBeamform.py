@@ -11,6 +11,21 @@ import scipy.constants as sp_consts #import constants for speed of light
 import cmath #cmath for phase
 from numba import vectorize
 
+import six #backward compatability
+
+#generic class for synthetic aperture algorithms
+class SamuraiSyntheticApertureAlgorithm:
+    '''
+    @brief this is a generic class for samurai aglorithms.
+    this should be completed and the rest of this restructured in the future
+    This will allow a more generic things to work with such as importing measured vs. simed values
+    '''
+    def __init__(metafile_path=None,**arg_options):
+        '''
+        @brief initilaize the SamSynthApAlg class
+        @param[in/OPT] metafile_path - metafile for real measurements (defaults to None)
+        '''
+
 class SamuraiBeamform(SamuraiPostProcess):
     '''
     @brief samurai synthetic aperture using beamforming
@@ -26,25 +41,35 @@ class SamuraiBeamform(SamuraiPostProcess):
         super(SamuraiBeamform,self).__init__(metafile_path,**arg_options)
     
                
-    def beamforming_farfield(self,theta_vals,phi_vals,freq_list='all',verbose=False,antenna_pattern=None):
+    def beamforming_farfield(self,theta_vals,phi_vals,freq_list='all'**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in spherical coordinates
             All locations will be pulled from the metafile positions
         @param[in] theta_vals - theta angles in elevation from xy plane
         @param[in] phi_vals   - phi angles in azimuth from x
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
-        @param[in/OPT] verbose    - whether or not to be verbose
-        @param[in/OPT] antenna    - optional AntennaPattern Class parameter to include
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            verbose         - whether or not to be verbose (default False)
+            antenna_pattern - AntennaPattern Class parameter to include (default None)
         @note theta and phi vals will be created into a meshgrid
         @return list of CalculatedSyntheticAperture objects
         '''
+        #input options (these are defaults)
+        self.options['verbose'] = False
+        self.options['antenna_pattern'] = None
+        self.options['measured_values'] = True
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val #set kwargs
+        
         #list of calulcated synthetic apertures
         csa_list = []
         
-        #get our s-parameter data
-        if verbose: print("Loading S-parameter data")
-        [s_freq_list,s21_vals] = self.load_s_params_to_memory(verbose=verbose,load_key=21)
-        s_freq_list = s_freq_list*1e9 #change to ghz
+        #get our s-parameter data 
+        if(self.options['measured_values']): #load measured data
+            if verbose: print("Loading S-parameter data")
+            [s_freq_list,s21_vals] = self.load_s_params_to_memory(verbose=verbose,load_key=21)
+            s_freq_list = s_freq_list*1e9 #change to ghz
+            
         #set our frequency list
         if freq_list=='all': #make all frequcnies if 'all'
             freq_list = s_freq_list
@@ -204,7 +229,8 @@ class SamuraiBeamform(SamuraiPostProcess):
 
 
 if __name__=='__main__':
-    test_path = r".\\data\\binary_aperture\\metafile_binary.json"
+    test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
+    #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
     mysp = SamuraiBeamform(test_path)
     #azel without antenna
     #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
