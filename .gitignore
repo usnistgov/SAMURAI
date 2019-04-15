@@ -1,5 +1,6 @@
 
 #ignore vscode info
+*/external/
 .vscode/
 *.pyc
 ~$*
