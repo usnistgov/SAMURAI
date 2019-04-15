@@ -30,7 +30,7 @@ class SamuraiBeamform(SamuraiPostProcess):
         '''
         @brief calculate the beamforming assuming farfield for angles in spherical coordinates
             All locations will be pulled from the metafile positions
-        @param[in] theta_vals - theta angles in elevation
+        @param[in] theta_vals - theta angles in elevation from xy plane
         @param[in] phi_vals   - phi angles in azimuth from x
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
         @param[in/OPT] verbose    - whether or not to be verbose
@@ -59,7 +59,7 @@ class SamuraiBeamform(SamuraiPostProcess):
         x_locs = np.reshape(pos[:,0],(-1,1))*unit_mult; x_locs = x_locs-x_locs.mean() #and unpack all the data
         y_locs = np.reshape(pos[:,1],(-1,1))*unit_mult; y_locs = y_locs-y_locs.mean() #this is all in mm to change to meters
         z_locs = np.reshape(pos[:,2],(-1,1))*unit_mult; z_locs = z_locs-z_locs.mean() #all values must be positive so subtract from lowest point
-        #theta_locs = pos[:,5] #angle of the antenna
+        az_angles = pos[:,5] #with current coordinates system azimuth=gamma
         
         #now lets create the meshgrid for our theta and phi values
         if verbose: print("Creating angular meshgrid")
@@ -77,6 +77,14 @@ class SamuraiBeamform(SamuraiPostProcess):
         #delta_r = np.sqrt(x_r**2+y_r**2+z_r**2) #we have no direction here...
         delta_r = x_r+y_r+z_r
         #delta_r = np.sqrt(y_r**2+z_r**2)
+        
+        #set our antenna values
+        az_adj = -1*az_angles[:,np.newaxis]+np.reshape(PHI,(-1,))
+        el_adj = np.zeros(az_adj.shape)
+        if(antenna_pattern is not None):
+            antenna_values = antenna_pattern.get_values(az_adj,el_adj)
+        else:
+            antenna_values = np.ones(delta_r.shape)
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
@@ -99,14 +107,16 @@ class SamuraiBeamform(SamuraiPostProcess):
             k = 2.*np.pi/lam
             steering_vectors = np.exp(-1j*k*delta_r)
         
+
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
-            beamformed_vals = np.dot(s21_current,steering_vectors)/len(s21_current)
+            beamformed_vals = np.dot(s21_current,steering_vectors/antenna_values)/len(s21_current)
             
             #now pack into our CSA (CaluclateSynbteticAperture)
             csa_list.append(CalculatedSyntheticAperture(THETA,PHI,np.reshape(beamformed_vals,THETA.shape)))
         
-        return csa_list
+        ant_vals = CalculatedSyntheticAperture(THETA,PHI,np.reshape(antenna_values[1,:],THETA.shape))
+        return csa_list,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
     
     def beamforming_farfield_uv(self,u_vals,v_vals,freq_list='all',verbose=False):
@@ -157,7 +167,7 @@ class SamuraiBeamform(SamuraiPostProcess):
         y_r = y_locs*np.sin(u_mesh_rad)
         z_r = z_locs*np.sqrt(1-(np.sin(v_mesh_rad)**2+np.sin(u_mesh_rad)**2))
         #delta_r = np.sqrt(x_r**2+y_r**2+z_r**2) #we have no direction here...
-        delta_r = x_r+y_r#+z_r
+        delta_r = x_r+y_r+z_r
         #delta_r = np.sqrt(y_r**2+z_r**2)
         
         #now lets loop through each of our frequencies in freq_list
@@ -180,7 +190,7 @@ class SamuraiBeamform(SamuraiPostProcess):
             lam = sp_consts.c/freq
             k = 2.*np.pi/lam
             steering_vectors = np.exp(-1j*k*delta_r)
-        
+
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
             beamformed_vals = np.dot(s21_current,steering_vectors)/len(s21_current)
@@ -196,7 +206,14 @@ class SamuraiBeamform(SamuraiPostProcess):
 if __name__=='__main__':
     test_path = r".\\data\\binary_aperture\\metafile_binary.json"
     mysp = SamuraiBeamform(test_path)
+    #azel without antenna
     #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
-    mycsa_list = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True)
+    #azel with antenna
+    test_ant_path = './test_ant_pattern.csv'
+    myant = Antenna(test_ant_path,dimension=1,plane='az')
+    myap = myant['pattern']
+    mycsa_list,ant_vals = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
+    #UV beamform
+    #mycsa_list = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True)
     mycsa = mycsa_list[0]
-    mycsa.plot_uv()
+    mycsa.plot_3d()

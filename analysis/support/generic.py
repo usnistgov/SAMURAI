@@ -73,3 +73,32 @@ def deprecated(reason):
 
     else:
         raise TypeError(repr(type(reason)))
+
+
+#incomplete functino decorator
+def incomplete(reason):
+    """
+    @brief decorator for incomplete functions
+    @param[in] reason - reason that its incomplete. Unlike deprecation this REQUIRES a reason
+    """
+    def decorator(func1):
+        if inspect.isclass(func1):
+            fmt1 = "Call to incomplete class {name} ({reason})."
+        else:
+            fmt1 = "Call to incomplete function {name} ({reason})."
+        @functools.wraps(func1)
+        def new_func1(*args, **kwargs):
+            warnings.simplefilter('always', UserWarning)
+            warnings.warn(
+                fmt1.format(name=func1.__name__, reason=reason),
+                category=UserWarning,
+                stacklevel=2
+            )
+            warnings.simplefilter('default', UserWarning)
+            return func1(*args, **kwargs)
+        return new_func1
+    return decorator
+
+
+
+
