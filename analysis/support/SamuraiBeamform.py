@@ -4,47 +4,66 @@ Created on Fri Mar 22 15:41:34 2019
 
 @author: ajw5
 """
-from samurai.analysis.support.SamuraiPostProcess import SamuraiPostProcess,CalculatedSyntheticAperture
+from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
+from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
+from samurai.analysis.support.SamuraiPostProcess import Antenna
 import numpy as np #import constants
 import math #for vectorize math functions
 import scipy.constants as sp_consts #import constants for speed of light
 import cmath #cmath for phase
 from numba import vectorize
 
-class SamuraiBeamform(SamuraiPostProcess):
+import six #backward compatability
+
+class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
     '''
     @brief samurai synthetic aperture using beamforming
     '''
-    def __init__(self,metafile_path,**arg_options):
+    def __init__(self,metafile_path=None,**arg_options):
         '''
         @brief initilization for class. We can load our metafile here or not
             This inherits from a generic SamuraiPostProcess class providing easy access to the data
         @param[in] metafile_path - metafile if we want to load one now
-        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit
-                        No keyword args yet!
+        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to inherited class so look at those options
+            verbose         - whether or not to be verbose (default False)
+            antenna_pattern - AntennaPattern Class parameter to include (default None)
+            measured_values - are we using measurements, or simulated data (default True)
+            load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
         '''
         super(SamuraiBeamform,self).__init__(metafile_path,**arg_options)
     
                
-    def beamforming_farfield(self,theta_vals,phi_vals,freq_list='all',verbose=False,antenna_pattern=None):
+    def beamforming_farfield(self,theta_vals,phi_vals,freq_list='all',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in spherical coordinates
             All locations will be pulled from the metafile positions
         @param[in] theta_vals - theta angles in elevation from xy plane
         @param[in] phi_vals   - phi angles in azimuth from x
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
-        @param[in/OPT] verbose    - whether or not to be verbose
-        @param[in/OPT] antenna    - optional AntennaPattern Class parameter to include
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            verbose         - whether or not to be verbose (default False)
+            antenna_pattern - AntennaPattern Class parameter to include (default None)
         @note theta and phi vals will be created into a meshgrid
         @return list of CalculatedSyntheticAperture objects
         '''
+        #input options (these are defaults)
+        options = {}
+        options['verbose'] = self.options['verbose']
+        options['antenna_pattern'] = self.options['antenna_pattern']
+        for key,val in six.iteritems(arg_options):
+            options[key] = val #set kwargs
+        antenna_pattern = options['antenna_pattern']
+        verbose = options['verbose']
+        
+        #validate our current data
+        self.validate_data()
+        
         #list of calulcated synthetic apertures
         csa_list = []
         
-        #get our s-parameter data
-        if verbose: print("Loading S-parameter data")
-        [s_freq_list,s21_vals] = self.load_s_params_to_memory(verbose=verbose,load_key=21)
-        s_freq_list = s_freq_list*1e9 #change to ghz
+        s_freq_list = self.freq_list
+        s21_vals = self.s_parameter_data
+        
         #set our frequency list
         if freq_list=='all': #make all frequcnies if 'all'
             freq_list = s_freq_list
@@ -54,7 +73,7 @@ class SamuraiBeamform(SamuraiPostProcess):
         
         #get our position data
         if verbose: print("Reading measurement positions")
-        pos = self.get_positions() #get all of our positions
+        pos = self.positions #get all of our positions
         unit_mult = 0.001 #multiply to get in meters
         x_locs = np.reshape(pos[:,0],(-1,1))*unit_mult; x_locs = x_locs-x_locs.mean() #and unpack all the data
         y_locs = np.reshape(pos[:,1],(-1,1))*unit_mult; y_locs = y_locs-y_locs.mean() #this is all in mm to change to meters
@@ -204,8 +223,9 @@ class SamuraiBeamform(SamuraiPostProcess):
 
 
 if __name__=='__main__':
-    test_path = r".\\data\\binary_aperture\\metafile_binary.json"
-    mysp = SamuraiBeamform(test_path)
+    test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
+    #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
+    mysp = SamuraiBeamform(test_path,verbose=True)
     #azel without antenna
     #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
     #azel with antenna
