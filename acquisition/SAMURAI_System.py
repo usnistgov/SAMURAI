@@ -182,10 +182,11 @@ class SAMURAI_System():
                 #let positioner settle
                 time.sleep(options['settling_time']) 
                 #get positions from external measurement if available
-                meas_data_dict = None
+                meas_dict_data = None
                 if options['external_position_measurements'] is not None:
                     for marker in options['external_position_measurements']: #get data for each listed value
-                        my_ext_pos.get_position_data(marker)
+                        ext_pos = my_ext_pos.get_position_data(marker)
+                        meas_dict_data = {'external_position_measurements':ext_pos}
                 #get the positoin from the positoiner
                 posn_vals = self.rx_positioner.get_position()
                 if(run_vna):
