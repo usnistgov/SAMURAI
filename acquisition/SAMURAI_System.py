@@ -9,7 +9,7 @@ from samurai.acquisition.support import autoPNAGrabber as pnag    #for running p
 from samurai.acquisition.support import samurai_metaFile as smf     #for keeping track of data
 from samurai.acquisition.support.Meca500  import Meca500       #our posisioner
 import samurai.acquisition.support.samurai_support  as ss      #some other functions
-import samurai.acquisition.support.samurai_optitrack  #import optitrack tracking
+import samurai.acquisition.support.samurai_optitrack as samurai_optitrack  #import optitrack tracking
 
 import six
 
@@ -139,7 +139,7 @@ class SAMURAI_System():
         defaults['settling_time'] = .1 #settling time in seconds
         defaults['info_string_var'] = None #be able to set outside stringvar for update info
         defaults['metafile_header_values'] = {}
-        defaults['measure_positions'] = None
+        defaults['external_position_measurements'] = None
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -159,6 +159,10 @@ class SAMURAI_System():
         #zero positioner (always start from zero positoin to ensure everything is safe)
         self.rx_positioner.zero()
     
+        #start our external positioner if in use
+        if options['external_position_measurements'] is not None:
+            my_ext_pos = samurai_optitrack.MotiveInterface()
+
         #now start running positioner    
         csvfp = open(csv_path)
         numLines = ss.countLinesInFile(csvfp)
@@ -176,7 +180,13 @@ class SAMURAI_System():
                 self.set_position(fvals)
                 newPath = os.path.join(options['output_directory'],options['output_name']+'.'+options['output_file_type'].strip('.'))
                 #let positioner settle
-                time.sleep(options['settling_time'])
+                time.sleep(options['settling_time']) 
+                #get positions from external measurement if available
+                meas_data_dict = None
+                if options['external_position_measurements'] is not None:
+                    for marker in options['external_position_measurements']: #get data for each listed value
+                        my_ext_pos.get_position_data(marker)
+                #get the positoin from the positoiner
                 posn_vals = self.rx_positioner.get_position()
                 if(run_vna):
                     [pnaTime,newPath] = pnagrab.run(newPath)
