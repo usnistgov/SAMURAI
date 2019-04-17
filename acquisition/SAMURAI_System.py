@@ -9,6 +9,7 @@ from samurai.acquisition.support import autoPNAGrabber as pnag    #for running p
 from samurai.acquisition.support import samurai_metaFile as smf     #for keeping track of data
 from samurai.acquisition.support.Meca500  import Meca500       #our posisioner
 import samurai.acquisition.support.samurai_support  as ss      #some other functions
+import samurai.acquisition.support.samurai_optitrack  #import optitrack tracking
 
 import six
 
@@ -123,6 +124,10 @@ class SAMURAI_System():
             template_path - location of pnagrabber template to run from (default './template.pnagrabber')
             settling time - time in seconds to let robot settle (default 0.1s)
             metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)
+            measure_positions - configuration of external measurement device (e.g. optitrack)
+                OPTITRACK - provide name/id pairs (dict keys) of points for x,y,z or names of rigid bodies (e.g. meca_head, origin) for x,y,z+quaternion
+                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},'meca_head','origin',{'cyl_1':50123}]).
+                    For each of these points, n=100 measurements are taken and the stdev, covariance matrix, and mean values are provided
         @return sweep time
         '''
         if not self.is_connected:
@@ -134,6 +139,7 @@ class SAMURAI_System():
         defaults['settling_time'] = .1 #settling time in seconds
         defaults['info_string_var'] = None #be able to set outside stringvar for update info
         defaults['metafile_header_values'] = {}
+        defaults['measure_positions'] = None
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -177,7 +183,7 @@ class SAMURAI_System():
                 else:
                     pnaTime = -3.14159
                     newPath = 'VNA NOT USED'
-                mf.update(newPath,posn_vals,note='PNA Time : '+str(pnaTime))
+                mf.update(newPath,posn_vals,note='PNA Time : '+str(pnaTime),dict_data=meas_dict_data)
                 ltr.end_point(pnaTime)
                 n+=1
             
