@@ -13,11 +13,10 @@ import cmath #cmath for phase
 from numba import vectorize
 import six
 
-from plotting_help import increase_meshing_3D
-
 from samurai.analysis.support.metaFileController import MetaFileController 
-from samurai.analysis.support.generic import incomplete
-   
+from samurai.analysis.support.generic import incomplete,deprecated
+
+@deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
     '''
     @brief this is a class to inherit from for processing samurai data
@@ -50,6 +49,66 @@ class SamuraiPostProcess(MetaFileController):
         s_vals = np.array([s.S[load_key].raw for s in self.loaded_data]) #turn the s parameters into an array
         freq_list = self.loaded_data[0].S[load_key].freq_list #get frequencies from first file (assume theyre all the same)
         return freq_list,s_vals
+
+#generic class for synthetic aperture algorithms
+class SamuraiSyntheticApertureAlgorithm:
+    '''
+    @brief this is a generic class for samurai aglorithms.
+    this should be completed and the rest of this restructured in the future
+    This will allow a more generic things to work with such as importing measured vs. simed values
+    '''
+    def __init__(self,metafile_path=None,**arg_options):
+        '''
+        @brief initilaize the SamSynthApAlg class
+        @param[in/OPT] metafile_path - metafile for real measurements (defaults to None)
+        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit
+            verbose         - whether or not to be verbose (default False)
+            antenna_pattern - AntennaPattern Class parameter to include (default None)
+            measured_values - are we using measurements, or simulated data (default True)
+            load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+        '''
+        #options for the class
+        self.options = {}
+        self.options['verbose']         = False
+        self.options['antenna_pattern'] = None
+        self.options['measured_values'] = True
+        self.options['load_key']        = 21
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val #set kwargs
+
+        #initialize so we know if weve loaded them or not
+        self.s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
+        self.freq_list = None
+        self.positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
+        self.metafile = None
+        if(metafile_path): #if theres a metafile load it
+            self.load_metafile(metafile_path)
+
+    def load_metafile(self,metafile_path,freq_mult=1e9):
+        '''
+        @brief function to load in our metafile and S parameter data from it
+        @param[in] metafile_path - path to the metafile to load measurement from
+        @param[in/OPT] freq_mult - how much to multiply the freq by to get hz (e.g. 1e9 for GHz)
+        '''
+        self.metafile = MetaFileController(metafile_path)
+        [s_data,_] = self.metafile.load_data(verbose=self.options['verbose'])
+        #now get the values we are looking for
+        self.s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
+        self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
+        self.freq_list = self.freq_list*freq_mult
+        self.positions = self.metafile.get_positions()
+
+    def validate_data(self):
+        '''
+        @brief ensure we have loaded all of the data to run the algorithm
+        '''
+        if np.any(self.positions==None):
+            raise(Exception("Positional data not provided"))
+        if np.any(self.s_parameter_data==None):
+            raise(Exception("S Parameter data not provided"))
+        if np.any(self.freq_list==None):
+            raise(Exception("Frequency list not provided"))
+ 
 
 #import matplotlib.pyplot as plt
 #from matplotlib import cm
@@ -579,7 +638,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @param[in] el - list of elevation values to get
         '''
         #here we are going to find the plane
-        search_vals_dict = { #could extend to UV here
+        search_vals_dict = {
             'az': [self.azimuth,az],
             'el': [self.elevation,el]
         }
