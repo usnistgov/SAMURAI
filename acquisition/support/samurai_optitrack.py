@@ -189,7 +189,7 @@ class MotiveInterface:
         #change to our dimensions
         rot[0] = rot_euler[1]
         rot[1] = rot_euler[0]
-        rot[2] = rot_euler[2]
+        rot[2] = -1.*rot_euler[2]
         return rot
         
         
