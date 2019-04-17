@@ -109,6 +109,40 @@
 <ul>
 <li>VISA Address = Could not get VISA to work correctly! Connect using sockets.</li>
 </ul></li>
+<li>IP Webcam = <a href="http://10.0.0.101">10.0.0.101</a>
+<ul>
+<li>Username: <code>admin</code> – Password: <code>123456</code></li>
+<li>A live stream will show up if you go to the above address and login</li>
+<li>A VLC stream has higher latency but can be connected by the following steps:
+<ol type="1">
+<li>Open VideoLAN (VLC with the construction cone icon)</li>
+<li>Select <code>Media-&gt;Open Network Stream...</code></li>
+<li>Enter <code>rtsp://admin:123456@10.0.0.101:554/cam1/mpeg4</code> and click connect</li>
+<li>To take a snapshot click <code>Video-&gt;Take Snapshot</code>. This will save a snapshot to the users <code>Pictures</code> folder from which it can then be renamed and copied</li>
+</ol>
+<ul>
+<li>The VLC stream has not always been reliable and may freeze. For this reason it is recommended to use the web interface except when taking snapshots of the setup</li>
+</ul></li>
+</ul></li>
+<li>Computer = <a href="http://10.0.0.1">10.0.0.1</a>
+<ul>
+<li>VISA Address = N/A (local loopback is 127.0.0.1)</li>
+<li>Setting Network adapter settings for local network:
+<ol type="1">
+<li>Go to <code>Control Panel-&gt;Network and Internet-&gt;Network Connections</code></li>
+<li>Right click on the network controller for the local network and select <code>Properties</code> (admin status required)</li>
+<li>Click on <code>TCP/IPv4</code> and then click <code>Properties</code></li>
+<li>Click the radio button for <code>Use the following IP address</code> and type in the following parameters</li>
+</ol>
+<ul>
+<li>IP address = 10.0.0.1</li>
+<li>subnet mask = 255.0.0.0</li>
+<li>Default gateway = DO NOT POPULATE</li>
+</ul>
+<ol start="5" type="1">
+<li>Then click <code>OK</code> and <code>Close</code> to close out of the properties menu. You should now be able to access items on the local network.</li>
+</ol></li>
+</ul></li>
 </ul>
 <h1 id="running-the-samurai-software">Running the SAMURAI Software</h1>
 <p>This section covers the steps required to run a SAMURAI measurement</p>
@@ -142,9 +176,12 @@ The following steps are to run a SAMURAI measurement from the python CLI. The st
 <h3 id="import-the-samurai_system-module">3. Import the SAMURAI_System Module</h3>
 <ol type="1">
 <li>Open the python CLI (e.g. the command window in Spyder)</li>
-<li>With the file opened in the Spyder IDE, click the green play button on the top toolbar OR type the code below where <code>&lt;dir-of-code&gt;</code> is the directory where <code>SAMURAI_System.py</code> is located on the system.</li>
+<li>Within the command line type the following</li>
 </ol>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1">runfile(<span class="st">&#39;&lt;dir-of-code&gt;/SAMURAI_System.py&#39;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb2-1" title="1"><span class="im">from</span> samurai.acquisition.SAMURAI_System <span class="im">import</span> SAMURAI_System</a></code></pre></div>
+<ul>
+<li>NOTE: FOR NEW COMPUTERS ONLY - the code must be cloned from the gitlab repo and the directory containing the cloned <code>samurai</code> directory must be added the systems <code>PYTHONPATH</code>.</li>
+</ul>
 <h3 id="create-a-samurai_system-object">4. Create a SAMURAI_System Object</h3>
 <ol type="1">
 <li>With the SAMURAI_System module imported, create a SAMURAI_System object by typing <code>mysam = SAMURAI_System()</code> into the CLI.</li>
@@ -206,6 +243,28 @@ The following steps are to run a SAMURAI measurement from the python CLI. The st
 <li>copy data from <code>&lt;working-directory&gt;/synthetic_aperture/raw</code> to <code>&lt;working-directory&gt;/synthetic_aperture/</code></li>
 <li>Perform post-calibration in <code>&lt;working-directory&gt;/cal/calibration_post</code> (refer to ‘Perform 2 Port VNA Calibration’ section)</li>
 </ol>
+<h3 id="example-python-script">Example python script</h3>
+<p>Here we have an example python script to run the sweep. This is assuming we have already created a <code>&lt;working-directory&gt;</code>. This also assumes we have placed a pnagrabber template named <code>template.pnagrabber</code> and a list of positions called <code>positions.csv</code> in <code>&lt;working-directory&gt;/synthetic_aperture/raw</code>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><a class="sourceLine" id="cb7-1" title="1"><span class="im">import</span> os <span class="co">#import os for chdir</span></a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="im">from</span> samurai.acquisition.SAMURAI_System <span class="im">import</span> SAMURAI_System <span class="co">#import the samurai system class</span></a>
+<a class="sourceLine" id="cb7-3" title="3"></a>
+<a class="sourceLine" id="cb7-4" title="4">mysam <span class="op">=</span> SAMURAI_System() <span class="co">#create a samurai system object</span></a>
+<a class="sourceLine" id="cb7-5" title="5">mysam.connect_rx_positioner() <span class="co">#connect to the Meca500 (or other positioner)</span></a>
+<a class="sourceLine" id="cb7-6" title="6">mysam.move_to_mounting_position() <span class="co">#move to the position to unmount the antenna for calibration</span></a>
+<a class="sourceLine" id="cb7-7" title="7"></a>
+<a class="sourceLine" id="cb7-8" title="8"><span class="co">###################################</span></a>
+<a class="sourceLine" id="cb7-9" title="9"><span class="co"># Unmount antenna from Meca500</span></a>
+<a class="sourceLine" id="cb7-10" title="10"><span class="co">###</span></a>
+<a class="sourceLine" id="cb7-11" title="11"><span class="co"># PERFORM CALIBRATION HERE</span></a>
+<a class="sourceLine" id="cb7-12" title="12"><span class="co">###</span></a>
+<a class="sourceLine" id="cb7-13" title="13"><span class="co"># Mount antenna onto Meca500</span></a>
+<a class="sourceLine" id="cb7-14" title="14"><span class="co">###################################</span></a>
+<a class="sourceLine" id="cb7-15" title="15"></a>
+<a class="sourceLine" id="cb7-16" title="16">mysam.zero() <span class="co">#return the robot to its zero position</span></a>
+<a class="sourceLine" id="cb7-17" title="17">os.chdir(<span class="st">&#39;&lt;working-directory&gt;/syntetic_aperture/raw&#39;</span>) <span class="co">#change into our measurement directory</span></a>
+<a class="sourceLine" id="cb7-18" title="18">mysam.csv_sweep(<span class="st">&#39;./&#39;</span>,<span class="st">&#39;./positions.csv&#39;</span>,template_path<span class="op">=</span><span class="st">&#39;./template.pnagrabber&#39;</span>) <span class="co">#run the csv sweep with the vna</span></a>
+<a class="sourceLine" id="cb7-19" title="19"></a>
+<a class="sourceLine" id="cb7-20" title="20">mysam.disconnect_rx_positioner() <span class="co">#disconnect from the Meca500 when finished</span></a></code></pre></div>
 <h2 id="running-from-the-graphical-user-interface-gui-samurgui">Running from the Graphical User Interface (GUI) SAMURGUI</h2>
 <p>This code needs to be finished</p>
 <h1 id="measurement-todo-list">Measurement TODO List</h1>
@@ -216,8 +275,26 @@ Line of Sight Measurements</li>
 Cylinder Measurement</li>
 <li><input type="checkbox" disabled="" checked="" />
 Cylinder non-LOS measurement</li>
+<li><input type="checkbox" disabled="" />
+Active (2 source) AoA measurements</li>
 </ul>
 <h1 id="code-editing-todo-list">Code Editing TODO List</h1>
+<h2 id="current-work">Current Work</h2>
+<ul>
+<li><input type="checkbox" disabled="" />
+Beamforming code for 3D and cylinder</li>
+<li><input type="checkbox" disabled="" />
+Angular resolution for each different aperture</li>
+<li><input type="checkbox" disabled="" />
+Read on AoA verification work</li>
+<li><input type="checkbox" disabled="" />
+Read on AoA algorithm work</li>
+<li><input type="checkbox" disabled="" />
+Create basic MUSIC, SAGE, Etc. algorithms</li>
+<li><input type="checkbox" disabled="" />
+Speed these up</li>
+</ul>
+<h2 id="on-backburner">On backburner</h2>
 <ul>
 <li><input type="checkbox" disabled="" />
 allow user to move_to_mounting_position from SAMURGUI</li>

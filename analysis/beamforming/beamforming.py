@@ -61,7 +61,7 @@ def contourPlot(x, y, exact, mask, radius = 10, title = None, filename = None,
     else:
         tickVals = np.linspace(vmin, vmax, 5)
         
-    print 'vmin, vmax = ', vmin, vmax
+    print('vmin, vmax = ', vmin, vmax)
     
     cmap = plt.get_cmap('jet')
                         
@@ -140,6 +140,11 @@ elif exp == '021319':
     experimentDir = '2-13-2019'
     subdir = 'synthetic_aperture'
     jsonFile = 'metaFile_split_0.json'
+    
+dataDir = r"U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\\calibrated\\"
+experimentDir = '3-1-2019'
+subdir = 'aperture_0'
+jsonFile = 'metafile.json'
 
 
 measFolder = os.path.join(os.path.join(dataDir, experimentDir), subdir)
@@ -209,7 +214,7 @@ measPos = measPos - np.average(measPos, axis=0)
 freqs = freqs*(10**9) # Convert GHz to Hz
 
 # Create uv grid
-numPointsUV = 100;
+numPointsUV = 100
 u = np.linspace(-1, 1, numPointsUV)
 v = np.linspace(-1, 1, numPointsUV)
 [uu,vv] = np.meshgrid(u,v)
@@ -265,7 +270,7 @@ plt.show()
 # Test one 
 measTestOne = np.zeros((numMeas, 1), dtype=np.complex)
 measTestOne[:,0] = 1.0*np.exp(-1j*2*np.pi*0.25)
-hThetaF = steeringVectors(measPos, angles, freqs[0:1], measTestOne);
+hThetaF = steeringVectors(measPos, angles, freqs[0:1], measTestOne)
 
 # Get the beamforming data
 

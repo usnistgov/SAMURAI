@@ -6,20 +6,20 @@ Created on Thu Feb 14 11:53:42 2019
 """
 import numpy as np
 
-speedOfLight = 299792458.0;
+speedOfLight = 299792458.0
 
 def steeringVectors( coords, angles, freqsInHz, s21data):
     #return hThetaF
 
     
     #% coords assumed to have centroid 0
-    numFreqs = len(freqsInHz);
+    numFreqs = len(freqsInHz)
     numPoints = coords.shape[0]
     numAngles = angles.shape[0]
     
     
-    lambdaVec = speedOfLight / (freqsInHz);
-    kVec = 2 * np.pi / lambdaVec;
+    lambdaVec = speedOfLight / (freqsInHz)
+    kVec = 2 * np.pi / lambdaVec
     
     #%steeringVectors = zeros(numAngles, numPoints);
     
@@ -30,12 +30,12 @@ def steeringVectors( coords, angles, freqsInHz, s21data):
     dirs[:,0] = np.sin(angles[:,1])
     dirs[:,1] = np.sin(angles[:,0])
     dirs[:,2] = np.sqrt(1.0 - dirs[:,0]**2 + dirs[:,1]**2)
-    hThetaF = np.zeros((numAngles, numFreqs), dtype=np.complex128);
+    hThetaF = np.zeros((numAngles, numFreqs), dtype=np.complex128)
     
     #% Could be much faster...
     for iF in range(numFreqs):
-        print iF
-        kDir = kVec[iF]*dirs;
+        print(iF)
+        kDir = kVec[iF]*dirs
         steeringVectorsData = np.exp(-1j * np.dot(kDir,coords.transpose()))
         
         ################################################################

@@ -1,0 +1,4 @@
+#ignore the data folder here
+data/
+#test output files of all types
+test*
