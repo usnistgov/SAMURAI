@@ -80,7 +80,7 @@ class metaFile:
         #delimeter of csv file (typically ',')
 
         #build our file names
-        self.makeFileNames()
+        self.make_file_names()
     
     def add_antenna(self,antenna,idx=None):
         '''
@@ -102,8 +102,11 @@ class metaFile:
             self.options[key] = value
 
      #clean and create file names
-    def makeFileNames(self,clean=1):
-        #build file paths
+    def make_file_names(self,clean=True):
+        '''
+        @brief clean (increment name) and create file names for json and raw files
+        @param[in] clean - flag on whether or not to clean the file (change the name if it exists)
+        '''
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
         self.jsonPath = self.options['metafile_name']+'.json'
@@ -112,13 +115,18 @@ class metaFile:
         self.csvPath  = self.options['csv_path']
         #build JSON template
         #first check if we already have a metaFile rename if needed
-        if(clean==1):
+        if(clean):
             [self.jsonPath,iij]=clean_file_name(self.jsonPath)
             [self.tmpfPath,_  ]=clean_file_name(self.tmpfPath,iij)
-        
+    #alias
+    makeFileNames = make_file_names    
+    
     #get parameters from vna
     def get_vna_params(self,pna_addr):
-        
+        '''
+        @brief get parameters from the VNA if we can
+        @param[in] pna_addr - visa address of vna
+        '''
         try:
             pnaCont = pnaController.pnaController(pna_addr)
             pnaCont.getParams()
@@ -140,14 +148,22 @@ class metaFile:
     #This will call init JSON and other files to build template.
     #parameters after this cannot be changed
     def init(self,**additional_header_info):
+        '''
+        @brief initialize after values set by user to create the json template
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        '''
         #build our json file template
-        self.buildJsonTemplate(**additional_header_info)
+        self.build_json_template(**additional_header_info)
         #init our continuation file in case of failure
  #       self.initContFile();
 
         
     #build the initial template for our json file
-    def buildJsonTemplate(self,**additional_header_info):
+    def build_json_template(self,**additional_header_info):
+        '''
+        @brief build our json template with header and positions
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        '''
         #first build header
         jhd = OrderedDict({})
         jhd["working_directory"]  = self.options['root_dir']
@@ -190,15 +206,21 @@ class metaFile:
                     self.jsonData['measurements'][locId].update({'calibration_file':'INCOMPLETE'})
                     self.jsonData['measurements'][locId].update({'calibrated':False})
 
-            
         #now write this out to our JSON file
         with open(self.jsonPath,'w+') as jsonFile:
             json.dump(self.jsonData,jsonFile,indent=4)
+    #alias
+    buildJsonTemplate = build_json_template
             
     #can be built after all raw measurements have been taken
-    def buildJsonFromRaw(self,rawFilePath='default',**additional_header_info):
-        if(rawFilePath=='default'):
-            rawFilePath = self.tmpfPath
+    def build_json_from_raw(self,raw_file_path='default',**additional_header_info):
+        '''
+        @brief build a json template from a raw json file
+        @param[in] raw_file_path - location of raw file to create json from
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        '''
+        if(raw_file_path=='default'):
+            raw_file_path = self.tmpfPath
         #first build header
         jhd = OrderedDict({})
         jhd["working_directory"]  = self.options['root_dir']
@@ -218,7 +240,7 @@ class metaFile:
 
         #now loop through json file to add measurements
         self.jsonData = jhd
-        rfp = os.path.join(self.options['root_dir'],rawFilePath)
+        rfp = os.path.join(self.options['root_dir'],raw_file_path)
         #GET number of measurements from raw file
         rawLineCount = 0
         with open(rfp,'r') as rawfile:
@@ -268,14 +290,27 @@ class metaFile:
                     self.jsonData['measurements'][locId].update({'calibration_file':cfname})
                     self.jsonData['measurements'][locId].update({'calibrated':False})
 
-            
         #now write this out to our JSON file
         with open(self.jsonPath,'w+') as jsonFile:
             json.dump(self.jsonData,jsonFile,indent=4)
-    
+    #alias
+    buildJsonFromRaw = build_json_from_raw
+
+
     #update temporary metaFile
-    def update(self,filePath,position,**arg_options):#,calFilePath='default',note='none',measID=-1):
+    def update(self,file_path,position,**arg_options):
+        '''
+        @brief update the temporary metafile data
+        @param[in] file_path - path of the measurement file
+        @param[in] position  - position of the positoiner for the measurement
+        @param[in] arg_options - keyword arguments as follows:
+            cal_file_path - location of the calibration file 
+            note - note to add to the measurement
+            measID - id of the measurement (default -1 autodetects)
+            dict_data - dicitionary of extra data to write to the measurement piece
+        '''
         defaults = {'cal_file_path':self.options['cal_path'],'note':'none','measID':-1}
+        defaults['dict_data'] = None 
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -285,7 +320,7 @@ class metaFile:
         if(os.path.isfile(self.tmpfPath)!=True): #see if the file doesnt already exist
             #if it doesnt exist make it and create header
             writeType = 'w+'
-            headerLine = "|   ID   |   FILENAME   |   CALFILE   |   TIME   |   POSITION   |   NOTES   |\n"
+            headerLine = "|   ID   |   FILENAME   |   CALFILE   |   TIME   |   POSITION   |   NOTES   | DICT_DATA\n"
             measID=0
         else: #else it already exists
             #find the measID if not given
@@ -296,22 +331,23 @@ class metaFile:
             
         #build the file line from our parameters
         with open(self.tmpfPath,writeType) as metafile:
-            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(filePath,self.options['root_dir'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['root_dir'])+'   |   '
-                    +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+'   |\n')
+            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self.options['root_dir'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['root_dir'])+'   |   '
+                    +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+"   |   "+json.dumps(options['dict_data'])+"   |\n")
             metafile.write(headerLine)
             metafile.write(line)
             
         
     #take the data from our temporary metaFile and put into JSON file
     def finalize(self):
-       
+        '''
+        @brief write our data from our temp file back to the json file
+            This finishes the measurement. After this is called the data from 
+            the '.raw' measurement file will be put into our json file
+        '''
         #load json data
         jsonFile = open(self.jsonPath,'r')
         jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
         jsonFile.close()
-        #json.dumps(jsonData)
-        #make copy in case something goes wrong
-        #os.rename(self.jsonPath,self.jsonPath+'.tmp')
         #fill JSON Data from tmpFile
         with open(self.tmpfPath,'r') as tmpFile:
             next(tmpFile)
@@ -323,6 +359,7 @@ class metaFile:
                 time   = ls[4]
                 notes  = ls[6]
                 posStr = ls[5]
+                dict_data = json.loads(ls[7]) #extra data
                 posStr = posStr.strip()
                 posStr = posStr.strip(']')
                 posStr = posStr.strip('[')
@@ -338,6 +375,9 @@ class metaFile:
                 self.jsonData['measurements'][measId]['filename'] = fname
                 self.jsonData['measurements'][measId]['timestamp'] = time
                 self.jsonData['measurements'][measId]['calibration_file'] = cfname
+                if dict_data is not None:
+                    for key,val in dict_data:
+                        self.jsonData['measurements'][measId][key] = val
                 #increment filled measurements
                 self.jsonData['completed_measurements']+=1
         #now write out new json data
