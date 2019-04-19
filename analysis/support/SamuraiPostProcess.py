@@ -73,6 +73,7 @@ class SamuraiSyntheticApertureAlgorithm:
         self.options['antenna_pattern'] = None
         self.options['measured_values'] = True
         self.options['load_key']        = 21
+        self.options['units']           = 'mm' #units of our position measurements (may want to load from metafile)
         for key,val in six.iteritems(arg_options):
             self.options[key] = val #set kwargs
 
@@ -108,7 +109,39 @@ class SamuraiSyntheticApertureAlgorithm:
             raise(Exception("S Parameter data not provided"))
         if np.any(self.freq_list==None):
             raise(Exception("Frequency list not provided"))
- 
+            
+    def get_positions(self,units='m'):
+        '''
+        @brief check our units options and get our positions in a given unit
+        @param[in/OPT] units - what units to get our positions in (default meters)
+        @return return our position in whatever units specified (default meters)
+        '''
+        to_meters_dict={ #dictionary to get to meters
+                'mm': 0.001,
+                'cm': 0.01,
+                'm' : 1,
+                'in': 0.0254
+                }
+        
+        #multiply to get to meters and divide to get to desired units
+        multiplier = to_meters_dict[self.options['units']]/to_meters_dict[units] 
+        return self.positions*multiplier
+    
+    def to_azel(self,az_u,el_v,coord):
+        '''
+        @brief change a provided coordinate system ('azel' or 'uv') to azel
+        @param[in] az_u list of azimuth or u values
+        @param[in] el_v list of azimuth or v values
+        @param[in] coord - what coordinate system our input values are
+        @return lists of [azimuth,elevation] values
+        '''
+        if(coord=='azel'):
+            azimuth = az_u
+            elevation = el_v
+        elif(coord=='uv'):
+            azimuth = np.rad2deg(np.arctan2(az_u,np.sqrt(1-az_u**2-el_v**2)))
+            elevation = np.rad2deg(np.arcsin(el_v))
+        return azimuth,elevation
 
 #import matplotlib.pyplot as plt
 #from matplotlib import cm
@@ -123,7 +156,7 @@ class CalculatedSyntheticAperture:
         It also contains methods to nicely plot each of these values.
         This will be a single beamformed setup
     '''
-    def __init__(self,ELEVATION,AZIMUTH,complex_values,**arg_options):
+    def __init__(self,AZIMUTH,ELEVATION,complex_values,**arg_options):
         '''
         @brief intializer for the class
         @param[in] THETA - meshgrid output of THETA angles (elevation up from xy plane)
@@ -549,7 +582,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         [az,el,vals] = load_funct(pattern_file)
         self.type = {'dimension':options['dimension'],'plane':options['plane']}
         [az,el,vals] = self.interp_to_grid(az,el,vals) #interp to our grid
-        super(AntennaPattern,self).__init__(el,az,vals) #init the superclass
+        super(AntennaPattern,self).__init__(az,el,vals) #init the superclass
     
     def load_csv(self,pattern_file):
         '''
