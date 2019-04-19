@@ -12,6 +12,7 @@ import samurai.acquisition.support.samurai_support  as ss      #some other funct
 import samurai.acquisition.support.samurai_optitrack as samurai_optitrack  #import optitrack tracking
 
 import six
+import json
 
 import numpy as np
 
@@ -124,10 +125,10 @@ class SAMURAI_System():
             template_path - location of pnagrabber template to run from (default './template.pnagrabber')
             settling time - time in seconds to let robot settle (default 0.1s)
             metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)
-            measure_positions - configuration of external measurement device (e.g. optitrack)
-                OPTITRACK - provide name/id pairs (dict keys) of points for x,y,z or names of rigid bodies (e.g. meca_head, origin) for x,y,z+quaternion
-                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},'meca_head','origin',{'cyl_1':50123}]).
-                    For each of these points, n=100 measurements are taken and the stdev, covariance matrix, and mean values are provided
+            external_position_measurements - configuration of external measurement device (e.g. optitrack)
+                OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
+                    For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
         @return sweep time
         '''
         if not self.is_connected:
@@ -184,9 +185,8 @@ class SAMURAI_System():
                 #get positions from external measurement if available
                 meas_dict_data = None
                 if options['external_position_measurements'] is not None:
-                    for marker in options['external_position_measurements']: #get data for each listed value
-                        ext_pos = my_ext_pos.get_position_data(marker)
-                        meas_dict_data = {'external_position_measurements':ext_pos}
+                    ext_pos = my_ext_pos.get_position_data(options['external_position_measurements'],**arg_options)
+                    meas_dict_data = {'external_position_measurements':ext_pos}
                 #get the positoin from the positoiner
                 posn_vals = self.rx_positioner.get_position()
                 if(run_vna):
@@ -202,6 +202,57 @@ class SAMURAI_System():
         mf.finalize()
         return time.time()-run_time_start
     
+    def csv_position_sweep(self,out_dir,out_name,external_position_measurements,csv_path,num_reps=1,**arg_options):
+        '''
+        @brief sweep positions and generate positional info on this data.
+            - this does not have the same data overwrite protection as the typical metafile
+        @param[in] out_dir - directory to write out to
+        @param[in] out_name - output name (no extension)
+        @param[in] csv_path - path to csv file
+        @param[in] external_position_measurements - configuration of external measurement device (e.g. optitrack)
+                OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
+                    For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+        @param[in] num_reps - number of times to repeat the sweep (default to 1)
+        @param[in] arg_options - keyword arguments as follows:
+            settling_time - time for positioner to settle (default 0.1)
+            num_samples   - number of samples to take per marker per location
+            Look at samurai_optitrack for more options
+        @return file path that the data is written to 
+        '''
+        options = {}
+        options['settling_time'] = 0.1
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        
+        tmp_name = os.path.join(out_dir,out_name+'.tmp') #create a temporary file
+        fp = open(tmp_name,'w+') #temp file
+        my_ext_pos = samurai_optitrack.MotiveInterface() #init optitrack
+        #loop through csv
+        self.rx_positioner.zero()
+        for rep in range(num_reps):
+            csvfp = open(csv_path)
+            for idx,line in enumerate(csvfp): #read each line
+                if(line.split()):
+                    strVals = line.split(',') #separate by csv
+                    fvals = [float(i) for i in strVals]
+                    self.set_position(fvals)
+                    time.sleep(options['settling_time']) #sleep
+                    pos_vals = self.rx_positioner.get_position()
+                    ext_pos_vals = my_ext_pos.get_position_data(external_position_measurements)
+                    loc_dict = {'rep':rep,'pos_idx':idx,'robot_position':pos_vals,'external_position':ext_pos_vals}
+                    fp.write(json.dumps(loc_dict)+'\n') #write the line
+            csvfp.close()
+        
+        fp.close()
+        json_data = []
+        with open(tmp_name,'r') as fp:
+            for line in fp:
+                if(line): #make sure there is stuff on the line
+                    json_data.append(json.loads(line))
+        with open(os.path.join(out_dir,out_name+'.json')):
+            json.dump(json_data,indent=2) #write out
+                
     #move robot to side of table for easy mounting
     #looking from the back we have left and right
     #left is close to vna
@@ -255,11 +306,8 @@ class SAMURAI_System():
         self.rx_positioner.zero()
         
     
-        
     
     
-      
-      #samsys = SAMURAI_System();
-      #samsys.connect_rx_positioner();
+    
       
         
