@@ -22,6 +22,7 @@ class SamuraiPostProcess(MetaFileController):
     @brief this is a class to inherit from for processing samurai data
         This will implement generic things like loading metadata used for all
         post-processing techniques. It currently inherits from metafile controller
+    @todo add positional masking capability (masking functions, polygon, and manual points)
     '''
     def __init__(self,metafile_path, **arg_options):
         '''
@@ -64,22 +65,24 @@ class SamuraiSyntheticApertureAlgorithm:
         @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit
             verbose         - whether or not to be verbose (default False)
             antenna_pattern - AntennaPattern Class parameter to include (default None)
-            measured_values - are we using measurements, or simulated data (default True)
+            measured_values_flg - are we using measurements, or simulated data (default True)
             load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
         '''
         #options for the class
         self.options = {}
         self.options['verbose']         = False
         self.options['antenna_pattern'] = None
-        self.options['measured_values'] = True
+        self.options['measured_values_flg'] = True
         self.options['load_key']        = 21
+        self.options['units']           = 'mm' #units of our position measurements (may want to load from metafile)
         for key,val in six.iteritems(arg_options):
             self.options[key] = val #set kwargs
 
         #initialize so we know if weve loaded them or not
-        self.s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
+        self.all_s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
         self.freq_list = None
-        self.positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
+        self.all_weights = None #weighting for our antennas
+        self.all_positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
         self.metafile = None
         if(metafile_path): #if theres a metafile load it
             self.load_metafile(metafile_path)
@@ -93,23 +96,145 @@ class SamuraiSyntheticApertureAlgorithm:
         self.metafile = MetaFileController(metafile_path)
         [s_data,_] = self.metafile.load_data(verbose=self.options['verbose'])
         #now get the values we are looking for
-        self.s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
+        self.all_s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
         self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
         self.freq_list = self.freq_list*freq_mult
-        self.positions = self.metafile.get_positions()
+        self.all_positions = self.metafile.get_positions()
 
     def validate_data(self):
         '''
         @brief ensure we have loaded all of the data to run the algorithm
         '''
-        if np.any(self.positions==None):
+        if np.any(self.positions==None) or len(self.positions)<1:
             raise(Exception("Positional data not provided"))
-        if np.any(self.s_parameter_data==None):
+        if np.any(self.s_parameter_data==None) or len(self.s_parameter_data)<1:
             raise(Exception("S Parameter data not provided"))
-        if np.any(self.freq_list==None):
+        if np.any(self.freq_list==None) or len(self.freq_list)<1:
             raise(Exception("Frequency list not provided"))
- 
-
+        if np.any(self.weights==None) or len(self.weights)<1:
+            raise(Exception("Weights not set"))
+            
+    def get_positions(self,units='m'):
+        '''
+        @brief check our units options and get our positions in a given unit
+        @param[in/OPT] units - what units to get our positions in (default meters)
+        @return return our position in whatever units specified (default meters)
+        '''
+        to_meters_dict={ #dictionary to get to meters
+                'mm': 0.001,
+                'cm': 0.01,
+                'm' : 1,
+                'in': 0.0254
+                }
+        
+        #multiply to get to meters and divide to get to desired units
+        multiplier = to_meters_dict[self.options['units']]/to_meters_dict[units] 
+        return self.positions*multiplier
+    
+    def to_azel(self,az_u,el_v,coord,replace_val = np.nan):
+        '''
+        @brief change a provided coordinate system ('azel' or 'uv') to azel
+        @param[in] az_u list of azimuth or u values
+        @param[in] el_v list of azimuth or v values
+        @param[in] coord - what coordinate system our input values are
+        @param[in/OPT] replace_val - value to replace uv outside of radius 1 with (default is nan)
+        @return lists of [azimuth,elevation] values
+        '''
+        if(coord=='azel'):
+            azimuth = az_u
+            elevation = el_v
+        elif(coord=='uv'):
+            l1_vals = np.sqrt(az_u**2*el_v**2)<1
+            az_u[l1_vals] = np.nan
+            el_v[l1_vals] = np.nan
+            azimuth = np.rad2deg(np.arctan2(az_u,np.sqrt(1-az_u**2-el_v**2)))
+            elevation = np.rad2deg(np.arcsin(el_v))
+        return azimuth,elevation
+    
+    def get_steering_vectors(self,az_u,el_v,k,coord='azel',**arg_options):
+        '''
+        @brief get our steering vectors with wavenumber provided. calculates np.exp(1j*k*kvec)
+            where kvec is i_hat+j_hat+k_hat
+            It is better to not use this for large calculations. Instead caculate the k vectors and get steering vectors in the algorithm
+            to prevent recalculating k vectors
+        @param[in] az_u - azimuth or u values to get steering vectors for 
+        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+        @param[in/OPT] k - wavenumber to calculate with. If None, vectors 
+        @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+        @param[in/OPT] arg_options - keyword argument options as follows
+            - None Yet!
+        @return the steering vectors for az_u and el_v at the provided k value, or without a k value.
+            The first axis of the returned matrix is the position value 
+            The second axis corresponds to the azel values
+        '''
+        k_vecs = self.get_k_vectors(az_u,el_v,coord,**arg_options)
+        if not k:
+            k=1 #default to 1
+        steering_vectors = np.exp(-1j*k*k_vecs)
+        return steering_vectors
+        
+    def get_k_vectors(self,az_u,el_v,coord='azel',**arg_options):
+        '''
+        @brief get our k vector to later calculate the steering vector
+            calculates i_hat+j_hat+k_hat (i.e. k_vectors)
+            To get steering vectors use np.exp(-1j*k*k_vectors)
+        @param[in] az_u - azimuth or u values to get steering vectors for 
+        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+        @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+        @param[in/OPT] arg_options - keyword argument options as follows
+            - None Yet!
+        @return the calculated k vectors for az_u and el_v at the provided k value, or without a k value.
+            The first axis of the returned matrix is the position value 
+            The second axis corresponds to the azel values
+        '''
+        [az,el] = self.to_azel(az_u,el_v,coord) #change to azel
+        az = np.deg2rad(az.reshape((-1))) #flatten arrays along the desired axis and change to radians
+        el = np.deg2rad(el.reshape((-1)))
+        #get and center our positions
+        pos = self.get_positions('m')[:,0:3] # positions 4,5,6 are rotations only get xyz
+        pos -= pos.mean(axis=0) #center around mean values
+        
+        #now calculate our steering vector values
+        k_vecs = np.array([
+                np.cos(el)*np.cos(az), #propogation direction (X)
+                np.cos(el)*np.sin(az), #side to side (Y)
+                np.sin(el)             #up and down (Z)
+                ])
+        k_vecs = np.dot(pos,k_vecs) #this will multiply sv_vals by our x,y,z values and sum the three
+        return k_vecs
+    
+    @property
+    def positions(self):
+        '''
+        @brief getter for our positinos. This will allow us to mask out undesired locations
+        @return all desired positions that are not masked out
+        @todo implemment masking
+        '''
+        return self.all_positions
+    
+    @property
+    def s_parameter_data(self):
+        '''
+        @brief getter for our s parameter data. This will allow us to mask out undesired locations
+        @return all s_parameter_data for desired positions that are not masked out
+        @todo implemment masking
+        '''
+        return self.all_s_parameter_data
+    
+    @property
+    def weights(self):
+        '''
+        @brief getter for our antenna weights
+        @return all weighting values for desired positions that are not masked out
+        @todo implemment masking
+        '''
+        if self.all_weights==None:
+            return np.zeros(self.positions.shape)
+        else:
+            return self.all_weights
+    
 #import matplotlib.pyplot as plt
 #from matplotlib import cm
 #from mpl_toolkits.mplot3d import Axes3D
@@ -123,7 +248,7 @@ class CalculatedSyntheticAperture:
         It also contains methods to nicely plot each of these values.
         This will be a single beamformed setup
     '''
-    def __init__(self,ELEVATION,AZIMUTH,complex_values,**arg_options):
+    def __init__(self,AZIMUTH,ELEVATION,complex_values,**arg_options):
         '''
         @brief intializer for the class
         @param[in] THETA - meshgrid output of THETA angles (elevation up from xy plane)
@@ -262,19 +387,7 @@ class CalculatedSyntheticAperture:
             }
         #get our data
         plot_data = plot_data_dict[plot_type] #get the type of plot
-        #minimum value if were plotting db
-        if(plot_type=='mag_db'):
-            #mask out lower values
-            db_range = 60 #lower than the max
-            caxis_min = plot_data.max()-db_range
-            caxis_max = plot_data.max()
-            plot_data = plot_data-(plot_data.max()-db_range) #shift the values
-            plot_data = mask_value(plot_data,plot_data<=0)
-        else: 
-            #Zero the data
-            caxis_min = plot_data.min()
-            caxis_max = plot_data.max()
-            plot_data = plot_data-plot_data.min()
+        [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
         X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
@@ -323,18 +436,7 @@ class CalculatedSyntheticAperture:
             }
         #get our data
         plot_data = plot_data_dict[plot_type] #get the type of plot
-        if(plot_type=='mag_db'):
-            #mask out lower values
-            db_range = 60 #lower than the max
-            caxis_min = plot_data.max()-db_range
-            caxis_max = plot_data.max()
-            plot_data = plot_data-(plot_data.max()-db_range) #shift the values
-            plot_data = mask_value(plot_data,plot_data<=0)
-        else: 
-            #Zero the data
-            caxis_min = plot_data.min()
-            caxis_max = plot_data.max()
-            plot_data = plot_data-plot_data.min()
+        [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
         X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
@@ -375,7 +477,33 @@ class CalculatedSyntheticAperture:
         #ax = fig.add_subplot(111, projection='3d')
         #ax.plot_surface(X,Y,Z,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
-        
+     
+    def adjust_caxis(self,plot_data,plot_type,db_range=60,**arg_options):
+        '''
+        @brief adjust our plotting values for a colorbar axis.
+            This ensures we dont have negative values in 3D plotting.
+            This is really important to use for mag_db plots. Everything else
+            will just be shifted to 0
+        @param[in] plot_data - data we are plotting
+        @param[in] plot_type - type of data we are plotting (e.g. 'mag_db','mag','real',etc.)
+        @param[in/OPT] db_range  - dynamic range of our plot in db (only important for mag_db default 60)
+        @param[in/OPT] arg_options - kyeworkd option arguments:
+            - None Yet!
+        @return new_plot_data, caxis_min, caxis_max, db_range - our new data, our miinimum colorbar value, our max colorbar value
+        '''
+        if(plot_type=='mag_db'):
+            #mask out lower values
+            db_range = 60 #lower than the max
+            caxis_min = np.nanmax(plot_data)-db_range
+            caxis_max = np.nanmax(plot_data)
+            new_plot_data = plot_data-(np.nanmax(plot_data)-db_range) #shift the values
+            new_plot_data = mask_value(new_plot_data,new_plot_data<=0)
+        else: 
+            #Zero the data
+            caxis_min = np.nanmin(plot_data)
+            caxis_max = np.nanmax(plot_data)
+            new_plot_data = plot_data-np.nanmin(plot_data)
+        return new_plot_data,caxis_min,caxis_max,db_range
         
     @property
     def mag_db(self):
@@ -549,7 +677,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         [az,el,vals] = load_funct(pattern_file)
         self.type = {'dimension':options['dimension'],'plane':options['plane']}
         [az,el,vals] = self.interp_to_grid(az,el,vals) #interp to our grid
-        super(AntennaPattern,self).__init__(el,az,vals) #init the superclass
+        super(AntennaPattern,self).__init__(az,el,vals) #init the superclass
     
     def load_csv(self,pattern_file):
         '''
@@ -659,9 +787,9 @@ class AntennaPattern(CalculatedSyntheticAperture):
         '''
         return []
     
-@vectorize(['float32(float32,float32,float32)'],target='cuda')
-def vector_dist(dx,dy,dz):
-    return math.sqrt(dx**2+dy**2+dz**2)
+@vectorize(['complex128(float64,float64)'],target='cpu')
+def calculate_steering_vector(k_vector,k):
+    return math.exp(-1j*k*k_vector)
 
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection='3d')
@@ -686,7 +814,7 @@ def mask_value(arr,mask,value=0):
     
 if __name__=='__main__':
     
-    test_ant_path = './test_ant_pattern.csv'
+    test_ant_path = './data/test_ant_pattern.csv'
     myant = Antenna(test_ant_path,dimension=1,plane='az')
     myap = myant['pattern']
     print(myap.type)
