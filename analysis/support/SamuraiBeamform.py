@@ -48,10 +48,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         '''
         #make the meshgrid
         [AZ,EL] = np.meshgrid(az_vals,el_vals)
-        AZf = AZ.flatten()
-        ELf = EL.flatten()
         
-        return self.beamforming_farfield(AZf,ELf,freq_list=freq_list,coord='azel',**arg_options)
+        return self.beamforming_farfield(AZ,EL,freq_list=freq_list,coord='azel',**arg_options)
         
     def beamforming_farfield_uv(self,u_vals,v_vals,freq_list='all',**arg_options):
         '''
@@ -69,19 +67,17 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         '''
         #make the meshgrid
         [U,V] = np.meshgrid(u_vals,v_vals)
-        Uf = U.flatten()
-        Vf = V.flatten()
         
         #get values that are less than 1
-        l1vals = np.sqrt(Uf*Vf)<1
-        Uf = Uf[l1vals]
-        Vf = Vf[l1vals]
+        l1vals = np.sqrt(U*V)<1
+        U[l1vals] = np.nan
+        V[l1vals] = np.nan
         
         #now convert to azel
         
         
         
-        return self.beamforming_farfield(Uf,Vf,freq_list=freq_list,coord='uv',**arg_options)
+        return self.beamforming_farfield(U,V,freq_list=freq_list,coord='uv',**arg_options)
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
         
         
@@ -89,8 +85,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         '''
         @brief calculate the beamforming assuming farfield for angles in spherical coordinates
             All locations will be pulled from the metafile positions
-        @param[in] az_u - list of azimuth or U values corresponding to matching value in el_v
-        @param[in] el_v - list of azimuth or U values corresponding to matching value in az_u
+        @param[in] az_u - mesh of azimuth or U values corresponding to matching value in el_v
+        @param[in] el_v - mesh of azimuth or U values corresponding to matching value in az_u
         @param[in] coord - which coordinate system we are using ('azel' or 'uv')
         @note if we are in u,v we will simply translate to azel
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
@@ -149,7 +145,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         y_r = y_locs*np.cos(theta_mesh_rad)*np.sin(phi_mesh_rad)
         z_r = z_locs*np.sin(theta_mesh_rad)
         #delta_r = np.sqrt(x_r**2+y_r**2+z_r**2) #we have no direction here...
-        kvec = x_r+y_r+z_r
+        kvec = x_r+y_r+z_r #(x_r+y_r+z_r)/np.abs((x_r+y_r+z_r))*np.sqrt(x_r**2+y_r**2+z_r**2) #x_r+y_r+z_r
         #delta_r = np.sqrt(y_r**2+z_r**2)
         
         #set our antenna values
@@ -193,7 +189,9 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         return csa_list,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
     
-
+@vectorize(['float32(float32,float32,float32)'],target='cuda')
+def vector_dist(dx,dy,dz):
+    return math.sqrt(dx**2+dy**2+dz**2)
 
 
 if __name__=='__main__':
@@ -203,11 +201,11 @@ if __name__=='__main__':
     #azel without antenna
     #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
     #azel with antenna
-    test_ant_path = './test_ant_pattern.csv'
+    test_ant_path = './data/test_ant_pattern.csv'
     myant = Antenna(test_ant_path,dimension=1,plane='az')
     myap = myant['pattern']
     mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
     #UV beamform
-    #mycsa_list = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True)
+    #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
     mycsa = mycsa_list[0]
     mycsa.plot_3d()
