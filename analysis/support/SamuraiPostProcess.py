@@ -151,6 +151,60 @@ class SamuraiSyntheticApertureAlgorithm:
             elevation = np.rad2deg(np.arcsin(el_v))
         return azimuth,elevation
     
+    def get_steering_vectors(self,az_u,el_v,k,coord='azel',**arg_options):
+        '''
+        @brief get our steering vectors with wavenumber provided. calculates np.exp(1j*k*kvec)
+            where kvec is i_hat+j_hat+k_hat
+            It is better to not use this for large calculations. Instead caculate the k vectors and get steering vectors in the algorithm
+            to prevent recalculating k vectors
+        @param[in] az_u - azimuth or u values to get steering vectors for 
+        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+        @param[in/OPT] k - wavenumber to calculate with. If None, vectors 
+        @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+        @param[in/OPT] arg_options - keyword argument options as follows
+            - None Yet!
+        @return the steering vectors for az_u and el_v at the provided k value, or without a k value.
+            The first axis of the returned matrix is the position value 
+            The second axis corresponds to the azel values
+        '''
+        k_vecs = self.get_k_vectors(az_u,el_v,coord,**arg_options)
+        if not k:
+            k=1 #default to 1
+        steering_vectors = np.exp(-1j*k*k_vecs)
+        return steering_vectors
+        
+    def get_k_vectors(self,az_u,el_v,coord='azel',**arg_options):
+        '''
+        @brief get our k vector to later calculate the steering vector
+            calculates i_hat+j_hat+k_hat (i.e. k_vectors)
+            To get steering vectors use np.exp(-1j*k*k_vectors)
+        @param[in] az_u - azimuth or u values to get steering vectors for 
+        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+        @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+        @param[in/OPT] arg_options - keyword argument options as follows
+            - None Yet!
+        @return the calculated k vectors for az_u and el_v at the provided k value, or without a k value.
+            The first axis of the returned matrix is the position value 
+            The second axis corresponds to the azel values
+        '''
+        [az,el] = self.to_azel(az_u,el_v,coord) #change to azel
+        az = np.deg2rad(az.reshape((-1))) #flatten arrays along the desired axis and change to radians
+        el = np.deg2rad(el.reshape((-1)))
+        #get and center our positions
+        pos = self.get_positions('m')[:,0:3] # positions 4,5,6 are rotations only get xyz
+        pos -= pos.mean(axis=0) #center around mean values
+        
+        #now calculate our steering vector values
+        k_vecs = np.array([
+                np.cos(el)*np.cos(az), #propogation direction (X)
+                np.cos(el)*np.sin(az), #side to side (Y)
+                np.sin(el)             #up and down (Z)
+                ])
+        k_vecs = np.dot(pos,k_vecs) #this will multiply sv_vals by our x,y,z values and sum the three
+        return k_vecs
+    
     @property
     def positions(self):
         '''

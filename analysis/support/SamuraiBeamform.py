@@ -73,12 +73,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         U[l1vals] = np.nan
         V[l1vals] = np.nan
         
-        #now convert to azel
-        
-        
-        
         return self.beamforming_farfield(U,V,freq_list=freq_list,coord='uv',**arg_options)
-        #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
         
         
     def beamforming_farfield(self,az_u,el_v,freq_list='all',coord='azel',**arg_options):
@@ -141,12 +136,13 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         #this delta_r will be a 2D array with the first dimension being for each position
         # the second dimeino will be each of the theta/phi pairs for the angles
         if verbose: print("Finding K vectors")
+        
         x_r = x_locs*np.cos(theta_mesh_rad)*np.cos(phi_mesh_rad)
         y_r = y_locs*np.cos(theta_mesh_rad)*np.sin(phi_mesh_rad)
         z_r = z_locs*np.sin(theta_mesh_rad)
-        #delta_r = np.sqrt(x_r**2+y_r**2+z_r**2) #we have no direction here...
         kvec = x_r+y_r+z_r #(x_r+y_r+z_r)/np.abs((x_r+y_r+z_r))*np.sqrt(x_r**2+y_r**2+z_r**2) #x_r+y_r+z_r
         #delta_r = np.sqrt(y_r**2+z_r**2)
+        k_vecs =  self.get_k_vectors(azimuth,elevation)
         
         #set our antenna values
         az_adj = -1*az_angles[:,np.newaxis]+np.reshape(azimuth,(-1,))
@@ -154,7 +150,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         if(antenna_pattern is not None):
             antenna_values = antenna_pattern.get_values(az_adj,el_adj)
         else:
-            antenna_values = np.ones(kvec.shape)
+            antenna_values = np.ones(k_vecs.shape)
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
@@ -175,7 +171,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             #here we add a
             lam = sp_consts.c/freq
             k = 2.*np.pi/lam
-            steering_vectors = np.exp(-1j*k*kvec)
+            steering_vectors = np.exp(-1j*k*k_vecs)
         
 
             # sum(value_at_position*steering_vector) for each angle
