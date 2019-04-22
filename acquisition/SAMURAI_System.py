@@ -68,7 +68,7 @@ class SAMURAI_System():
             rv1=self.rx_positioner.set_simulation_mode=False
         else:
             print("Running in Simulation Mode")
-            rv1=self.rx_positioner.set_simulation_mode=True
+            rv1=self.rx_positioner.set_simulation_mode=run_simulation
         self.is_connected = True
         rv2=self.rx_positioner.initialize(ip_addr=self.options['rx_positioner_address']) #start up the meca
         #SETTING REFERENCE PLANES IS A MUST!!! DO NOT SKIP THIS STEP
@@ -228,20 +228,28 @@ class SAMURAI_System():
         tmp_name = os.path.join(out_dir,out_name+'.tmp') #create a temporary file
         fp = open(tmp_name,'w+') #temp file
         my_ext_pos = samurai_optitrack.MotiveInterface() #init optitrack
+        
         #loop through csv
         self.rx_positioner.zero()
         for rep in range(num_reps):
             csvfp = open(csv_path)
+            #for timing
+            numLines = ss.countLinesInFile(csvfp)
+            ltr = pnag.LoopTimeReport(numLines)
+            
             for idx,line in enumerate(csvfp): #read each line
+                print("Repeat: %2d of %2d, Position: %2d of %2d" %(rep+1,num_reps,idx+1,numLines))
                 if(line.split()):
+                    ltr.start_point()
                     strVals = line.split(',') #separate by csv
                     fvals = [float(i) for i in strVals]
                     self.set_position(fvals)
                     time.sleep(options['settling_time']) #sleep
                     pos_vals = self.rx_positioner.get_position()
-                    ext_pos_vals = my_ext_pos.get_position_data(external_position_measurements)
+                    ext_pos_vals = my_ext_pos.get_position_data(external_position_measurements,include_raw_data=True)
                     loc_dict = {'rep':rep,'pos_idx':idx,'robot_position':pos_vals,'external_position':ext_pos_vals}
                     fp.write(json.dumps(loc_dict)+'\n') #write the line
+                    ltr.end_point()
             csvfp.close()
         
         fp.close()
@@ -250,8 +258,8 @@ class SAMURAI_System():
             for line in fp:
                 if(line): #make sure there is stuff on the line
                     json_data.append(json.loads(line))
-        with open(os.path.join(out_dir,out_name+'.json')):
-            json.dump(json_data,indent=2) #write out
+        with open(os.path.join(out_dir,out_name+'.json'),'w+') as fp:
+            json.dump(json_data,fp,indent=2) #write out
                 
     #move robot to side of table for easy mounting
     #looking from the back we have left and right
@@ -306,7 +314,24 @@ class SAMURAI_System():
         self.rx_positioner.zero()
         
     
+if __name__=='__main__':
+    #csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_sparse.csv"
+    csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_SAMURAI_planar.csv"
+    wdir = r"C:\Users\ajw5\Documents\test"
+    os.chdir(wdir)
+    mysam = SAMURAI_System()
+    mysam.connect_rx_positioner() #connect
     
+    id_dict = {}
+    #rigid bodies
+    id_dict['meca_head'] = None
+    id_dict['origin']    = None
+    #labeled markers
+    id_dict['tx_antenna']      = 50488
+    id_dict['cyl_bislide']     = 50480
+    id_dict['cyl_static']      = 50481
+    mysam.csv_position_sweep('./','position_test',id_dict,csv_path,num_reps=3)
+    mysam.disconnect_rx_positioner()
     
     
       
