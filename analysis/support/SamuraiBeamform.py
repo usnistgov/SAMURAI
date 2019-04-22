@@ -6,6 +6,7 @@ Created on Fri Mar 22 15:41:34 2019
 """
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
 from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
+from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector
 from samurai.analysis.support.SamuraiPostProcess import Antenna
 import numpy as np #import constants
 import math #for vectorize math functions
@@ -123,25 +124,12 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         #get our position data
         if verbose: print("Reading measurement positions")
         pos = self.get_positions('m') #get all of our positions in meters
-        x_locs = np.reshape(pos[:,0],(-1,1)); x_locs = x_locs-x_locs.mean() #and unpack all the data
-        y_locs = np.reshape(pos[:,1],(-1,1)); y_locs = y_locs-y_locs.mean() #this is all in mm to change to meters
-        z_locs = np.reshape(pos[:,2],(-1,1)); z_locs = z_locs-z_locs.mean() #all values must be positive so subtract from lowest point
         az_angles = pos[:,5] #with current coordinates system azimuth=gamma
-        
-        #now lets reshape our values to be in the ocrrect orientation
-        theta_mesh_rad = np.deg2rad(np.reshape(elevation,(1,-1))) #reshape to 1D array
-        phi_mesh_rad   = np.deg2rad(np.reshape(azimuth,(1,-1)))
         
         #now lets use this data to get our delta_r beamforming values
         #this delta_r will be a 2D array with the first dimension being for each position
         # the second dimeino will be each of the theta/phi pairs for the angles
         if verbose: print("Finding K vectors")
-        
-        x_r = x_locs*np.cos(theta_mesh_rad)*np.cos(phi_mesh_rad)
-        y_r = y_locs*np.cos(theta_mesh_rad)*np.sin(phi_mesh_rad)
-        z_r = z_locs*np.sin(theta_mesh_rad)
-        kvec = x_r+y_r+z_r #(x_r+y_r+z_r)/np.abs((x_r+y_r+z_r))*np.sqrt(x_r**2+y_r**2+z_r**2) #x_r+y_r+z_r
-        #delta_r = np.sqrt(y_r**2+z_r**2)
         k_vecs =  self.get_k_vectors(azimuth,elevation)
         
         #set our antenna values
@@ -172,7 +160,6 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             lam = sp_consts.c/freq
             k = 2.*np.pi/lam
             steering_vectors = np.exp(-1j*k*k_vecs)
-        
 
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
@@ -185,11 +172,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         return csa_list,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
     
-@vectorize(['float32(float32,float32,float32)'],target='cuda')
-def vector_dist(dx,dy,dz):
-    return math.sqrt(dx**2+dy**2+dz**2)
-
-
+#this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
     test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
     #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"

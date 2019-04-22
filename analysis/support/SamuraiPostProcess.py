@@ -787,9 +787,9 @@ class AntennaPattern(CalculatedSyntheticAperture):
         '''
         return []
     
-@vectorize(['float32(float32,float32,float32)'],target='cuda')
-def vector_dist(dx,dy,dz):
-    return math.sqrt(dx**2+dy**2+dz**2)
+@vectorize(['complex128(float64,float64)'],target='cpu')
+def calculate_steering_vector(k_vector,k):
+    return math.exp(-1j*k*k_vector)
 
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection='3d')
