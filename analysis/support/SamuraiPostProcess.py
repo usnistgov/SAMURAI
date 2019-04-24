@@ -131,26 +131,6 @@ class SamuraiSyntheticApertureAlgorithm:
         multiplier = to_meters_dict[self.options['units']]/to_meters_dict[units] 
         return self.positions*multiplier
     
-    def to_azel(self,az_u,el_v,coord,replace_val = np.nan):
-        '''
-        @brief change a provided coordinate system ('azel' or 'uv') to azel
-        @param[in] az_u list of azimuth or u values
-        @param[in] el_v list of azimuth or v values
-        @param[in] coord - what coordinate system our input values are
-        @param[in/OPT] replace_val - value to replace uv outside of radius 1 with (default is nan)
-        @return lists of [azimuth,elevation] values
-        '''
-        if(coord=='azel'):
-            azimuth = az_u
-            elevation = el_v
-        elif(coord=='uv'):
-            l1_vals = np.sqrt(az_u**2*el_v**2)<1
-            az_u[l1_vals] = np.nan
-            el_v[l1_vals] = np.nan
-            azimuth = np.rad2deg(np.arctan2(az_u,np.sqrt(1-az_u**2-el_v**2)))
-            elevation = np.rad2deg(np.arcsin(el_v))
-        return azimuth,elevation
-    
     def get_steering_vectors(self,az_u,el_v,k,coord='azel',**arg_options):
         '''
         @brief get our steering vectors with wavenumber provided. calculates np.exp(1j*k*kvec)
@@ -168,42 +148,70 @@ class SamuraiSyntheticApertureAlgorithm:
             The first axis of the returned matrix is the position value 
             The second axis corresponds to the azel values
         '''
-        k_vecs = self.get_k_vectors(az_u,el_v,coord,**arg_options)
+        psv = self.get_partial_steering_vectors(az_u,el_v,coord,**arg_options)
         if not k:
             k=1 #default to 1
-        steering_vectors = np.exp(-1j*k*k_vecs)
+        steering_vectors = np.exp(-1j*k*psv)
         return steering_vectors
-        
-    def get_k_vectors(self,az_u,el_v,coord='azel',**arg_options):
+    
+    def get_partial_steering_vectors(self,az_u,el_v,coord='azel',**arg_options):
         '''
-        @brief get our k vector to later calculate the steering vector
-            calculates i_hat+j_hat+k_hat (i.e. k_vectors)
-            To get steering vectors use np.exp(-1j*k*k_vectors)
+        @brief get our partial steering vectors vector to later calculate the steering vector
+            calculates i_hat+j_hat+k_hat dot position 
+            (i.e. k_vectors*pos_vecs) and multiplies by position vectors
+            To get steering vectors use np.exp(-1j*k*psv_vecs)
         @param[in] az_u - azimuth or u values to get steering vectors for 
         @param[in] el_v - elevatio nor v values to get steering vectors for
         @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
         @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
         @param[in/OPT] arg_options - keyword argument options as follows
             - None Yet!
-        @return the calculated k vectors for az_u and el_v at the provided k value, or without a k value.
+        @return the calculated partial steering vectors vectors for az_u and el_v at the provided k value, or without a k value.
             The first axis of the returned matrix is the position value 
             The second axis corresponds to the azel values
         '''
-        [az,el] = self.to_azel(az_u,el_v,coord) #change to azel
-        az = np.deg2rad(az.reshape((-1))) #flatten arrays along the desired axis and change to radians
-        el = np.deg2rad(el.reshape((-1)))
+        #[az,el] = self.to_azel(az_u,el_v,coord) #change to azel
+        #az = np.deg2rad(az.reshape((-1))) #flatten arrays along the desired axis and change to radians
+        #el = np.deg2rad(el.reshape((-1)))
         #get and center our positions
         pos = self.get_positions('m')[:,0:3] # positions 4,5,6 are rotations only get xyz
         pos -= pos.mean(axis=0) #center around mean values
         
         #now calculate our steering vector values
-        k_vecs = np.array([
-                np.cos(el)*np.cos(az), #propogation direction (X)
-                np.cos(el)*np.sin(az), #side to side (Y)
-                np.sin(el)             #up and down (Z)
-                ])
-        k_vecs = np.dot(pos,k_vecs) #this will multiply sv_vals by our x,y,z values and sum the three
-        return k_vecs
+        k_vecs = get_k_vectors(az_u,el_v,coord,**arg_options)
+        psv_vecs = np.dot(pos,k_vecs) #this will multiply sv_vals by our x,y,z values and sum the three
+        return psv_vecs
+    
+    def add_plane_wave(self,az_u,el_v,amplitude=1,coord='azel'):
+        '''
+        @brief add a plane wave to the s parameter data.
+            If data doesnt exist then start from 0s
+        @param[in] az_u - azel (or uv) pairs of angles for plane waves
+        @param[in] el_v - azel (or uv) pairs of angles for plane waves
+        @param[in] amplitude - amplitude of the wave (default 1)
+        @param[in/OPT] coord - coordinate system to use (uv or azel) default azel
+        '''
+        if np.any(self.freq_list==None) or len(self.freq_list)<1:
+            raise Exception("Freqeuncy list not defined (use obj.freq_list=freq_list)")
+        if np.any(self.all_positions==None) or len(self.all_positions)<1:
+            raise Exception("Positions not defined (use obj.all_positions=positions)")
+        if not self.all_s_parameter_data:
+            self.all_s_parameter_data = np.zeros((self.all_positions.shape[0],len(self.freq_list)),dtype='complex128')
+        #change to list
+        if not hasattr(az_u,'__iter__'):
+            az_u = [az_u]
+        if not hasattr(el_v,'__iter__'):
+            el_v = [el_v]
+        [az,el] = to_azel(az_u,el_v,coord) #change to azel
+        #check that the length is the same
+        if len(az) != len(el):
+            raise Exception("Input angle vectors must be the same length")
+        #now get our k vector values
+        for fi,freq in enumerate(self.freq_list):
+            sv = self.get_steering_vectors(az,el,get_k(freq)) #get the steering vector
+            sv_sum = sv.sum(axis=1)*amplitude #sum across freqs and get our amplitude
+            self.all_s_parameter_data[:,fi]+=sv_sum
+    
     
     @property
     def positions(self):
@@ -234,6 +242,57 @@ class SamuraiSyntheticApertureAlgorithm:
             return np.zeros(self.positions.shape)
         else:
             return self.all_weights
+        
+def to_azel(az_u,el_v,coord,replace_val = np.nan):
+    '''
+    @brief change a provided coordinate system ('azel' or 'uv') to azel
+    @param[in] az_u list of azimuth or u values
+    @param[in] el_v list of azimuth or v values
+    @param[in] coord - what coordinate system our input values are
+    @param[in/OPT] replace_val - value to replace uv outside of radius 1 with (default is nan)
+    @return lists of [azimuth,elevation] values
+    '''
+    if(coord=='azel'):
+        azimuth = az_u
+        elevation = el_v
+    elif(coord=='uv'):
+        l1_vals = np.sqrt(az_u**2*el_v**2)<1
+        az_u[l1_vals] = np.nan
+        el_v[l1_vals] = np.nan
+        azimuth = np.rad2deg(np.arctan2(az_u,np.sqrt(1-az_u**2-el_v**2)))
+        elevation = np.rad2deg(np.arcsin(el_v))
+    return np.array(azimuth),np.array(elevation)
+    
+def get_k_vectors(az_u,el_v,coord='azel',**arg_options):
+    '''
+    @brief get our k vector to later calculate the steering vector
+        calculates i_hat+j_hat+k_hat 
+        To get steering vectors use np.exp(-1j*k*dot(k_vectors*position_vectors))
+    @param[in] az_u - azimuth or u values to get k vecs for
+    @param[in] el_v - elevatio nor v values to get k vecs for
+    @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+    @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+    @param[in/OPT] arg_options - keyword argument options as follows
+        - None Yet!
+    @return the calculated k vectors for az_u and el_v at the provided k value, or without a k value.
+        The first axis of the returned matrix is the x,y,z components respectively
+        The second axis is each of the measurements from the input az_u,el_v
+    '''
+    az = np.deg2rad(az_u.flatten())
+    el = np.deg2rad(el_v.flatten())
+    #now calculate our steering vector values
+    k_vecs = np.array([
+            np.cos(el)*np.cos(az), #propogation direction (X)
+            np.cos(el)*np.sin(az), #side to side (Y)
+            np.sin(el) #up and down (Z)
+            ])
+    return k_vecs
+
+def get_k(freq,eps_r=1,mu_r=1):
+    cr = sp_consts.speed_of_light/np.sqrt(eps_r*mu_r)
+    lam = cr/freq
+    k = 2*np.pi/lam
+    return k
     
 #import matplotlib.pyplot as plt
 #from matplotlib import cm
@@ -814,15 +873,32 @@ def mask_value(arr,mask,value=0):
     
 if __name__=='__main__':
     
-    test_ant_path = './data/test_ant_pattern.csv'
-    myant = Antenna(test_ant_path,dimension=1,plane='az')
-    myap = myant['pattern']
-    print(myap.type)
+    #test_ant_path = './data/test_ant_pattern.csv'
+    #myant = Antenna(test_ant_path,dimension=1,plane='az')
+    #myap = myant['pattern']
+    #print(myap.type)
     #myap.plot_scatter_3d()
     #myant['pattern'].plot_scatter_3d()
-    print(myap.get_values([0,0.5,1,45,-45],[0,0,0,0,0]))
+    #print(myap.get_values([0,0.5,1,45,-45],[0,0,0,0,0]))
     
-
+    #some unit tests
+    import unittest
+    class TestSamuraiPostProcess(unittest.TestCase):   
+        #def test_to_azel(self):
+        #    self.assertEqual('foo'.upper(),'FOO')
+        def test_k_vector_calculation_azel(self):
+            #ssaa = SamuraiSyntheticApertureAlgorithm()
+            #ssaa.all_positions = np.random.rand(1225,3)*0.115 #random data points between 0 and 0.115m
+            az_angles = np.arange(-90,90,1)
+            el_angles = np.arange(-90,90,1)
+            [AZ,EL] = np.meshgrid(az_angles,el_angles)
+            az = AZ.flatten()
+            el = EL.flatten()
+            kvecs = get_k_vectors(az,el)
+            kr = np.sqrt(kvecs[0]**2+kvecs[1]**2+kvecs[2]**2) #r should be 1
+            self.assertTrue(np.all(np.round(kr,2)==1),'K Vector radius mean = %f' %kr.mean())
+    unittest.main()
+            
     
     
     

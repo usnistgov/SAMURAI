@@ -5,6 +5,7 @@ Created on Fri Mar 22 15:41:34 2019
 @author: ajw5
 """
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
+from samurai.analysis.support.SamuraiPostProcess import to_azel
 from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
 from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector
 from samurai.analysis.support.SamuraiPostProcess import Antenna
@@ -119,7 +120,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         freq_list = np.array(freq_list)
         
         #change our coordinates to azel
-        [azimuth,elevation] = self.to_azel(az_u,el_v,coord)
+        [azimuth,elevation] = to_azel(az_u,el_v,coord)
         
         #get our position data
         if verbose: print("Reading measurement positions")
@@ -129,8 +130,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         #now lets use this data to get our delta_r beamforming values
         #this delta_r will be a 2D array with the first dimension being for each position
         # the second dimeino will be each of the theta/phi pairs for the angles
-        if verbose: print("Finding K vectors")
-        k_vecs =  self.get_k_vectors(azimuth,elevation)
+        if verbose: print("Finding Partial Steering Vectors vectors")
+        psv_vecs =  self.get_partial_steering_vectors(azimuth,elevation) #k_vectors*position_vectors
         
         #set our antenna values
         az_adj = -1*az_angles[:,np.newaxis]+np.reshape(azimuth,(-1,))
@@ -138,7 +139,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         if(antenna_pattern is not None):
             antenna_values = antenna_pattern.get_values(az_adj,el_adj)
         else:
-            antenna_values = np.ones(k_vecs.shape)
+            antenna_values = np.ones(psv_vecs.shape)
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
@@ -159,7 +160,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             #here we add a
             lam = sp_consts.c/freq
             k = 2.*np.pi/lam
-            steering_vectors = np.exp(-1j*k*k_vecs)
+            steering_vectors = np.exp(-1j*k*psv_vecs)
 
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
@@ -174,6 +175,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
     
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
+    #test case for simple beamforming
+    '''
     test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
     #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
     mysp = SamuraiBeamform(test_path,verbose=True)
@@ -183,8 +186,24 @@ if __name__=='__main__':
     test_ant_path = './data/test_ant_pattern.csv'
     myant = Antenna(test_ant_path,dimension=1,plane='az')
     myap = myant['pattern']
-    mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
+    #mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
+    mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
     #UV beamform
     #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
     mycsa = mycsa_list[0]
     mycsa.plot_3d()
+    '''
+    #testing our synthetic data capabilities
+    mysp = SamuraiBeamform(verbose=True)
+    pos = np.zeros((1225,6))*0.115 #random data points between 0 and 0.115m
+    pos[:,0:3] = np.random.rand(1225,3)*0.115
+    mysp.all_positions = pos;
+    mysp.freq_list = [40e9]
+    mysp.add_plane_wave(0,0)
+    mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
+    mycsa = mycsa_list[0]
+    mycsa.plot_3d()
+    
+    
+    
+    
