@@ -287,7 +287,7 @@ class SamuraiSyntheticApertureAlgorithm:
         vals = np.divide(num, den, out=np.ones_like(num)*np.pi, where=den!=0)
         cf0 = coeffs[0]
         coeffs = coeffs[1:].reshape((1,1,-1))
-        vals = -1**(cm)*np.cos(vals)*coeffs #a1cos(2pn/N),a2cos(4pin/N)
+        vals = (-1)**(cm)*np.cos(vals)*coeffs #a1cos(2pn/N),a2cos(4pin/N)
         vals=vals.sum(axis=2)+cf0 #a0+a1cos(2pn/N)+a2cos(4pin/N)
         self.weights=vals.prod(axis=1)
         
@@ -396,7 +396,7 @@ class SamuraiSyntheticApertureAlgorithm:
         @todo implemment masking
         '''
         if np.any(self.all_weights==None) or len(self.all_weights)<1:
-            return np.zeros(self.positions.shape)
+            return np.ones(self.positions.shape[0])
         else:
             return self.all_weights
     @weights.setter
@@ -580,7 +580,7 @@ class CalculatedSyntheticAperture:
             title='UV Beamformed Plot',
             scene = dict(
                 xaxis = dict(
-                    title='U (Azimuth'),
+                    title='U (Azimuth)'),
                 yaxis = dict(
                     title='V (Elevation)'),
                 zaxis = dict(
