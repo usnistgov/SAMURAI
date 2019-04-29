@@ -213,16 +213,136 @@ class SamuraiSyntheticApertureAlgorithm:
             sv = self.get_steering_vectors(az,el,get_k(freq)) #get the steering vector
             sv_sum = sv.sum(axis=1)*amplitude #sum across freqs and get our amplitude
             self.all_s_parameter_data[:,fi]+=sv_sum
+    
+    
+    ### Here we definine some standard weighting window types ###
+    def get_max_positions(self):
+        '''
+        @brief return maximum x,y,z coordinate values unmasked positions
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].max(axis=0)
+    
+    def get_min_positions(self):
+        '''
+        @brief return minimum x,y,z coordinate values
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].min(axis=0)
+    
+    def get_rng_positions(self):
+        '''
+        @brief return range x,y,z coordinate values
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].ptp(axis=0)
+        
+    def set_sine_window(self):
+        '''
+        @brief set our weights to reflect a sine window
+        '''
+        mins = self.get_min_positions()
+        rng  = self.get_rng_positions()
+        #this follows the equation sin(pi*n/N)
+        #N is our range n is our position minus our min
+        N = rng
+        n = self.positions[:,:3]-mins
+        vals = np.divide(np.pi*n, N, out=np.ones_like(n)*np.pi/2, where=N!=0) #take care of where N=0 (planar arrays)
+        self.weights = np.sin(vals).prod(axis=1) #now take the sine
+    
+    def set_sine_power_window(self,power):
+        '''
+        @brief set our weights to reflect a sine power window
+            Hann window is power=2
+        @param[in] power - power to set the sine to (e.g. power=2 produces sin(pi*n/N)**2)
+        '''
+        mins = self.get_min_positions()
+        rng  = self.get_rng_positions()
+        #this follows the equation sin(pi*n/N)
+        #N is our range n is our position minus our min
+        N = rng
+        n = self.positions[:,:3]-mins
+        vals = np.divide(np.pi*n, N, out=np.ones_like(n)*np.pi/2, where=N!=0) #take care of where N=0 (planar arrays)
+        vals = np.sin(vals)**power #now take the sine
+        self.weights = vals.prod(axis=1)
+        
+    def set_cosine_sum_window(self,coeffs):
+        '''
+        @brief set our weights for a generalized cosine sum window
+        @param[in] coeffs - list of coefficients for a0,a1,a2,...,etc. can be any length
+        '''
+        mins = self.get_min_positions()
+        rng  = self.get_rng_positions()
+        coeffs=np.array(coeffs)
+        if np.round(coeffs.sum(),10) != 1:
+            raise Exception("Coefficients do not add to 1 (they add to %f)" %coeffs.sum())
+        #this follows the equation sin(pi*n/N)
+        #N is our range n is our position minus our min
+        N = rng
+        n = self.positions[:,:3]-mins
+        cos_mults = (np.arange(len(coeffs)-1)+1) #k=1,2,3,4,...,etc
+        cm = cos_mults.reshape((1,1,-1))
+        num = 2*np.pi*cm*n[:,:,np.newaxis]
+        den = N.reshape(1,-1,1)
+        vals = np.divide(num, den, out=np.ones_like(num)*np.pi, where=den!=0)
+        cf0 = coeffs[0]
+        coeffs = coeffs[1:].reshape((1,1,-1))
+        vals = -1**(cm)*np.cos(vals)*coeffs #a1cos(2pn/N),a2cos(4pin/N)
+        vals=vals.sum(axis=2)+cf0 #a0+a1cos(2pn/N)+a2cos(4pin/N)
+        self.weights=vals.prod(axis=1)
+        
+        
+    def set_cosine_sum_window_by_name(self,name):
+        '''
+        @brief set the cosine sum window by a name
+        @param[in] name - name of filter ('hann','hamming','blackman','nutall',
+                      'blackman-nutall','blackman-harris','flat-top')
+        @note these coefficient values are taken from wikipedia
+        '''
+        coeff_dict = {
+                'hann'            :[0.5,0.5],
+                'hamming'         :[25/46,1-(25/46)],
+                'blackman'        :[7938/18608,9240/18608,1430/18608],
+                'nutall'          :[0.355768,0.487396,0.144232,0.012604],
+                'blackman-nutall' :[0.3635819,0.4891775,0.1365995,0.0106411],
+                'blackman-harris' :[0.35875,0.48829,0.14128,0.01168],
+                'flat-top'        :[0.21557895,0.41663158,0.277263158,0.083578947,0.006947368],
+                }
+        coeffs = coeff_dict[name.lower()]  #get the coeffs
+        self.set_cosine_sum_window(coeffs) #set the values
+        
+        
+    def set_hamming_window(self):
+        pass
+    
             
-    def plot_positions(self,pos_units='m',out_name='positions_plot.html'):
+    def plot_positions(self,pos_units='m',plot_type='weights',**arg_options):
         '''
         @brief plot the positions of our aperture in 3D
-            points will be colored based on their phase
+            points will be colored based on the plot type
         @param[in/OPT] pos_units - units for position (m,mm,cm,in)
-        @param[in/OPT] out_name  - plot output name (for plotly)
+        @param[in/OPT] plot_type - whether to plot 'weights','mag','phase','phase_d','real','imag'
+        @param[in/OPT] **arg_options - keyword args as follows 
+                out_name - plot output name (for plotly)
+                freq_point - which s-parameter frequency point to plot (default 0)
         '''
-        #get our data
-        plot_data = np.angle(self.s_parameter_data[:,0])*180/np.pi #use phase at first frequency
+        options = {}
+        options['out_name'] = 'positions_plot.html'
+        options['freq_point'] = 0
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        fp = options['freq_point']
+        #get our data 
+        plot_data_dict = {
+            'weights':self.weights,
+            'mag_db':lambda: 20*np.log10(np.abs(self.s_parameter_data[:,fp])),
+            'mag':lambda: np.abs(self.s_parameter_data[:,fp]),
+            'phase':lambda: np.angle(self.s_parameter_data[:,fp]),
+            'phase_d':lambda: np.angle(self.s_parameter_data[:,fp])*180/np.pi,
+            'real':lambda: np.abs(self.s_parameter_data[:,fp]),
+            'imag':lambda: np.abs(self.s_parameter_data[:,fp])
+            }
+        plot_data =  plot_data_dict[plot_type]#use phase at first frequency
         pos = self.get_positions(pos_units)
         #now get our xyz values
         X = pos[:,0]
@@ -247,7 +367,7 @@ class SamuraiSyntheticApertureAlgorithm:
             margin=dict(l=65,r=50,b=65,t=90),
         )
         fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=out_name)
+        ploff.plot(fig,filename=options['out_name'])
     
     
     @property
@@ -275,10 +395,20 @@ class SamuraiSyntheticApertureAlgorithm:
         @return all weighting values for desired positions that are not masked out
         @todo implemment masking
         '''
-        if self.all_weights==None:
+        if np.any(self.all_weights==None) or len(self.all_weights)<1:
             return np.zeros(self.positions.shape)
         else:
             return self.all_weights
+    @weights.setter
+    def weights(self,weights):
+        '''
+        @brief setter for our antenna weights
+            for now these weights will be for just our values in use (masking doesnt effect)
+            This means weights will need to be recalculated when masking is done
+        @param[in] weights - weights to set
+        @todo implemment masking
+        '''
+        self.all_weights = weights
         
 def to_azel(az_u,el_v,coord,replace_val = np.nan):
     '''

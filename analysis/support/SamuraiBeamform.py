@@ -165,7 +165,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
-            beamformed_vals = np.dot(s21_current,steering_vectors/antenna_values)/len(s21_current)
+            beamformed_vals = np.dot(s21_current*self.weights,steering_vectors/antenna_values)/self.weights.sum()
             
             #now pack into our CSA (CaluclateSynbteticAperture)
             csa_list.append(CalculatedSyntheticAperture(azimuth,elevation,np.reshape(beamformed_vals,azimuth.shape)))
@@ -177,22 +177,21 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
     #test case for simple beamforming
-    '''
+    
     #measured data test
     test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
     #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
     mysp = SamuraiBeamform(test_path,verbose=True)
+    
     '''
-    
     #synthetic data test
-    
     #testing our synthetic data capabilities
     mysp = SamuraiBeamform(verbose=True,units='m')
     xlocs = 0
-    #ylocs = np.arange(0,0.103,0.003) #default positions in mm
-    #zlocs = np.arange(0,0.103,0.003)
-    ylocs = np.random.rand(35)*0.103 
-    zlocs = np.random.rand(35)*0.103 
+    ylocs = np.arange(0,0.103,0.003) #default positions in mm
+    zlocs = np.arange(0,0.103,0.003)
+    #ylocs = np.random.rand(35)*0.103 
+    #zlocs = np.random.rand(35)*0.103 
     [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
     pos = np.zeros((X.size,6))
     pos[:,0] = X.flatten()
@@ -201,8 +200,13 @@ if __name__=='__main__':
     mysp.all_positions = pos;
     mysp.freq_list = [40e9]
     mysp.add_plane_wave(0,0)
-    #mysp.add_plane_wave(45,0)
-    #mysp.add_plane_wave(0,45)
+    mysp.add_plane_wave(45,0)
+    mysp.add_plane_wave(0,45)
+    '''
+    
+    #windowing
+    #mysp.set_sine_window() #set a sine window weighting
+    mysp.set_cosine_sum_window_by_name('blackman-nutall')
     mysp.plot_positions()
     
     #azel without antenna
