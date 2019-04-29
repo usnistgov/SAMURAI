@@ -14,7 +14,7 @@ from numba import vectorize
 import six
 
 from samurai.analysis.support.metaFileController import MetaFileController 
-from samurai.analysis.support.generic import incomplete,deprecated
+from samurai.analysis.support.generic import incomplete,deprecated,verified
 
 @deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
@@ -182,20 +182,20 @@ class SamuraiSyntheticApertureAlgorithm:
         psv_vecs = np.dot(pos,k_vecs) #this will multiply sv_vals by our x,y,z values and sum the three
         return psv_vecs
     
-    def add_plane_wave(self,az_u,el_v,amplitude=1,coord='azel'):
+    def add_plane_wave(self,az_u,el_v,amplitude_db=-50,coord='azel'):
         '''
         @brief add a plane wave to the s parameter data.
             If data doesnt exist then start from 0s
         @param[in] az_u - azel (or uv) pairs of angles for plane waves
         @param[in] el_v - azel (or uv) pairs of angles for plane waves
-        @param[in] amplitude - amplitude of the wave (default 1)
+        @param[in] amplitude_db - amplitude of the wave in dB (default -50)
         @param[in/OPT] coord - coordinate system to use (uv or azel) default azel
         '''
         if np.any(self.freq_list==None) or len(self.freq_list)<1:
             raise Exception("Freqeuncy list not defined (use obj.freq_list=freq_list)")
         if np.any(self.all_positions==None) or len(self.all_positions)<1:
             raise Exception("Positions not defined (use obj.all_positions=positions)")
-        if not self.all_s_parameter_data:
+        if np.any(self.s_parameter_data==None) or len(self.s_parameter_data)<1:
             self.all_s_parameter_data = np.zeros((self.all_positions.shape[0],len(self.freq_list)),dtype='complex128')
         #change to list
         if not hasattr(az_u,'__iter__'):
@@ -206,11 +206,48 @@ class SamuraiSyntheticApertureAlgorithm:
         #check that the length is the same
         if len(az) != len(el):
             raise Exception("Input angle vectors must be the same length")
+        #get linear amplitude (assume 10^(db/20))
+        amplitude = 10**(amplitude_db/20)
         #now get our k vector values
         for fi,freq in enumerate(self.freq_list):
             sv = self.get_steering_vectors(az,el,get_k(freq)) #get the steering vector
             sv_sum = sv.sum(axis=1)*amplitude #sum across freqs and get our amplitude
             self.all_s_parameter_data[:,fi]+=sv_sum
+            
+    def plot_positions(self,pos_units='m',out_name='positions_plot.html'):
+        '''
+        @brief plot the positions of our aperture in 3D
+            points will be colored based on their phase
+        @param[in/OPT] pos_units - units for position (m,mm,cm,in)
+        @param[in/OPT] out_name  - plot output name (for plotly)
+        '''
+        #get our data
+        plot_data = np.angle(self.s_parameter_data[:,0])*180/np.pi #use phase at first frequency
+        pos = self.get_positions(pos_units)
+        #now get our xyz values
+        X = pos[:,0]
+        Y = pos[:,1]
+        Z = pos[:,2]
+        #and plot
+        plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
+                                    mode = 'markers',
+                                    marker = dict(
+                                            color=plot_data,
+                                            colorbar=dict(title='Phase (degrees)')
+                                            )
+                                    )]
+        layout = go.Layout(
+            title='Aperture Positions',
+            scene = dict(
+                xaxis = dict(title='X'),
+                yaxis = dict(title='Y'),
+                zaxis = dict(title='Z')
+            ),
+            autosize=True,
+            margin=dict(l=65,r=50,b=65,t=90),
+        )
+        fig = go.Figure(data=plotly_surf,layout=layout)
+        ploff.plot(fig,filename=out_name)
     
     
     @property
@@ -262,7 +299,7 @@ def to_azel(az_u,el_v,coord,replace_val = np.nan):
         azimuth = np.rad2deg(np.arctan2(az_u,np.sqrt(1-az_u**2-el_v**2)))
         elevation = np.rad2deg(np.arcsin(el_v))
     return np.array(azimuth),np.array(elevation)
-    
+ 
 def get_k_vectors(az_u,el_v,coord='azel',**arg_options):
     '''
     @brief get our k vector to later calculate the steering vector
@@ -430,7 +467,7 @@ class CalculatedSyntheticAperture:
         ploff.plot(fig,filename=out_name)
             
         
-    def plot_3d(self,plot_type='mag_db',out_name='test'):
+    def plot_3d(self,plot_type='mag_db',out_name='aperture_results_3d.html'):
         '''
         @brief plot calculated data in 3d space (radiation pattern)
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'

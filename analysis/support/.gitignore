@@ -2,3 +2,5 @@
 data/
 #test output files of all types
 test*
+#html plotly files
+*.html

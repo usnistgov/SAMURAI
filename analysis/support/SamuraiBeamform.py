@@ -5,7 +5,7 @@ Created on Fri Mar 22 15:41:34 2019
 @author: ajw5
 """
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
-from samurai.analysis.support.SamuraiPostProcess import to_azel
+from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k
 from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
 from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector
 from samurai.analysis.support.SamuraiPostProcess import Antenna
@@ -158,8 +158,9 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             s21_current = s21_vals[:,freq_idx]
             #now we can calculate the beam phases for each of the angles at each position
             #here we add a
-            lam = sp_consts.c/freq
-            k = 2.*np.pi/lam
+#            lam = sp_consts.c/freq
+#            k = 2.*np.pi/lam
+            k = get_k(freq)
             steering_vectors = np.exp(-1j*k*psv_vecs)
 
             # sum(value_at_position*steering_vector) for each angle
@@ -177,9 +178,33 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 if __name__=='__main__':
     #test case for simple beamforming
     '''
+    #measured data test
     test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
     #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
     mysp = SamuraiBeamform(test_path,verbose=True)
+    '''
+    
+    #synthetic data test
+    
+    #testing our synthetic data capabilities
+    mysp = SamuraiBeamform(verbose=True,units='m')
+    xlocs = 0
+    #ylocs = np.arange(0,0.103,0.003) #default positions in mm
+    #zlocs = np.arange(0,0.103,0.003)
+    ylocs = np.random.rand(35)*0.103 
+    zlocs = np.random.rand(35)*0.103 
+    [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+    pos = np.zeros((X.size,6))
+    pos[:,0] = X.flatten()
+    pos[:,1] = Y.flatten()
+    pos[:,2] = Z.flatten()
+    mysp.all_positions = pos;
+    mysp.freq_list = [40e9]
+    mysp.add_plane_wave(0,0)
+    #mysp.add_plane_wave(45,0)
+    #mysp.add_plane_wave(0,45)
+    mysp.plot_positions()
+    
     #azel without antenna
     #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
     #azel with antenna
@@ -192,18 +217,26 @@ if __name__=='__main__':
     #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
     mycsa = mycsa_list[0]
     mycsa.plot_3d()
+    #mycsa.plot_uv()
+    
     '''
     #testing our synthetic data capabilities
     mysp = SamuraiBeamform(verbose=True)
     pos = np.zeros((1225,6))*0.115 #random data points between 0 and 0.115m
-    pos[:,0:3] = np.random.rand(1225,3)*0.115
+    xlocs = np.arange(0,0.103,0.003)
+    ylocs = np.arange(0,0.103,0.003)
+    zlocs = 0
+    [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+    pos[:,0] = X.flatten()
+    pos[:,1] = Y.flatten()
+    pos[:,2] = Z.flatten()
     mysp.all_positions = pos;
     mysp.freq_list = [40e9]
     mysp.add_plane_wave(0,0)
     mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
     mycsa = mycsa_list[0]
     mycsa.plot_3d()
-    
+    '''
     
     
     

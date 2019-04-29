@@ -99,6 +99,18 @@ def incomplete(reason):
         return new_func1
     return decorator
 
+#decorator for verified functions. This should be set by a flag
+#DOES NOT WORK RIGHT NOW! (How Ironic)
+def verified(reason):
+    '''
+    @brief decorator for verified functions
+        for now is just a label. eventually this should throw a flag if a global flag is set
+    '''
+    def decorator(func1):
+        return func1 #dont do anything for now
+
+    return decorator
+
 
 
 
