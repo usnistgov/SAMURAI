@@ -6,7 +6,7 @@ Created on Fri Mar 22 15:41:34 2019
 """
 
 import numpy as np #import constants
-import math #for vectorize math functions
+#import math #for vectorize math functions
 import scipy.constants as sp_consts #import constants for speed of light
 import scipy.interpolate as interp
 import cmath #cmath for phase
@@ -474,20 +474,60 @@ class CalculatedSyntheticAperture:
         It also contains methods to nicely plot each of these values.
         This will be a single beamformed setup
     '''
-    def __init__(self,AZIMUTH,ELEVATION,complex_values,**arg_options):
+    def __init__(self,AZIMUTH,ELEVATION,complex_values=np.array([]),freqs=np.array([]),**arg_options):
         '''
-        @brief intializer for the class
-        @param[in] THETA - meshgrid output of THETA angles (elevation up from xy plane)
-        @param[in] PHI   - meshgrid output of PHI angles   (azimuth from x)
-        @param[in] complex_values - values corresponding to a direction [THETA[i,j],PHI[i,j]]
-        @param[in] arg_options - optional input keyword arguments as follows:
+        @brief intializer for the class. This can be initialized without any data and 
+                        just use the self.add_frequency_data() method
+        @param[in] AZIMUTH   - meshgrid output of AZIMUTH angles   (azimuth from x) (2D)
+        @param[in] ELEVATION - meshgrid output of ELEVATION angles (elevation up from xy plane) (2D)
+        @param[in/OPT] complex_values - values corresponding to a direction [THETA[i,j],PHI[i,j]]
+        @param[in/OPT] freqs - list of frequencies (if we are storing multiple)
+        @param[in/OPT] arg_options - optional input keyword arguments as follows:
                 -None yet
         @return CalculatedSyntheticAperture class
         '''
         self.options = {}
-        self.elevation = ELEVATION
-        self.azimuth   = AZIMUTH
-        self.complex_values  = complex_values
+        AZ = np.array(AZIMUTH)
+        EL = np.array(ELEVATION)
+        if(AZ.shape != EL.shape):
+            raise Exception("Azimuth and Elevation meshgrids must be the same size")
+        self.elevation = EL
+        self.azimuth   = AZ
+        self.complex_values = np.array([])
+        self.freq_list = np.array([])
+        if complex_values.size>0 and freqs.size>0: #populate data if provided
+            self.add_frequency_data(complex_values,freqs)
+        
+    def add_frequency_data(self,complex_values,freqs):
+        '''
+        @brief add data for a frequency or frequencies
+        @param[in] complex_values - array of complex values for each frequency (pointing angle dim 0 and 1, freq dim 2)
+                Dimension 0,1 of this array must match the length of the self.azimuth and self.elevation
+        @param[in] freqs - list of frequencies to append (1D array)
+        '''
+        if not hasattr(freqs,'__iter__'):
+            freqs = [freqs]
+        #append our data and frequencies
+        freqs = np.array(freqs)
+        cv = np.array(complex_values)
+        #now sort and add dimensions
+        if cv.ndim<3:
+            cv = cv[:,:,np.newaxis]
+        #sort the input
+        sort_ord = np.argsort(freqs)
+        freqs = freqs[sort_ord]
+        cv = cv[:,:,sort_ord]
+        #now insert in sorted order
+        in_ord = np.searchsorted(self.freq_list,freqs)
+        if cv.shape[:2] != self.elevation.shape: #ensure shaping is correct
+            raise Exception("Complex data must be the same shape as the input angles meshgrid")
+        if self.complex_values.size<1: #if its the first data, make it the right size
+            self.complex_values = cv
+        else: #else append
+            self.complex_values = np.insert(self.complex_values,in_ord,cv,axis=2)
+        self.freq_list = np.insert(self.freq_list,in_ord,freqs)
+        
+        
     
     def plot_azel(self,plot_type='mag_db',out_name='test'):
         '''
@@ -496,16 +536,7 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] out_name - name of output plot (plotly)
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
-        
-        plot_data = plot_data_dict[plot_type] #get the type of plot
+        plot_data = self.get_data(plot_type)
         
         
         #fig = plt.figure()
@@ -548,16 +579,7 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] out_name - name of output plot (plotly)
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
-        #get our data
-        plot_data = plot_data_dict[plot_type] #get the type of plot
+        plot_data = self.get_data(plot_type)
         U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
         V = np.sin(np.deg2rad(self.elevation))
         #[Un,Vn,Dn] = increase_meshing_3D(U,V,plot_data,4)
@@ -603,16 +625,7 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
-        #get our data
-        plot_data = plot_data_dict[plot_type] #get the type of plot
+        plot_data = self.get_data(plot_type)
         [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
@@ -652,16 +665,9 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
+        
         #get our data
-        plot_data = plot_data_dict[plot_type] #get the type of plot
+        plot_data = self.get_data(plot_type)
         [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
@@ -703,7 +709,51 @@ class CalculatedSyntheticAperture:
         #ax = fig.add_subplot(111, projection='3d')
         #ax.plot_surface(X,Y,Z,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
-     
+    
+    def get_data(self,data_str,freqs='all'):
+        '''
+        @brief get the desired data from a string (e.g. 'mag_db','phase_d','mag', etc.)
+            this can also be used to select which frequencies to average
+        @param[in] data_str - string of the data to get. can be 'mag','phase','phase_d','real','imag'
+        @param[in/OPT] freqs - which frequencies to average (default 'all'). if the freq doesnt exist, throw an exception
+        @return np array of shape self.azimuth (or elevation) with the mean s parameters from the provided frequencies
+        '''
+        data_dict = {
+            'mag_db':self.mag_db,
+            'mag':self.mag,
+            'phase':self.phase,
+            'phase_d':self.phase_d,
+            'real':self.real,
+            'imag':self.imag
+            }
+        freq_idx = self.get_freq_idx(freqs)
+        data = data_dict[data_str]
+        data = data[:,:,freq_idx]
+        return np.mean(data,axis=2)
+        
+    def get_freq_idx(self,freqs):
+        '''
+        @brief get the index of the frequeny provided
+            'all' will return all indexes
+        @param[in] freqs to get indices of ('all' returns all)
+        '''
+        if freqs=='all':
+            freqs = self.freq_list
+        if not hasattr(freqs,'__iter__'):
+            freqs = [freqs]
+        freqs = np.array(freqs)
+        idx = np.array([],dtype=np.int)
+        for f in freqs:
+            loc = np.where(self.freq_list==f)
+            if len(loc)!=1:
+                raise Exception("Frequency %f is not in the list or is repeated in the list" %(f))
+            idx = np.append(idx,loc[0][0])
+        return idx
+            
+        
+        
+        
+    
     def adjust_caxis(self,plot_data,plot_type,db_range=60,**arg_options):
         '''
         @brief adjust our plotting values for a colorbar axis.
@@ -730,6 +780,16 @@ class CalculatedSyntheticAperture:
             caxis_max = np.nanmax(plot_data)
             new_plot_data = plot_data-np.nanmin(plot_data)
         return new_plot_data,caxis_min,caxis_max,db_range
+    
+    def write_snp_data(self,out_dir,**arg_options):
+        '''
+        @brief write out our frequencies over our angles into s2p files 
+            s21,s12 will be our complex values, s11,s22 will be 0.
+            Files will be written out as 'beamformed_az<angle>_el<angle>.snp'
+        @param[in] out_dir - output directory to save the files
+        @param[in/OPT] arg_options - keyword args as follows:
+                -None Yet!
+        '''
         
     @property
     def mag_db(self):
@@ -741,7 +801,7 @@ class CalculatedSyntheticAperture:
     @property
     def mag(self):
         '''
-        @brief get our data values magnitude
+        @brief get our data values magnitude (average across freqs)
         '''
         return np.abs(self.complex_values)
         
@@ -1015,7 +1075,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
     
 @vectorize(['complex128(float64,float64)'],target='cpu')
 def calculate_steering_vector(k_vector,k):
-    return math.exp(-1j*k*k_vector)
+    return cmath.exp(-1j*k*k_vector)
 
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection='3d')

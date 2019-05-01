@@ -143,6 +143,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
+        mycsa = CalculatedSyntheticAperture(azimuth,elevation)
         for freq in freq_list:
             if verbose: print("    Calculating for %f Hz" %(freq))
             freq_idx = np.where(s_freq_list==freq)[0]
@@ -168,9 +169,11 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             beamformed_vals = np.dot(s21_current*self.weights,steering_vectors/antenna_values)/self.weights.sum()
             
             #now pack into our CSA (CaluclateSynbteticAperture)
-            csa_list.append(CalculatedSyntheticAperture(azimuth,elevation,np.reshape(beamformed_vals,azimuth.shape)))
+            mycsa.add_frequency_data(np.reshape(beamformed_vals,azimuth.shape),freq)
+            #csa_list.append(CalculatedSyntheticAperture(azimuth,elevation,np.reshape(beamformed_vals,azimuth.shape)))
         
         ant_vals = CalculatedSyntheticAperture(azimuth,elevation,np.reshape(antenna_values[1,:],azimuth.shape))
+        csa_list = [mycsa]
         return csa_list,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
     
