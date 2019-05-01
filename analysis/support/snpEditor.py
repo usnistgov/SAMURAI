@@ -283,6 +283,8 @@ class SnpEditor:
                     measurement with n ports and frequencies [f1,f2,...] 
         @param[in/OPT] arg_options - keyword argument options. options are as follows:
                         'read_header' - whether or not to read the header. defaults to true, false may be faster on text files
+                        'header' - header to write out
+                        'comments' - comments to write to file
         '''
         #default options
         self.options = {}

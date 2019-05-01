@@ -214,10 +214,11 @@ if __name__=='__main__':
     pos[:,1] = Y.flatten()
     pos[:,2] = Z.flatten()
     mysp.all_positions = pos;
-    mysp.freq_list = [40e9]
+    #mysp.freq_list = [26.5e9,30e9,40e9]
+    mysp.freq_list= np.arange(27,41)*1e9
     mysp.add_plane_wave(0,0,-90)
     mysp.add_plane_wave(45,0,-90)
-    mysp.add_plane_wave(0,45,-90)
+    #mysp.add_plane_wave(0,45,-90)
     
     '''
     #synthetic 1 beam lines test
@@ -249,13 +250,19 @@ if __name__=='__main__':
     myant = Antenna(test_ant_path,dimension=1,plane='az')
     myap = myant['pattern']
     #mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
-    mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
+    #mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,30e9,40e9],verbose=True)
+    #mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
+    mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
     #UV beamform
     #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
     mycsa = mycsa_list[0]
     #mycsa.plot_3d()
-    mycsa.plot_uv()
+    #mycsa.plot_uv()
+    #mycsa.plot_scatter_3d()
     print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
+    
+    #import os
+    #os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-24-2018\meas\processed\samurai_scan\test')
     
     '''
     #testing our synthetic data capabilities

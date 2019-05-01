@@ -12,9 +12,11 @@ import scipy.interpolate as interp
 import cmath #cmath for phase
 from numba import vectorize
 import six
+import json
 
 from samurai.analysis.support.metaFileController import MetaFileController 
 from samurai.analysis.support.generic import incomplete,deprecated,verified
+from samurai.analysis.support.snpEditor import SnpEditor
 
 @deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
@@ -749,10 +751,6 @@ class CalculatedSyntheticAperture:
                 raise Exception("Frequency %f is not in the list or is repeated in the list" %(f))
             idx = np.append(idx,loc[0][0])
         return idx
-            
-        
-        
-        
     
     def adjust_caxis(self,plot_data,plot_type,db_range=60,**arg_options):
         '''
@@ -784,12 +782,31 @@ class CalculatedSyntheticAperture:
     def write_snp_data(self,out_dir,**arg_options):
         '''
         @brief write out our frequencies over our angles into s2p files 
-            s21,s12 will be our complex values, s11,s22 will be 0.
-            Files will be written out as 'beamformed_az<angle>_el<angle>.snp'
+            s21 will be our complex values, s11,s12,s22 will be 0.
+            Files will be written out as 'beamformed_<number>.snp'.
+            A json file (beamformed.json) will also be written out
+            giving the azimuth elevation values.
         @param[in] out_dir - output directory to save the files
         @param[in/OPT] arg_options - keyword args as follows:
                 -None Yet!
         '''
+        #loop through all of our positions
+        meas_info = []
+        for i in range(self.num_positions):
+            cur_idx = np.unravel_index(i,self.azimuth.shape)
+            az = self.azimuth[cur_idx]
+            el = self.elevation[cur_idx]
+            mys = SnpEditor([2,self.freq_list],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees']) #create a s2p file
+            #populate the s21,values
+            mys.S[21].update(self.freq_list,self.complex_values[cur_idx])
+            #now save out
+            out_name = 'beamformed_'+str(i)+'.s2p'
+            out_path = os.path.join(out_dir,out_name)
+            mys.write(out_path)
+            meas_info.append({'filepath':out_path,'azimuth':az,'elevation':el})
+        with open(os.path.join(out_dir,'beamformed.json')) as fp:
+            json.dump(meas_info,fp)
+        #return meas_info
         
     @property
     def mag_db(self):
@@ -874,6 +891,13 @@ class CalculatedSyntheticAperture:
         @brief get our V grid values from our angles
         '''
         return np.sin(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+    
+    @property
+    def num_positions(self):
+        '''
+        @brief get our number of positions (from azimuth values)
+        '''
+        return self.azimuth.size
 
 
 from collections import OrderedDict
