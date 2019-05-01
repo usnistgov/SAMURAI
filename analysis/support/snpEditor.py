@@ -324,7 +324,7 @@ class SnpEditor:
         file_ext = os.path.splitext(input_file)[-1]
         self.options['num_ports'] = int(''.join(re.findall(r'\d',file_ext)))
         #now set our keys
-        self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
+        self.dict_keys = [j*10+i for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
         
         #if we have a binary file (e.g. *.s2p_binary)
         if(ftype=='binary'):
