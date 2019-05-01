@@ -379,7 +379,19 @@ class SamuraiSyntheticApertureAlgorithm:
         @return all desired positions that are not masked out
         @todo implemment masking
         '''
-        return self.all_positions
+        if self.metafile["positioner"]=='maturo':
+            #then finangle the positions to match the meca
+            z = self.all_positions[:,0]
+            y = self.all_positions[:,3]
+            x = np.zeros_like(z)
+            alph = np.zeros_like(z)
+            beta = np.zeros_like(z)
+            gamm = np.zeros_like(z)
+            pos = np.stack([x,y,z,alph,beta,gamm],axis=1)
+        else:
+            #otherwise we are using the meca
+            pos = self.all_positions
+        return pos
     
     @property
     def s_parameter_data(self):
