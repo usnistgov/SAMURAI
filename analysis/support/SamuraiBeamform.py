@@ -173,114 +173,126 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             #csa_list.append(CalculatedSyntheticAperture(azimuth,elevation,np.reshape(beamformed_vals,azimuth.shape)))
         
         ant_vals = CalculatedSyntheticAperture(azimuth,elevation,np.reshape(antenna_values[1,:],azimuth.shape))
-        csa_list = [mycsa]
-        return csa_list,ant_vals
+
+        return mycsa,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
     
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
+    testa = False
+    testb = True
     #test case for simple beamforming
-    '''
-    #measured data test
-    test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
-    #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
-    mysp = SamuraiBeamform(test_path,verbose=True)
-    '''
+    if(testa):
+        '''
+        #measured data test
+        test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
+        #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
+        mysp = SamuraiBeamform(test_path,verbose=True)
+        '''
+        
+        #synthetic data test
+        #testing our synthetic data capabilities
+        mysp = SamuraiBeamform(verbose=True,units='m')
+        xlocs = 0
+        #ylocs = np.arange(0,0.103,0.003) #default positions in m
+        #zlocs = np.arange(0,0.103,0.003)
+        pos_step = 0.003
+        #num_offsets = 7
+        #hex_grid_offset = np.linspace(0,pos_step,35)
+        hex_grid_offset = np.random.rand(35)*0.103
+        hex_grid_offsetz = np.random.rand(35)*0.103
+        #hgo = 0
+        #hex_grid_offset = np.append(hgo,np.array([0,hgo]*17)) #(offset every other row)
+        #now reshape for adding
+        #hex_grid_offset = hex_grid_offset.reshape((1,1,-1)) #for y values
+        #[X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+        npts = 500
+        X = np.zeros(npts)
+        Y = np.random.rand(npts)*0.103
+        Z = np.random.rand(npts)*0.103
+        pos = np.zeros((X.size,6))
+        #Y = Y+hex_grid_offset
+        #Z = Z+hex_grid_offsetz.reshape((-1,1,1))
+        pos[:,0] = X.flatten()
+        pos[:,1] = Y.flatten()
+        pos[:,2] = Z.flatten()
+        mysp.all_positions = pos;
+        #mysp.freq_list = [26.5e9,30e9,40e9]
+        mysp.freq_list= np.arange(27,41)*1e9
+        mysp.add_plane_wave(0,0,-90)
+        mysp.add_plane_wave(45,0,-90)
+        #mysp.add_plane_wave(0,45,-90)
+        
+        '''
+        #synthetic 1 beam lines test
+        mysp = SamuraiBeamform(verbose=True,units='m')
+        xlocs = 0
+        ylocs = np.arange(0,0.103,0.003); yl_zpos = 0.0530
+        zlocs = np.arange(0,0.103,0.003); zl_ypos = 0.0515
+        #now just make single line
+        yl = np.stack([np.zeros_like(ylocs),ylocs,np.ones_like(ylocs)*yl_zpos,np.zeros_like(ylocs),np.zeros_like(ylocs),np.zeros_like(ylocs)],axis=1)
+        zl = np.stack([np.zeros_like(zlocs),np.ones_like(zlocs)*zl_ypos,zlocs,np.zeros_like(zlocs),np.zeros_like(zlocs),np.zeros_like(zlocs)],axis=1)
+        pos = np.append(yl,zl,axis=0)
+        mysp.all_positions = pos;
+        mysp.freq_list = [40e9]
+        mysp.add_plane_wave(0,0)
+        mysp.add_plane_wave(45,0)
+        mysp.add_plane_wave(0,45)
+        '''
+        
+        #windowing
+        #mysp.set_sine_window() #set a sine window weighting
+        #mysp.set_cosine_sum_window_by_name('blackman-nutall')
+        #mysp.set_sine_window()
+        #mysp.plot_positions()
+        
+        #azel without antenna
+        #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
+        #azel with antenna
+        test_ant_path = './data/test_ant_pattern.csv'
+        myant = Antenna(test_ant_path,dimension=1,plane='az')
+        myap = myant['pattern']
+        #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
+        #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,30e9,40e9],verbose=True)
+        #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
+        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
+        #UV beamform
+        #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
+        #mycsa.plot_3d()
+        #mycsa.plot_uv()
+        #mycsa.plot_scatter_3d()
+        print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
+        
+        #import os
+        #os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-24-2018\meas\processed\samurai_scan\test')
+        
+        
+        #testing our synthetic data capabilities
+        mysp = SamuraiBeamform(verbose=True)
+        pos = np.zeros((1225,6))*0.115 #random data points between 0 and 0.115m
+        xlocs = np.arange(0,0.103,0.003)
+        ylocs = np.arange(0,0.103,0.003)
+        zlocs = 0
+        [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+        pos[:,0] = X.flatten()
+        pos[:,1] = Y.flatten()
+        pos[:,2] = Z.flatten()
+        mysp.all_positions = pos;
+        mysp.freq_list = [40e9]
+        mysp.add_plane_wave(0,0)
+        mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
+        mycsa = mycsa_list[0]
+        mycsa.plot_3d()
     
-    #synthetic data test
-    #testing our synthetic data capabilities
-    mysp = SamuraiBeamform(verbose=True,units='m')
-    xlocs = 0
-    #ylocs = np.arange(0,0.103,0.003) #default positions in m
-    #zlocs = np.arange(0,0.103,0.003)
-    pos_step = 0.003
-    #num_offsets = 7
-    #hex_grid_offset = np.linspace(0,pos_step,35)
-    hex_grid_offset = np.random.rand(35)*0.103
-    hex_grid_offsetz = np.random.rand(35)*0.103
-    #hgo = 0
-    #hex_grid_offset = np.append(hgo,np.array([0,hgo]*17)) #(offset every other row)
-    #now reshape for adding
-    #hex_grid_offset = hex_grid_offset.reshape((1,1,-1)) #for y values
-    #[X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
-    npts = 500
-    X = np.zeros(npts)
-    Y = np.random.rand(npts)*0.103
-    Z = np.random.rand(npts)*0.103
-    pos = np.zeros((X.size,6))
-    #Y = Y+hex_grid_offset
-    #Z = Z+hex_grid_offsetz.reshape((-1,1,1))
-    pos[:,0] = X.flatten()
-    pos[:,1] = Y.flatten()
-    pos[:,2] = Z.flatten()
-    mysp.all_positions = pos;
-    #mysp.freq_list = [26.5e9,30e9,40e9]
-    mysp.freq_list= np.arange(27,41)*1e9
-    mysp.add_plane_wave(0,0,-90)
-    mysp.add_plane_wave(45,0,-90)
-    #mysp.add_plane_wave(0,45,-90)
+    if(testb):
+        #write out a horizontal sweep to s parameter files
+        import os
+        bf = SamuraiBeamform(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\calibrated\metaFile.json',verbose=True)
+        bf.set_cosine_sum_window_by_name('hamming')
+        [csa,_] = bf.beamforming_farfield_azel(np.arange(-45,46,1),[0],'all',verbose=True)
+        os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\calibrated')
+        csa.write_snp_data('az_sweep_vals/')
     
-    '''
-    #synthetic 1 beam lines test
-    mysp = SamuraiBeamform(verbose=True,units='m')
-    xlocs = 0
-    ylocs = np.arange(0,0.103,0.003); yl_zpos = 0.0530
-    zlocs = np.arange(0,0.103,0.003); zl_ypos = 0.0515
-    #now just make single line
-    yl = np.stack([np.zeros_like(ylocs),ylocs,np.ones_like(ylocs)*yl_zpos,np.zeros_like(ylocs),np.zeros_like(ylocs),np.zeros_like(ylocs)],axis=1)
-    zl = np.stack([np.zeros_like(zlocs),np.ones_like(zlocs)*zl_ypos,zlocs,np.zeros_like(zlocs),np.zeros_like(zlocs),np.zeros_like(zlocs)],axis=1)
-    pos = np.append(yl,zl,axis=0)
-    mysp.all_positions = pos;
-    mysp.freq_list = [40e9]
-    mysp.add_plane_wave(0,0)
-    mysp.add_plane_wave(45,0)
-    mysp.add_plane_wave(0,45)
-    '''
-    
-    #windowing
-    #mysp.set_sine_window() #set a sine window weighting
-    #mysp.set_cosine_sum_window_by_name('blackman-nutall')
-    #mysp.set_sine_window()
-    #mysp.plot_positions()
-    
-    #azel without antenna
-    #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
-    #azel with antenna
-    test_ant_path = './data/test_ant_pattern.csv'
-    myant = Antenna(test_ant_path,dimension=1,plane='az')
-    myap = myant['pattern']
-    #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
-    #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,30e9,40e9],verbose=True)
-    #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
-    mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
-    #UV beamform
-    #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
-    #mycsa.plot_3d()
-    #mycsa.plot_uv()
-    #mycsa.plot_scatter_3d()
-    print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
-    
-    #import os
-    #os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-24-2018\meas\processed\samurai_scan\test')
-    
-    '''
-    #testing our synthetic data capabilities
-    mysp = SamuraiBeamform(verbose=True)
-    pos = np.zeros((1225,6))*0.115 #random data points between 0 and 0.115m
-    xlocs = np.arange(0,0.103,0.003)
-    ylocs = np.arange(0,0.103,0.003)
-    zlocs = 0
-    [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
-    pos[:,0] = X.flatten()
-    pos[:,1] = Y.flatten()
-    pos[:,2] = Z.flatten()
-    mysp.all_positions = pos;
-    mysp.freq_list = [40e9]
-    mysp.add_plane_wave(0,0)
-    mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
-    mycsa = mycsa_list[0]
-    mycsa.plot_3d()
-    '''
     
     
     
