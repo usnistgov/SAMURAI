@@ -177,9 +177,13 @@ class WnpEditor:
         elif(ftype=='text'):
             with open(out_file,'w+') as fp:
                 #write our comments
+                if(type(self.options['comments']!=list)): #assume if its not a list ts a string
+                    self.options['comments'] = [self.options['comments']]
                 for i in range(len(self.options['comments'])):
                     fp.write('!%s\n' %(self.options['comments'][i]))
                 #write our header
+                if(type(self.options['header']!=list)): #assume if its not a list ts a string
+                    self.options['header'] = [self.options['header']]
                 for i in range(len(self.options['header'])):
                     fp.write('#%s\n' %(self.options['header'][i]))
                 #now write data
@@ -429,9 +433,13 @@ class SnpEditor:
         elif(ftype=='text'):
             with open(out_file,'w+') as fp:
                 #write our comments
+                if(type(self.options['comments']!=list)): #assume if its not a list ts a string
+                    self.options['comments'] = [self.options['comments']]
                 for i in range(len(self.options['comments'])):
                     fp.write('!%s\n' %(self.options['comments'][i]))
                 #write our header
+                if(type(self.options['header']!=list)): #assume if its not a list ts a string
+                    self.options['header'] = [self.options['header']]
                 for i in range(len(self.options['header'])):
                     fp.write('#%s\n' %(self.options['header'][i]))
                 #now write data
