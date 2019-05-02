@@ -320,6 +320,12 @@ class SamuraiSyntheticApertureAlgorithm:
         @todo implement this...
         '''
         pass
+    
+    def reset_window(self):
+        '''
+        @brief reset our window to all equal weighting (i.e. no windowing)
+        '''
+        self.weights = np.ones(self.positions.shape[0])
             
     def plot_positions(self,pos_units='m',plot_type='weights',**arg_options):
         '''
@@ -805,26 +811,30 @@ class CalculatedSyntheticAperture:
         @param[in] out_dir - output directory to save the files
         @param[in/OPT] arg_options - keyword args as follows:
                 -None Yet!
+        @return list of SnpEditor classes with the data written out
         '''
         #loop through all of our positions
         meas_info = []
+        meas_data = [] #values for returning
+        freqs = self.freq_list/1e9 #freqs in ghz
         for i in range(self.num_positions):
             cur_idx = np.unravel_index(i,self.azimuth.shape)
             az = self.azimuth[cur_idx]
             el = self.elevation[cur_idx]
             #assume our freq_list is in hz then write out in GHz
-            mys = SnpEditor([2,self.freq_list/1e9],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees'],header='GHz S RI 50') #create a s2p file
+            mys = SnpEditor([2,freqs],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees'],header='GHz S RI 50') #create a s2p file
             #populate the s21,values
-            mys.S[21].update(self.freq_list,self.complex_values[cur_idx])
-            mys.S[12].update(self.freq_list,self.complex_values[cur_idx])
+            mys.S[21].update(freqs,self.complex_values[cur_idx])
+            mys.S[12].update(freqs,self.complex_values[cur_idx])
             #now save out
             out_name = 'beamformed_'+str(i)+'.s2p'
             out_path = os.path.join(out_dir,out_name)
             mys.write(out_path)
+            meas_data.append(mys)
             meas_info.append({'filepath':out_path,'azimuth':float(az),'elevation':float(el)})
         with open(os.path.join(out_dir,'beamformed.json'),'w+') as fp:
             json.dump(meas_info,fp)
-        #return meas_info
+        return meas_data
         
     @property
     def mag_db(self):

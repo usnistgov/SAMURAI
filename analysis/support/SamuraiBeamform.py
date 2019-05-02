@@ -291,7 +291,7 @@ if __name__=='__main__':
         bf.set_cosine_sum_window_by_name('hamming')
         [csa,_] = bf.beamforming_farfield_azel(np.arange(-45,46,1),[0],'all',verbose=True)
         os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\calibrated')
-        csa.write_snp_data('az_sweep_vals/')
+        mys = csa.write_snp_data('az_sweep_vals/')
     
     
     
