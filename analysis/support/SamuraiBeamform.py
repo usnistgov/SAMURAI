@@ -7,13 +7,8 @@ Created on Fri Mar 22 15:41:34 2019
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
 from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k
 from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
-from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector
 from samurai.analysis.support.SamuraiPostProcess import Antenna
 import numpy as np #import constants
-import math #for vectorize math functions
-import scipy.constants as sp_consts #import constants for speed of light
-import cmath #cmath for phase
-from numba import vectorize
 
 import six #backward compatability
 
