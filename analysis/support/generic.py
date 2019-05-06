@@ -111,6 +111,24 @@ def verified(reason):
 
     return decorator
 
+import math
+def round_arb(value,multiple):
+    '''
+    @brief round a number to a multiple of another arbitrary number
+    @example >round_arb(5.2,2) = 6
+    @param[in] value - value to round
+    @param[in] multiple - multiple to round to 
+    @return rounded value
+    '''
+    return multiple*round(value/multiple)
 
+def floor_arb(value,multiple):
+    '''
+    @brief floor a number to an arbitray multiple
+    @param[in] value - value to round
+    @param[in] multiple - multiple to floor to 
+    @return floored value
+    '''
+    return multiple*math.floor(value/multiple)
 
 
