@@ -871,7 +871,7 @@ class CalculatedSyntheticAperture:
         '''
         @brief get the angle of the maximum beam
         @param[in/OPT] freqs - list of frequencies to calculate for
-        @return 2D array with first dimension as [az,el] second dimension is frequency
+        @return 2D array with azel [[az,el],[az,el],[az,el],etc...]
         '''
         idx_vals = self.get_max_beam_idx(freqs)
         az_vals = self.azimuth[idx_vals]
@@ -890,7 +890,7 @@ class CalculatedSyntheticAperture:
         '''
         @brief get the beamwidth of a beam with peak at index location (x,y)
             this is the same index provided by get_max_beam_idx
-        @param[in] peak_idx - index of the peak location (given by get_max_beam_idx)
+        @param[in] peak_angles - angles of peak location (in [az,el] format)
         @param[in] freqs - list of frequencies the peaks are at. (can be all)
         @param[in/OPT] power_level_db - power level for the beamwidth (default -3dB=HPBW)
         @return beamwidths in list of tuples (az_bw,el_bw) for each frequency
@@ -901,11 +901,13 @@ class CalculatedSyntheticAperture:
         for i,f in enumerate(freqs): #go through each frequency
             fidx=self.get_freq_idx(f)
             pidx = peak_idx[i] #peak idx value
-            peak_val   = self.mag_db[pidx][fidx]
-            [az_vals,mymags_az] = self.get_azimuth_cut(pidx[1])
-            [el_vals,mymags_el] = self.get_elevation_cut(pidx[0])
-            mmaz_adj   = mymags_az-peak_val #adjust for peak
-            mmel_adj   = mymags_el-peak_val
+            peak_val   = self.mag_db[pidx][fidx][0]
+            peak_az = self.azimuth[pidx]
+            peak_el = self.elevation[pidx]
+            [az_vals,mymags_az] = self.get_azimuth_cut(peak_el,f)
+            [el_vals,mymags_el] = self.get_elevation_cut(peak_az,f)
+            mmaz_adj   = (mymags_az-peak_val).mean(axis=1) #adjust for peak
+            mmel_adj   = (mymags_el-peak_val).mean(axis=1) #mean combines multiple freqs if we have them
             #this uses a level crossing test. Interpolation would be more accurate
             az_cross_idx = np.where(np.diff(mmaz_adj<power_level_db))[0] #find the crossing of the power level
             if(len(az_cross_idx)!=2):
@@ -919,33 +921,65 @@ class CalculatedSyntheticAperture:
             bw_out.append((az_bw,el_bw))
         return bw_out
     
-    def get_elevation_cut(self,idx,freqs='all',**arg_options):
+    def get_elevation_cut(self,az_angle,freqs='all',**arg_options):
         '''
         @brief get an elevation cut from our data at azimuth
-        @param[in] idx - index in azimuth dimension to make cut
+        @param[in] az_angle - azimuth angle to make cut in degrees 
         @param[in/OPT] freqs - frequencies to get output values for
         @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
                     None Yet!
         @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
         '''
-        #first get the elevation values
+        flat_idx = np.argmin(np.abs(self.azimuth-az_angle))
+        idx = np.unravel_index(flat_idx,self.azimuth.shape)[1]
         el_vals = self.elevation[:,idx]
         vals = self.get_data('mag_db',freqs,**arg_options)[:,idx]
         return el_vals,vals
         
-    def get_azimuth_cut(self,idx,freqs='all',**arg_options):
+    def get_azimuth_cut(self,el_angle,freqs='all',**arg_options):
         '''
         @brief get an azimuth cut from our data at elevation index
-        @param[in] idx - index in elevation dimension to make cut
+        @param[in] el_angle - elevation angle to make cut in degrees 
         @param[in/OPT] freqs - frequencies to get output values for
         @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
                     None Yet!
         @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
         '''
-        #first get the elevation values
+        flat_idx = np.argmin(np.abs(self.elevation-el_angle))
+        idx = np.unravel_index(flat_idx,self.elevation.shape)[0]
         az_vals = self.azimuth[idx,:]
         vals = self.get_data('mag_db',freqs,**arg_options)[idx,:]
         return az_vals,vals
+    
+    def get_data_from_azel(az,el,data_type='mag_db'):
+        '''
+        @brief get a value (e.g. mag_db) from a given azimuth elevation angle
+        @param[in] az - value or list of azimuth values
+        @param[in] el - value or list of corresponding elevation values
+        @param[in/OPT] data_type - type of data to get (e.g mag_db)
+        @todo unifinished!
+        @return list of data from each of the azel pairs
+        '''
+        pass
+    
+    def azel_to_idx(az,el):
+        '''
+        @brief change azel values to a tuple pair for indices
+        @param[in] az - value or list of azimuth values
+        @param[in] el - value or list of corresponding elevation values
+        @todo unifinished!
+        @return tuple of tuples for the 2D indexes
+        '''
+        if not hasattr(az,'__iter__'):
+            az = [az]
+        if not hasattr(el,'__iter__'):
+            el = [el]
+        az = np.array(az)
+        el = np.array(el)
+        out_vals = []
+        for i in range(len(az)):
+            pass
+        return tuple(out_vals)
         
     @property
     def mag_db(self):
