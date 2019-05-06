@@ -388,16 +388,20 @@ class SamuraiSyntheticApertureAlgorithm:
         @return all desired positions that are not masked out
         @todo implemment masking
         '''
-        if self.metafile["positioner"]=='maturo':
-            #then finangle the positions to match the meca
-            z = self.all_positions[:,0]
-            y = self.all_positions[:,3]
-            x = np.zeros_like(z)
-            alph = np.zeros_like(z)
-            beta = np.zeros_like(z)
-            gamm = np.zeros_like(z)
-            self.options['units']='cm'
-            pos = np.stack([x,y,z,alph,beta,gamm],axis=1)
+        if self.metafile:
+            if self.metafile["positioner"]=='maturo':
+                #then finangle the positions to match the meca
+                z = self.all_positions[:,0]
+                y = self.all_positions[:,3]
+                x = np.zeros_like(z)
+                alph = np.zeros_like(z)
+                beta = np.zeros_like(z)
+                gamm = np.zeros_like(z)
+                self.options['units']='cm'
+                pos = np.stack([x,y,z,alph,beta,gamm],axis=1)
+            else:
+                #otherwise we are using the meca
+                pos = self.all_positions
         else:
             #otherwise we are using the meca
             pos = self.all_positions
@@ -560,7 +564,7 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] out_name - name of output plot (plotly)
         @return a handle for the figure
         '''
-        plot_data = self.get_data(plot_type)
+        plot_data = self.get_data(plot_type,mean_flg=True)
         
         
         #fig = plt.figure()
@@ -603,7 +607,7 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] out_name - name of output plot (plotly)
         @return a handle for the figure
         '''
-        plot_data = self.get_data(plot_type)
+        plot_data = self.get_data(plot_type,mean_flg=True)
         U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
         V = np.sin(np.deg2rad(self.elevation))
         #[Un,Vn,Dn] = increase_meshing_3D(U,V,plot_data,4)
@@ -649,7 +653,7 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @return a handle for the figure
         '''
-        plot_data = self.get_data(plot_type)
+        plot_data = self.get_data(plot_type,mean_flg=True)
         [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
@@ -691,7 +695,7 @@ class CalculatedSyntheticAperture:
         '''
         
         #get our data
-        plot_data = self.get_data(plot_type)
+        plot_data = self.get_data(plot_type,mean_flg=True)
         [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
@@ -734,14 +738,21 @@ class CalculatedSyntheticAperture:
         #ax.plot_surface(X,Y,Z,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
     
-    def get_data(self,data_str,freqs='all'):
+    def get_data(self,data_str,freqs='all',**arg_options):
         '''
         @brief get the desired data from a string (e.g. 'mag_db','phase_d','mag', etc.)
             this can also be used to select which frequencies to average
         @param[in] data_str - string of the data to get. can be 'mag','phase','phase_d','real','imag'
         @param[in/OPT] freqs - which frequencies to average (default 'all'). if the freq doesnt exist, throw an exception
-        @return np array of shape self.azimuth (or elevation) with the mean s parameters from the provided frequencies
+        @param[in/OPT] arg_options - keyword arguments as follows
+                mean_flg - whether or not to return the mean across all frequencies
+        @return np array of shape self.azimuth (or elevation) with the values from the provided frequencies
         '''
+        options = {}
+        options['mean_flg'] = False
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+            
         data_dict = {
             'mag_db':self.mag_db,
             'mag':self.mag,
@@ -753,7 +764,9 @@ class CalculatedSyntheticAperture:
         freq_idx = self.get_freq_idx(freqs)
         data = data_dict[data_str]
         data = data[:,:,freq_idx]
-        return np.mean(data,axis=2)
+        if options['mean_flg']:
+            data = np.mean(data,axis=2)
+        return data
         
     def get_freq_idx(self,freqs):
         '''
@@ -835,6 +848,104 @@ class CalculatedSyntheticAperture:
         with open(os.path.join(out_dir,'beamformed.json'),'w+') as fp:
             json.dump(meas_info,fp)
         return meas_data
+    
+    def get_max_beam_idx(self,freqs='all'):
+        '''
+        @brief get the index of the maximum beam
+        @param[in/OPT] freqs - list of frequencies to calculate for
+        @return tuple of tuples with indices of the maximum
+        '''
+        if freqs=='all':
+            freqs = self.freq_list
+        freqs = np.array(freqs)
+        idx_vals = [] #allocate for outputs
+        for i,f in enumerate(freqs):
+            fidx=self.get_freq_idx(f)
+            fidx = np.where(self.freq_list==f)[0][0] #get first value (shouldnt be repeated)
+            mymags = self.mag_db[:,:,fidx] #get our frequency values
+            max_idx = np.unravel_index(mymags.argmax(),mymags.shape)
+            idx_vals.append(max_idx)
+        return tuple(idx_vals)
+    
+    def get_max_beam_angle(self,freqs='all'):
+        '''
+        @brief get the angle of the maximum beam
+        @param[in/OPT] freqs - list of frequencies to calculate for
+        @return 2D array with first dimension as [az,el] second dimension is frequency
+        '''
+        idx_vals = self.get_max_beam_idx(freqs)
+        az_vals = self.azimuth[idx_vals]
+        el_vals = self.elevation[idx_vals]
+        return np.stack([az_vals,el_vals])
+    
+    def get_max_side_lobe_level(self,freqs='all'):
+        '''
+        @brief get the maximum side lobe level and its location
+        @todo implement this
+        @return [max_level_db,(az,el)]
+        '''
+        pass
+    
+    def get_beamwidth(self,peak_idx,freqs,power_level_db=-3):
+        '''
+        @brief get the beamwidth of a beam with peak at index location (x,y)
+            this is the same index provided by get_max_beam_idx
+        @param[in] peak_idx - index of the peak location (given by get_max_beam_idx)
+        @param[in] freqs - list of frequencies the peaks are at. (can be all)
+        @param[in/OPT] power_level_db - power level for the beamwidth (default -3dB=HPBW)
+        @return beamwidths in list of tuples (az_bw,el_bw) for each frequency
+        '''
+        bw_out = []
+        if freqs=='all':
+            freqs = self.freq_list
+        for i,f in enumerate(freqs): #go through each frequency
+            fidx=self.get_freq_idx(f)
+            pidx = peak_idx[i] #peak idx value
+            peak_val   = self.mag_db[pidx][fidx]
+            [az_vals,mymags_az] = self.get_azimuth_cut(pidx[1])
+            [el_vals,mymags_el] = self.get_elevation_cut(pidx[0])
+            mmaz_adj   = mymags_az-peak_val #adjust for peak
+            mmel_adj   = mymags_el-peak_val
+            #this uses a level crossing test. Interpolation would be more accurate
+            az_cross_idx = np.where(np.diff(mmaz_adj<power_level_db))[0] #find the crossing of the power level
+            if(len(az_cross_idx)!=2):
+                raise Exception("Must be exactly 2 azimuth crossings (%d found) to calculate beamwidth" %(len(az_cross_idx)))
+            el_cross_idx = np.where(np.diff(mmel_adj<power_level_db))[0]
+            if(len(el_cross_idx)!=2):
+                raise Exception("Must be exactly 2 elevation crossings (%d found) to calculate beamwidth" %(len(el_cross_idx)))
+            #now take the difference of the az and el
+            az_bw = np.abs(np.diff(az_vals[az_cross_idx]))[0]
+            el_bw = np.abs(np.diff(el_vals[el_cross_idx]))[0]
+            bw_out.append((az_bw,el_bw))
+        return bw_out
+    
+    def get_elevation_cut(self,idx,freqs='all',**arg_options):
+        '''
+        @brief get an elevation cut from our data at azimuth
+        @param[in] idx - index in azimuth dimension to make cut
+        @param[in/OPT] freqs - frequencies to get output values for
+        @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
+                    None Yet!
+        @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
+        '''
+        #first get the elevation values
+        el_vals = self.elevation[:,idx]
+        vals = self.get_data('mag_db',freqs,**arg_options)[:,idx]
+        return el_vals,vals
+        
+    def get_azimuth_cut(self,idx,freqs='all',**arg_options):
+        '''
+        @brief get an azimuth cut from our data at elevation index
+        @param[in] idx - index in elevation dimension to make cut
+        @param[in/OPT] freqs - frequencies to get output values for
+        @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
+                    None Yet!
+        @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
+        '''
+        #first get the elevation values
+        az_vals = self.azimuth[idx,:]
+        vals = self.get_data('mag_db',freqs,**arg_options)[idx,:]
+        return az_vals,vals
         
     @property
     def mag_db(self):

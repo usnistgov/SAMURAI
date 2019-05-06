@@ -387,7 +387,12 @@ class SnpEditor:
         '''
         self.options['num_ports'] = num_ports #set the number of ports
         #now set our keys
-        self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
+        if self.options['num_ports'] == 2: 
+            # s2p files follow a different format... because why not
+            # http://na.support.keysight.com/plts/help/WebHelp/FilePrint/SnP_File_Format.htm
+            self.dict_keys = [11,21,12,22]
+        else:
+            self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
         
         #and pack the port data with 0s
         for i in range(len(self.dict_keys)):
