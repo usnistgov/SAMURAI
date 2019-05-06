@@ -160,7 +160,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 #            lam = sp_consts.c/freq
 #            k = 2.*np.pi/lam
             k = get_k(freq)
-            steering_vectors = np.exp(-1j*k*psv_vecs)
+            steering_vectors = np.exp(1j*k*psv_vecs)
 
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
@@ -227,7 +227,8 @@ if __name__=='__main__':
         #mysp.freq_list = [26.5e9,30e9,40e9]
         mysp.freq_list= np.arange(27,41)*1e9
         #mysp.add_plane_wave(0,0,-90)
-        mysp.add_plane_wave(-45,0,-90)
+        #mysp.add_plane_wave(45,0,-90)
+        #mysp.add_plane_wave(45,45,-90)
         #mysp.add_plane_wave(32,43,-90)
         #mysp.add_plane_wave(0,45,-90)
         
@@ -251,7 +252,7 @@ if __name__=='__main__':
         #windowing
         #mysp.set_sine_window() #set a sine window weighting
         #mysp.set_cosine_sum_window_by_name('blackman-nutall')
-        mysp.set_cosine_sum_window_by_name('hamming')
+        #mysp.set_cosine_sum_window_by_name('hamming')
         #mysp.set_sine_window()
         #mysp.plot_positions()
         

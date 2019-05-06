@@ -16,6 +16,7 @@ import json
 
 from samurai.analysis.support.metaFileController import MetaFileController 
 from samurai.analysis.support.generic import incomplete,deprecated,verified
+from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
 
 @deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
@@ -886,15 +887,23 @@ class CalculatedSyntheticAperture:
         '''
         pass
     
-    def get_beamwidth(self,peak_idx,freqs,power_level_db=-3):
+    def get_beamwidth(self,peak_idx,freqs,**arg_options):
         '''
         @brief get the beamwidth of a beam with peak at index location (x,y)
-            this is the same index provided by get_max_beam_idx
+            this is the same index provided by get_max_beam_idx. This finds the closest
+            calculated angular crossings so will not be extremely accurate
         @param[in] peak_angles - angles of peak location (in [az,el] format)
         @param[in] freqs - list of frequencies the peaks are at. (can be all)
-        @param[in/OPT] power_level_db - power level for the beamwidth (default -3dB=HPBW)
+        @param[in/OPT] arg_options - optional keyword args as follows:
+                power_level_db - power level for the beamwidth (default -3dB=HPBW)
+                interpolate - true or false whether to interpolate (default true)
+                interp_step - angular step (degrees) for our interpolation (default 0.1 degrees)
         @return beamwidths in list of tuples (az_bw,el_bw) for each frequency
         '''
+        options = {}
+        options['power_level_db'] = -3
+        options['interpolate'] = True
+        options['interp_step'] = 0.1
         bw_out = []
         if freqs=='all':
             freqs = self.freq_list
@@ -908,16 +917,25 @@ class CalculatedSyntheticAperture:
             [el_vals,mymags_el] = self.get_elevation_cut(peak_az,f)
             mmaz_adj   = (mymags_az-peak_val).mean(axis=1) #adjust for peak
             mmel_adj   = (mymags_el-peak_val).mean(axis=1) #mean combines multiple freqs if we have them
+            if options['interpolate']:
+                interp_az = np.arange(az_vals.min(),az_vals.max()+options['interp_step'],options['interp_step'])
+                interp_el = np.arange(az_vals.min(),az_vals.max()+options['interp_step'],options['interp_step'])
+                mmaz_adj = np.interp(interp_az,az_vals,mmaz_adj)
+                mmel_adj = np.interp(interp_el,el_vals,mmel_adj)
+                az_vals = interp_az
+                el_vals = interp_el
             #this uses a level crossing test. Interpolation would be more accurate
-            az_cross_idx = np.where(np.diff(mmaz_adj<power_level_db))[0] #find the crossing of the power level
+            az_cross_idx = np.where(np.diff(mmaz_adj<options['power_level_db']))[0] #find the crossing of the power level
             if(len(az_cross_idx)!=2):
                 raise Exception("Must be exactly 2 azimuth crossings (%d found) to calculate beamwidth" %(len(az_cross_idx)))
-            el_cross_idx = np.where(np.diff(mmel_adj<power_level_db))[0]
+            el_cross_idx = np.where(np.diff(mmel_adj<options['power_level_db']))[0]
             if(len(el_cross_idx)!=2):
                 raise Exception("Must be exactly 2 elevation crossings (%d found) to calculate beamwidth" %(len(el_cross_idx)))
             #now take the difference of the az and el
             az_bw = np.abs(np.diff(az_vals[az_cross_idx]))[0]
             el_bw = np.abs(np.diff(el_vals[el_cross_idx]))[0]
+            az_bw = round_arb(az_bw,options['interp_step'])
+            el_bw = round_arb(el_bw,options['interp_step'])
             bw_out.append((az_bw,el_bw))
         return bw_out
     
