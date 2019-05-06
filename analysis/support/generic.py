@@ -120,7 +120,10 @@ def round_arb(value,multiple):
     @param[in] multiple - multiple to round to 
     @return rounded value
     '''
-    return multiple*round(value/multiple)
+    ndigs = math.ceil(-1*math.log10(multiple))
+    if multiple>0:
+        ndigs += 1
+    return round(multiple*round(value/multiple),ndigits=ndigs)
 
 def floor_arb(value,multiple):
     '''
@@ -129,6 +132,7 @@ def floor_arb(value,multiple):
     @param[in] multiple - multiple to floor to 
     @return floored value
     '''
-    return multiple*math.floor(value/multiple)
+    ndigs = math.ceil(-1*math.log10(multiple))
+    return round(multiple*math.floor(value/multiple),ndigits=ndigs)
 
 
