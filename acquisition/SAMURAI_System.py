@@ -41,8 +41,9 @@ class SAMURAI_System():
         '''
         defaults = {'template_path':pnagrabber_template_path,'vna_visa_address':vna_visa_addr,'rx_positioner_address':rx_positioner_address}
         tool_length = 131 #length of tool off face in mm. Change for weird tools
-        defaults['trf_pos'] = [0,0,tool_length,0,-90,0] #tool reference frame (-90 to align axes with wrf). THE frame here is different and seems to be in ([z,y,z,gamma,beta,alpha]) compared to world frame
-        defaults['wrf_pos'] = [tool_length+190,0,0,0,0,0] #world reference frame at robot base z but x of tool (+190 for base to tip at zeroed postiion)
+        #THIS IS A NEW REFERENCE FRAME AS OF 5/10/2019
+        defaults['trf_pos'] = [0,0,tool_length,0,0,90] #tool reference frame (-90 to align axes with wrf). THE frame here is different and seems to be in ([z,y,z,gamma,beta,alpha]) compared to world frame
+        defaults['wrf_pos'] = [tool_length+190,0,0,0,90,90] #world reference frame at robot base z but x of tool (+190 for base to tip at zeroed postiion)
         self.options = {}
         for key, value in six.iteritems(defaults):
             self.options[key] = value
@@ -125,6 +126,7 @@ class SAMURAI_System():
             template_path - location of pnagrabber template to run from (default './template.pnagrabber')
             settling time - time in seconds to let robot settle (default 0.1s)
             metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)
+            comment_character - character or list of characters for comments (default #)
             external_position_measurements - configuration of external measurement device (e.g. optitrack)
                 OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
                     A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
@@ -141,6 +143,7 @@ class SAMURAI_System():
         defaults['info_string_var'] = None #be able to set outside stringvar for update info
         defaults['metafile_header_values'] = {}
         defaults['external_position_measurements'] = None
+        defaults['comment_character'] = '#'
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -151,6 +154,7 @@ class SAMURAI_System():
         #open PNAGrabber instance
             #pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
             pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'])
+            
         mf = smf.metaFile(csv_path,self.options['vna_visa_address'],wdir=data_out_dir)
         mf.init(**options['metafile_header_values'])
         
@@ -164,6 +168,9 @@ class SAMURAI_System():
         if options['external_position_measurements'] is not None:
             my_ext_pos = samurai_optitrack.MotiveInterface()
 
+        #verify csv file
+        self.verify_position_file(csv_path,options['comment_character'])
+        
         #now start running positioner    
         csvfp = open(csv_path)
         numLines = ss.countLinesInFile(csvfp)
@@ -174,6 +181,8 @@ class SAMURAI_System():
         run_time_start = time.time()
         for line in csvfp: #read each line
             if(line.split()):
+                if any(line.strip()[0]==np.array(options['comment_character'])): #then its a comment
+                   continue
                 strVals = line.split(',') #separate by csv
                 fvals = [float(i) for i in strVals]
                 #print("Moving Device to "+str(fvals))
@@ -217,17 +226,22 @@ class SAMURAI_System():
         @param[in] arg_options - keyword arguments as follows:
             settling_time - time for positioner to settle (default 0.1)
             num_samples   - number of samples to take per marker per location
+            comment_character - character or list of characters for comments (default #)
             Look at samurai_optitrack for more options
         @return file path that the data is written to 
         '''
         options = {}
         options['settling_time'] = 0.1
+        options['comment_character'] = '#'
         for key,val in six.iteritems(arg_options):
             options[key] = val
         
         tmp_name = os.path.join(out_dir,out_name+'.tmp') #create a temporary file
         fp = open(tmp_name,'w+') #temp file
         my_ext_pos = samurai_optitrack.MotiveInterface() #init optitrack
+        
+        #verify csv file
+        self.verify_position_file(csv_path,options['comment_character'])
         
         #loop through csv
         self.rx_positioner.zero()
@@ -236,8 +250,10 @@ class SAMURAI_System():
             #for timing
             numLines = ss.countLinesInFile(csvfp)
             ltr = pnag.LoopTimeReport(numLines)
-            
-            for idx,line in enumerate(csvfp): #read each line
+            idx = 0
+            for line in (csvfp): #read each line
+                if any(line.strip()[0]==np.array(options['comment_character'])):
+                   continue
                 print("Repeat: %2d of %2d, Position: %2d of %2d" %(rep+1,num_reps,idx+1,numLines))
                 if(line.split()):
                     ltr.start_point()
@@ -250,6 +266,7 @@ class SAMURAI_System():
                     loc_dict = {'rep':rep,'pos_idx':idx,'robot_position':pos_vals,'external_position':ext_pos_vals}
                     fp.write(json.dumps(loc_dict)+'\n') #write the line
                     ltr.end_point()
+                    idx+=1
             csvfp.close()
         
         fp.close()
@@ -312,6 +329,51 @@ class SAMURAI_System():
         @brief bring the rx_positioner to its zero position
         '''
         self.rx_positioner.zero()
+        
+    def verify_position_file(self,file_path,comment_char = '#'):
+        '''
+        @brief verify that the file of positions is for the correct reference frames
+                just raise an exception if the file is not value for the current reference frame.
+                The verification looks for the following values to check against:
+                    #WRF (or world reference frame or with _) = [x,y,z,alpha,beta,gamma]
+                    #TRF (or tool reference frame or with _) = [x,y,z,alpha,beta,gamma]
+        @param[in] file_path - the path to the position file (e.g. *.csv,etc)
+        @param[in/OPT] comment_char - character or list of characters for comments
+        '''
+        reference_value_strings = ['X','Y','Z','ALPHA','BETA','GAMMA']
+        comment_lines = []
+        with open(file_path) as fp:  #open the file
+            for line in fp: # go through each line
+                if all(line.strip()[0] != np.array(comment_char)):
+                    continue #not a comment line
+                comment_lines.append(line.strip()[1:]) #all except the first character
+        #now parse the comments for 
+        trf_read = None
+        wrf_read = None
+        for cl in comment_lines:
+            split_line = cl.split('=')
+            if len(split_line)!=2: #then we dont have an equal sign (or too many)
+                continue
+            #now massage the input values
+            var_name = split_line[0].strip().lower().replace(' ','_') #this is our variable name (e.g. TRF)
+            var_val = [float(i) for i in b[1].replace('[',' ').replace(']',' ').strip().split(',')] #list of float values
+            if(var_name=='tool_reference_frame' or var_name=='trf'):
+                trf_read = np.array(var_val)
+            if(var_name=='world_reference_frame' or var_name=='wrf'):
+                wrf_read = np.array(var_val)
+        #now check these values
+        if not trf_read or not wrf_read: #make sure these are both provided
+            raise(Exception("No world or tool reference frame values provided in the position file.\n"
+                            "These should be in the format as follows (both are required)\n\n"
+                            "# TRF = [X_trf,Y_trf,Z_trf,ALPHA_trf,BETA_trf,GAMMA_trf]\n"
+                            "# WRF = [X_wrf,Y_wrf,Z_wrf,ALPHA_wrf,BETA_wrf,GAMMA_wrf]\n"))
+        if any(self.options['trf_pos']!=trf_read):
+            raise(Exception("Tool reference frame does not match at %s" 
+                            %('['+','.join(reference_value_strings[self.options['trf_pos']!=trf_read])+']')))
+        if any(self.options['wrf_pos']!=wrf_read):
+            raise(Exception("World reference frame does not match at %s" 
+                            %('['+','.join(reference_value_strings[self.options['wrf_pos']!=wrf_read])+']')))
+        
         
     
 if __name__=='__main__':

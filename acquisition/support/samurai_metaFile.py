@@ -36,9 +36,19 @@ class metaFile:
         #some info about the system
         #defaults
         self.options['metafile_version']   = 1.03
+        self.options['metafile_changelog'] = {
+                1.03: ["Added new defaults and heavily updated the code to be more user friendly"],
+                2.00: ["(5/10/2019) Updated reference frame. THIS IS VERY IMPORTANT FOR ALL USES OF MEAUSUREMENTS.\\n" 
+                       "New reference frame is as follows when looking from behind the robot: \\n"
+                       "      X - left/right\\n"
+                       "      Y - up/down\\n"
+                       "      Z - in/out (i.e. propogation direction)\\n"
+                       "      converting from pre 2.00 we get X=-Y,Y=Z,Z=X"]
+                      }
         self.options['experiment']         = 'SAMURAI Measurements'
         self.options['experiment_version'] = 1.0
         self.options['positioner']         = 'Meca500'
+        self.options['positioner_rotation_format'] = "X\'Y\'Z\'"
         self.options['user']               = 'ajw'
         self.options['units']              = 'mm'
         self.options['position_key']       = ['X','Y','Z','alpha','beta','gamma']
