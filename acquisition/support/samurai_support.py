@@ -15,10 +15,12 @@ import numpy as np
 
 vna_visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
 
-def countLinesInFile(filePointer):
+def countLinesInFile(filePointer,comments='#'):
     cnt = 0
     for line in filePointer:
         if(line.strip()):
+            if(any(line.strip()[0]!=np.array(comments))):
+                continue #then pass the line (dont count it)
             cnt=cnt+1
     filePointer.seek(0)
     return cnt
