@@ -6,6 +6,7 @@ Created on Fri Apr  5 13:58:12 2019
 """
 
 import matlab.engine
+import six
 
 class MatlabPlotter:
     '''
@@ -14,14 +15,18 @@ class MatlabPlotter:
         deleted
     '''
     
-    def __init__(self):
+    def __init__(self,**arg_options):
         '''
         @brief initialize the class and start our MATLAB engine
-        @return phrase MATLAB engine started
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            verbose - be verbose in our plotting (default False)
         '''
-        print("Starting MATLAB Engine")
-        self.eng = matlab.engine.start_matlab()
-        return "MATLAB Engine Started"
+        self.options = {}
+        self.options['verbose'] = False
+        for key,val in six.iteritems(arg_options):
+            self.options[key]=val
+        if self.options['verbose']: print("Starting MATLAB Engine")
+        self.engine = matlab.engine.start_matlab()
     
     def surf(X,Y,Z):
         '''
