@@ -222,7 +222,7 @@ if __name__=='__main__':
         #mysp.freq_list = [26.5e9,30e9,40e9]
         mysp.freq_list= np.arange(27,41)*1e9
         #mysp.add_plane_wave(0,0,-90)
-        #mysp.add_plane_wave(45,0,-90)
+        mysp.add_plane_wave(45,0,-90)
         #mysp.add_plane_wave(45,45,-90)
         #mysp.add_plane_wave(32,43,-90)
         #mysp.add_plane_wave(0,45,-90)
