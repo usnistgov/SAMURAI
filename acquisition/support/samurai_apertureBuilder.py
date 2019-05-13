@@ -126,7 +126,7 @@ class ApertureBuilder():
         if len(np.where(input_array!=None))<2:
             raise Exception("At least two keyword arguments must be specified")
         if (np.array([size])==None).any(): #if none
-            size_mm = np.array(numel)*np.array(step)
+            size_mm = (np.array(numel)-1)*np.array(step) #-1 to account for arange +1
         elif (np.array([step])==None).any(): #if none
             size_mm = np.array(size_mm)/np.array(numel)
         #extract our values from inputs
@@ -154,7 +154,7 @@ class ApertureBuilder():
         y_pos = np.arange(y_sp,y_sp+y_sm+y_ssm,y_ssm)
         z_pos = np.arange(z_sp,z_sp+z_sm+z_ssm,z_ssm)
         #now generate all of the points
-        MG = np.meshgrid(x_pos,y_pos,z_pos,alph,bet,gam)
+        MG = np.meshgrid(x_pos,y_pos,z_pos,alph,bet,gam,indexing='ij') #traverse x positions first
         #now reshape into an easily iterable thing
         point_list = np.transpose(MG).reshape((-1,6))
         self.positions = point_list
@@ -169,7 +169,7 @@ class ApertureBuilder():
         '''
         size_2 = np.zeros(6)
         if np.array(size)==None:
-            size = np.array(numel)*np.array(step)
+            size = (np.array(numel)-1)*np.array(step)
         size_2[0:3] = np.array(size,dtype=float)/2
         start_position = np.array(center_point,dtype=float)-(np.array(size_2,dtype=float))
         self.gen_planar_aperture(start_position,size,step,numel)
@@ -250,11 +250,13 @@ class ApertureBuilder():
         '''
         data = self.positions.transpose() #make each direction (x,y,z,alpha,...) its own list of values
         [x,y,z] = data[0:3] #get x,y,z values (they dont change for vectors)
-        alpha = np.array(data[3])/180.*np.pi; gamma = np.array(data[5])/180.*np.pi
-        theta = gamma; phi = alpha
-        u = mag*np.cos(phi)*np.cos(theta)
-        v = mag*np.cos(phi)*np.sin(theta)
-        w = np.sin(alpha)
+        alpha = np.array(data[3])/180.*np.pi
+        beta  = np.array(data[4])/180.*np.pi
+        #gamma = np.array(data[5])/180.*np.pi
+        theta = alpha; phi = beta
+        u = mag*np.sin(phi)*np.sin(theta)
+        w = mag*np.sin(phi)*np.cos(theta)
+        v = np.cos(alpha)
         return np.array([x,y,z,u,v,w])
         
     def plot(self,fig_handle=None):
@@ -267,7 +269,7 @@ class ApertureBuilder():
         else:
             fig = fig_handle
         ax = fig.gca(projection='3d')
-        [x,z,y,u,v,w] = self.get_vectors() #flip y and z so z is horizontal direction
+        [x,z,y,u,v,w] = self.get_vectors(mag=5) #flip y and z so z is horizontal direction
         ax.quiver(x,y,z,u,v,w)
         #ax.plot(x,y,z)
         ax.set_xlabel('X (mm)'); ax.set_ylabel('Z (mm)'); ax.set_zlabel('Y (mm)')
@@ -294,7 +296,10 @@ class ApertureBuilder():
         mag = np.sqrt(xd**2+yd**2)
         u = xd/mag; v = yd/mag
         xa = x[:-1]+u; ya = y[:-1]+v
-        ax.quiver(xa,ya,u,v,color='r',width=0.0025)
+        arrow_mod = 4
+        xa = xa[::arrow_mod]; ya = ya[::arrow_mod]
+        u = u[::arrow_mod]; v = v[::arrow_mod]
+        ax.quiver(xa,ya,u,v,color='r',width=0.0025,angles='xy',scale=100)
         ax.plot(x,y,c='r')
         return fig
     
@@ -313,8 +318,8 @@ class ApertureBuilder():
         pts = self.positions.copy()
         num_rows = int(np.size(pts,0)//row_length)
         for i in range(1,num_rows,2): #every other row
-            cur_row_st = i*35
-            cur_row_end = ((i+1)*35)
+            cur_row_st = i*row_length
+            cur_row_end = ((i+1)*row_length)
             cur_row_vals = pts[cur_row_st:cur_row_end] #get the values of the current row
             flip_cr = np.flipud(cur_row_vals) #flip the values
             self.positions[cur_row_st:cur_row_end] = flip_cr
@@ -481,10 +486,12 @@ if __name__=='__main__':
     myap.change_reference_frame(v1_to_v2_convert)
     myap2.change_reference_frame(v1_to_v2_convert)
     '''
-    pos = myap.gen_planar_aperture_from_center([0,200,60,0,0,0],step=[3.7,3.7,0],numel=[35,3,1])
-    myap.add_positions(pos)    #myap2.shift_positions([0,104,0,0,0,0])
+    #about lambda/2 at 40GHz
+    lam_at_forty = 2.99e8/40e9/2*1000 #lambda at 40GHz in mm
+    myap.gen_planar_aperture_from_center([0,200,60,0,0,0],step=[lam_at_forty,lam_at_forty,0],numel=[35,35,1])
+    myap.flip_alternate_rows(row_length=35)
     #myap.concatenate(myap2)
-    myap.plot()
+    #myap.plot()
     myap.plot_path_2D()
     
 
