@@ -66,7 +66,7 @@ class SAMURAI_System():
         '''
         if not run_simulation:
             run_simulation = self.is_simulation #set to default unless overwritten
-            rv1=self.rx_positioner.set_simulation_mode=False
+            rv1=self.rx_positioner.set_simulation_mode=run_simulation
         else:
             print("Running in Simulation Mode")
             rv1=self.rx_positioner.set_simulation_mode=run_simulation
@@ -94,8 +94,8 @@ class SAMURAI_System():
         @param[in] - on_off - True to turn on Simulation, False to turn off Simulation
         @return - 0 for success, -1 if value cannot be set (because we are connected currently)
         """
-        if(self.is_connected):
-            return -1 #we can only change the flag while disconnected
+        #if(self.is_connected):
+        #    return -1 #we can only change the flag while disconnected
         #else we return success after setting simulation
         self.is_simulation = on_off
         return 0 #success
@@ -155,7 +155,7 @@ class SAMURAI_System():
             #pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
             pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'])
             
-        mf = smf.metaFile(csv_path,self.options['vna_visa_address'],wdir=data_out_dir)
+        mf = smf.metaFile(csv_path,self.options['vna_visa_address'],root_dir=data_out_dir)
         mf.init(**options['metafile_header_values'])
         
         if(defaults['info_string_var']):
@@ -181,7 +181,7 @@ class SAMURAI_System():
         run_time_start = time.time()
         for line in csvfp: #read each line
             if(line.split()):
-                if any(line.strip()[0]==np.array(options['comment_character'])): #then its a comment
+                if any(line.strip()[0]==np.array([options['comment_character']])): #then its a comment
                    continue
                 strVals = line.split(',') #separate by csv
                 fvals = [float(i) for i in strVals]
@@ -296,9 +296,11 @@ class SAMURAI_System():
         #mounting position in [x,y,z,alpha,beta,gamma]
         #this is all done with respect to the SAMURAI reference frames (trf rotated to match wrf and wrf at base directly below trf when zerod)
         if(side.lower()=='left'):
-            mounting_position = [-250,445,140,0,rotation,90]
+            #mounting_position = [-250,445,140,0,rotation,90] #trf v1
+            mounting_position = [445,140,-250,0,90,rotation] #trf v2
         if(side.lower()=='right'):
-            mounting_position = [-250,-445,140,0,rotation,-90]
+            #mounting_position = [-250,-445,140,0,rotation,-90]
+            mounting_position = [-445,140,-250,0,-90,-1*rotation]
             
         return self.set_position(mounting_position)
         
@@ -312,7 +314,7 @@ class SAMURAI_System():
         '''
         if(software_limits):
             np_pos_vals = np.array(pos_vals)
-            np_lower_bound = np.array([-1e3,-1e3,50,-360,-360,-360]) #just limit z axis
+            np_lower_bound = np.array([-1e3,50,-1e3,-360,-360,-360]) #just limit y axis
             np_upper_bound = np.array([1e3,1e3,1e3,360,360,360]) #no upper bound
             if(any(np_pos_vals<np_lower_bound)):
                 print("ERROR: Position below lower bound")
@@ -323,6 +325,13 @@ class SAMURAI_System():
         #finally now set the position
         self.rx_positioner.set_position(pos_vals)
         return
+    
+    def get_positioner_status(self):
+        '''
+        @brief get and print the status of the positioner
+        '''
+        [_,_,s] = self.rx_positioner.get_status() #get the status string
+        print(s)
         
     def zero(self):
         '''
@@ -340,11 +349,11 @@ class SAMURAI_System():
         @param[in] file_path - the path to the position file (e.g. *.csv,etc)
         @param[in/OPT] comment_char - character or list of characters for comments
         '''
-        reference_value_strings = ['X','Y','Z','ALPHA','BETA','GAMMA']
+        reference_value_strings = np.array(['X','Y','Z','ALPHA','BETA','GAMMA'])
         comment_lines = []
         with open(file_path) as fp:  #open the file
             for line in fp: # go through each line
-                if all(line.strip()[0] != np.array(comment_char)):
+                if all(line.strip()[0] != np.array([comment_char])):
                     continue #not a comment line
                 comment_lines.append(line.strip()[1:]) #all except the first character
         #now parse the comments for 
@@ -356,13 +365,13 @@ class SAMURAI_System():
                 continue
             #now massage the input values
             var_name = split_line[0].strip().lower().replace(' ','_') #this is our variable name (e.g. TRF)
-            var_val = [float(i) for i in b[1].replace('[',' ').replace(']',' ').strip().split(',')] #list of float values
+            var_val = [float(i) for i in split_line[1].replace('[','').replace(']','').strip().split(',')] #list of float values
             if(var_name=='tool_reference_frame' or var_name=='trf'):
                 trf_read = np.array(var_val)
             if(var_name=='world_reference_frame' or var_name=='wrf'):
                 wrf_read = np.array(var_val)
         #now check these values
-        if not trf_read or not wrf_read: #make sure these are both provided
+        if  np.array(trf_read).shape==() or np.array(wrf_read).shape==(): #make sure these are both provided
             raise(Exception("No world or tool reference frame values provided in the position file.\n"
                             "These should be in the format as follows (both are required)\n\n"
                             "# TRF = [X_trf,Y_trf,Z_trf,ALPHA_trf,BETA_trf,GAMMA_trf]\n"
@@ -378,22 +387,35 @@ class SAMURAI_System():
     
 if __name__=='__main__':
     #csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_sparse.csv"
-    csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_SAMURAI_planar.csv"
-    wdir = r"C:\Users\ajw5\Documents\test"
-    os.chdir(wdir)
-    mysam = SAMURAI_System()
-    mysam.connect_rx_positioner() #connect
     
-    id_dict = {}
-    #rigid bodies
-    id_dict['meca_head'] = None
-    id_dict['origin']    = None
-    #labeled markers
-    id_dict['tx_antenna']      = 50488
-    id_dict['cyl_bislide']     = 50480
-    id_dict['cyl_static']      = 50481
-    mysam.csv_position_sweep('./','position_test',id_dict,csv_path,num_reps=3)
+    #trf/wrf v2 testing
+    mysam = SAMURAI_System(True)
+    mysam.connect_rx_positioner()
+    [stat,_,_] = mysam.rx_positioner.get_status()
+    if not stat[2]:
+        raise Exception("Not in simulation mode")
+    mysam.csv_sweep('./test/','sweep_files/samurai_planar_hp.csv',run_vna=False)
     mysam.disconnect_rx_positioner()
+    
+    
+    ##positional testing
+    #csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_SAMURAI_planar.csv"
+    #wdir = r"C:\Users\ajw5\Documents\test"
+    #os.chdir(wdir)
+    #mysam = SAMURAI_System()
+    #mysam.connect_rx_positioner() #connect
+    
+    #id_dict = {}
+    #rigid bodies
+    #id_dict['meca_head'] = None
+    #id_dict['origin']    = None
+    ##labeled markers
+    #id_dict['tx_antenna']      = 50488
+    #id_dict['cyl_bislide']     = 50480
+    #id_dict['cyl_static']      = 50481
+    #mysam.csv_position_sweep('./','position_test',id_dict,csv_path,num_reps=3)
+    #mysam.disconnect_rx_positioner()
+    
     
     
       

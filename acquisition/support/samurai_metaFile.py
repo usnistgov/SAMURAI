@@ -43,7 +43,7 @@ class metaFile:
                        "      X - left/right\\n"
                        "      Y - up/down\\n"
                        "      Z - in/out (i.e. propogation direction)\\n"
-                       "      converting from pre 2.00 we get X=-Y,Y=Z,Z=X"]
+                       "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"]
                       }
         self.options['experiment']         = 'SAMURAI Measurements'
         self.options['experiment_version'] = 1.0
@@ -84,9 +84,6 @@ class metaFile:
                 value = os.path.abspath(value)
             self.options[key] = value
 
-        #change to working directory
-        os.chdir(self.options['root_dir'])
-
         #delimeter of csv file (typically ',')
 
         #build our file names
@@ -119,8 +116,8 @@ class metaFile:
         '''
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
-        self.jsonPath = self.options['metafile_name']+'.json'
-        self.tmpfPath = self.options['metafile_name']+'.raw'
+        self.jsonPath = os.path.join(self.options['root_dir'],self.options['metafile_name']+'.json')
+        self.tmpfPath = os.path.join(self.options['root_dir'],self.options['metafile_name']+'.raw')
         self.raw_path = self.tmpfPath
         self.csvPath  = self.options['csv_path']
         #build JSON template
@@ -201,6 +198,8 @@ class metaFile:
             for line in csvfile:
                 #make sure the line isnt emtpy
                 if(line.strip()):
+                    if(line.strip()[0]=='#'): #then its a comment
+                       continue
                     self.jsonData['total_measurements']+=1
                     locId = self.jsonData['total_measurements']-1
                     #extract our position from the csv file
@@ -411,29 +410,29 @@ class metaFile:
                 pass
             #get id from last line
             return int(line.split('|')[1])
-  
 
-      
+
+import re
 #check if file exists and change name if it does
-def clean_file_name(fileName,num=-1):
-    fout=fileName
+def clean_file_name(file_path,num=-1):
+    '''
+    @brief clean the file name so if the file exists at an ending
+    @param[in] file_path - path/to/file to clean name of
+    @param[in/OPT] num - number to add (-1 finds the next lowest unused number)
+    '''
+    [mydir,fname] = os.path.split(file_path)
     i=0
     if(num==-1):
-        while(os.path.isfile(fout)==True):
+        while(os.path.isfile(os.path.join(mydir,fname))==True):
             i+=1
-            #remove number if there was one
-            fout = fout.split('/')[-1]
-            if(len(fout.split('('))>1):
-                fout = fout.split('(')[0]+fout.split(')')[-1]
-            fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-            fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
+            #jump to next number
+            fname = re.sub('(\([0-9+]\))*\.','('+str(i)+').',fname) #remove number and replace with current i value
     elif(num==0):#no need to add thing on
-        fout = fileName
+        i=num
     else:
         i=num
-        fout = fout.split('/')[-1]
-        fout = fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-        fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
+        fname = re.sub('(\([0-9+]\))*\.','('+str(i)+').',fname) 
+    fout = os.path.join(mydir,fname)
     return fout,i
 
 #alias
