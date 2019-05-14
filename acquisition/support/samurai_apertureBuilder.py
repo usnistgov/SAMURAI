@@ -12,14 +12,14 @@ from mpl_toolkits.mplot3d import axes3d
 import os
 
 #positional index constants
-x_index = 0;
-y_index = 1;
-z_index = 2;
-elevation_index = 3;
-azimuth_index = 4;
-polarization_index = 5;
+x_index = 0
+y_index = 1
+z_index = 2
+elevation_index = 3
+azimuth_index = 4
+polarization_index = 5
 
-v1_to_v2_convert = np.array([[0,-1,0,0,0,0],
+v1_to_v2_convert = np.array([[0,1,0,0,0,0],
                              [0, 0,1,0,0,0],
                              [1, 0,0,0,0,0],
                              [0, 0,0,1,0,0],
@@ -71,7 +71,7 @@ class ApertureBuilder():
         ext = os.path.splitext(file_path)[-1].strip('.')
         header = self.build_header()
         if ext=='csv':
-            np.savetxt(file_path,self.positions,delimiter=',',header=header)
+            np.savetxt(file_path,self.positions,delimiter=',',header=header,comments=self.options['comment_character'])
             
     def build_header(self):
         '''
@@ -83,7 +83,7 @@ class ApertureBuilder():
         header_lines.append('WRF = '+str(self.options['wrf_pos']))
         header_str = ''
         for l in header_lines:
-            header_str += self.options['comment_character']+l+' \\n'
+            header_str += l+' \n'
         return header_str
         
     def add_positions(self,positions,**arg_options):
@@ -493,6 +493,9 @@ if __name__=='__main__':
     #myap.concatenate(myap2)
     #myap.plot()
     myap.plot_path_2D()
+    myap.write('sweep_files/samurai_planar_vp.csv')
+    myap.shift_positions([0,0,0,0,0,90])
+    myap.write('sweep_files/samurai_planar_hp.csv')
     
 
         
