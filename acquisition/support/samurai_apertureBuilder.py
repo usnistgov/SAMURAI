@@ -126,9 +126,9 @@ class ApertureBuilder():
         if len(np.where(input_array!=None))<2:
             raise Exception("At least two keyword arguments must be specified")
         if (np.array([size])==None).any(): #if none
-            size_mm = (np.array(numel)-1)*np.array(step) #-1 to account for arange +1
+            size = (np.array(numel)-1)*np.array(step) #-1 to account for arange +1
         elif (np.array([step])==None).any(): #if none
-            size_mm = np.array(size_mm)/np.array(numel)
+            size = np.array(size)/np.array(numel)
         #extract our values from inputs
         x_sp = start_position[0]
         y_sp = start_position[1]
@@ -150,9 +150,9 @@ class ApertureBuilder():
         if not z_ssm:
             z_ssm=1; z_sm = 0
         #now build arrays for each dimension including last point
-        x_pos = np.arange(x_sp,x_sp+x_sm+x_ssm,x_ssm)
-        y_pos = np.arange(y_sp,y_sp+y_sm+y_ssm,y_ssm)
-        z_pos = np.arange(z_sp,z_sp+z_sm+z_ssm,z_ssm)
+        x_pos = np.arange(x_sp,x_sp+x_sm+x_ssm*.5,x_ssm) #the 0.5 prevents rounding errors
+        y_pos = np.arange(y_sp,y_sp+y_sm+y_ssm*.5,y_ssm)
+        z_pos = np.arange(z_sp,z_sp+z_sm+z_ssm*.5,z_ssm)
         #now generate all of the points
         MG = np.meshgrid(x_pos,y_pos,z_pos,alph,bet,gam,indexing='ij') #traverse x positions first
         #now reshape into an easily iterable thing
@@ -488,14 +488,17 @@ if __name__=='__main__':
     '''
     #about lambda/2 at 40GHz
     lam_at_forty = 2.99e8/40e9/2*1000 #lambda at 40GHz in mm
-    myap.gen_planar_aperture_from_center([0,200,60,0,0,0],step=[lam_at_forty,lam_at_forty,0],numel=[35,35,1])
+    myap.gen_planar_aperture_from_center([0,125,60,0,0,0],step=[lam_at_forty,lam_at_forty,0],numel=[35,35,1])
     myap.flip_alternate_rows(row_length=35)
     #myap.concatenate(myap2)
     #myap.plot()
     myap.plot_path_2D()
     myap.write('sweep_files/samurai_planar_vp.csv')
-    myap.shift_positions([0,0,0,0,0,90])
+    #myap.shift_positions([0,-25,0,0,0,90]) #This works (no insane flipping)
+    #myap.shift_positions([-25,0,0,0,0,90]) #Nope... this also does crazy flipping
+    myap.shift_positions([0,0,0,0,0,90]) #This works (no insane flipping)
     myap.write('sweep_files/samurai_planar_hp.csv')
+    myap.plot_path_2D()
     
 
         
