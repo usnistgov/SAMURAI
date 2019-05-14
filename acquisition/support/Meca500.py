@@ -19,8 +19,6 @@ Execution will terminate if an error message is recieved
 @author: ajw5
 """
 
-from samurai.acquisition.support.samurai_apertureBuilder import gen_scan_grid_planar
-
 test_position = [50,0,200,0,0,0]
 
 import six
@@ -29,6 +27,8 @@ import re
 import numpy as np
 import time
 import os
+
+from samurai.analysis.support.generic import deprecated
 
 class Meca500:
     
@@ -438,7 +438,15 @@ class Meca500:
             vals.append(self.connected)
         else:
             vals = list(np.zeros(8)) #if not connected return all zeros
-        return vals,rv
+        rv_string = ("MECA STATUS:\n"
+                     "    {0} - Activation State\n"
+                     "    {1} - Homing State\n"
+                     "    {2} - Simulation Mode\n"
+                     "    {3} - Error Status\n"
+                     "    {4} - Pause Status\n"
+                     "    {5} - End of Block?\n"
+                     "    {6} - End of Movement\n").format(*vals)
+        return vals,rv,rv_string
 
     def set_default_frames_and_velocity(self):
         '''
@@ -472,7 +480,9 @@ class Meca500:
         return rv
     
     #once initialized corners of a cube
+    @deprecated
     def demo(self):
+        '''
         #start_pos_1 = [250,-100,80,0,90,0];
         #with trf = [0,0,131,0,-90,0] and wrf=[321,0,0,0,0,0]
         #with trf at tool tip and wrf directly below tip at base level when zeroed
@@ -485,6 +495,8 @@ class Meca500:
         return vals
         #draw the upper part of the cube
         #upper_square_pos = 
+        '''
+        pass
   
 
 #class to hold messages returned by meca
