@@ -722,6 +722,12 @@ class CalculatedSyntheticAperture:
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
             fig = self.mp.surf(X,Y,Z)
+            self.mp.xlim([-db_range,db_range])
+            self.mp.ylim([-db_range,db_range])
+            self.mp.zlim([-db_range,db_range])
+            self.mp.xlabel('X')
+            self.mp.ylabel('Y')
+            self.mp.zlabel('Z')
             return fig
             
         elif(options['plot_program'].lower()=='plotly'): 
@@ -813,7 +819,7 @@ class CalculatedSyntheticAperture:
         @brief initialize the matlab plotter (dont open if already open)
         '''
         if not self.mp:
-            self.mp = MatlabPlotter()
+            self.mp = MatlabPlotter(self.options)
     
     def get_data(self,data_str,freqs='all',**arg_options):
         '''
