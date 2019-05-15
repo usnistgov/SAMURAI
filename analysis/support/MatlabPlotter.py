@@ -32,22 +32,22 @@ class MatlabPlotter:
         #if not eng_name in running_engines: #check if the engine is running and start it if is
         #self.engine = matlab.engine.start_matlab('-r "matlab.engine.shareEngine(\''+eng_name+'\')"') #connect to an engine, or start if needed
         self.engine = matlab.engine.start_matlab()
+        self.beep('off')
         #else:
         #    self.engine = matlab.engine.connect_matlab(name=eng_name) #for some reason I cant connect to a started engine
     
-    def surf(self,*args,**kwargs):
+    def call_matlab_funct(self,funct_name,*args,**kwargs):
         '''
-        @brief surface plot in MATLAB
-        @param[in] X - np.array of X values
-        @param[in] Y - np.array of Y values
-        @param[in] Z - np.array of Z values
-        @return matlab plot object
+        @brief call a matlab function given by name funct_name
+        @param[in] funct_name - name of function to call
+        @param[in/OPT] *args - variable arguments to pass to matlab funciton
+        @parma[in/OPT] **kwargs - keyword args to pass to matlab function
         '''
+        funct = getattr(self.engine,funct_name)
         args = self.args2matlab(*args)
-        fig = self.engine.surf(*args,kwargs)
-        self.engine.shading('interp',nargout=0) #without nargout=0 throws an error
-        return fig
-        
+        funct(*args,**kwargs)
+    
+
     def args2matlab(self,*args):
         '''
         @brief convert variable number of arguments to matlab
@@ -55,14 +55,19 @@ class MatlabPlotter:
         '''
         args_out = []
         for arg in args: #loop through each argument
-            if type(arg)==np.ndarray: #convert to matlab 
-                args_out.append(self.nparray2matlab(arg))
+            if type(arg)==np.ndarray: #convert to list if needed
+                arg = arg.tolist()
+            if type(arg)==list: #this assumes consistent values across list
+                if type(arg[0]==float):
+                    args_out.append(matlab.double(arg))
+                elif type(arg[0]==int):
+                    args_out.append(matlab.int32(arg))
             else:
                 args_out.append(arg)
                 pass #otherwise do nothing
                 
         return tuple(args_out)
-        
+    
     def nparray2matlab(self,mynparray):
         '''
         @brief change a numpy array to a MATLAB array
@@ -87,6 +92,25 @@ class MatlabPlotter:
         '''
         return self.eng.get(obj,'type')=='axes'
     
+        
+    def __getattr__(self,name):
+        '''
+        @brief This is the MOST IMPORTANT METHOD. It allows all matlab functions to 
+        be called from self
+        '''
+        def default_method(*args,**kwargs):
+            try:
+                rv = self.call_matlab_funct(name,*args,**kwargs) #matlab errors ding
+            except matlab.engine.MatlabExecutionError as err: #if nargin must be zero lets except
+                if str(err).strip().split('\n')[-1]=='Too many output arguments.':
+                    self.call_matlab_funct(name,*args,**kwargs,nargout=0)
+                    rv = None
+                else:
+                    raise err
+            return rv
+        return default_method
+                
+                
     def quit(self):
         self.engine.quit()
     
@@ -94,7 +118,16 @@ class MatlabPlotter:
         self.engine.quit()
     
 if __name__=='__main__':
+    #try:
+    #    raise Exception("This dinging is annoying")
+    #except Exception as exc:
+    #    print("I handled it")
     mp = MatlabPlotter(verbose=True)
     [X,Y] = np.mgrid[1:10:0.5,1:20]
     Z = np.sin(X)+np.cos(Y)
     mp.surf(X,Y,Z)
+    mp.xlim([0,20])
+    mp.zlabel('X')
+    mp.shading('interp')
+    
+    
