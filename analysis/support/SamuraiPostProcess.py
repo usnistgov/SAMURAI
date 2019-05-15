@@ -103,6 +103,24 @@ class SamuraiSyntheticApertureAlgorithm:
         self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
         self.freq_list = self.freq_list*freq_mult
         self.all_positions = self.metafile.get_positions()
+        
+    def load_positions_from_file(self,file_path,**arg_options):
+        '''
+        @brief load positions from a file (like a csv)
+        @param[in] file_path - path to file to load
+        @param[in/OPT] arg_options - keyword arguments as follows:
+                comment_character - character to ignore as comments when loading (default '#')
+        '''
+        options = {}
+        options['comment_character'] = '#'
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        ext = os.path.splitext(file_path)[-1].strip('.')
+        if ext=='csv':
+            #load values in from CSV
+            pos = np.loadtxt(file_path,delimiter=',',comments=options['comment_character'])
+            self.all_positions = pos[:,:3]
+        
 
     def validate_data(self):
         '''
@@ -566,12 +584,6 @@ class CalculatedSyntheticAperture:
         @return a handle for the figure
         '''
         plot_data = self.get_data(plot_type,mean_flg=True)
-        
-        
-        #fig = plt.figure()
-        #ax = fig.add_subplot(111, projection='3d')
-        #ax.plot_surface(self.elevation,self.AZIMUTH,plot_data,cmap=cm.coolwarm,
-        #               linewidth=0, antialiased=False)
 
         plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
         layout = go.Layout(
@@ -609,11 +621,11 @@ class CalculatedSyntheticAperture:
         @return a handle for the figure
         '''
         plot_data = self.get_data(plot_type,mean_flg=True)
-        U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        V = np.sin(np.deg2rad(self.elevation))
+        #U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #V = np.sin(np.deg2rad(self.elevation))
         #[Un,Vn,Dn] = increase_meshing_3D(U,V,plot_data,4)
-        Un = U
-        Vn = V
+        Un = self.U
+        Vn = self.V
         Dn = plot_data
         
         #plt_mask = np.isfinite(Dn.flatten())
@@ -646,6 +658,7 @@ class CalculatedSyntheticAperture:
         )
         fig = go.Figure(data=plotly_surf,layout=layout)
         ploff.plot(fig,filename=out_name)
+        return fig
             
         
     def plot_3d(self,plot_type='mag_db',out_name='aperture_results_3d.html'):
@@ -655,12 +668,14 @@ class CalculatedSyntheticAperture:
         @return a handle for the figure
         '''
         plot_data = self.get_data(plot_type,mean_flg=True)
-        [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
+        #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
-        X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
-        Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        #Z = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #Y = plot_data*np.sin(np.deg2rad(self.elevation))
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type)
+        db_range = caxis_max-caxis_min
         
         #and plot
         plotly_surf = [go.Surface(z = Z, x = X, y = Y,surfacecolor=plot_data,
@@ -686,6 +701,7 @@ class CalculatedSyntheticAperture:
         )
         fig = go.Figure(data=plotly_surf,layout=layout)
         ploff.plot(fig,filename=out_name)
+        return fig
        
         
     def plot_scatter_3d(self,plot_type='mag_db',out_name='test'):
@@ -697,12 +713,14 @@ class CalculatedSyntheticAperture:
         
         #get our data
         plot_data = self.get_data(plot_type,mean_flg=True)
-        [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
+        #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
-        X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
-        Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        #Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type)
+        db_range = caxis_max-caxis_min
         
         #and plot
         plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
@@ -738,6 +756,7 @@ class CalculatedSyntheticAperture:
         #ax = fig.add_subplot(111, projection='3d')
         #ax.plot_surface(X,Y,Z,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
+        return fig
     
     def get_data(self,data_str,freqs='all',**arg_options):
         '''
@@ -998,6 +1017,20 @@ class CalculatedSyntheticAperture:
         for i in range(len(az)):
             pass
         return tuple(out_vals)
+    
+    def get_3d_data(self,data_type='mag_db'):
+        '''
+        @brief get 3D data values X,Y,Z for 3D plotting
+        @param[in] data_type - the type data to get. can be 'mag','phase','phase_d','real','imag'
+        @return [X,Y,Z,plot_data_adj,caxis_min,caxis_max] 3D data positions(X,Y,Z), adjusted plot data (to remove negative vals),
+            min and max values of our caxis (colorbar)
+        '''
+        plot_data = self.get_data(data_type,mean_flg=True)
+        [plot_data_adj,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,data_type,60)
+        Z = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        X = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        Y = plot_data_adj*np.sin(np.deg2rad(self.elevation))
+        return [X,Y,Z,plot_data_adj,caxis_min,caxis_max]
         
     @property
     def mag_db(self):
@@ -1074,14 +1107,14 @@ class CalculatedSyntheticAperture:
         '''
         @brief get our U grid values from our angles
         '''
-        return np.sin(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        return np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
     
     @property
     def V(self):
         '''
         @brief get our V grid values from our angles
         '''
-        return np.sin(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        return np.sin(np.deg2rad(self.elevation))
     
     @property
     def num_positions(self):

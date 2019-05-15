@@ -247,7 +247,7 @@ if __name__=='__main__':
         #windowing
         #mysp.set_sine_window() #set a sine window weighting
         #mysp.set_cosine_sum_window_by_name('blackman-nutall')
-        #mysp.set_cosine_sum_window_by_name('hamming')
+        mysp.set_cosine_sum_window_by_name('hamming')
         #mysp.set_sine_window()
         #mysp.plot_positions()
         
@@ -263,8 +263,8 @@ if __name__=='__main__':
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
         #UV beamform
         #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
-        #mycsa.plot_3d()
-        mycsa.plot_uv()
+        mycsa.plot_3d()
+        #mycsa.plot_uv()
         #mycsa.plot_scatter_3d()
         #print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
         bw_freqs = 'all'
