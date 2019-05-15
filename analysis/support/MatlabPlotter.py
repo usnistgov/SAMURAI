@@ -27,12 +27,13 @@ class MatlabPlotter:
         for key,val in six.iteritems(arg_options):
             self.options[key]=val
         if self.options['verbose']: print("Starting MATLAB Engine")
-        running_engines = matlab.engine.find_matlab()
-        eng_name = 'PyMatPlottingEngine'
-        if not eng_name in running_engines: #check if the engine is running and start it if is
-            self.engine = matlab.engine.start_matlab('-r "matlab.engine.shareEngine(\''+eng_name+'\')"') #connect to an engine, or start if needed
-        else:
-            self.engine = matlab.engine.connect_matlab(name=eng_name) #for some reason I cant connect to a started engine
+        #running_engines = matlab.engine.find_matlab()
+        #eng_name = 'PyMatPlottingEngine'
+        #if not eng_name in running_engines: #check if the engine is running and start it if is
+        #self.engine = matlab.engine.start_matlab('-r "matlab.engine.shareEngine(\''+eng_name+'\')"') #connect to an engine, or start if needed
+        self.engine = matlab.engine.start_matlab()
+        #else:
+        #    self.engine = matlab.engine.connect_matlab(name=eng_name) #for some reason I cant connect to a started engine
     
     def surf(self,*args,**kwargs):
         '''
