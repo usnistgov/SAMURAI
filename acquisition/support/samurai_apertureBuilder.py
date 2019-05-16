@@ -506,17 +506,15 @@ if __name__=='__main__':
     myap.gen_planar_aperture_from_center([0,125,60,0,0,0],step=[lam_at_forty,lam_at_forty,0],numel=[35,35,1])
     myap.flip_alternate_rows(row_length=35)
     #myap.concatenate(myap2)
-    myap.plot()
+    #myap.plot()
     #myap.plot_path_2D()
-    #fout1 = 'sweep_files/samurai_planar_vp.csv'
-    #myap.write(fout1)
-    #myap.shift_positions([0,-25,0,0,0,90]) #This works (no insane flipping)
-    #myap.shift_positions([-25,0,0,0,0,90]) #Nope... this also does crazy flipping
-    #myap.shift_positions([0,0,0,0,0,90]) #This works (no insane flipping)
-    #fout2 = 'sweep_files/samurai_planar_hp.csv'
-    #myap.write(fout2)
-    #fout_dp = 'sweep_files/samurai_planar_dp.csv'
-    #cat_positions_file(fout1,fout2,fout_dp)
+    fout1 = 'sweep_files/samurai_planar_vp.csv'
+    myap.write(fout1)
+    myap.shift_positions([0,0,0,0,0,90])
+    fout2 = 'sweep_files/samurai_planar_hp.csv'
+    myap.write(fout2)
+    fout_dp = 'sweep_files/samurai_planar_dp.csv'
+    cat_positions_file(fout1,fout2,fout_dp)
     
     #myap.load(fout_dp)
     #myap.plot_path_2D()
