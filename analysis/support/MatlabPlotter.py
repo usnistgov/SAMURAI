@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Apr  5 13:58:12 2019
-
+Class to help plot matlab figures.
+Funny enough, this class is actually generic enough where it makes using
+all matlab interfaces easier by automatically converting some types of values
+to the matlab values and adding little arguments like nargin=0
+NAMED ARGUMENTS DO NOW WORK HERE
 @author: aweis
 """
 
@@ -33,6 +37,10 @@ class MatlabPlotter:
         #self.engine = matlab.engine.start_matlab('-r "matlab.engine.shareEngine(\''+eng_name+'\')"') #connect to an engine, or start if needed
         self.engine = matlab.engine.start_matlab()
         self.beep('off')
+        #import io
+        #out = io.StringIO()
+        #err = io.StringIO()
+        #ret = self.engine.dec2base(2**60,16,stdout=out,stderr=err)
         #else:
         #    self.engine = matlab.engine.connect_matlab(name=eng_name) #for some reason I cant connect to a started engine
     
@@ -45,7 +53,7 @@ class MatlabPlotter:
         '''
         funct = getattr(self.engine,funct_name)
         args = self.args2matlab(*args)
-        funct(*args,**kwargs)
+        return funct(*args,**kwargs)
     
 
     def args2matlab(self,*args):
@@ -96,7 +104,8 @@ class MatlabPlotter:
     def __getattr__(self,name):
         '''
         @brief This is the MOST IMPORTANT METHOD. It allows all matlab functions to 
-        be called from self
+        be called from self. This is not ideal because if nargout must=0 then we have to 
+        run the funciton twice (this can be sped up by manually passing nargout=0)
         '''
         def default_method(*args,**kwargs):
             try:

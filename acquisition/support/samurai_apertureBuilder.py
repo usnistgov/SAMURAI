@@ -253,30 +253,53 @@ class ApertureBuilder():
         alpha = np.array(data[3])/180.*np.pi
         beta  = np.array(data[4])/180.*np.pi
         #gamma = np.array(data[5])/180.*np.pi
-        theta = alpha; phi = beta
+        theta = np.deg2rad(alpha); phi = np.deg2rad(beta)
         u = mag*np.sin(phi)*np.sin(theta)
         w = mag*np.sin(phi)*np.cos(theta)
         v = np.cos(alpha)
         return np.array([x,y,z,u,v,w])
+    
+    def get_polarization_lines(self,mag=5):
+        '''
+        @brief get xyzuvw coordinates of a quiverplot line to show the polarization at each position
+        @param[in/OPT] mag - magnitude of the line (+- the point)
+        @return np.array([x,y,z,u,v,w])
+        '''
+        #default quiver options for drawing these lines
+        default_quiver_opts = dict(pivot='middle')
+        #now get our vectors to go through out position
+        data = self.positions.transpose() #make each direction (x,y,z,alpha,...) its own list of values
+        [x,y,z] = data[0:3] #get x,y,z values (they dont change for vectors)
+        alpha = np.array(data[3])/180.*np.pi
+        beta  = np.array(data[4])/180.*np.pi
+        #gamma = np.array(data[5])/180.*np.pi
+        theta = np.deg2rad(alpha+90); phi = np.deg2rad(beta+90)
+        u = np.cos(theta)
+        v = mag*np.sin(phi)*np.sin(theta)
+        w = mag*np.sin(phi)*np.cos(theta)
+        return np.array([x,y,z,u,v,w]),default_quiver_opts
         
-    def plot(self,fig_handle=None):
+    def plot(self,fig_handle=None,magnitude=5):
         '''
         @brief plot the aperture points. We flip y and z for nicer view angle
         @param[in/OPT] fig_handle - handle to figure to plot points on
+        @param[in/OPT] magnitude - magnitude of vector positions to plot
         '''
         if not fig_handle: #if not provided, generate a figure
             fig = plt.figure()
         else:
             fig = fig_handle
         ax = fig.gca(projection='3d')
-        [x,z,y,u,v,w] = self.get_vectors(mag=5) #flip y and z so z is horizontal direction
-        ax.quiver(x,y,z,u,v,w)
+        [x,y,z,u,v,w] = self.get_vectors(mag=magnitude) #flip y and z so z is horizontal direction
+        ax.quiver(x,z,y,u,v,w)
         #ax.plot(x,y,z)
         ax.set_xlabel('X (mm)'); ax.set_ylabel('Z (mm)'); ax.set_zlabel('Y (mm)')
         ax.set_xlim(-175,175)   ; ax.set_ylim(-175,175)  ; ax.set_zlim(0,350)
         ax.scatter3D(0,0,0); ax.scatter3D(0,0,190)
         ax.text3D(0,0,190,'TCP Origin\n (Tip of antenna w/\n all joints zero)',horizontalalignment='left')
         ax.text3D(0,0,0,'WRF Origin',horizontalalignment='left')
+        [[xp,yp,zp,up,vp,wp],quivp_params] = self.get_polarization_lines(mag=2)
+        ax.quiver(xp,zp,yp,up,wp,vp,color='g',arrow_length_ratio=0,**quivp_params)
         return fig
     
     def plot_path_2D(self,fig_handle=None):
@@ -301,6 +324,8 @@ class ApertureBuilder():
         u = u[::arrow_mod]; v = v[::arrow_mod]
         ax.quiver(xa,ya,u,v,color='r',width=0.0025,angles='xy',scale=100)
         ax.plot(x,y,c='r')
+        [[xp,yp,zp,up,vp,wp],quivp_params] = self.get_polarization_lines()
+        ax.quiver(xp,yp,up,vp,color='g',headlength=0,headaxislength=0,**quivp_params)
         return fig
     
     def optimize_aperture(self):
@@ -345,36 +370,39 @@ class ApertureBuilder():
         @param[in] rotation_matrix - 6 by 6 matrix for rotation
         '''
         self.positions = np.matmul(self.positions,rotation_matrix)
+        
+    def flipud(self):
+        '''
+        @brief reverse the order of positions (flip up/down)
+        '''
+        self.positions = np.flipud(self.positions)
 
 
   
 #----------Some functions that might not be best in the class------------------#
     
-def convert_v1_csv_to_v2_csv(in_path,out_path):
+def convert_v1_file_to_v2_file(in_path,out_path):
     '''
     @brief convert original tool reference frame of samurai (metafile v1) to new reference frame (metafile v2)
+    @param[in] in_path - v1 input file path
+    @param[in] out_path - v2 output file path
     '''
-    pass
+    myap = ApertureBuilder()
+    myap.load(in_path)
+    myap.change_reference_frame(v1_to_v2_convert)
+    myap.write(out_path)
 
-
-def shift_scan_grid_csv(csv_name_in,shift_value,csv_name_out=''):
+def shift_scan_grid_file(shift_value,in_path,out_path):
     '''
     @brief - shift values in a csv file
-    @param[in] csv_name_in - name of input file to shift
-    @param[in] sfhit_value - amount to shift positoins by
-    @param[in] csv_name_out - output name. By default will overwrite input file
-    @return - shifted values
+    @param[in] in_path - name of input file to shift 
+    @param[in] out_path - output name to write to 
+    @param[in] shift_value - amount to shift positoins by
     '''
-    pass
-    '''
-    @todo reimpliment with class
-    if(csv_name_out==''):
-        csv_name_out = csv_name_in #overwrite
-    pts = read_points_from_csv(csv_name_in) #read points
-    shift_pts = shift_scan_grid(pts,shift_value) #shift points
-    write_nparray_to_csv(csv_name_out,shift_pts)
-    return shift_pts
-    '''
+    myap = ApertureBuilder()
+    myap.load(in_path)
+    myap.shift_positions(shift_value)
+    myap.write(out_path)
 
 def gen_offset_positions(start_plane,shift_value_list,flip_flg=True):
     '''
@@ -429,51 +457,38 @@ def gen_offset_position_csv(csv_name_in, shift_value_list,flip_flg=True):
     return shift_full
     '''
 
-def cat_positions_csv(csv_path_1,csv_path_2,csv_out_path,flip_flg=True):
+def cat_positions_file(in_path_1,in_path_2,out_path,flip_flg=True):
     '''
     @brief - concatenate positions in two files
     @param[in] csv_path_1 - first file to concatenate
     @param[in] csv_path_2 - second file to concatenate
     @param[in] csv_out_path - output file name
-    @param[in/optional] flip_flg - DEFAULT=True - do we flip(reverse) the second csv data
+    @param[in/OPT] flip_flg - do we flip(reverse) the second set of points (default True)
     '''
-    #load the data
-    '''
-    @todo in class
-    data_1 = read_points_from_csv(csv_path_1)
-    data_2 = read_points_from_csv(csv_path_2)
+    myap1 = ApertureBuilder()
+    myap2 = ApertureBuilder()
+    myap1.load(in_path_1)
+    myap2.load(in_path_2)
     if(flip_flg):
-        data_2 = np.flipud(data_2) #reverse data if requested
-    cat_data = np.concatenate((data_1,data_2)) #concatenate data
-    write_nparray_to_csv(csv_out_path,cat_data) #write out
-    return cat_data
-    '''
-    pass
+        myap2.flipud()
+    myap1.concatenate(myap2)
+    myap1.write(out_path)
     
-'''
-#cylinder demo
-def demo_cylinder():
-    origin = [-50,0,100,0,0,0]
-    sweep_angle = 90
-    height = 100
-    angle_step_size_degrees = 5
-    height_step_size_mm = 20
-    radius = 100
-    return gen_scan_grid_cylindrical(origin,radius,height,height_step_size_mm,sweep_angle,angle_step_size_degrees)
-'''
-def plot_points_csv(csv_fname,fig_handle='default',magnitude=10):
+
+def plot_points_file(in_path,mag=10):
     '''
-    @brief - plot positions from a CSV file
-    @param[in] csv_fname - file name of CSV positions
-    @param[in] OPTIONAL fig_handle - what figure handle to use
-    @param[in] OPTIONAL mangnitude - mangitude of plotted vectors
+    @brief - plot positions from a file and plot 2D path
+    @param[in] in_path - path to position file
+    @param[in/OPT] fig_handle - what figure handle to use
+    @param[in/OPT] mangnitude - mangitude of plotted vectors
+    @return 3D plot of points, 2D plots of path the points will be run in
     '''
-    pass
-    '''
-    @todo use class
-    data_points = read_points_from_csv(csv_fname)
-    return plot_points(data_points,fig_handle,magnitude)
-    '''
+    myap = ApertureBuilder()
+    myap.load(in_path)
+    fig_3d = myap.plot(magnitude=mag)
+    path_fig = myap.plot_path_2D()
+    return fig_3d,path_fig
+    
 
 if __name__=='__main__':
     myap = ApertureBuilder()
@@ -491,14 +506,20 @@ if __name__=='__main__':
     myap.gen_planar_aperture_from_center([0,125,60,0,0,0],step=[lam_at_forty,lam_at_forty,0],numel=[35,35,1])
     myap.flip_alternate_rows(row_length=35)
     #myap.concatenate(myap2)
-    #myap.plot()
-    myap.plot_path_2D()
-    myap.write('sweep_files/samurai_planar_vp.csv')
+    myap.plot()
+    #myap.plot_path_2D()
+    #fout1 = 'sweep_files/samurai_planar_vp.csv'
+    #myap.write(fout1)
     #myap.shift_positions([0,-25,0,0,0,90]) #This works (no insane flipping)
     #myap.shift_positions([-25,0,0,0,0,90]) #Nope... this also does crazy flipping
-    myap.shift_positions([0,0,0,0,0,90]) #This works (no insane flipping)
-    myap.write('sweep_files/samurai_planar_hp.csv')
-    myap.plot_path_2D()
+    #myap.shift_positions([0,0,0,0,0,90]) #This works (no insane flipping)
+    #fout2 = 'sweep_files/samurai_planar_hp.csv'
+    #myap.write(fout2)
+    #fout_dp = 'sweep_files/samurai_planar_dp.csv'
+    #cat_positions_file(fout1,fout2,fout_dp)
+    
+    #myap.load(fout_dp)
+    #myap.plot_path_2D()
     
 
         
