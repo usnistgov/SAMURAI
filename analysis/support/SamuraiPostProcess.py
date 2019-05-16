@@ -18,6 +18,7 @@ from samurai.analysis.support.metaFileController import MetaFileController
 from samurai.analysis.support.generic import incomplete,deprecated,verified
 from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
+from samurai.analysis.support.MatlabPlotter import MatlabPlotter
 
 @deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
@@ -103,6 +104,24 @@ class SamuraiSyntheticApertureAlgorithm:
         self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
         self.freq_list = self.freq_list*freq_mult
         self.all_positions = self.metafile.get_positions()
+        
+    def load_positions_from_file(self,file_path,**arg_options):
+        '''
+        @brief load positions from a file (like a csv)
+        @param[in] file_path - path to file to load
+        @param[in/OPT] arg_options - keyword arguments as follows:
+                comment_character - character to ignore as comments when loading (default '#')
+        '''
+        options = {}
+        options['comment_character'] = '#'
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        ext = os.path.splitext(file_path)[-1].strip('.')
+        if ext=='csv':
+            #load values in from CSV
+            pos = np.loadtxt(file_path,delimiter=',',comments=options['comment_character'])
+            self.all_positions = pos[:,:3]
+        
 
     def validate_data(self):
         '''
@@ -512,16 +531,20 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] complex_values - values corresponding to a direction [THETA[i,j],PHI[i,j]]
         @param[in/OPT] freqs - list of frequencies (if we are storing multiple)
         @param[in/OPT] arg_options - optional input keyword arguments as follows:
-                -None yet
+                plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return CalculatedSyntheticAperture class
         '''
         self.options = {}
+        self.options['plot_program'] = 'matlab'
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
         AZ = np.array(AZIMUTH)
         EL = np.array(ELEVATION)
         if(AZ.shape != EL.shape):
             raise Exception("Azimuth and Elevation meshgrids must be the same size")
         self.elevation = EL
         self.azimuth   = AZ
+        self.mp = None #initialize matlab plotter to none
         self.complex_values = np.array([])
         self.freq_list = np.array([])
         if complex_values.size>0 and freqs.size>0: #populate data if provided
@@ -558,62 +581,83 @@ class CalculatedSyntheticAperture:
         
         
     
-    def plot_azel(self,plot_type='mag_db',out_name='test'):
+    def plot_azel(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
         @brief plot calculated data in azimuth elevation
         @param[in] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @param[in/OPT] out_name - name of output plot (plotly)
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return a handle for the figure
         '''
+        options = {}
+        options['plot_program'] = self.options['plot_program']
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
+            
         plot_data = self.get_data(plot_type,mean_flg=True)
         
-        
-        #fig = plt.figure()
-        #ax = fig.add_subplot(111, projection='3d')
-        #ax.plot_surface(self.elevation,self.AZIMUTH,plot_data,cmap=cm.coolwarm,
-        #               linewidth=0, antialiased=False)
-
-        plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
-        layout = go.Layout(
-            title='UV Beamformed Plot',
-            scene = dict(
-                xaxis = dict(title='$\phi$ (Azimuth)'),
-                yaxis = dict(title='$theta$ (Elevation)'),
-                zaxis = dict(title='Beamformed value (%s)' %(plot_type))
-            ),
-            autosize=True,
-            margin=dict(
-                l=65,
-                r=50,
-                b=65,
-                t=90
+        if(options['plot_program'].lower()=='matlab'):
+            self.init_matlab_plotter()
+            fig = self.mp.figure()
+            self.mp.surf(self.azimuth,self.elevation,plot_data)
+            self.mp.view([0,90])
+            self.mp.xlabel('Azimuth')
+            self.mp.ylabel('Elevation')
+            self.mp.zlabel(plot_type)
+            
+        elif(options['plot_program'].lower()=='plotly'):
+            plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
+            layout = go.Layout(
+                title='UV Beamformed Plot',
+                scene = dict(
+                    xaxis = dict(title='$\phi$ (Azimuth)'),
+                    yaxis = dict(title='$theta$ (Elevation)'),
+                    zaxis = dict(title='Beamformed value (%s)' %(plot_type))
+                ),
+                autosize=True,
+                margin=dict(
+                    l=65,
+                    r=50,
+                    b=65,
+                    t=90
+                )
             )
-        )
-        fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=out_name)
-
-        # Customize the z axis.
-        #ax.set_zlim(-1.01, 1.01)
-        #ax.zaxis.set_major_locator(LinearLocator(10))
-        #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-        
-        # Add a color bar which maps values to colors.
-        #fig.colorbar(surf, shrink=0.5, aspect=5)
-        return fig
+            fig = go.Figure(data=plotly_surf,layout=layout)
+            ploff.plot(fig,filename=out_name)
     
-    def plot_uv(self,plot_type='mag_db',out_name='test'):
+            # Customize the z axis.
+            #ax.set_zlim(-1.01, 1.01)
+            #ax.zaxis.set_major_locator(LinearLocator(10))
+            #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+            
+            # Add a color bar which maps values to colors.
+            #fig.colorbar(surf, shrink=0.5, aspect=5)
+            return fig
+        else:
+            raise Exception("Program %s not recognized" %(options['plot_program']))
+    
+    def plot_uv(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
         @brief plot calculated data in uv space
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @param[in/OPT] out_name - name of output plot (plotly)
+        @param[in/OPT] 
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return a handle for the figure
         '''
+        options = {}
+        options['plot_program'] = self.options['plot_program']
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
+            
         plot_data = self.get_data(plot_type,mean_flg=True)
-        U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        V = np.sin(np.deg2rad(self.elevation))
+        #U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #V = np.sin(np.deg2rad(self.elevation))
         #[Un,Vn,Dn] = increase_meshing_3D(U,V,plot_data,4)
-        Un = U
-        Vn = V
+        Un = self.U
+        Vn = self.V
         Dn = plot_data
         
         #plt_mask = np.isfinite(Dn.flatten())
@@ -624,71 +668,112 @@ class CalculatedSyntheticAperture:
         #    ,cmap=cm.summer,linewidth=0, antialiased=False)
         #ax.set_xlabel("U (Azimuth)")
         #ax.set_ylabel("V (Elevation)")
-        
-        ##### Plotly #####
-        plotly_surf = [go.Surface(z = Dn, x = Un, y = Vn)]
-        layout = go.Layout(
-            title='UV Beamformed Plot',
-            scene = dict(
-                xaxis = dict(
-                    title='U (Azimuth)'),
-                yaxis = dict(
-                    title='V (Elevation)'),
-                zaxis = dict(
-                    title='Beamformed value (%s)' %(plot_type))),
-            autosize=True,
-            margin=dict(
-                l=65,
-                r=50,
-                b=65,
-                t=90
+        if(options['plot_program'].lower()=='matlab'):
+            self.init_matlab_plotter()
+            fig = self.mp.figure()
+            self.mp.surf(Un,Vn,Dn)
+            self.mp.view([0,90])
+            self.mp.xlabel('U (Azimuth)')
+            self.mp.ylabel('V (Elevation)')
+            self.mp.zlabel(plot_type)
+            return fig
+            
+        elif(options['plot_program'].lower()=='plotly'): 
+            ##### Plotly #####
+            plotly_surf = [go.Surface(z = Dn, x = Un, y = Vn)]
+            layout = go.Layout(
+                title='UV Beamformed Plot',
+                scene = dict(
+                    xaxis = dict(
+                        title='U (Azimuth)'),
+                    yaxis = dict(
+                        title='V (Elevation)'),
+                    zaxis = dict(
+                        title='Beamformed value (%s)' %(plot_type))),
+                autosize=True,
+                margin=dict(
+                    l=65,
+                    r=50,
+                    b=65,
+                    t=90
+                )
             )
-        )
-        fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=out_name)
+            fig = go.Figure(data=plotly_surf,layout=layout)
+            ploff.plot(fig,filename=out_name)
+            return fig
+        else:
+            raise Exception("Program %s not recognized" %(options['plot_program']))
             
         
-    def plot_3d(self,plot_type='mag_db',out_name='aperture_results_3d.html'):
+    def plot_3d(self,plot_type='mag_db',out_name='aperture_results_3d.html',**arg_options):
         '''
         @brief plot calculated data in 3d space (radiation pattern)
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return a handle for the figure
         '''
+        options = {}
+        options['plot_program'] = self.options['plot_program']
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
+            
         plot_data = self.get_data(plot_type,mean_flg=True)
-        [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
+        #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
-        X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
-        Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        #Z = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #Y = plot_data*np.sin(np.deg2rad(self.elevation))
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type)
+        db_range = caxis_max-caxis_min
         
-        #and plot
-        plotly_surf = [go.Surface(z = Z, x = X, y = Y,surfacecolor=plot_data,
-                                  colorbar=dict(
-                                            title=plot_type,
-                                            tickvals=[0,db_range],
-                                            ticktext=[str(round(caxis_min,2)),str(round(caxis_max,2))]
-                                            ))]
-        layout = go.Layout(
-            title='Beamformed Data (%s)' %(plot_type),
-            scene = dict(
-                xaxis = dict(title='X'),
-                yaxis = dict(title='Y'),
-                zaxis = dict(title='Z')
-            ),
-            autosize=True,
-            margin=dict(
-                l=65,
-                r=50,
-                b=65,
-                t=90
-            ),
-        )
-        fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=out_name)
+        if(options['plot_program'].lower()=='matlab'):
+            self.init_matlab_plotter()
+            fig = self.mp.figure()
+            self.mp.surf(X,Z,Y,plot_data)
+            self.mp.xlim([-db_range,db_range],nargout=0)
+            self.mp.zlim([-db_range,db_range],nargout=0)
+            self.mp.ylim([0,db_range*2],nargout=0)
+            self.mp.xlabel('X',nargout=0)
+            self.mp.ylabel('Z',nargout=0)
+            self.mp.zlabel('Y',nargout=0)
+            self.mp.shading('interp',nargout=0)
+            self.mp.colorbar('XTickLabel',[str(caxis_min),str(caxis_max)],'XTick',[0,db_range])
+            self.mp.view([170,20])
+            return fig
+            
+        elif(options['plot_program'].lower()=='plotly'): 
+            #and plot
+            plotly_surf = [go.Surface(z = Y, x = X, y = Z,surfacecolor=plot_data,
+                                      colorbar=dict(
+                                                title=plot_type,
+                                                tickvals=[0,db_range],
+                                                ticktext=[str(round(caxis_min,2)),str(round(caxis_max,2))]
+                                                ))]
+            layout = go.Layout(
+                title='Beamformed Data (%s)' %(plot_type),
+                scene = dict(
+                    xaxis = dict(title='X'),
+                    yaxis = dict(title='Z'),
+                    zaxis = dict(title='Y')
+                ),
+                autosize=True,
+                margin=dict(
+                    l=65,
+                    r=50,
+                    b=65,
+                    t=90
+                ),
+            )
+            fig = go.Figure(data=plotly_surf,layout=layout)
+            ploff.plot(fig,filename=out_name)
+            return fig
+        else:
+            raise Exception("Program %s not recognized" %(options['plot_program']))
        
         
-    def plot_scatter_3d(self,plot_type='mag_db',out_name='test'):
+    def plot_scatter_3d(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
         @brief scatter plot calculated data in 3d space (radiation pattern)
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
@@ -697,12 +782,14 @@ class CalculatedSyntheticAperture:
         
         #get our data
         plot_data = self.get_data(plot_type,mean_flg=True)
-        [plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
+        #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
-        X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
-        Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        #Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type)
+        db_range = caxis_max-caxis_min
         
         #and plot
         plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
@@ -738,6 +825,14 @@ class CalculatedSyntheticAperture:
         #ax = fig.add_subplot(111, projection='3d')
         #ax.plot_surface(X,Y,Z,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
+        return fig
+    
+    def init_matlab_plotter(self):
+        '''
+        @brief initialize the matlab plotter (dont open if already open)
+        '''
+        if not self.mp:
+            self.mp = MatlabPlotter(**self.options)
     
     def get_data(self,data_str,freqs='all',**arg_options):
         '''
@@ -998,6 +1093,20 @@ class CalculatedSyntheticAperture:
         for i in range(len(az)):
             pass
         return tuple(out_vals)
+    
+    def get_3d_data(self,data_type='mag_db'):
+        '''
+        @brief get 3D data values X,Y,Z for 3D plotting
+        @param[in] data_type - the type data to get. can be 'mag','phase','phase_d','real','imag'
+        @return [X,Y,Z,plot_data_adj,caxis_min,caxis_max] 3D data positions(X,Y,Z), adjusted plot data (to remove negative vals),
+            min and max values of our caxis (colorbar)
+        '''
+        plot_data = self.get_data(data_type,mean_flg=True)
+        [plot_data_adj,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,data_type,60)
+        Z = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        X = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        Y = plot_data_adj*np.sin(np.deg2rad(self.elevation))
+        return [X,Y,Z,plot_data_adj,caxis_min,caxis_max]
         
     @property
     def mag_db(self):
@@ -1074,14 +1183,14 @@ class CalculatedSyntheticAperture:
         '''
         @brief get our U grid values from our angles
         '''
-        return np.sin(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        return np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
     
     @property
     def V(self):
         '''
         @brief get our V grid values from our angles
         '''
-        return np.sin(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        return np.sin(np.deg2rad(self.elevation))
     
     @property
     def num_positions(self):

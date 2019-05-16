@@ -220,7 +220,8 @@ if __name__=='__main__':
         #pos[:,2] = np.append(Z.flatten(),Z.flatten())
         mysp.all_positions = pos;
         #mysp.freq_list = [26.5e9,30e9,40e9]
-        mysp.freq_list= np.arange(27,41)*1e9
+        mysp.freq_list = [40e9]
+        #mysp.freq_list= np.arange(27,41)*1e9
         #mysp.add_plane_wave(0,0,-90)
         mysp.add_plane_wave(45,0,-90)
         #mysp.add_plane_wave(45,45,-90)
@@ -247,7 +248,7 @@ if __name__=='__main__':
         #windowing
         #mysp.set_sine_window() #set a sine window weighting
         #mysp.set_cosine_sum_window_by_name('blackman-nutall')
-        #mysp.set_cosine_sum_window_by_name('hamming')
+        mysp.set_cosine_sum_window_by_name('hamming')
         #mysp.set_sine_window()
         #mysp.plot_positions()
         
@@ -258,13 +259,13 @@ if __name__=='__main__':
         myant = Antenna(test_ant_path,dimension=1,plane='az')
         myap = myant['pattern']
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
-        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[30e9,40e9],verbose=True)
-        #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
+        #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[30e9,40e9],verbose=True)
+        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
         #UV beamform
         #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
-        #mycsa.plot_3d()
-        mycsa.plot_uv()
+        mycsa.plot_3d()
+        #mycsa.plot_uv()
         #mycsa.plot_scatter_3d()
         #print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
         bw_freqs = 'all'
