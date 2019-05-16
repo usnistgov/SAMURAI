@@ -389,12 +389,13 @@ if __name__=='__main__':
     #csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_sparse.csv"
     
     #trf/wrf v2 testing
-    mysam = SAMURAI_System(True)
+    #mysam = SAMURAI_System(True)
+    mysam = SAMURAI_System(False)
     mysam.connect_rx_positioner()
     [stat,_,_] = mysam.rx_positioner.get_status()
-    if not stat[2]:
-        raise Exception("Not in simulation mode")
-    mysam.csv_sweep('./test/','sweep_files/samurai_planar_vp.csv',run_vna=False)
+    #if not stat[2]:
+    #    raise Exception("Not in simulation mode")
+    mysam.csv_sweep('./test/','sweep_files/samurai_planar_hp.csv',run_vna=False)
     mysam.disconnect_rx_positioner()
     
     
