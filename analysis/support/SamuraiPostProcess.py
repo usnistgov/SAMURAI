@@ -599,8 +599,12 @@ class CalculatedSyntheticAperture:
         
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
-            fig = self.mp.surf(self.azimuth,self.elevation,self.plot_data)
-            return fig
+            fig = self.mp.figure()
+            self.mp.surf(self.azimuth,self.elevation,plot_data)
+            self.mp.view([0,90])
+            self.mp.xlabel('Azimuth')
+            self.mp.ylabel('Elevation')
+            self.mp.zlabel(plot_type)
             
         elif(options['plot_program'].lower()=='plotly'):
             plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
@@ -666,7 +670,12 @@ class CalculatedSyntheticAperture:
         #ax.set_ylabel("V (Elevation)")
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
-            fig = self.mp.surf(Un,Vn,Dn)
+            fig = self.mp.figure()
+            self.mp.surf(Un,Vn,Dn)
+            self.mp.view([0,90])
+            self.mp.xlabel('U (Azimuth)')
+            self.mp.ylabel('V (Elevation)')
+            self.mp.zlabel(plot_type)
             return fig
             
         elif(options['plot_program'].lower()=='plotly'): 
@@ -721,18 +730,22 @@ class CalculatedSyntheticAperture:
         
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
-            fig = self.mp.surf(X,Y,Z)
-            self.mp.xlim([-db_range,db_range])
-            self.mp.ylim([-db_range,db_range])
-            self.mp.zlim([-db_range,db_range])
-            self.mp.xlabel('X')
-            self.mp.ylabel('Y')
-            self.mp.zlabel('Z')
+            fig = self.mp.figure()
+            self.mp.surf(X,Z,Y,plot_data)
+            self.mp.xlim([-db_range,db_range],nargout=0)
+            self.mp.zlim([-db_range,db_range],nargout=0)
+            self.mp.ylim([0,db_range*2],nargout=0)
+            self.mp.xlabel('X',nargout=0)
+            self.mp.ylabel('Z',nargout=0)
+            self.mp.zlabel('Y',nargout=0)
+            self.mp.shading('interp',nargout=0)
+            self.mp.colorbar('XTickLabel',[str(caxis_min),str(caxis_max)],'XTick',[0,db_range])
+            self.mp.view([170,20])
             return fig
             
         elif(options['plot_program'].lower()=='plotly'): 
             #and plot
-            plotly_surf = [go.Surface(z = Z, x = X, y = Y,surfacecolor=plot_data,
+            plotly_surf = [go.Surface(z = Y, x = X, y = Z,surfacecolor=plot_data,
                                       colorbar=dict(
                                                 title=plot_type,
                                                 tickvals=[0,db_range],
@@ -742,8 +755,8 @@ class CalculatedSyntheticAperture:
                 title='Beamformed Data (%s)' %(plot_type),
                 scene = dict(
                     xaxis = dict(title='X'),
-                    yaxis = dict(title='Y'),
-                    zaxis = dict(title='Z')
+                    yaxis = dict(title='Z'),
+                    zaxis = dict(title='Y')
                 ),
                 autosize=True,
                 margin=dict(
@@ -819,7 +832,7 @@ class CalculatedSyntheticAperture:
         @brief initialize the matlab plotter (dont open if already open)
         '''
         if not self.mp:
-            self.mp = MatlabPlotter(self.options)
+            self.mp = MatlabPlotter(**self.options)
     
     def get_data(self,data_str,freqs='all',**arg_options):
         '''
