@@ -176,13 +176,15 @@ if __name__=='__main__':
     testb = False
     #test case for simple beamforming
     if(testa):
-        '''
+        
         #measured data test
-        test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
+        #test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
+        test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
+        #test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_horizontal_polarization\binary\metafile_binary.json"
         #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
         mysp = SamuraiBeamform(test_path,verbose=True)
-        '''
         
+        '''
         #synthetic data test
         #testing our synthetic data capabilities
         mysp = SamuraiBeamform(verbose=True,units='m')
@@ -227,7 +229,7 @@ if __name__=='__main__':
         #mysp.add_plane_wave(45,45,-90)
         #mysp.add_plane_wave(32,43,-90)
         #mysp.add_plane_wave(0,45,-90)
-        
+        '''
         '''
         #synthetic 1 beam lines test
         mysp = SamuraiBeamform(verbose=True,units='m')
@@ -246,7 +248,7 @@ if __name__=='__main__':
         '''
         
         #windowing
-        mysp.set_sine_window() #set a sine window weighting
+        #mysp.set_sine_window() #set a sine window weighting
         #mysp.set_cosine_sum_window_by_name('blackman-nutall')
         #mysp.set_cosine_sum_window_by_name('hamming')
         #mysp.set_sine_window()
@@ -255,23 +257,24 @@ if __name__=='__main__':
         #azel without antenna
         #mycsa_list = mysp.beamforming_farfield(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
         #azel with antenna
-        test_ant_path = './data/test_ant_pattern.csv'
-        myant = Antenna(test_ant_path,dimension=1,plane='az')
-        myap = myant['pattern']
+        #test_ant_path = './data/test_ant_pattern.csv'
+        #myant = Antenna(test_ant_path,dimension=1,plane='az')
+        #myap = myant['pattern']
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[30e9,40e9],verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
-        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,.1),np.arange(-90,90,10),'all',verbose=True)
+        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,40e9],verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
         #UV beamform
         #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
         mycsa.plot_3d()
-        print("Max Beamwidth ",mycsa.get_max_beamwidth())
+        mycsa.mp.view([90,90])
+        #print("Max Beamwidth ",mycsa.get_max_beamwidth())
         #mycsa.plot_uv()
         #mycsa.plot_scatter_3d()
         #print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
-        bw_freqs = 'all'
-        mybw = mycsa.get_beamwidth(mycsa.get_max_beam_idx(bw_freqs),bw_freqs)
+        #bw_freqs = 'all'
+        #mybw = mycsa.get_beamwidth(mycsa.get_max_beam_idx(bw_freqs),bw_freqs)
         [az,azv] = mycsa.get_azimuth_cut(0,mean_flg=True)
         [el,elv] = mycsa.get_elevation_cut(0,mean_flg=True)
         #mycsa.get_data('mag_db')
