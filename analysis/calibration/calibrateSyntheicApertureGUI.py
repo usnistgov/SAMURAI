@@ -46,11 +46,11 @@ class CalSAGui:
 #        self.setupOptions = tk.LabelFrame(self.tkroot,text='Setup');
 #        self.setupOptions.pack(side= tk.LEFT)
         
-        initMetaPath = r'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/'
+        initMetaPath = r'\\cfs2w\67_ctl/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/'
         self.wdir = initMetaPath
-        self.initMetaSearchDir = r'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/'
+        self.initMetaSearchDir = r'\\cfs2w\67_ctl/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/'
         
-        self.default_output_dir = 'U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/calibrated'
+        self.default_output_dir = '\\cfs2w\67_ctl/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/calibrated'
         #template paths
         
         #our check button group
