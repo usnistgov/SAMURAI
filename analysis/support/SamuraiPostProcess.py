@@ -19,6 +19,7 @@ from samurai.analysis.support.generic import incomplete,deprecated,verified
 from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
 from samurai.analysis.support.MatlabPlotter import MatlabPlotter
+from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 
 @deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
@@ -422,6 +423,10 @@ class SamuraiSyntheticApertureAlgorithm:
             else:
                 #otherwise we are using the meca
                 pos = self.all_positions
+            if(self.metafile['metafile_version']<2): #if pre v2, we need to convert
+                pos = np.matmul(pos,v1_to_v2_convert) #convert version 1 to version 2
+            elif(self.metafile['metafile_version']<3): #we are currently on v2
+                pass
         else:
             #otherwise we are using the meca
             pos = self.all_positions
@@ -497,9 +502,9 @@ def get_k_vectors(az_u,el_v,coord='azel',**arg_options):
     el = np.deg2rad(el_v.flatten())
     #now calculate our steering vector values
     k_vecs = np.array([
-            np.cos(el)*np.cos(az), #propogation direction (X)
-            np.cos(el)*np.sin(az), #side to side (Y)
-            np.sin(el) #up and down (Z)
+            np.cos(el)*np.sin(az), #side to side (X)
+            np.sin(el), #up and down (Y)
+            np.cos(el)*np.cos(az) #propogation direction (Z)
             ])
     return k_vecs
 
