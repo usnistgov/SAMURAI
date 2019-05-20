@@ -370,7 +370,7 @@ def evenly_split_metafile(metafile_path,num_splits,label='split'):
     split_metafile(metafile_path,meas_split)
 
 
-from shutil import copyfile
+#from shutil import copyfile
 
 def copy_s_param_measurement_to_binary(metafile_path,output_directory):
     '''

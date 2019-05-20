@@ -99,6 +99,40 @@ def incomplete(reason):
         return new_func1
     return decorator
 
+#decorator for verified functions. This should be set by a flag
+#DOES NOT WORK RIGHT NOW! (How Ironic)
+def verified(reason):
+    '''
+    @brief decorator for verified functions
+        for now is just a label. eventually this should throw a flag if a global flag is set
+    '''
+    def decorator(func1):
+        return func1 #dont do anything for now
 
+    return decorator
+
+import math
+def round_arb(value,multiple):
+    '''
+    @brief round a number to a multiple of another arbitrary number
+    @example >round_arb(5.2,2) = 6
+    @param[in] value - value to round
+    @param[in] multiple - multiple to round to 
+    @return rounded value
+    '''
+    ndigs = math.ceil(-1*math.log10(multiple))
+    if multiple>0:
+        ndigs += 1
+    return round(multiple*round(value/multiple),ndigits=ndigs)
+
+def floor_arb(value,multiple):
+    '''
+    @brief floor a number to an arbitray multiple
+    @param[in] value - value to round
+    @param[in] multiple - multiple to floor to 
+    @return floored value
+    '''
+    ndigs = math.ceil(-1*math.log10(multiple))
+    return round(multiple*math.floor(value/multiple),ndigits=ndigs)
 
 

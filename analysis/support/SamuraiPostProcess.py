@@ -6,23 +6,27 @@ Created on Fri Mar 22 15:41:34 2019
 """
 
 import numpy as np #import constants
-import math #for vectorize math functions
+#import math #for vectorize math functions
 import scipy.constants as sp_consts #import constants for speed of light
 import scipy.interpolate as interp
 import cmath #cmath for phase
 from numba import vectorize
 import six
-
-from plotting_help import increase_meshing_3D
+import json
 
 from samurai.analysis.support.metaFileController import MetaFileController 
-from samurai.analysis.support.generic import incomplete
-   
+from samurai.analysis.support.generic import incomplete,deprecated,verified
+from samurai.analysis.support.generic import round_arb
+from samurai.analysis.support.snpEditor import SnpEditor
+from samurai.analysis.support.MatlabPlotter import MatlabPlotter
+
+@deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
     '''
     @brief this is a class to inherit from for processing samurai data
         This will implement generic things like loading metadata used for all
         post-processing techniques. It currently inherits from metafile controller
+    @todo add positional masking capability (masking functions, polygon, and manual points)
     '''
     def __init__(self,metafile_path, **arg_options):
         '''
@@ -51,6 +55,460 @@ class SamuraiPostProcess(MetaFileController):
         freq_list = self.loaded_data[0].S[load_key].freq_list #get frequencies from first file (assume theyre all the same)
         return freq_list,s_vals
 
+#generic class for synthetic aperture algorithms
+class SamuraiSyntheticApertureAlgorithm:
+    '''
+    @brief this is a generic class for samurai aglorithms.
+    this should be completed and the rest of this restructured in the future
+    This will allow a more generic things to work with such as importing measured vs. simed values
+    '''
+    def __init__(self,metafile_path=None,**arg_options):
+        '''
+        @brief initilaize the SamSynthApAlg class
+        @param[in/OPT] metafile_path - metafile for real measurements (defaults to None)
+        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit
+            verbose         - whether or not to be verbose (default False)
+            antenna_pattern - AntennaPattern Class parameter to include (default None)
+            measured_values_flg - are we using measurements, or simulated data (default True)
+            load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+        '''
+        #options for the class
+        self.options = {}
+        self.options['verbose']         = False
+        self.options['antenna_pattern'] = None
+        self.options['measured_values_flg'] = True
+        self.options['load_key']        = 21
+        self.options['units']           = 'mm' #units of our position measurements (may want to load from metafile)
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val #set kwargs
+
+        #initialize so we know if weve loaded them or not
+        self.all_s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
+        self.freq_list = None
+        self.all_weights = None #weighting for our antennas
+        self.all_positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
+        self.metafile = None
+        if(metafile_path): #if theres a metafile load it
+            self.load_metafile(metafile_path)
+
+    def load_metafile(self,metafile_path,freq_mult=1e9):
+        '''
+        @brief function to load in our metafile and S parameter data from it
+        @param[in] metafile_path - path to the metafile to load measurement from
+        @param[in/OPT] freq_mult - how much to multiply the freq by to get hz (e.g. 1e9 for GHz)
+        '''
+        self.metafile = MetaFileController(metafile_path)
+        [s_data,_] = self.metafile.load_data(verbose=self.options['verbose'])
+        #now get the values we are looking for
+        self.all_s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
+        self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
+        self.freq_list = self.freq_list*freq_mult
+        self.all_positions = self.metafile.get_positions()
+        
+    def load_positions_from_file(self,file_path,**arg_options):
+        '''
+        @brief load positions from a file (like a csv)
+        @param[in] file_path - path to file to load
+        @param[in/OPT] arg_options - keyword arguments as follows:
+                comment_character - character to ignore as comments when loading (default '#')
+        '''
+        options = {}
+        options['comment_character'] = '#'
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        ext = os.path.splitext(file_path)[-1].strip('.')
+        if ext=='csv':
+            #load values in from CSV
+            pos = np.loadtxt(file_path,delimiter=',',comments=options['comment_character'])
+            self.all_positions = pos[:,:3]
+        
+
+    def validate_data(self):
+        '''
+        @brief ensure we have loaded all of the data to run the algorithm
+        '''
+        if np.any(self.positions==None) or len(self.positions)<1:
+            raise(Exception("Positional data not provided"))
+        if np.any(self.s_parameter_data==None) or len(self.s_parameter_data)<1:
+            raise(Exception("S Parameter data not provided"))
+        if np.any(self.freq_list==None) or len(self.freq_list)<1:
+            raise(Exception("Frequency list not provided"))
+        if np.any(self.weights==None) or len(self.weights)<1:
+            raise(Exception("Weights not set"))
+            
+    def get_positions(self,units='m'):
+        '''
+        @brief check our units options and get our positions in a given unit
+        @param[in/OPT] units - what units to get our positions in (default meters)
+        @return return our position in whatever units specified (default meters)
+        '''
+        to_meters_dict={ #dictionary to get to meters
+                'mm': 0.001,
+                'cm': 0.01,
+                'm' : 1,
+                'in': 0.0254
+                }
+        
+        #multiply to get to meters and divide to get to desired units
+        multiplier = to_meters_dict[self.options['units']]/to_meters_dict[units] 
+        return self.positions*multiplier
+    
+    def get_steering_vectors(self,az_u,el_v,k,coord='azel',**arg_options):
+        '''
+        @brief get our steering vectors with wavenumber provided. calculates np.exp(1j*k*kvec)
+            where kvec is i_hat+j_hat+k_hat
+            It is better to not use this for large calculations. Instead caculate the k vectors and get steering vectors in the algorithm
+            to prevent recalculating k vectors
+        @param[in] az_u - azimuth or u values to get steering vectors for 
+        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+        @param[in/OPT] k - wavenumber to calculate with. If None, vectors 
+        @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+        @param[in/OPT] arg_options - keyword argument options as follows
+            - None Yet!
+        @return the steering vectors for az_u and el_v at the provided k value, or without a k value.
+            The first axis of the returned matrix is the position value 
+            The second axis corresponds to the azel values
+        '''
+        psv = self.get_partial_steering_vectors(az_u,el_v,coord,**arg_options)
+        if not k:
+            k=1 #default to 1
+        steering_vectors = np.exp(-1j*k*psv)
+        return steering_vectors
+    
+    def get_partial_steering_vectors(self,az_u,el_v,coord='azel',**arg_options):
+        '''
+        @brief get our partial steering vectors vector to later calculate the steering vector
+            calculates i_hat+j_hat+k_hat dot position 
+            (i.e. k_vectors*pos_vecs) and multiplies by position vectors
+            To get steering vectors use np.exp(-1j*k*psv_vecs)
+        @param[in] az_u - azimuth or u values to get steering vectors for 
+        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+        @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+        @param[in/OPT] arg_options - keyword argument options as follows
+            - None Yet!
+        @return the calculated partial steering vectors vectors for az_u and el_v at the provided k value, or without a k value.
+            The first axis of the returned matrix is the position value 
+            The second axis corresponds to the azel values
+        '''
+        #[az,el] = self.to_azel(az_u,el_v,coord) #change to azel
+        #az = np.deg2rad(az.reshape((-1))) #flatten arrays along the desired axis and change to radians
+        #el = np.deg2rad(el.reshape((-1)))
+        #get and center our positions
+        pos = self.get_positions('m')[:,0:3] # positions 4,5,6 are rotations only get xyz
+        pos -= pos.mean(axis=0) #center around mean values
+        
+        #now calculate our steering vector values
+        k_vecs = get_k_vectors(az_u,el_v,coord,**arg_options)
+        psv_vecs = np.dot(pos,k_vecs) #this will multiply sv_vals by our x,y,z values and sum the three
+        return psv_vecs
+    
+    def add_plane_wave(self,az_u,el_v,amplitude_db=-50,coord='azel'):
+        '''
+        @brief add a plane wave to the s parameter data.
+            If data doesnt exist then start from 0s
+        @param[in] az_u - azel (or uv) pairs of angles for plane waves
+        @param[in] el_v - azel (or uv) pairs of angles for plane waves
+        @param[in] amplitude_db - amplitude of the wave in dB (default -50)
+        @param[in/OPT] coord - coordinate system to use (uv or azel) default azel
+        '''
+        if np.any(self.freq_list==None) or len(self.freq_list)<1:
+            raise Exception("Freqeuncy list not defined (use obj.freq_list=freq_list)")
+        if np.any(self.all_positions==None) or len(self.all_positions)<1:
+            raise Exception("Positions not defined (use obj.all_positions=positions)")
+        if np.any(self.s_parameter_data==None) or len(self.s_parameter_data)<1:
+            self.all_s_parameter_data = np.zeros((self.all_positions.shape[0],len(self.freq_list)),dtype='complex128')
+        #change to list
+        if not hasattr(az_u,'__iter__'):
+            az_u = [az_u]
+        if not hasattr(el_v,'__iter__'):
+            el_v = [el_v]
+        [az,el] = to_azel(az_u,el_v,coord) #change to azel
+        #check that the length is the same
+        if len(az) != len(el):
+            raise Exception("Input angle vectors must be the same length")
+        #get linear amplitude (assume 10^(db/20))
+        amplitude = 10**(amplitude_db/20)
+        #now get our k vector values
+        for fi,freq in enumerate(self.freq_list):
+            sv = self.get_steering_vectors(az,el,get_k(freq)) #get the steering vector
+            sv_sum = sv.sum(axis=1)*amplitude #sum across freqs and get our amplitude
+            self.all_s_parameter_data[:,fi]+=sv_sum
+    
+    
+    ### Here we definine some standard weighting window types ###
+    def get_max_positions(self):
+        '''
+        @brief return maximum x,y,z coordinate values unmasked positions
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].max(axis=0)
+    
+    def get_min_positions(self):
+        '''
+        @brief return minimum x,y,z coordinate values
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].min(axis=0)
+    
+    def get_rng_positions(self):
+        '''
+        @brief return range x,y,z coordinate values
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].ptp(axis=0)
+        
+    def set_sine_window(self):
+        '''
+        @brief set our weights to reflect a sine window
+        '''
+        mins = self.get_min_positions()
+        rng  = self.get_rng_positions()
+        #this follows the equation sin(pi*n/N)
+        #N is our range n is our position minus our min
+        N = rng
+        n = self.positions[:,:3]-mins
+        vals = np.divide(np.pi*n, N, out=np.ones_like(n)*np.pi/2, where=N!=0) #take care of where N=0 (planar arrays)
+        self.weights = np.sin(vals).prod(axis=1) #now take the sine
+    
+    def set_sine_power_window(self,power):
+        '''
+        @brief set our weights to reflect a sine power window
+            Hann window is power=2
+        @param[in] power - power to set the sine to (e.g. power=2 produces sin(pi*n/N)**2)
+        '''
+        mins = self.get_min_positions()
+        rng  = self.get_rng_positions()
+        #this follows the equation sin(pi*n/N)
+        #N is our range n is our position minus our min
+        N = rng
+        n = self.positions[:,:3]-mins
+        vals = np.divide(np.pi*n, N, out=np.ones_like(n)*np.pi/2, where=N!=0) #take care of where N=0 (planar arrays)
+        vals = np.sin(vals)**power #now take the sine
+        self.weights = vals.prod(axis=1)
+        
+    def set_cosine_sum_window(self,coeffs):
+        '''
+        @brief set our weights for a generalized cosine sum window
+        @param[in] coeffs - list of coefficients for a0,a1,a2,...,etc. can be any length
+        '''
+        mins = self.get_min_positions()
+        rng  = self.get_rng_positions()
+        coeffs=np.array(coeffs)
+        if np.round(coeffs.sum(),10) != 1:
+            raise Exception("Coefficients do not add to 1 (they add to %f)" %coeffs.sum())
+        #this follows the equation sin(pi*n/N)
+        #N is our range n is our position minus our min
+        N = rng
+        n = self.positions[:,:3]-mins
+        cos_mults = (np.arange(len(coeffs)-1)+1) #k=1,2,3,4,...,etc
+        cm = cos_mults.reshape((1,1,-1))
+        num = 2*np.pi*cm*n[:,:,np.newaxis]
+        den = N.reshape(1,-1,1)
+        vals = np.divide(num, den, out=np.ones_like(num)*np.pi, where=den!=0)
+        cf0 = coeffs[0]
+        coeffs = coeffs[1:].reshape((1,1,-1))
+        vals = (-1)**(cm)*np.cos(vals)*coeffs #a1cos(2pn/N),a2cos(4pin/N)
+        vals=vals.sum(axis=2)+cf0 #a0+a1cos(2pn/N)+a2cos(4pin/N)
+        self.weights=vals.prod(axis=1)
+        
+        
+    def set_cosine_sum_window_by_name(self,name):
+        '''
+        @brief set the cosine sum window by a name
+        @param[in] name - name of filter ('hann','hamming','blackman','nutall',
+                      'blackman-nutall','blackman-harris','flat-top')
+        @note these coefficient values are taken from wikipedia
+        '''
+        coeff_dict = {
+                'hann'            :[0.5,0.5],
+                'hamming'         :[25/46,1-(25/46)],
+                'blackman'        :[7938/18608,9240/18608,1430/18608],
+                'nutall'          :[0.355768,0.487396,0.144232,0.012604],
+                'blackman-nutall' :[0.3635819,0.4891775,0.1365995,0.0106411],
+                'blackman-harris' :[0.35875,0.48829,0.14128,0.01168],
+                'flat-top'        :[0.21557895,0.41663158,0.277263158,0.083578947,0.006947368],
+                }
+        coeffs = coeff_dict[name.lower()]  #get the coeffs
+        self.set_cosine_sum_window(coeffs) #set the values
+        
+        
+    def set_binomial_window(self):
+        '''
+        @brief set a binomial window on the data
+        @todo implement this...
+        '''
+        pass
+    
+    def reset_window(self):
+        '''
+        @brief reset our window to all equal weighting (i.e. no windowing)
+        '''
+        self.weights = np.ones(self.positions.shape[0])
+            
+    def plot_positions(self,pos_units='m',plot_type='weights',**arg_options):
+        '''
+        @brief plot the positions of our aperture in 3D
+            points will be colored based on the plot type
+        @param[in/OPT] pos_units - units for position (m,mm,cm,in)
+        @param[in/OPT] plot_type - whether to plot 'weights','mag','phase','phase_d','real','imag'
+        @param[in/OPT] **arg_options - keyword args as follows 
+                out_name - plot output name (for plotly)
+                freq_point - which s-parameter frequency point to plot (default 0)
+        '''
+        options = {}
+        options['out_name'] = 'positions_plot.html'
+        options['freq_point'] = 0
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        fp = options['freq_point']
+        #get our data 
+        plot_data_dict = {
+            'weights':self.weights,
+            'mag_db':lambda: 20*np.log10(np.abs(self.s_parameter_data[:,fp])),
+            'mag':lambda: np.abs(self.s_parameter_data[:,fp]),
+            'phase':lambda: np.angle(self.s_parameter_data[:,fp]),
+            'phase_d':lambda: np.angle(self.s_parameter_data[:,fp])*180/np.pi,
+            'real':lambda: np.abs(self.s_parameter_data[:,fp]),
+            'imag':lambda: np.abs(self.s_parameter_data[:,fp])
+            }
+        plot_data =  plot_data_dict[plot_type]#use phase at first frequency
+        pos = self.get_positions(pos_units)
+        #now get our xyz values
+        X = pos[:,0]
+        Y = pos[:,1]
+        Z = pos[:,2]
+        #and plot
+        plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
+                                    mode = 'markers',
+                                    marker = dict(
+                                            color=plot_data,
+                                            colorbar=dict(title='Phase (degrees)')
+                                            )
+                                    )]
+        layout = go.Layout(
+            title='Aperture Positions',
+            scene = dict(
+                xaxis = dict(title='X'),
+                yaxis = dict(title='Y'),
+                zaxis = dict(title='Z')
+            ),
+            autosize=True,
+            margin=dict(l=65,r=50,b=65,t=90),
+        )
+        fig = go.Figure(data=plotly_surf,layout=layout)
+        ploff.plot(fig,filename=options['out_name'])
+    
+    
+    @property
+    def positions(self):
+        '''
+        @brief getter for our positinos. This will allow us to mask out undesired locations
+        @return all desired positions that are not masked out
+        @todo implemment masking
+        '''
+        if self.metafile:
+            if self.metafile["positioner"]=='maturo':
+                #then finangle the positions to match the meca
+                z = self.all_positions[:,0]
+                y = self.all_positions[:,3]
+                x = np.zeros_like(z)
+                alph = np.zeros_like(z)
+                beta = np.zeros_like(z)
+                gamm = np.zeros_like(z)
+                self.options['units']='cm'
+                pos = np.stack([x,y,z,alph,beta,gamm],axis=1)
+            else:
+                #otherwise we are using the meca
+                pos = self.all_positions
+        else:
+            #otherwise we are using the meca
+            pos = self.all_positions
+        return pos
+    
+    @property
+    def s_parameter_data(self):
+        '''
+        @brief getter for our s parameter data. This will allow us to mask out undesired locations
+        @return all s_parameter_data for desired positions that are not masked out
+        @todo implemment masking
+        '''
+        return self.all_s_parameter_data
+    
+    @property
+    def weights(self):
+        '''
+        @brief getter for our antenna weights
+        @return all weighting values for desired positions that are not masked out
+        @todo implemment masking
+        '''
+        if np.any(self.all_weights==None) or len(self.all_weights)<1:
+            return np.ones(self.positions.shape[0])
+        else:
+            return self.all_weights
+    @weights.setter
+    def weights(self,weights):
+        '''
+        @brief setter for our antenna weights
+            for now these weights will be for just our values in use (masking doesnt effect)
+            This means weights will need to be recalculated when masking is done
+        @param[in] weights - weights to set
+        @todo implemment masking
+        '''
+        self.all_weights = weights
+        
+def to_azel(az_u,el_v,coord,replace_val = np.nan):
+    '''
+    @brief change a provided coordinate system ('azel' or 'uv') to azel
+    @param[in] az_u list of azimuth or u values
+    @param[in] el_v list of azimuth or v values
+    @param[in] coord - what coordinate system our input values are
+    @param[in/OPT] replace_val - value to replace uv outside of radius 1 with (default is nan)
+    @return lists of [azimuth,elevation] values
+    '''
+    if(coord=='azel'):
+        azimuth = az_u
+        elevation = el_v
+    elif(coord=='uv'):
+        l1_vals = np.sqrt(az_u**2*el_v**2)<1
+        az_u[l1_vals] = np.nan
+        el_v[l1_vals] = np.nan
+        azimuth = np.rad2deg(np.arctan2(az_u,np.sqrt(1-az_u**2-el_v**2)))
+        elevation = np.rad2deg(np.arcsin(el_v))
+    return np.array(azimuth),np.array(elevation)
+ 
+def get_k_vectors(az_u,el_v,coord='azel',**arg_options):
+    '''
+    @brief get our k vector to later calculate the steering vector
+        calculates i_hat+j_hat+k_hat 
+        To get steering vectors use np.exp(-1j*k*dot(k_vectors*position_vectors))
+    @param[in] az_u - azimuth or u values to get k vecs for
+    @param[in] el_v - elevatio nor v values to get k vecs for
+    @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
+    @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
+    @param[in/OPT] arg_options - keyword argument options as follows
+        - None Yet!
+    @return the calculated k vectors for az_u and el_v at the provided k value, or without a k value.
+        The first axis of the returned matrix is the x,y,z components respectively
+        The second axis is each of the measurements from the input az_u,el_v
+    '''
+    az = np.deg2rad(az_u.flatten())
+    el = np.deg2rad(el_v.flatten())
+    #now calculate our steering vector values
+    k_vecs = np.array([
+            np.cos(el)*np.cos(az), #propogation direction (X)
+            np.cos(el)*np.sin(az), #side to side (Y)
+            np.sin(el) #up and down (Z)
+            ])
+    return k_vecs
+
+def get_k(freq,eps_r=1,mu_r=1):
+    cr = sp_consts.speed_of_light/np.sqrt(eps_r*mu_r)
+    lam = cr/freq
+    k = 2*np.pi/lam
+    return k
+    
 #import matplotlib.pyplot as plt
 #from matplotlib import cm
 #from mpl_toolkits.mplot3d import Axes3D
@@ -64,95 +522,147 @@ class CalculatedSyntheticAperture:
         It also contains methods to nicely plot each of these values.
         This will be a single beamformed setup
     '''
-    def __init__(self,ELEVATION,AZIMUTH,complex_values,**arg_options):
+    def __init__(self,AZIMUTH,ELEVATION,complex_values=np.array([]),freqs=np.array([]),**arg_options):
         '''
-        @brief intializer for the class
-        @param[in] THETA - meshgrid output of THETA angles (elevation up from xy plane)
-        @param[in] PHI   - meshgrid output of PHI angles   (azimuth from x)
-        @param[in] complex_values - values corresponding to a direction [THETA[i,j],PHI[i,j]]
-        @param[in] arg_options - optional input keyword arguments as follows:
-                -None yet
+        @brief intializer for the class. This can be initialized without any data and 
+                        just use the self.add_frequency_data() method
+        @param[in] AZIMUTH   - meshgrid output of AZIMUTH angles   (azimuth from x) (2D)
+        @param[in] ELEVATION - meshgrid output of ELEVATION angles (elevation up from xy plane) (2D)
+        @param[in/OPT] complex_values - values corresponding to a direction [THETA[i,j],PHI[i,j]]
+        @param[in/OPT] freqs - list of frequencies (if we are storing multiple)
+        @param[in/OPT] arg_options - optional input keyword arguments as follows:
+                plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return CalculatedSyntheticAperture class
         '''
         self.options = {}
-        self.elevation = ELEVATION
-        self.azimuth   = AZIMUTH
-        self.complex_values  = complex_values
+        self.options['plot_program'] = 'matlab'
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
+        AZ = np.array(AZIMUTH)
+        EL = np.array(ELEVATION)
+        if(AZ.shape != EL.shape):
+            raise Exception("Azimuth and Elevation meshgrids must be the same size")
+        self.elevation = EL
+        self.azimuth   = AZ
+        self.mp = None #initialize matlab plotter to none
+        self.complex_values = np.array([])
+        self.freq_list = np.array([])
+        if complex_values.size>0 and freqs.size>0: #populate data if provided
+            self.add_frequency_data(complex_values,freqs)
+        
+    def add_frequency_data(self,complex_values,freqs):
+        '''
+        @brief add data for a frequency or frequencies
+        @param[in] complex_values - array of complex values for each frequency (pointing angle dim 0 and 1, freq dim 2)
+                Dimension 0,1 of this array must match the length of the self.azimuth and self.elevation
+        @param[in] freqs - list of frequencies to append (1D array)
+        '''
+        if not hasattr(freqs,'__iter__'):
+            freqs = [freqs]
+        #append our data and frequencies
+        freqs = np.array(freqs)
+        cv = np.array(complex_values)
+        #now sort and add dimensions
+        if cv.ndim<3:
+            cv = cv[:,:,np.newaxis]
+        #sort the input
+        sort_ord = np.argsort(freqs)
+        freqs = freqs[sort_ord]
+        cv = cv[:,:,sort_ord]
+        #now insert in sorted order
+        in_ord = np.searchsorted(self.freq_list,freqs)
+        if cv.shape[:2] != self.elevation.shape: #ensure shaping is correct
+            raise Exception("Complex data must be the same shape as the input angles meshgrid")
+        if self.complex_values.size<1: #if its the first data, make it the right size
+            self.complex_values = cv
+        else: #else append
+            self.complex_values = np.insert(self.complex_values,in_ord,cv,axis=2)
+        self.freq_list = np.insert(self.freq_list,in_ord,freqs)
+        
+    def set_options(**arg_options):
+        '''
+        @brief set options of the class
+        '''
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
     
-    def plot_azel(self,plot_type='mag_db',out_name='test'):
+    def plot_azel(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
         @brief plot calculated data in azimuth elevation
         @param[in] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @param[in/OPT] out_name - name of output plot (plotly)
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
+        options = {}
+        options['plot_program'] = self.options['plot_program']
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
+            
+        plot_data = self.get_data(plot_type,mean_flg=True)
         
-        plot_data = plot_data_dict[plot_type] #get the type of plot
-        
-        
-        #fig = plt.figure()
-        #ax = fig.add_subplot(111, projection='3d')
-        #ax.plot_surface(self.elevation,self.AZIMUTH,plot_data,cmap=cm.coolwarm,
-        #               linewidth=0, antialiased=False)
-
-        plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
-        layout = go.Layout(
-            title='UV Beamformed Plot',
-            scene = dict(
-                xaxis = dict(title='$\phi$ (Azimuth)'),
-                yaxis = dict(title='$theta$ (Elevation)'),
-                zaxis = dict(title='Beamformed value (%s)' %(plot_type))
-            ),
-            autosize=True,
-            margin=dict(
-                l=65,
-                r=50,
-                b=65,
-                t=90
+        if(options['plot_program'].lower()=='matlab'):
+            self.init_matlab_plotter()
+            fig = self.mp.figure()
+            self.mp.surf(self.azimuth,self.elevation,plot_data)
+            self.mp.view([0,90])
+            self.mp.xlabel('Azimuth')
+            self.mp.ylabel('Elevation')
+            self.mp.zlabel(plot_type)
+            
+        elif(options['plot_program'].lower()=='plotly'):
+            plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
+            layout = go.Layout(
+                title='UV Beamformed Plot',
+                scene = dict(
+                    xaxis = dict(title='$\phi$ (Azimuth)'),
+                    yaxis = dict(title='$theta$ (Elevation)'),
+                    zaxis = dict(title='Beamformed value (%s)' %(plot_type))
+                ),
+                autosize=True,
+                margin=dict(
+                    l=65,
+                    r=50,
+                    b=65,
+                    t=90
+                )
             )
-        )
-        fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=out_name)
-
-        # Customize the z axis.
-        #ax.set_zlim(-1.01, 1.01)
-        #ax.zaxis.set_major_locator(LinearLocator(10))
-        #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-        
-        # Add a color bar which maps values to colors.
-        #fig.colorbar(surf, shrink=0.5, aspect=5)
-        return fig
+            fig = go.Figure(data=plotly_surf,layout=layout)
+            ploff.plot(fig,filename=out_name)
     
-    def plot_uv(self,plot_type='mag_db',out_name='test'):
+            # Customize the z axis.
+            #ax.set_zlim(-1.01, 1.01)
+            #ax.zaxis.set_major_locator(LinearLocator(10))
+            #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+            
+            # Add a color bar which maps values to colors.
+            #fig.colorbar(surf, shrink=0.5, aspect=5)
+            return fig
+        else:
+            raise Exception("Program %s not recognized" %(options['plot_program']))
+    
+    def plot_uv(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
         @brief plot calculated data in uv space
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @param[in/OPT] out_name - name of output plot (plotly)
+        @param[in/OPT] 
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
-        #get our data
-        plot_data = plot_data_dict[plot_type] #get the type of plot
-        U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        V = np.sin(np.deg2rad(self.elevation))
+        options = {}
+        options['plot_program'] = self.options['plot_program']
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
+            
+        plot_data = self.get_data(plot_type,mean_flg=True)
+        #U = np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #V = np.sin(np.deg2rad(self.elevation))
         #[Un,Vn,Dn] = increase_meshing_3D(U,V,plot_data,4)
-        Un = U
-        Vn = V
+        Un = self.U
+        Vn = self.V
         Dn = plot_data
         
         #plt_mask = np.isfinite(Dn.flatten())
@@ -163,124 +673,129 @@ class CalculatedSyntheticAperture:
         #    ,cmap=cm.summer,linewidth=0, antialiased=False)
         #ax.set_xlabel("U (Azimuth)")
         #ax.set_ylabel("V (Elevation)")
-        
-        ##### Plotly #####
-        plotly_surf = [go.Surface(z = Dn, x = Un, y = Vn)]
-        layout = go.Layout(
-            title='UV Beamformed Plot',
-            scene = dict(
-                xaxis = dict(
-                    title='U (Azimuth'),
-                yaxis = dict(
-                    title='V (Elevation)'),
-                zaxis = dict(
-                    title='Beamformed value (%s)' %(plot_type))),
-            autosize=True,
-            margin=dict(
-                l=65,
-                r=50,
-                b=65,
-                t=90
+        if(options['plot_program'].lower()=='matlab'):
+            self.init_matlab_plotter()
+            fig = self.mp.figure()
+            self.mp.surf(Un,Vn,Dn)
+            self.mp.view([0,90])
+            self.mp.xlabel('U (Azimuth)')
+            self.mp.ylabel('V (Elevation)')
+            self.mp.zlabel(plot_type)
+            return fig
+            
+        elif(options['plot_program'].lower()=='plotly'): 
+            ##### Plotly #####
+            plotly_surf = [go.Surface(z = Dn, x = Un, y = Vn)]
+            layout = go.Layout(
+                title='UV Beamformed Plot',
+                scene = dict(
+                    xaxis = dict(
+                        title='U (Azimuth)'),
+                    yaxis = dict(
+                        title='V (Elevation)'),
+                    zaxis = dict(
+                        title='Beamformed value (%s)' %(plot_type))),
+                autosize=True,
+                margin=dict(
+                    l=65,
+                    r=50,
+                    b=65,
+                    t=90
+                )
             )
-        )
-        fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=out_name)
+            fig = go.Figure(data=plotly_surf,layout=layout)
+            ploff.plot(fig,filename=out_name)
+            return fig
+        else:
+            raise Exception("Program %s not recognized" %(options['plot_program']))
             
         
-    def plot_3d(self,plot_type='mag_db',out_name='test'):
+    def plot_3d(self,plot_type='mag_db',out_name='aperture_results_3d.html',**arg_options):
         '''
         @brief plot calculated data in 3d space (radiation pattern)
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            plot_program - 'matlab' or 'plotly' possible (default 'matlab')
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
-        #get our data
-        plot_data = plot_data_dict[plot_type] #get the type of plot
-        #minimum value if were plotting db
-        if(plot_type=='mag_db'):
-            #mask out lower values
-            db_range = 60 #lower than the max
-            caxis_min = plot_data.max()-db_range
-            caxis_max = plot_data.max()
-            plot_data = plot_data-(plot_data.max()-db_range) #shift the values
-            plot_data = mask_value(plot_data,plot_data<=0)
-        else: 
-            #Zero the data
-            caxis_min = plot_data.min()
-            caxis_max = plot_data.max()
-            plot_data = plot_data-plot_data.min()
+        options = {}
+        options['plot_program'] = self.options['plot_program']
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
+            
+        plot_data = self.get_data(plot_type,mean_flg=True)
+        #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
-        X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
-        Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        #Z = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #Y = plot_data*np.sin(np.deg2rad(self.elevation))
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type)
+        db_range = caxis_max-caxis_min
         
-        #and plot
-        plotly_surf = [go.Surface(z = Z, x = X, y = Y,surfacecolor=plot_data,
-                                  colorbar=dict(
-                                            title=plot_type,
-                                            tickvals=[0,db_range],
-                                            ticktext=[str(round(caxis_min,2)),str(round(caxis_max,2))]
-                                            ))]
-        layout = go.Layout(
-            title='Beamformed Data (%s)' %(plot_type),
-            scene = dict(
-                xaxis = dict(title='X'),
-                yaxis = dict(title='Y'),
-                zaxis = dict(title='Z')
-            ),
-            autosize=True,
-            margin=dict(
-                l=65,
-                r=50,
-                b=65,
-                t=90
-            ),
-        )
-        fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=out_name)
+        if(options['plot_program'].lower()=='matlab'):
+            self.init_matlab_plotter()
+            fig = self.mp.figure()
+            self.mp.surf(X,Z,Y,plot_data)
+            self.mp.xlim([-db_range,db_range],nargout=0)
+            self.mp.zlim([-db_range,db_range],nargout=0)
+            self.mp.ylim([0,db_range*2],nargout=0)
+            self.mp.xlabel('X',nargout=0)
+            self.mp.ylabel('Z',nargout=0)
+            self.mp.zlabel('Y',nargout=0)
+            self.mp.shading('interp',nargout=0)
+            num_increments = 3 #(number of label increments)
+            self.mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
+            self.mp.view([170,20])
+            return fig
+            
+        elif(options['plot_program'].lower()=='plotly'): 
+            #and plot
+            plotly_surf = [go.Surface(z = Y, x = X, y = Z,surfacecolor=plot_data,
+                                      colorbar=dict(
+                                                title=plot_type,
+                                                tickvals=[0,db_range],
+                                                ticktext=[str(round(caxis_min,2)),str(round(caxis_max,2))]
+                                                ))]
+            layout = go.Layout(
+                title='Beamformed Data (%s)' %(plot_type),
+                scene = dict(
+                    xaxis = dict(title='X'),
+                    yaxis = dict(title='Z'),
+                    zaxis = dict(title='Y')
+                ),
+                autosize=True,
+                margin=dict(
+                    l=65,
+                    r=50,
+                    b=65,
+                    t=90
+                ),
+            )
+            fig = go.Figure(data=plotly_surf,layout=layout)
+            ploff.plot(fig,filename=out_name)
+            return fig
+        else:
+            raise Exception("Program %s not recognized" %(options['plot_program']))
        
         
-    def plot_scatter_3d(self,plot_type='mag_db',out_name='test'):
+    def plot_scatter_3d(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
         @brief scatter plot calculated data in 3d space (radiation pattern)
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @return a handle for the figure
         '''
-        plot_data_dict = {
-            'mag_db':self.mag_db,
-            'mag':self.mag,
-            'phase':self.phase,
-            'phase_d':self.phase_d,
-            'real':self.real,
-            'imag':self.imag
-            }
+        
         #get our data
-        plot_data = plot_data_dict[plot_type] #get the type of plot
-        if(plot_type=='mag_db'):
-            #mask out lower values
-            db_range = 60 #lower than the max
-            caxis_min = plot_data.max()-db_range
-            caxis_max = plot_data.max()
-            plot_data = plot_data-(plot_data.max()-db_range) #shift the values
-            plot_data = mask_value(plot_data,plot_data<=0)
-        else: 
-            #Zero the data
-            caxis_min = plot_data.min()
-            caxis_max = plot_data.max()
-            plot_data = plot_data-plot_data.min()
+        plot_data = self.get_data(plot_type,mean_flg=True)
+        #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
-        X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
-        Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        #Y = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        #Z = plot_data*np.sin(np.deg2rad(self.elevation))
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type)
+        db_range = caxis_max-caxis_min
         
         #and plot
         plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
@@ -316,7 +831,340 @@ class CalculatedSyntheticAperture:
         #ax = fig.add_subplot(111, projection='3d')
         #ax.plot_surface(X,Y,Z,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
+        return fig
+    
+    def init_matlab_plotter(self):
+        '''
+        @brief initialize the matlab plotter (dont open if already open)
+        '''
+        if not self.mp:
+            self.mp = MatlabPlotter(**self.options)
+    
+    def get_data(self,data_str,freqs='all',**arg_options):
+        '''
+        @brief get the desired data from a string (e.g. 'mag_db','phase_d','mag', etc.)
+            this can also be used to select which frequencies to average
+        @param[in] data_str - string of the data to get. can be 'mag','phase','phase_d','real','imag'
+        @param[in/OPT] freqs - which frequencies to average (default 'all'). if the freq doesnt exist, throw an exception
+        @param[in/OPT] arg_options - keyword arguments as follows
+                mean_flg - whether or not to return the mean across all frequencies
+                constant_output - add a new dimension to our data to ensure consistent output even when using mean_flg
+        @return np array of shape self.azimuth (or elevation) with the values from the provided frequencies
+        '''
+        options = {}
+        options['mean_flg'] = False
+        options['constant_output'] = False
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+            
+        data_dict = {
+            'mag_db':self.mag_db,
+            'mag':self.mag,
+            'phase':self.phase,
+            'phase_d':self.phase_d,
+            'real':self.real,
+            'imag':self.imag
+            }
+        freq_idx = self.get_freq_idx(freqs)
+        data = data_dict[data_str]
+        data = data[:,:,freq_idx]
+        if options['mean_flg']:
+            data = np.mean(data,axis=2)
+            if options['constant_output']: 
+                data = data[...,np.newaxis] #ensure we always return a 3D tuple
+        return data
         
+    def get_freq_idx(self,freqs):
+        '''
+        @brief get the index of the frequeny provided
+            'all' will return all indexes
+        @param[in] freqs to get indices of ('all' returns all)
+        '''
+        if np.any(np.array(freqs)=='all'):
+            freqs = self.freq_list
+        if not hasattr(freqs,'__iter__'):
+            freqs = [freqs]
+        freqs = np.array(freqs)
+        idx = np.array([],dtype=np.int)
+        for f in freqs:
+            loc = np.where(self.freq_list==f)
+            if len(loc)!=1:
+                raise Exception("Frequency %f is not in the list or is repeated in the list" %(f))
+            idx = np.append(idx,loc[0][0])
+        return idx
+    
+    def adjust_caxis(self,plot_data,plot_type,db_range=60,**arg_options):
+        '''
+        @brief adjust our plotting values for a colorbar axis.
+            This ensures we dont have negative values in 3D plotting.
+            This is really important to use for mag_db plots. Everything else
+            will just be shifted to 0
+        @param[in] plot_data - data we are plotting
+        @param[in] plot_type - type of data we are plotting (e.g. 'mag_db','mag','real',etc.)
+        @param[in/OPT] db_range  - dynamic range of our plot in db (only important for mag_db default 60)
+        @param[in/OPT] arg_options - kyeworkd option arguments:
+            - None Yet!
+        @return new_plot_data, caxis_min, caxis_max, db_range - our new data, our miinimum colorbar value, our max colorbar value
+        '''
+        if(plot_type=='mag_db'):
+            #mask out lower values
+            db_range = 60 #lower than the max
+            caxis_min = np.nanmax(plot_data)-db_range
+            caxis_max = np.nanmax(plot_data)
+            new_plot_data = plot_data-(np.nanmax(plot_data)-db_range) #shift the values
+            new_plot_data = mask_value(new_plot_data,new_plot_data<=0)
+        else: 
+            #Zero the data
+            caxis_min = np.nanmin(plot_data)
+            caxis_max = np.nanmax(plot_data)
+            new_plot_data = plot_data-np.nanmin(plot_data)
+        return new_plot_data,caxis_min,caxis_max,db_range
+    
+    def write_snp_data(self,out_dir,**arg_options):
+        '''
+        @brief write out our frequencies over our angles into s2p files 
+            s21,s12 will be our complex values, s11,s22 will be 0.
+            Files will be written out as 'beamformed_<number>.snp'.
+            A json file (beamformed.json) will also be written out
+            giving the azimuth elevation values.
+        @param[in] out_dir - output directory to save the files
+        @param[in/OPT] arg_options - keyword args as follows:
+                -None Yet!
+        @return list of SnpEditor classes with the data written out
+        '''
+        #loop through all of our positions
+        meas_info = []
+        meas_data = [] #values for returning
+        freqs = self.freq_list/1e9 #freqs in ghz
+        for i in range(self.num_positions):
+            cur_idx = np.unravel_index(i,self.azimuth.shape)
+            az = self.azimuth[cur_idx]
+            el = self.elevation[cur_idx]
+            #assume our freq_list is in hz then write out in GHz
+            mys = SnpEditor([2,freqs],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees'],header='GHz S RI 50') #create a s2p file
+            #populate the s21,values
+            mys.S[21].update(freqs,self.complex_values[cur_idx])
+            mys.S[12].update(freqs,self.complex_values[cur_idx])
+            #now save out
+            out_name = 'beamformed_'+str(i)+'.s2p'
+            out_path = os.path.join(out_dir,out_name)
+            mys.write(out_path)
+            meas_data.append(mys)
+            meas_info.append({'filepath':out_path,'azimuth':float(az),'elevation':float(el)})
+        with open(os.path.join(out_dir,'beamformed.json'),'w+') as fp:
+            json.dump(meas_info,fp)
+        return meas_data
+    
+    def get_max_beam_idx(self,freqs='all',**arg_options):
+        '''
+        @brief get the index of the maximum beam
+        @param[in/OPT] freqs - list of frequencies to calculate for
+        @param[in/OPT] arg_options - optional keword arguements as follows:
+            mean_flg - whether or not to get the average data
+        @return tuple of tuples with indices of the maximum
+        '''
+        if freqs=='all':
+            freqs = self.freq_list
+        freqs = np.array(freqs)
+        idx_vals = [] #allocate for outputs
+        data = self.get_data('mag_db',freqs=freqs,constant_output=True,**arg_options) # get our data
+        for i in range(data.shape[-1]):
+            cur_dat = data[...,i] #get the current data
+            max_idx = np.unravel_index(cur_dat.argmax(),cur_dat.shape)
+            idx_vals.append(max_idx)
+        return tuple(idx_vals)
+    
+    def get_max_beam_angle(self,freqs='all',**arg_options):
+        '''
+        @brief get the angle of the maximum beam
+        @param[in/OPT] freqs - list of frequencies to calculate for
+        @param[in/OPT] arg_options - keyword args are also as follows:
+            None for this method
+            also passed to self.get_max_beam_idx() method
+        @return 2D array with azel [[az,el],[az,el],[az,el],etc...]
+        '''
+        idx_vals = self.get_max_beam_idx(freqs,**arg_options)
+        for v in idx_vals:
+            az_vals = self.azimuth[v]
+            el_vals = self.elevation[v]
+        return np.stack([az_vals,el_vals])
+    
+    def get_max_beamwidth(self,freqs='all',**arg_options):
+        '''
+        @brief get the beamwidth of the maximum beam
+        @param[in/OPT] freqs - list of frequencies to calculate for
+        @param[in/OPT] arg_options - keyword args are also as follows:
+            None for this method
+            also passed to self.get_max_beam_idx() method
+        @return tuple with (az_bw,el_bw)
+        '''
+        idx_vals = self.get_max_beam_idx(freqs,**arg_options)
+        if freqs=='all':
+            freqs = self.freq_list
+        return self.get_beamwidth(idx_vals,freqs)
+        
+    
+    def get_max_side_lobe_level(self,freqs='all'):
+        '''
+        @brief get the maximum side lobe level and its location
+        @todo implement this
+        @return [max_level_db,(az,el)]
+        '''
+        pass
+    
+    def get_all_peak_idx(self,freqs='all'):
+        '''
+        @brief get all of the peaks from the data
+        @param[in/OPT] freqs - frequencies to get the peaks for
+        @return 2D list of tuples (x,y) for index of angle magnitude of the peaks
+        ### 1D solution ###
+        '''
+        data = self.get_data('mag_db',freqs=freqs,constant_output=True)
+        peak_locs = np.diff(np.diff(data)>0) #
+    
+    def get_all_peak_idx_1d(self,vals):
+        '''
+        @brief get all of the peaks in a set of 2D values (such as a elevation or azimuth plane cut)
+        @param[in] vals - 1D array of values to find peaks of
+        @return 1D numpy array of integers for the indices of each of the peaks
+        '''
+        d1 = vals
+        d1dg = np.diff(d1)>0 #find the derivative and make True > 0
+        l = np.diff(d1dg) #get the zero crossings of the derivative 
+        # checking for greater than 0, we get - to + transition is False to True (bowls)
+        # + to - transition is True to False (peaks) what we are looking for
+        locs = np.where(l==True)[0] #get the locions of the zero crossings of the derivative
+        peaks = locs[d1dg[locs]]+1 #this will be the indexes of our peaks (+1 because of diff)
+        #[1 2 3 4 5 6 7 8 9 10] first derivative indexing
+        #[ 1 2 3 4 5 6 7 8 9  ] second derivative indexing
+        #[  1 2 3 4 5 6 7 8   ] third derivative indexing
+        return peaks
+        
+    def get_beamwidth(self,peak_idx,freqs,**arg_options):
+        '''
+        @brief get the beamwidth of a beam with peak at index location (x,y)
+            this is the same index provided by get_max_beam_idx. This finds the closest
+            calculated angular crossings so will not be extremely accurate
+        @param[in] peak_idx - peak locations in list of tuples (x,y) format for each freq in freqs for location in az/el 2D arrays 
+        @param[in] freqs - list of frequencies the peaks are at. (can be all)
+        @param[in/OPT] arg_options - optional keyword args as follows:
+                power_level_db - power level for the beamwidth (default -3dB=HPBW)
+                interpolate - true or false whether to interpolate (default true)
+                interp_step - angular step (degrees) for our interpolation (default 0.1 degrees)
+        @return beamwidths in list of tuples (az_bw,el_bw) for each frequency
+        '''
+        options = {}
+        options['power_level_db'] = -3
+        options['interpolate'] = True
+        options['interp_step'] = 0.1
+        bw_out = []
+        if freqs=='all':
+            freqs = self.freq_list
+        for i,f in enumerate(freqs): #go through each frequency
+            fidx=self.get_freq_idx(f)
+            pidx = peak_idx[i] #peak idx value
+            peak_val   = self.mag_db[pidx][fidx][0]
+            peak_az = self.azimuth[pidx]
+            peak_el = self.elevation[pidx]
+            [az_vals,mymags_az] = self.get_azimuth_cut(peak_el,f)
+            [el_vals,mymags_el] = self.get_elevation_cut(peak_az,f)
+            mmaz_adj   = (mymags_az-peak_val).mean(axis=1) #adjust for peak
+            mmel_adj   = (mymags_el-peak_val).mean(axis=1) #mean combines multiple freqs if we have them
+            if options['interpolate']:
+                interp_az = np.arange(az_vals.min(),az_vals.max()+options['interp_step'],options['interp_step'])
+                interp_el = np.arange(az_vals.min(),az_vals.max()+options['interp_step'],options['interp_step'])
+                mmaz_adj = np.interp(interp_az,az_vals,mmaz_adj)
+                mmel_adj = np.interp(interp_el,el_vals,mmel_adj)
+                az_vals = interp_az
+                el_vals = interp_el
+            #this uses a level crossing test. Interpolation would be more accurate
+            az_cross_idx = np.where(np.diff(mmaz_adj<options['power_level_db']))[0] #find the crossing of the power level
+            if(len(az_cross_idx)!=2):
+                raise Exception("Must be exactly 2 azimuth crossings (%d found) to calculate beamwidth" %(len(az_cross_idx)))
+            el_cross_idx = np.where(np.diff(mmel_adj<options['power_level_db']))[0]
+            if(len(el_cross_idx)!=2):
+                raise Exception("Must be exactly 2 elevation crossings (%d found) to calculate beamwidth" %(len(el_cross_idx)))
+            #now take the difference of the az and el
+            az_bw = np.abs(np.diff(az_vals[az_cross_idx]))[0]
+            el_bw = np.abs(np.diff(el_vals[el_cross_idx]))[0]
+            az_bw = round_arb(az_bw,options['interp_step'])
+            el_bw = round_arb(el_bw,options['interp_step'])
+            bw_out.append((az_bw,el_bw))
+        return bw_out
+    
+    def get_elevation_cut(self,az_angle,freqs='all',**arg_options):
+        '''
+        @brief get an elevation cut from our data at azimuth
+        @param[in] az_angle - azimuth angle to make cut in degrees 
+        @param[in/OPT] freqs - frequencies to get output values for
+        @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
+                    None Yet!
+        @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
+        '''
+        flat_idx = np.argmin(np.abs(self.azimuth-az_angle))
+        idx = np.unravel_index(flat_idx,self.azimuth.shape)[1]
+        el_vals = self.elevation[:,idx]
+        vals = self.get_data('mag_db',freqs,**arg_options)[:,idx]
+        return el_vals,vals
+        
+    def get_azimuth_cut(self,el_angle,freqs='all',**arg_options):
+        '''
+        @brief get an azimuth cut from our data at elevation index
+        @param[in] el_angle - elevation angle to make cut in degrees 
+        @param[in/OPT] freqs - frequencies to get output values for
+        @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
+                    None Yet!
+        @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
+        '''
+        flat_idx = np.argmin(np.abs(self.elevation-el_angle))
+        idx = np.unravel_index(flat_idx,self.elevation.shape)[0]
+        az_vals = self.azimuth[idx,:]
+        vals = self.get_data('mag_db',freqs,**arg_options)[idx,:]
+        return az_vals,vals
+    
+    def get_data_from_azel(az,el,data_type='mag_db'):
+        '''
+        @brief get a value (e.g. mag_db) from a given azimuth elevation angle
+        @param[in] az - value or list of azimuth values
+        @param[in] el - value or list of corresponding elevation values
+        @param[in/OPT] data_type - type of data to get (e.g mag_db)
+        @todo unifinished!
+        @return list of data from each of the azel pairs
+        '''
+        pass
+    
+    def azel_to_idx(az,el):
+        '''
+        @brief change azel values to a tuple pair for indices
+        @param[in] az - value or list of azimuth values
+        @param[in] el - value or list of corresponding elevation values
+        @todo unifinished!
+        @return tuple of tuples for the 2D indexes
+        '''
+        if not hasattr(az,'__iter__'):
+            az = [az]
+        if not hasattr(el,'__iter__'):
+            el = [el]
+        az = np.array(az)
+        el = np.array(el)
+        out_vals = []
+        for i in range(len(az)):
+            pass
+        return tuple(out_vals)
+    
+    def get_3d_data(self,data_type='mag_db'):
+        '''
+        @brief get 3D data values X,Y,Z for 3D plotting
+        @param[in] data_type - the type data to get. can be 'mag','phase','phase_d','real','imag'
+        @return [X,Y,Z,plot_data_adj,caxis_min,caxis_max] 3D data positions(X,Y,Z), adjusted plot data (to remove negative vals),
+            min and max values of our caxis (colorbar)
+        '''
+        plot_data = self.get_data(data_type,mean_flg=True)
+        [plot_data_adj,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,data_type,60)
+        Z = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        X = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        Y = plot_data_adj*np.sin(np.deg2rad(self.elevation))
+        return [X,Y,Z,plot_data_adj,caxis_min,caxis_max]
         
     @property
     def mag_db(self):
@@ -328,7 +1176,7 @@ class CalculatedSyntheticAperture:
     @property
     def mag(self):
         '''
-        @brief get our data values magnitude
+        @brief get our data values magnitude (average across freqs)
         '''
         return np.abs(self.complex_values)
         
@@ -393,14 +1241,21 @@ class CalculatedSyntheticAperture:
         '''
         @brief get our U grid values from our angles
         '''
-        return np.sin(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
+        return np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
     
     @property
     def V(self):
         '''
         @brief get our V grid values from our angles
         '''
-        return np.sin(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
+        return np.sin(np.deg2rad(self.elevation))
+    
+    @property
+    def num_positions(self):
+        '''
+        @brief get our number of positions (from azimuth values)
+        '''
+        return self.azimuth.size
 
 
 from collections import OrderedDict
@@ -490,7 +1345,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         [az,el,vals] = load_funct(pattern_file)
         self.type = {'dimension':options['dimension'],'plane':options['plane']}
         [az,el,vals] = self.interp_to_grid(az,el,vals) #interp to our grid
-        super(AntennaPattern,self).__init__(el,az,vals) #init the superclass
+        super(AntennaPattern,self).__init__(az,el,vals) #init the superclass
     
     def load_csv(self,pattern_file):
         '''
@@ -579,7 +1434,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @param[in] el - list of elevation values to get
         '''
         #here we are going to find the plane
-        search_vals_dict = { #could extend to UV here
+        search_vals_dict = {
             'az': [self.azimuth,az],
             'el': [self.elevation,el]
         }
@@ -600,9 +1455,9 @@ class AntennaPattern(CalculatedSyntheticAperture):
         '''
         return []
     
-@vectorize(['float32(float32,float32,float32)'],target='cuda')
-def vector_dist(dx,dy,dz):
-    return math.sqrt(dx**2+dy**2+dz**2)
+@vectorize(['complex128(float64,float64)'],target='cpu')
+def calculate_steering_vector(k_vector,k):
+    return cmath.exp(-1j*k*k_vector)
 
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection='3d')
@@ -627,15 +1482,32 @@ def mask_value(arr,mask,value=0):
     
 if __name__=='__main__':
     
-    test_ant_path = './test_ant_pattern.csv'
-    myant = Antenna(test_ant_path,dimension=1,plane='az')
-    myap = myant['pattern']
-    print(myap.type)
+    #test_ant_path = './data/test_ant_pattern.csv'
+    #myant = Antenna(test_ant_path,dimension=1,plane='az')
+    #myap = myant['pattern']
+    #print(myap.type)
     #myap.plot_scatter_3d()
     #myant['pattern'].plot_scatter_3d()
-    print(myap.get_values([0,0.5,1,45,-45],[0,0,0,0,0]))
+    #print(myap.get_values([0,0.5,1,45,-45],[0,0,0,0,0]))
     
-
+    #some unit tests
+    import unittest
+    class TestSamuraiPostProcess(unittest.TestCase):   
+        #def test_to_azel(self):
+        #    self.assertEqual('foo'.upper(),'FOO')
+        def test_k_vector_calculation_azel(self):
+            #ssaa = SamuraiSyntheticApertureAlgorithm()
+            #ssaa.all_positions = np.random.rand(1225,3)*0.115 #random data points between 0 and 0.115m
+            az_angles = np.arange(-90,90,1)
+            el_angles = np.arange(-90,90,1)
+            [AZ,EL] = np.meshgrid(az_angles,el_angles)
+            az = AZ.flatten()
+            el = EL.flatten()
+            kvecs = get_k_vectors(az,el)
+            kr = np.sqrt(kvecs[0]**2+kvecs[1]**2+kvecs[2]**2) #r should be 1
+            self.assertTrue(np.all(np.round(kr,2)==1),'K Vector radius mean = %f' %kr.mean())
+    unittest.main()
+            
     
     
     

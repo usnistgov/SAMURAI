@@ -9,8 +9,10 @@ from samurai.acquisition.support import autoPNAGrabber as pnag    #for running p
 from samurai.acquisition.support import samurai_metaFile as smf     #for keeping track of data
 from samurai.acquisition.support.Meca500  import Meca500       #our posisioner
 import samurai.acquisition.support.samurai_support  as ss      #some other functions
+import samurai.acquisition.support.samurai_optitrack as samurai_optitrack  #import optitrack tracking
 
 import six
+import json
 
 import numpy as np
 
@@ -39,8 +41,9 @@ class SAMURAI_System():
         '''
         defaults = {'template_path':pnagrabber_template_path,'vna_visa_address':vna_visa_addr,'rx_positioner_address':rx_positioner_address}
         tool_length = 131 #length of tool off face in mm. Change for weird tools
-        defaults['trf_pos'] = [0,0,tool_length,0,-90,0] #tool reference frame (-90 to align axes with wrf). THE frame here is different and seems to be in ([z,y,z,gamma,beta,alpha]) compared to world frame
-        defaults['wrf_pos'] = [tool_length+190,0,0,0,0,0] #world reference frame at robot base z but x of tool (+190 for base to tip at zeroed postiion)
+        #THIS IS A NEW REFERENCE FRAME AS OF 5/10/2019
+        defaults['trf_pos'] = [0,0,tool_length,0,0,90] #tool reference frame (-90 to align axes with wrf). THE frame here is different and seems to be in ([z,y,z,gamma,beta,alpha]) compared to world frame
+        defaults['wrf_pos'] = [tool_length+190,0,0,0,90,90] #world reference frame at robot base z but x of tool (+190 for base to tip at zeroed postiion)
         self.options = {}
         for key, value in six.iteritems(defaults):
             self.options[key] = value
@@ -63,10 +66,10 @@ class SAMURAI_System():
         '''
         if not run_simulation:
             run_simulation = self.is_simulation #set to default unless overwritten
-            rv1=self.rx_positioner.set_simulation_mode=False
+            rv1=self.rx_positioner.set_simulation_mode=run_simulation
         else:
             print("Running in Simulation Mode")
-            rv1=self.rx_positioner.set_simulation_mode=True
+            rv1=self.rx_positioner.set_simulation_mode=run_simulation
         self.is_connected = True
         rv2=self.rx_positioner.initialize(ip_addr=self.options['rx_positioner_address']) #start up the meca
         #SETTING REFERENCE PLANES IS A MUST!!! DO NOT SKIP THIS STEP
@@ -91,8 +94,8 @@ class SAMURAI_System():
         @param[in] - on_off - True to turn on Simulation, False to turn off Simulation
         @return - 0 for success, -1 if value cannot be set (because we are connected currently)
         """
-        if(self.is_connected):
-            return -1 #we can only change the flag while disconnected
+        #if(self.is_connected):
+        #    return -1 #we can only change the flag while disconnected
         #else we return success after setting simulation
         self.is_simulation = on_off
         return 0 #success
@@ -123,6 +126,11 @@ class SAMURAI_System():
             template_path - location of pnagrabber template to run from (default './template.pnagrabber')
             settling time - time in seconds to let robot settle (default 0.1s)
             metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)
+            comment_character - character or list of characters for comments (default #)
+            external_position_measurements - configuration of external measurement device (e.g. optitrack)
+                OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
+                    For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
         @return sweep time
         '''
         if not self.is_connected:
@@ -134,6 +142,8 @@ class SAMURAI_System():
         defaults['settling_time'] = .1 #settling time in seconds
         defaults['info_string_var'] = None #be able to set outside stringvar for update info
         defaults['metafile_header_values'] = {}
+        defaults['external_position_measurements'] = None
+        defaults['comment_character'] = '#'
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -144,7 +154,8 @@ class SAMURAI_System():
         #open PNAGrabber instance
             #pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
             pnagrab = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'])
-        mf = smf.metaFile(csv_path,self.options['vna_visa_address'],wdir=data_out_dir)
+            
+        mf = smf.metaFile(csv_path,self.options['vna_visa_address'],root_dir=data_out_dir)
         mf.init(**options['metafile_header_values'])
         
         if(defaults['info_string_var']):
@@ -153,6 +164,13 @@ class SAMURAI_System():
         #zero positioner (always start from zero positoin to ensure everything is safe)
         self.rx_positioner.zero()
     
+        #start our external positioner if in use
+        if options['external_position_measurements'] is not None:
+            my_ext_pos = samurai_optitrack.MotiveInterface()
+
+        #verify csv file
+        self.verify_position_file(csv_path,options['comment_character'])
+        
         #now start running positioner    
         csvfp = open(csv_path)
         numLines = ss.countLinesInFile(csvfp)
@@ -163,6 +181,8 @@ class SAMURAI_System():
         run_time_start = time.time()
         for line in csvfp: #read each line
             if(line.split()):
+                if any(line.strip()[0]==np.array([options['comment_character']])): #then its a comment
+                   continue
                 strVals = line.split(',') #separate by csv
                 fvals = [float(i) for i in strVals]
                 #print("Moving Device to "+str(fvals))
@@ -170,14 +190,20 @@ class SAMURAI_System():
                 self.set_position(fvals)
                 newPath = os.path.join(options['output_directory'],options['output_name']+'.'+options['output_file_type'].strip('.'))
                 #let positioner settle
-                time.sleep(options['settling_time'])
+                time.sleep(options['settling_time']) 
+                #get positions from external measurement if available
+                meas_dict_data = None
+                if options['external_position_measurements'] is not None:
+                    ext_pos = my_ext_pos.get_position_data(options['external_position_measurements'],**arg_options)
+                    meas_dict_data = {'external_position_measurements':ext_pos}
+                #get the positoin from the positoiner
                 posn_vals = self.rx_positioner.get_position()
                 if(run_vna):
                     [pnaTime,newPath] = pnagrab.run(newPath)
                 else:
                     pnaTime = -3.14159
                     newPath = 'VNA NOT USED'
-                mf.update(newPath,posn_vals,note='PNA Time : '+str(pnaTime))
+                mf.update(newPath,posn_vals,note='PNA Time : '+str(pnaTime),dict_data=meas_dict_data)
                 ltr.end_point(pnaTime)
                 n+=1
             
@@ -185,6 +211,73 @@ class SAMURAI_System():
         mf.finalize()
         return time.time()-run_time_start
     
+    def csv_position_sweep(self,out_dir,out_name,external_position_measurements,csv_path,num_reps=1,**arg_options):
+        '''
+        @brief sweep positions and generate positional info on this data.
+            - this does not have the same data overwrite protection as the typical metafile
+        @param[in] out_dir - directory to write out to
+        @param[in] out_name - output name (no extension)
+        @param[in] csv_path - path to csv file
+        @param[in] external_position_measurements - configuration of external measurement device (e.g. optitrack)
+                OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
+                    For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+        @param[in] num_reps - number of times to repeat the sweep (default to 1)
+        @param[in] arg_options - keyword arguments as follows:
+            settling_time - time for positioner to settle (default 0.1)
+            num_samples   - number of samples to take per marker per location
+            comment_character - character or list of characters for comments (default #)
+            Look at samurai_optitrack for more options
+        @return file path that the data is written to 
+        '''
+        options = {}
+        options['settling_time'] = 0.1
+        options['comment_character'] = '#'
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        
+        tmp_name = os.path.join(out_dir,out_name+'.tmp') #create a temporary file
+        fp = open(tmp_name,'w+') #temp file
+        my_ext_pos = samurai_optitrack.MotiveInterface() #init optitrack
+        
+        #verify csv file
+        self.verify_position_file(csv_path,options['comment_character'])
+        
+        #loop through csv
+        self.rx_positioner.zero()
+        for rep in range(num_reps):
+            csvfp = open(csv_path)
+            #for timing
+            numLines = ss.countLinesInFile(csvfp)
+            ltr = pnag.LoopTimeReport(numLines)
+            idx = 0
+            for line in (csvfp): #read each line
+                if any(line.strip()[0]==np.array(options['comment_character'])):
+                   continue
+                print("Repeat: %2d of %2d, Position: %2d of %2d" %(rep+1,num_reps,idx+1,numLines))
+                if(line.split()):
+                    ltr.start_point()
+                    strVals = line.split(',') #separate by csv
+                    fvals = [float(i) for i in strVals]
+                    self.set_position(fvals)
+                    time.sleep(options['settling_time']) #sleep
+                    pos_vals = self.rx_positioner.get_position()
+                    ext_pos_vals = my_ext_pos.get_position_data(external_position_measurements,include_raw_data=True)
+                    loc_dict = {'rep':rep,'pos_idx':idx,'robot_position':pos_vals,'external_position':ext_pos_vals}
+                    fp.write(json.dumps(loc_dict)+'\n') #write the line
+                    ltr.end_point()
+                    idx+=1
+            csvfp.close()
+        
+        fp.close()
+        json_data = []
+        with open(tmp_name,'r') as fp:
+            for line in fp:
+                if(line): #make sure there is stuff on the line
+                    json_data.append(json.loads(line))
+        with open(os.path.join(out_dir,out_name+'.json'),'w+') as fp:
+            json.dump(json_data,fp,indent=2) #write out
+                
     #move robot to side of table for easy mounting
     #looking from the back we have left and right
     #left is close to vna
@@ -203,9 +296,11 @@ class SAMURAI_System():
         #mounting position in [x,y,z,alpha,beta,gamma]
         #this is all done with respect to the SAMURAI reference frames (trf rotated to match wrf and wrf at base directly below trf when zerod)
         if(side.lower()=='left'):
-            mounting_position = [-250,445,140,0,rotation,90]
+            #mounting_position = [-250,445,140,0,rotation,90] #trf v1
+            mounting_position = [445,140,-250,0,90,rotation] #trf v2
         if(side.lower()=='right'):
-            mounting_position = [-250,-445,140,0,rotation,-90]
+            #mounting_position = [-250,-445,140,0,rotation,-90]
+            mounting_position = [-445,140,-250,0,-90,-1*rotation]
             
         return self.set_position(mounting_position)
         
@@ -219,7 +314,7 @@ class SAMURAI_System():
         '''
         if(software_limits):
             np_pos_vals = np.array(pos_vals)
-            np_lower_bound = np.array([-1e3,-1e3,50,-360,-360,-360]) #just limit z axis
+            np_lower_bound = np.array([-1e3,50,-1e3,-360,-360,-360]) #just limit y axis
             np_upper_bound = np.array([1e3,1e3,1e3,360,360,360]) #no upper bound
             if(any(np_pos_vals<np_lower_bound)):
                 print("ERROR: Position below lower bound")
@@ -230,6 +325,13 @@ class SAMURAI_System():
         #finally now set the position
         self.rx_positioner.set_position(pos_vals)
         return
+    
+    def get_positioner_status(self):
+        '''
+        @brief get and print the status of the positioner
+        '''
+        [_,_,s] = self.rx_positioner.get_status() #get the status string
+        print(s)
         
     def zero(self):
         '''
@@ -237,12 +339,85 @@ class SAMURAI_System():
         '''
         self.rx_positioner.zero()
         
-    
+    def verify_position_file(self,file_path,comment_char = '#'):
+        '''
+        @brief verify that the file of positions is for the correct reference frames
+                just raise an exception if the file is not value for the current reference frame.
+                The verification looks for the following values to check against:
+                    #WRF (or world reference frame or with _) = [x,y,z,alpha,beta,gamma]
+                    #TRF (or tool reference frame or with _) = [x,y,z,alpha,beta,gamma]
+        @param[in] file_path - the path to the position file (e.g. *.csv,etc)
+        @param[in/OPT] comment_char - character or list of characters for comments
+        '''
+        reference_value_strings = np.array(['X','Y','Z','ALPHA','BETA','GAMMA'])
+        comment_lines = []
+        with open(file_path) as fp:  #open the file
+            for line in fp: # go through each line
+                if all(line.strip()[0] != np.array([comment_char])):
+                    continue #not a comment line
+                comment_lines.append(line.strip()[1:]) #all except the first character
+        #now parse the comments for 
+        trf_read = None
+        wrf_read = None
+        for cl in comment_lines:
+            split_line = cl.split('=')
+            if len(split_line)!=2: #then we dont have an equal sign (or too many)
+                continue
+            #now massage the input values
+            var_name = split_line[0].strip().lower().replace(' ','_') #this is our variable name (e.g. TRF)
+            var_val = [float(i) for i in split_line[1].replace('[','').replace(']','').strip().split(',')] #list of float values
+            if(var_name=='tool_reference_frame' or var_name=='trf'):
+                trf_read = np.array(var_val)
+            if(var_name=='world_reference_frame' or var_name=='wrf'):
+                wrf_read = np.array(var_val)
+        #now check these values
+        if  np.array(trf_read).shape==() or np.array(wrf_read).shape==(): #make sure these are both provided
+            raise(Exception("No world or tool reference frame values provided in the position file.\n"
+                            "These should be in the format as follows (both are required)\n\n"
+                            "# TRF = [X_trf,Y_trf,Z_trf,ALPHA_trf,BETA_trf,GAMMA_trf]\n"
+                            "# WRF = [X_wrf,Y_wrf,Z_wrf,ALPHA_wrf,BETA_wrf,GAMMA_wrf]\n"))
+        if any(self.options['trf_pos']!=trf_read):
+            raise(Exception("Tool reference frame does not match at %s" 
+                            %('['+','.join(reference_value_strings[self.options['trf_pos']!=trf_read])+']')))
+        if any(self.options['wrf_pos']!=wrf_read):
+            raise(Exception("World reference frame does not match at %s" 
+                            %('['+','.join(reference_value_strings[self.options['wrf_pos']!=wrf_read])+']')))
+        
         
     
+if __name__=='__main__':
+    #csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_sparse.csv"
     
-      
-      #samsys = SAMURAI_System();
-      #samsys.connect_rx_positioner();
+    #trf/wrf v2 testing
+    #mysam = SAMURAI_System(True)
+    mysam = SAMURAI_System(False)
+    mysam.connect_rx_positioner()
+    [stat,_,_] = mysam.rx_positioner.get_status()
+    #if not stat[2]:
+    #    raise Exception("Not in simulation mode")
+    mysam.csv_sweep('./test/','sweep_files/samurai_planar_hp.csv',run_vna=False)
+    mysam.disconnect_rx_positioner()
+    
+    
+    ##positional testing
+    #csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_SAMURAI_planar.csv"
+    #wdir = r"C:\Users\ajw5\Documents\test"
+    #os.chdir(wdir)
+    #mysam = SAMURAI_System()
+    #mysam.connect_rx_positioner() #connect
+    
+    #id_dict = {}
+    #rigid bodies
+    #id_dict['meca_head'] = None
+    #id_dict['origin']    = None
+    ##labeled markers
+    #id_dict['tx_antenna']      = 50488
+    #id_dict['cyl_bislide']     = 50480
+    #id_dict['cyl_static']      = 50481
+    #mysam.csv_position_sweep('./','position_test',id_dict,csv_path,num_reps=3)
+    #mysam.disconnect_rx_positioner()
+    
+    
+    
       
         

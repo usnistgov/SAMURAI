@@ -177,9 +177,13 @@ class WnpEditor:
         elif(ftype=='text'):
             with open(out_file,'w+') as fp:
                 #write our comments
+                if(type(self.options['comments']!=list)): #assume if its not a list ts a string
+                    self.options['comments'] = [self.options['comments']]
                 for i in range(len(self.options['comments'])):
                     fp.write('!%s\n' %(self.options['comments'][i]))
                 #write our header
+                if(type(self.options['header']!=list)): #assume if its not a list ts a string
+                    self.options['header'] = [self.options['header']]
                 for i in range(len(self.options['header'])):
                     fp.write('#%s\n' %(self.options['header'][i]))
                 #now write data
@@ -283,6 +287,8 @@ class SnpEditor:
                     measurement with n ports and frequencies [f1,f2,...] 
         @param[in/OPT] arg_options - keyword argument options. options are as follows:
                         'read_header' - whether or not to read the header. defaults to true, false may be faster on text files
+                        'header' - header to write out
+                        'comments' - comments to write to file
         '''
         #default options
         self.options = {}
@@ -322,7 +328,7 @@ class SnpEditor:
         file_ext = os.path.splitext(input_file)[-1]
         self.options['num_ports'] = int(''.join(re.findall(r'\d',file_ext)))
         #now set our keys
-        self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
+        self.dict_keys = [j*10+i for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
         
         #if we have a binary file (e.g. *.s2p_binary)
         if(ftype=='binary'):
@@ -381,7 +387,12 @@ class SnpEditor:
         '''
         self.options['num_ports'] = num_ports #set the number of ports
         #now set our keys
-        self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
+        if self.options['num_ports'] == 2: 
+            # s2p files follow a different format... because why not
+            # http://na.support.keysight.com/plts/help/WebHelp/FilePrint/SnP_File_Format.htm
+            self.dict_keys = [11,21,12,22]
+        else:
+            self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
         
         #and pack the port data with 0s
         for i in range(len(self.dict_keys)):
@@ -427,9 +438,13 @@ class SnpEditor:
         elif(ftype=='text'):
             with open(out_file,'w+') as fp:
                 #write our comments
+                if(type(self.options['comments']!=list)): #assume if its not a list ts a string
+                    self.options['comments'] = [self.options['comments']]
                 for i in range(len(self.options['comments'])):
                     fp.write('!%s\n' %(self.options['comments'][i]))
                 #write our header
+                if(type(self.options['header']!=list)): #assume if its not a list ts a string
+                    self.options['header'] = [self.options['header']]
                 for i in range(len(self.options['header'])):
                     fp.write('#%s\n' %(self.options['header'][i]))
                 #now write data

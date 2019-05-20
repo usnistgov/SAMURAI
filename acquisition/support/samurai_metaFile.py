@@ -21,7 +21,7 @@ class metaFile:
         self.options = OrderedDict({})
 
         #Some default values
-        self.options['root_dir'] = os.path.abspath('./')
+        self.options['working_directory'] = os.path.abspath('./')
         self.options['csv_path'] = csv_path
         self.options['metafile_name'] = 'metafile'
         self.options['pna_address'] = pna_addr
@@ -35,10 +35,20 @@ class metaFile:
         
         #some info about the system
         #defaults
-        self.options['metafile_version']   = 1.03
+        self.options['metafile_version']   = 2.00
+        self.options['metafile_changelog'] = {
+                1.03: ["Added new defaults and heavily updated the code to be more user friendly"],
+                2.00: ["(5/10/2019) Updated reference frame. THIS IS VERY IMPORTANT FOR ALL USES OF MEAUSUREMENTS.\\n" 
+                       "New reference frame is as follows when looking from behind the robot: \\n"
+                       "      X - left/right\\n"
+                       "      Y - up/down\\n"
+                       "      Z - in/out (i.e. propogation direction)\\n"
+                       "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"]
+                      }
         self.options['experiment']         = 'SAMURAI Measurements'
         self.options['experiment_version'] = 1.0
         self.options['positioner']         = 'Meca500'
+        self.options['positioner_rotation_format'] = "X\'Y\'Z\'"
         self.options['user']               = 'ajw'
         self.options['units']              = 'mm'
         self.options['position_key']       = ['X','Y','Z','alpha','beta','gamma']
@@ -70,17 +80,14 @@ class metaFile:
 
         #write any input options
         for key,value in six.iteritems(arg_options):
-            if(key=='root_dir'): #get abspath if rootdir
+            if(key=='working_directory'): #get abspath if rootdir
                 value = os.path.abspath(value)
             self.options[key] = value
-
-        #change to working directory
-        os.chdir(self.options['root_dir'])
 
         #delimeter of csv file (typically ',')
 
         #build our file names
-        self.makeFileNames()
+        self.make_file_names()
     
     def add_antenna(self,antenna,idx=None):
         '''
@@ -102,23 +109,31 @@ class metaFile:
             self.options[key] = value
 
      #clean and create file names
-    def makeFileNames(self,clean=1):
-        #build file paths
+    def make_file_names(self,clean=True):
+        '''
+        @brief clean (increment name) and create file names for json and raw files
+        @param[in] clean - flag on whether or not to clean the file (change the name if it exists)
+        '''
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
-        self.jsonPath = self.options['metafile_name']+'.json'
-        self.tmpfPath = self.options['metafile_name']+'.raw'
+        self.jsonPath = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.json')
+        self.tmpfPath = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.raw')
         self.raw_path = self.tmpfPath
         self.csvPath  = self.options['csv_path']
         #build JSON template
         #first check if we already have a metaFile rename if needed
-        if(clean==1):
+        if(clean):
             [self.jsonPath,iij]=clean_file_name(self.jsonPath)
             [self.tmpfPath,_  ]=clean_file_name(self.tmpfPath,iij)
-        
+    #alias
+    makeFileNames = make_file_names    
+    
     #get parameters from vna
     def get_vna_params(self,pna_addr):
-        
+        '''
+        @brief get parameters from the VNA if we can
+        @param[in] pna_addr - visa address of vna
+        '''
         try:
             pnaCont = pnaController.pnaController(pna_addr)
             pnaCont.getParams()
@@ -140,26 +155,27 @@ class metaFile:
     #This will call init JSON and other files to build template.
     #parameters after this cannot be changed
     def init(self,**additional_header_info):
+        '''
+        @brief initialize after values set by user to create the json template
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        '''
         #build our json file template
-        self.buildJsonTemplate(**additional_header_info)
+        self.build_json_template(**additional_header_info)
         #init our continuation file in case of failure
  #       self.initContFile();
 
         
     #build the initial template for our json file
-    def buildJsonTemplate(self,**additional_header_info):
+    def build_json_template(self,**additional_header_info):
+        '''
+        @brief build our json template with header and positions
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        '''
         #first build header
         jhd = OrderedDict({})
-        jhd["working_directory"]  = self.options['root_dir']
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['root_dir'])
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['root_dir'])
-        jhd["metafile_version"]   = self.options['metafile_version']
-        jhd['experiment']         = self.options['experiment']
-        jhd['experiment_version'] = self.options['experiment_version']
-        jhd['positioner']         = self.options['positioner']
-        jhd['user']               = self.options['user']
-        jhd['vna_info']           = self.options['vna_info']
-        jhd['antennas']           = self.options['antennas']
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['working_directory'])
+        jhd.update(self.options)  #update with all of our input options
         jhd['notes']              = None
 
         for key,val in six.iteritems(additional_header_info):
@@ -175,6 +191,8 @@ class metaFile:
             for line in csvfile:
                 #make sure the line isnt emtpy
                 if(line.strip()):
+                    if(line.strip()[0]=='#'): #then its a comment
+                       continue
                     self.jsonData['total_measurements']+=1
                     locId = self.jsonData['total_measurements']-1
                     #extract our position from the csv file
@@ -190,20 +208,26 @@ class metaFile:
                     self.jsonData['measurements'][locId].update({'calibration_file':'INCOMPLETE'})
                     self.jsonData['measurements'][locId].update({'calibrated':False})
 
-            
         #now write this out to our JSON file
         with open(self.jsonPath,'w+') as jsonFile:
             json.dump(self.jsonData,jsonFile,indent=4)
+    #alias
+    buildJsonTemplate = build_json_template
             
     #can be built after all raw measurements have been taken
-    def buildJsonFromRaw(self,rawFilePath='default',**additional_header_info):
-        if(rawFilePath=='default'):
-            rawFilePath = self.tmpfPath
+    def build_json_from_raw(self,raw_file_path='default',**additional_header_info):
+        '''
+        @brief build a json template from a raw json file
+        @param[in] raw_file_path - location of raw file to create json from
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        '''
+        if(raw_file_path=='default'):
+            raw_file_path = self.tmpfPath
         #first build header
         jhd = OrderedDict({})
-        jhd["working_directory"]  = self.options['root_dir']
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['root_dir'])
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['root_dir'])
+        jhd["working_directory"]  = self.options['working_directory']
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['working_directory'])
         jhd["metafile_version"]   = self.options['metafile_version']
         jhd['experiment']         = self.options['experiment']
         jhd['experiment_version'] = self.options['experiment_version']
@@ -218,7 +242,7 @@ class metaFile:
 
         #now loop through json file to add measurements
         self.jsonData = jhd
-        rfp = os.path.join(self.options['root_dir'],rawFilePath)
+        rfp = os.path.join(self.options['working_directory'],raw_file_path)
         #GET number of measurements from raw file
         rawLineCount = 0
         with open(rfp,'r') as rawfile:
@@ -239,7 +263,7 @@ class metaFile:
                     locId = self.jsonData['total_measurements']-1
                     ls = line.split('|')
                     measId = int(ls[1])
-                    fname  = os.path.relpath(ls[2].strip(),self.options['root_dir'])
+                    fname  = os.path.relpath(ls[2].strip(),self.options['working_directory'])
                     cfname = ls[3]
                     time   = ls[4]
                     notes  = ls[6]
@@ -268,14 +292,27 @@ class metaFile:
                     self.jsonData['measurements'][locId].update({'calibration_file':cfname})
                     self.jsonData['measurements'][locId].update({'calibrated':False})
 
-            
         #now write this out to our JSON file
         with open(self.jsonPath,'w+') as jsonFile:
             json.dump(self.jsonData,jsonFile,indent=4)
-    
+    #alias
+    buildJsonFromRaw = build_json_from_raw
+
+
     #update temporary metaFile
-    def update(self,filePath,position,**arg_options):#,calFilePath='default',note='none',measID=-1):
+    def update(self,file_path,position,**arg_options):
+        '''
+        @brief update the temporary metafile data
+        @param[in] file_path - path of the measurement file
+        @param[in] position  - position of the positoiner for the measurement
+        @param[in] arg_options - keyword arguments as follows:
+            cal_file_path - location of the calibration file 
+            note - note to add to the measurement
+            measID - id of the measurement (default -1 autodetects)
+            dict_data - dicitionary of extra data to write to the measurement piece
+        '''
         defaults = {'cal_file_path':self.options['cal_path'],'note':'none','measID':-1}
+        defaults['dict_data'] = None 
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -285,7 +322,7 @@ class metaFile:
         if(os.path.isfile(self.tmpfPath)!=True): #see if the file doesnt already exist
             #if it doesnt exist make it and create header
             writeType = 'w+'
-            headerLine = "|   ID   |   FILENAME   |   CALFILE   |   TIME   |   POSITION   |   NOTES   |\n"
+            headerLine = "|   ID   |   FILENAME   |   CALFILE   |   TIME   |   POSITION   |   NOTES   | DICT_DATA\n"
             measID=0
         else: #else it already exists
             #find the measID if not given
@@ -296,22 +333,23 @@ class metaFile:
             
         #build the file line from our parameters
         with open(self.tmpfPath,writeType) as metafile:
-            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(filePath,self.options['root_dir'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['root_dir'])+'   |   '
-                    +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+'   |\n')
+            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self.options['working_directory'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['working_directory'])+'   |   '
+                    +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+"   |   "+json.dumps(options['dict_data'])+"   |\n")
             metafile.write(headerLine)
             metafile.write(line)
             
         
     #take the data from our temporary metaFile and put into JSON file
     def finalize(self):
-       
+        '''
+        @brief write our data from our temp file back to the json file
+            This finishes the measurement. After this is called the data from 
+            the '.raw' measurement file will be put into our json file
+        '''
         #load json data
         jsonFile = open(self.jsonPath,'r')
         jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
         jsonFile.close()
-        #json.dumps(jsonData)
-        #make copy in case something goes wrong
-        #os.rename(self.jsonPath,self.jsonPath+'.tmp')
         #fill JSON Data from tmpFile
         with open(self.tmpfPath,'r') as tmpFile:
             next(tmpFile)
@@ -323,6 +361,7 @@ class metaFile:
                 time   = ls[4]
                 notes  = ls[6]
                 posStr = ls[5]
+                dict_data = json.loads(ls[7]) #extra data
                 posStr = posStr.strip()
                 posStr = posStr.strip(']')
                 posStr = posStr.strip('[')
@@ -338,6 +377,9 @@ class metaFile:
                 self.jsonData['measurements'][measId]['filename'] = fname
                 self.jsonData['measurements'][measId]['timestamp'] = time
                 self.jsonData['measurements'][measId]['calibration_file'] = cfname
+                if dict_data is not None:
+                    for key,val in dict_data:
+                        self.jsonData['measurements'][measId][key] = val
                 #increment filled measurements
                 self.jsonData['completed_measurements']+=1
         #now write out new json data
@@ -361,29 +403,29 @@ class metaFile:
                 pass
             #get id from last line
             return int(line.split('|')[1])
-  
 
-      
+
+import re
 #check if file exists and change name if it does
-def clean_file_name(fileName,num=-1):
-    fout=fileName
+def clean_file_name(file_path,num=-1):
+    '''
+    @brief clean the file name so if the file exists at an ending
+    @param[in] file_path - path/to/file to clean name of
+    @param[in/OPT] num - number to add (-1 finds the next lowest unused number)
+    '''
+    [mydir,fname] = os.path.split(file_path)
     i=0
     if(num==-1):
-        while(os.path.isfile(fout)==True):
+        while(os.path.isfile(os.path.join(mydir,fname))==True):
             i+=1
-            #remove number if there was one
-            fout = fout.split('/')[-1]
-            if(len(fout.split('('))>1):
-                fout = fout.split('(')[0]+fout.split(')')[-1]
-            fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-            fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
+            #jump to next number
+            fname = re.sub('(\([0-9+]\))*\.','('+str(i)+').',fname) #remove number and replace with current i value
     elif(num==0):#no need to add thing on
-        fout = fileName
+        i=num
     else:
         i=num
-        fout = fout.split('/')[-1]
-        fout = fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-        fout = '/'.join(fileName.split('/')[0:-1])+'/'+fout
+        fname = re.sub('(\([0-9+]\))*\.','('+str(i)+').',fname) 
+    fout = os.path.join(mydir,fname)
     return fout,i
 
 #alias

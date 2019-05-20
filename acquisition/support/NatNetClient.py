@@ -51,6 +51,13 @@ class NatNetClient:
 
         # Set this to a callback method of your choice to receive per-rigid-body data at each frame.
         self.rigidBodyListener = None
+        #listener for new frame
+        self.newFrameListener = None
+        #listener for labeled marker
+        self.labeledMarkerListener = None
+        
+        #when a description is received, it is placed here
+        self.descriptions = NatNetDescriptions()
         
         # NatNet stream version. This will be updated to the actual version the server is using during initialization.
         self.__natNetStreamVersion = (3,0,0,0)
@@ -109,7 +116,7 @@ class NatNetClient:
 
         # Send information to any listener.
         if self.rigidBodyListener is not None:
-            self.rigidBodyListener( id, pos, rot )
+            self.rigidBodyListener(self, id, pos, rot )
 
         # RB Marker Data ( Before version 3.0.  After Version 3.0 Marker data is in description )
         if( self.__natNetStreamVersion[0] < 3  and self.__natNetStreamVersion[0] != 0) :
@@ -241,6 +248,7 @@ class NatNetClient:
                 offset += 12
                 size = FloatValue.unpack( data[offset:offset+4] )
                 offset += 4
+                
 
                 # Version 2.6 and later
                 if( ( self.__natNetStreamVersion[0] == 2 and self.__natNetStreamVersion[1] >= 6 ) or self.__natNetStreamVersion[0] > 2 or major == 0 ):
@@ -249,12 +257,16 @@ class NatNetClient:
                     occluded = ( param & 0x01 ) != 0
                     pointCloudSolved = ( param & 0x02 ) != 0
                     modelSolved = ( param & 0x04 ) != 0
+                    residual = "Not pre-3.0"
 
                 # Version 3.0 and later
                 if( ( self.__natNetStreamVersion[0] >= 3 ) or  major == 0 ):
                     residual, = FloatValue.unpack( data[offset:offset+4] )
                     offset += 4
                     trace( "Residual:", residual )
+                    
+                if self.labeledMarkerListener is not None:
+                    self.labeledMarkerListener(self, id, pos, residual )
 
         # Force Plate data (version 2.9 and later)
         if( ( self.__natNetStreamVersion[0] == 2 and self.__natNetStreamVersion[1] >= 9 ) or self.__natNetStreamVersion[0] > 2 ):
@@ -347,6 +359,7 @@ class NatNetClient:
         name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
         offset += len( name ) + 1
         trace( "Markerset Name:", name.decode( 'utf-8' ) )
+        #self.descriptions.add_description()
         
         markerCount = int.from_bytes( data[offset:offset+4], byteorder='little' )
         offset += 4
@@ -373,6 +386,8 @@ class NatNetClient:
 
         parentID = int.from_bytes( data[offset:offset+4], byteorder='little' )
         offset += 4
+        
+        self.descriptions.add_description(id,parent_id=parentID,name=name,separator=separator,remainder=remainder)
 
         timestamp = Vector3.unpack( data[offset:offset+12] )
         offset += 12
@@ -398,6 +413,7 @@ class NatNetClient:
         offset = 0
 
         name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
+        self.current_description = NatNetDescription(name,separator,remainder)
         offset += len( name ) + 1
         trace( "\tMarker Name:", name.decode( 'utf-8' ) )
         
@@ -514,3 +530,61 @@ class NatNetClient:
         commandThread.start()
 
         self.sendCommand( self.NAT_REQUEST_MODELDEF, "", self.commandSocket, (self.serverIPAddress, self.commandPort) )
+
+
+import six
+
+class NatNetDescriptions(dict):
+    '''
+    @brief class for natnet descriptions
+            data will be associated with the descriptions id
+    '''
+    def __init__(self):
+        super(NatNetDescriptions,self).__init__() #initialize the dictionary
+        #each asset will be stored by its id
+    
+    def add_description(self,id,**description_data):
+        '''
+        @brief add a description to the class. If it exists it will not be added
+        @param[in] type - type of description (e.g. rigid_body, marker_set)
+        @param[in] description_data - keyword arguments for description data
+        '''
+        if not id in self: #check if we have the id. If we do do nothing
+            self[id] = {}
+            for key,value in six.iteritems(description_data):
+                self[id][key] = value #add our key value pairs
+        #otherwise we dont do anything
+        
+    def get_name(self,id):
+        '''
+        @brief quick way to get the name from an id
+        @param[in] id - id of asset of name to get
+        '''
+        if id in self:
+            return self[id]['name']
+        else: 
+            return None
+        
+        
+if __name__=='__main__':
+    from samurai.acquisition.support.NatNetClient import NatNetClient
+    mynat = NatNetClient()
+    
+    def body_listener(client,id,pos,rot):
+        print("Name",client.descriptions.get_name(id))
+        print("Position",pos)
+        print("Rotation",rot)
+        
+    def label_listener(client,id,pos,resid):
+        pass
+        #print("ID %d" %(id))
+        #print(pos)
+        #print(resid)
+        
+    mynat.rigidBodyListener = body_listener
+    mynat.labeledMarkerListener = label_listener
+    mynat.run()
+    
+    
+    
+    

@@ -125,6 +125,10 @@ class CalibrateSamurai:
             meas_name_full = os.path.split(fname)[-1] #in case the measurements are in some subdirectory
             meas_name = meas_name_full.split('.')[0] #we remove extension here
             meas_ext  = meas_name_full.split('.')[1]
+            #adjust for wave parameters and binary
+            meas_ext = meas_ext.split('_')[0] #remove _binary
+            if self.options['wave_params_flg']: #then make s param
+                meas_ext = 's'+meas_ext.strip('w').strip('p')+'p'
             snp_name =  cal_folder_name+'_0.'+meas_ext
             copy_src = os.path.join(cal_folder_full,meas_name,snp_name)
             meas = meas_name+'.'+meas_ext
