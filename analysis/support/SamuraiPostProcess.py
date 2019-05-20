@@ -579,7 +579,12 @@ class CalculatedSyntheticAperture:
             self.complex_values = np.insert(self.complex_values,in_ord,cv,axis=2)
         self.freq_list = np.insert(self.freq_list,in_ord,freqs)
         
-        
+    def set_options(**arg_options):
+        '''
+        @brief set options of the class
+        '''
+        for key,val in six.iteritems(arg_options):
+            self.options[key] = val
     
     def plot_azel(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
@@ -739,7 +744,8 @@ class CalculatedSyntheticAperture:
             self.mp.ylabel('Z',nargout=0)
             self.mp.zlabel('Y',nargout=0)
             self.mp.shading('interp',nargout=0)
-            self.mp.colorbar('XTickLabel',[str(caxis_min),str(caxis_max)],'XTick',[0,db_range])
+            num_increments = 3 #(number of label increments)
+            self.mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
             self.mp.view([170,20])
             return fig
             
@@ -842,10 +848,12 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] freqs - which frequencies to average (default 'all'). if the freq doesnt exist, throw an exception
         @param[in/OPT] arg_options - keyword arguments as follows
                 mean_flg - whether or not to return the mean across all frequencies
+                constant_output - add a new dimension to our data to ensure consistent output even when using mean_flg
         @return np array of shape self.azimuth (or elevation) with the values from the provided frequencies
         '''
         options = {}
         options['mean_flg'] = False
+        options['constant_output'] = False
         for key,val in six.iteritems(arg_options):
             options[key] = val
             
@@ -862,6 +870,8 @@ class CalculatedSyntheticAperture:
         data = data[:,:,freq_idx]
         if options['mean_flg']:
             data = np.mean(data,axis=2)
+            if options['constant_output']: 
+                data = data[...,np.newaxis] #ensure we always return a 3D tuple
         return data
         
     def get_freq_idx(self,freqs):
@@ -870,7 +880,7 @@ class CalculatedSyntheticAperture:
             'all' will return all indexes
         @param[in] freqs to get indices of ('all' returns all)
         '''
-        if freqs=='all':
+        if np.any(np.array(freqs)=='all'):
             freqs = self.freq_list
         if not hasattr(freqs,'__iter__'):
             freqs = [freqs]
@@ -945,34 +955,54 @@ class CalculatedSyntheticAperture:
             json.dump(meas_info,fp)
         return meas_data
     
-    def get_max_beam_idx(self,freqs='all'):
+    def get_max_beam_idx(self,freqs='all',**arg_options):
         '''
         @brief get the index of the maximum beam
         @param[in/OPT] freqs - list of frequencies to calculate for
+        @param[in/OPT] arg_options - optional keword arguements as follows:
+            mean_flg - whether or not to get the average data
         @return tuple of tuples with indices of the maximum
         '''
         if freqs=='all':
             freqs = self.freq_list
         freqs = np.array(freqs)
         idx_vals = [] #allocate for outputs
-        for i,f in enumerate(freqs):
-            fidx=self.get_freq_idx(f)
-            fidx = np.where(self.freq_list==f)[0][0] #get first value (shouldnt be repeated)
-            mymags = self.mag_db[:,:,fidx] #get our frequency values
-            max_idx = np.unravel_index(mymags.argmax(),mymags.shape)
+        data = self.get_data('mag_db',freqs=freqs,constant_output=True,**arg_options) # get our data
+        for i in range(data.shape[-1]):
+            cur_dat = data[...,i] #get the current data
+            max_idx = np.unravel_index(cur_dat.argmax(),cur_dat.shape)
             idx_vals.append(max_idx)
         return tuple(idx_vals)
     
-    def get_max_beam_angle(self,freqs='all'):
+    def get_max_beam_angle(self,freqs='all',**arg_options):
         '''
         @brief get the angle of the maximum beam
         @param[in/OPT] freqs - list of frequencies to calculate for
+        @param[in/OPT] arg_options - keyword args are also as follows:
+            None for this method
+            also passed to self.get_max_beam_idx() method
         @return 2D array with azel [[az,el],[az,el],[az,el],etc...]
         '''
-        idx_vals = self.get_max_beam_idx(freqs)
-        az_vals = self.azimuth[idx_vals]
-        el_vals = self.elevation[idx_vals]
+        idx_vals = self.get_max_beam_idx(freqs,**arg_options)
+        for v in idx_vals:
+            az_vals = self.azimuth[v]
+            el_vals = self.elevation[v]
         return np.stack([az_vals,el_vals])
+    
+    def get_max_beamwidth(self,freqs='all',**arg_options):
+        '''
+        @brief get the beamwidth of the maximum beam
+        @param[in/OPT] freqs - list of frequencies to calculate for
+        @param[in/OPT] arg_options - keyword args are also as follows:
+            None for this method
+            also passed to self.get_max_beam_idx() method
+        @return tuple with (az_bw,el_bw)
+        '''
+        idx_vals = self.get_max_beam_idx(freqs,**arg_options)
+        if freqs=='all':
+            freqs = self.freq_list
+        return self.get_beamwidth(idx_vals,freqs)
+        
     
     def get_max_side_lobe_level(self,freqs='all'):
         '''
@@ -982,12 +1012,40 @@ class CalculatedSyntheticAperture:
         '''
         pass
     
+    def get_all_peak_idx(self,freqs='all'):
+        '''
+        @brief get all of the peaks from the data
+        @param[in/OPT] freqs - frequencies to get the peaks for
+        @return 2D list of tuples (x,y) for index of angle magnitude of the peaks
+        ### 1D solution ###
+        '''
+        data = self.get_data('mag_db',freqs=freqs,constant_output=True)
+        peak_locs = np.diff(np.diff(data)>0) #
+    
+    def get_all_peak_idx_1d(self,vals):
+        '''
+        @brief get all of the peaks in a set of 2D values (such as a elevation or azimuth plane cut)
+        @param[in] vals - 1D array of values to find peaks of
+        @return 1D numpy array of integers for the indices of each of the peaks
+        '''
+        d1 = vals
+        d1dg = np.diff(d1)>0 #find the derivative and make True > 0
+        l = np.diff(d1dg) #get the zero crossings of the derivative 
+        # checking for greater than 0, we get - to + transition is False to True (bowls)
+        # + to - transition is True to False (peaks) what we are looking for
+        locs = np.where(l==True)[0] #get the locions of the zero crossings of the derivative
+        peaks = locs[d1dg[locs]]+1 #this will be the indexes of our peaks (+1 because of diff)
+        #[1 2 3 4 5 6 7 8 9 10] first derivative indexing
+        #[ 1 2 3 4 5 6 7 8 9  ] second derivative indexing
+        #[  1 2 3 4 5 6 7 8   ] third derivative indexing
+        return peaks
+        
     def get_beamwidth(self,peak_idx,freqs,**arg_options):
         '''
         @brief get the beamwidth of a beam with peak at index location (x,y)
             this is the same index provided by get_max_beam_idx. This finds the closest
             calculated angular crossings so will not be extremely accurate
-        @param[in] peak_angles - angles of peak location (in [az,el] format)
+        @param[in] peak_idx - peak locations in list of tuples (x,y) format for each freq in freqs for location in az/el 2D arrays 
         @param[in] freqs - list of frequencies the peaks are at. (can be all)
         @param[in/OPT] arg_options - optional keyword args as follows:
                 power_level_db - power level for the beamwidth (default -3dB=HPBW)

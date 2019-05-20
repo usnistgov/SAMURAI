@@ -136,7 +136,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
-        mycsa = CalculatedSyntheticAperture(azimuth,elevation)
+        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options)
         for freq in freq_list:
             if verbose: print("    Calculating for %f Hz" %(freq))
             freq_idx = np.where(s_freq_list==freq)[0]
@@ -165,7 +165,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             mycsa.add_frequency_data(np.reshape(beamformed_vals,azimuth.shape),freq)
             #csa_list.append(CalculatedSyntheticAperture(azimuth,elevation,np.reshape(beamformed_vals,azimuth.shape)))
         
-        ant_vals = CalculatedSyntheticAperture(azimuth,elevation,np.reshape(antenna_values[1,:],azimuth.shape))
+        ant_vals = CalculatedSyntheticAperture(azimuth,elevation,np.reshape(antenna_values[1,:],azimuth.shape),**self.options)
 
         return mycsa,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
@@ -246,9 +246,9 @@ if __name__=='__main__':
         '''
         
         #windowing
-        #mysp.set_sine_window() #set a sine window weighting
+        mysp.set_sine_window() #set a sine window weighting
         #mysp.set_cosine_sum_window_by_name('blackman-nutall')
-        mysp.set_cosine_sum_window_by_name('hamming')
+        #mysp.set_cosine_sum_window_by_name('hamming')
         #mysp.set_sine_window()
         #mysp.plot_positions()
         
@@ -260,19 +260,20 @@ if __name__=='__main__':
         myap = myant['pattern']
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[30e9,40e9],verbose=True)
-        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
+        #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
+        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,.1),np.arange(-90,90,10),'all',verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
         #UV beamform
         #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
         mycsa.plot_3d()
+        print("Max Beamwidth ",mycsa.get_max_beamwidth())
         #mycsa.plot_uv()
         #mycsa.plot_scatter_3d()
         #print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
         bw_freqs = 'all'
         mybw = mycsa.get_beamwidth(mycsa.get_max_beam_idx(bw_freqs),bw_freqs)
-        center_val = (int(mycsa.azimuth.shape[1]/2),int(mycsa.azimuth.shape[0]/2)) #(az_center_idx,el_center_idx)
-        [az,azv] = mycsa.get_azimuth_cut(center_val[1],mean_flg=True)
-        [el,elv] = mycsa.get_elevation_cut(center_val[0],mean_flg=True)
+        [az,azv] = mycsa.get_azimuth_cut(0,mean_flg=True)
+        [el,elv] = mycsa.get_elevation_cut(0,mean_flg=True)
         #mycsa.get_data('mag_db')
         #import os
         #os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-24-2018\meas\processed\samurai_scan\test')
