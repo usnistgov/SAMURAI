@@ -135,6 +135,11 @@ if exp == '020719':
     experimentDir = '2-7-2019'
     subdir = ''
     jsonFile = 'metaFile.json'
+elif exp == '020619':
+    dataDir = r"U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\\"
+    experimentDir = '2-6-2019'
+    subdir = ''
+    jsonFile = 'metaFile.json'
 elif exp == '021319':
     dataDir = r"U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\\"
     experimentDir = '2-13-2019'
@@ -246,13 +251,165 @@ anglesUV[mm, :] = np.nan
 
 freqStep = 1000
 # Now call steering vector
-hThetaF = steeringVectors(measPos, angles, freqs[::freqStep], measS21[:,::freqStep]); 
-hThetaFUV = np.zeros((anglesUV.shape[0],hThetaF.shape[1]), dtype=np.complex128)
-hThetaFUV[mm,:] = np.nan
-hThetaFUV[~mm,:] = hThetaF[:,:]
+
+
+from timeit import default_timer as timer
+start = timer()
+hThetaF = steeringVectors(measPos, angles, freqs[::freqStep], measS21[:,::freqStep], newImp=False); 
+end1 = timer()
+hThetaF2 = steeringVectors(measPos, angles, freqs[::freqStep], measS21[:,::freqStep], newImp=True); 
+end2 = timer()
+print(end1 - start)
+print(end2 - end1)
+
+hThetaFUV = np.zeros((hThetaF.shape[0], anglesUV.shape[0]), dtype=np.complex128)
+hThetaFUV[:,mm] = np.nan
+hThetaFUV[:,~mm] = hThetaF[:,:]
 fig = plt.figure()
-plt.contourf(uu,vv,np.log10(np.abs(hThetaFUV[:,0])).reshape(uu.shape))
+plt.contourf(uu,vv,20*np.log10(np.abs(hThetaFUV[0,:])).reshape(uu.shape))
+plt.xlabel('U')
+plt.ylabel('V')
+plt.colorbar()
+plt.savefig('naiveImp.png')
 plt.show()
+
+hThetaFUV2 = np.zeros((hThetaF2.shape[0], anglesUV.shape[0]), dtype=np.complex128)
+hThetaFUV2[:,mm] = np.nan
+hThetaFUV2[:,~mm] = hThetaF2[:,:]
+fig = plt.figure()
+plt.contourf(uu,vv,20*np.log10(np.abs(hThetaFUV2[0,:])).reshape(uu.shape))
+plt.colorbar()
+plt.xlabel('U')
+plt.ylabel('V')
+plt.savefig('tensorImp.png')
+plt.show()
+
+fig = plt.figure()
+plt.contourf(uu,vv,20*np.log10(np.abs(hThetaFUV[0,:] - hThetaFUV2[0,:])).reshape(uu.shape))
+plt.colorbar()
+plt.xlabel('U')
+plt.ylabel('V')
+plt.show()
+plt.savefig('diff.png')
+
+# Tapering
+import scipy.signal
+import scipy.interpolate
+numPoints = measPos.shape[0]
+# Assumes square array
+numPointsX = np.int(np.sqrt(numPoints))
+numPointsY = np.int(np.sqrt(numPoints))
+dcWin = scipy.signal.chebwin(numPointsX, at=30) # What value for attenuation?
+lengthX = np.max(measPos[:,0]) - np.min(measPos[:,0])
+lengthY = np.max(measPos[:,1]) - np.min(measPos[:,1])
+xLocs = np.linspace(np.min(measPos[:,0]), np.max(measPos[:,0]), numPointsX)
+yLocs = np.linspace(np.min(measPos[:,1]), np.max(measPos[:,1]), numPointsY)
+
+
+# Now get the x and y taper response - we must interpolate
+xInterp = scipy.interpolate.interp1d(xLocs, dcWin, kind='cubic')
+xTapers = xInterp(measPos[:,0])
+yInterp = scipy.interpolate.interp1d(yLocs, dcWin, kind='cubic')
+yTapers = yInterp(measPos[:,1])
+
+taper = xTapers*yTapers
+taperedS21 = np.zeros(measS21.shape, dtype=np.complex128)
+for iF in range(numFreqs):
+    taperedS21[:,iF] = measS21[:,iF]*taper
+#taperedS21 = measS21*taper
+taperedBF_small = steeringVectors(measPos, angles, freqs[[0,-1]], taperedS21[:,[0,-1]], newImp=True);
+taperedBF = np.zeros((taperedBF_small.shape[0], anglesUV.shape[0]), dtype=np.complex128)
+taperedBF[:,mm] = np.nan
+taperedBF[:,~mm] = taperedBF_small[:,:]
+
+hThetaF = steeringVectors(measPos, angles, freqs[[0,-1]], measS21[:,[0,-1]], newImp=True); 
+hThetaFUV = np.zeros((hThetaF.shape[0], anglesUV.shape[0]), dtype=np.complex128)
+hThetaFUV[:,mm] = np.nan
+hThetaFUV[:,~mm] = hThetaF[:,:]
+
+fig = plt.figure()
+plt.imshow(20*np.log10(np.abs(taperedBF[0,:])).reshape(uu.shape), extent=[-1.0, 1.0, -1.0, 1.0], cmap=plt.cm.jet) #plt.cm.jet)
+plt.colorbar()
+plt.xlabel('U')
+plt.ylabel('V')
+plt.title('Tapered Beamforming')
+plt.tight_layout()
+plt.savefig('taperedBF_26.5.png')
+#plt.show()
+
+fig = plt.figure()
+plt.imshow(20*np.log10(np.abs(hThetaFUV[0,:])).reshape(uu.shape), extent=[-1.0, 1.0, -1.0, 1.0], cmap=plt.cm.jet) #plt.cm.jet)
+plt.colorbar()
+plt.xlabel('U')
+plt.ylabel('V')
+plt.title('Beamforming')
+plt.tight_layout()
+plt.savefig('beamforming_26.5.png')
+#plt.show()
+
+
+# Let's take some cuts
+yIndex = uu.shape[0]/2
+taper1d = 20*np.log10(np.abs(taperedBF[0,:])).reshape(uu.shape)[yIndex,:]
+nonTaper1d = 20*np.log10(np.abs(hThetaFUV[0,:])).reshape(uu.shape)[yIndex,:]
+fig = plt.figure()
+plt.plot(uu[yIndex,:], nonTaper1d, '--b', label='Not tapered')
+plt.plot(uu[yIndex,:], taper1d, '-k', label='DC tapered')
+plt.legend(loc='upper right')
+plt.xlabel('U')
+plt.title('Tapered Beamforming Cut')
+plt.tight_layout()
+plt.ylim([-60,0])
+plt.savefig('taperedCut_26.5.png')
+#plt.show()
+
+fig = plt.figure()
+plt.imshow(20*np.log10(np.abs(taperedBF[1,:])).reshape(uu.shape), extent=[-1.0, 1.0, -1.0, 1.0], cmap=plt.cm.jet) #plt.cm.jet)
+plt.colorbar()
+plt.xlabel('U')
+plt.ylabel('V')
+plt.title('Tapered Beamforming')
+plt.tight_layout()
+plt.savefig('taperedBF_40.0.png')
+#plt.show()
+
+fig = plt.figure()
+plt.imshow(20*np.log10(np.abs(hThetaFUV[1,:])).reshape(uu.shape), extent=[-1.0, 1.0, -1.0, 1.0], cmap=plt.cm.jet) #plt.cm.jet)
+plt.colorbar()
+plt.xlabel('U')
+plt.ylabel('V')
+plt.title('Beamforming')
+plt.tight_layout()
+plt.savefig('beamforming_40.0.png')
+#plt.show()
+
+
+# Let's take some cuts
+yIndex = uu.shape[0]/2
+taper1d = 20*np.log10(np.abs(taperedBF[1,:])).reshape(uu.shape)[yIndex,:]
+nonTaper1d = 20*np.log10(np.abs(hThetaFUV[1,:])).reshape(uu.shape)[yIndex,:]
+fig = plt.figure()
+plt.plot(uu[yIndex,:], nonTaper1d, '--b', label='Not tapered')
+plt.plot(uu[yIndex,:], taper1d, '-k', label='DC tapered')
+plt.legend(loc='upper right')
+plt.xlabel('U')
+plt.title('Tapered Beamforming Cut')
+plt.ylim([-60,0])
+plt.tight_layout()
+plt.savefig('taperedCut_40.0.png')
+#plt.show()
+
+
+fig = plt.figure()
+#plt.contourf(xLocs, yLocs, taper.reshape(numPointsX, numPointsY))
+plt.imshow(taper.reshape(numPointsX, numPointsY), extent=[np.min(xLocs), np.max(xLocs), np.min(yLocs), np.max(yLocs)], 
+           cmap=plt.cm.jet) #plt.cm.jet)
+plt.colorbar()
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Taper Values')
+plt.savefig('taper.png')
+#plt.show()
 
 # Create uv plot to compare with Peter
 # We may have an angle issue - which angle is which...
