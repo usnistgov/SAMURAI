@@ -12,6 +12,7 @@ NAMED ARGUMENTS DO NOW WORK HERE
 import matlab.engine
 import six
 import numpy as np
+from itertools import chain
 
 class MatlabPlotter:
     '''
@@ -52,14 +53,17 @@ class MatlabPlotter:
         @parma[in/OPT] **kwargs - keyword args to pass to matlab function
         '''
         funct = getattr(self.engine,funct_name)
-        args = self.args2matlab(*args)
-        return funct(*args,**kwargs)
+        args = self.args2matlab(*args,**kwargs)
+        return funct(*args)
+        #return funct(*args,**kwargs)
     
 
-    def args2matlab(self,*args):
+    def args2matlab(self,*args,**kwargs):
         '''
         @brief convert variable number of arguments to matlab
+            kwargs will also be converted to name/value pairs
         @param[in] *args - variable arguments
+        @param[in/OPT] **kwargs - kwargs will be converted to name/value pairs
         '''
         args_out = []
         for arg in args: #loop through each argument
@@ -72,9 +76,21 @@ class MatlabPlotter:
                     args_out.append(matlab.int32(arg))
             else:
                 args_out.append(arg)
-                pass #otherwise do nothing
-                
+        #keyword args
+        if kwargs:
+            args_out+=self.__kwargs2matlab(**kwargs)
+        
         return tuple(args_out)
+    
+    def __kwargs2matlab(self,**kwargs):
+        '''
+        @brief convert kwargs to list of name/value pairs
+        '''
+        name_list = list(kwargs.keys())
+        vals_list = list(kwargs.values())
+        vals_list = list(self.args2matlab(*tuple(vals_list))) #change to matlab stuff
+        name_val_pairs = list(chain.from_iterable(zip(name_list, vals_list)))
+        return name_val_pairs
     
     def nparray2matlab(self,mynparray):
         '''
@@ -131,6 +147,8 @@ if __name__=='__main__':
     #    raise Exception("This dinging is annoying")
     #except Exception as exc:
     #    print("I handled it")
+    '''
+    #surf test
     mp = MatlabPlotter(verbose=True)
     [X,Y] = np.mgrid[1:10:0.5,1:20]
     Z = np.sin(X)+np.cos(Y)
@@ -138,5 +156,19 @@ if __name__=='__main__':
     mp.xlim([0,20])
     mp.zlabel('X')
     mp.shading('interp')
+    '''
+    
+    #1D plotting test
+    mp = MatlabPlotter(verbose=True)
+    x = np.linspace(0,3.*np.pi,1000)
+    y = np.cos(x)
+    args = mp.args2matlab(x,y,DisplayName='testing',xlim=[0,10])
+    #kargs = mp.kwargs2matlab(DisplayName='testing',xlim=[0,10])
+    #print(kargs)
+    mp.figure()
+    mp.plot(x,y,DisplayName='testing')
+    mp.legend('show')
+    
+    
     
     
