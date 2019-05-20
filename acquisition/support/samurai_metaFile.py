@@ -21,7 +21,7 @@ class metaFile:
         self.options = OrderedDict({})
 
         #Some default values
-        self.options['root_dir'] = os.path.abspath('./')
+        self.options['working_directory'] = os.path.abspath('./')
         self.options['csv_path'] = csv_path
         self.options['metafile_name'] = 'metafile'
         self.options['pna_address'] = pna_addr
@@ -35,7 +35,7 @@ class metaFile:
         
         #some info about the system
         #defaults
-        self.options['metafile_version']   = 1.03
+        self.options['metafile_version']   = 2.00
         self.options['metafile_changelog'] = {
                 1.03: ["Added new defaults and heavily updated the code to be more user friendly"],
                 2.00: ["(5/10/2019) Updated reference frame. THIS IS VERY IMPORTANT FOR ALL USES OF MEAUSUREMENTS.\\n" 
@@ -80,7 +80,7 @@ class metaFile:
 
         #write any input options
         for key,value in six.iteritems(arg_options):
-            if(key=='root_dir'): #get abspath if rootdir
+            if(key=='working_directory'): #get abspath if rootdir
                 value = os.path.abspath(value)
             self.options[key] = value
 
@@ -116,8 +116,8 @@ class metaFile:
         '''
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
-        self.jsonPath = os.path.join(self.options['root_dir'],self.options['metafile_name']+'.json')
-        self.tmpfPath = os.path.join(self.options['root_dir'],self.options['metafile_name']+'.raw')
+        self.jsonPath = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.json')
+        self.tmpfPath = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.raw')
         self.raw_path = self.tmpfPath
         self.csvPath  = self.options['csv_path']
         #build JSON template
@@ -173,16 +173,9 @@ class metaFile:
         '''
         #first build header
         jhd = OrderedDict({})
-        jhd["working_directory"]  = self.options['root_dir']
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['root_dir'])
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['root_dir'])
-        jhd["metafile_version"]   = self.options['metafile_version']
-        jhd['experiment']         = self.options['experiment']
-        jhd['experiment_version'] = self.options['experiment_version']
-        jhd['positioner']         = self.options['positioner']
-        jhd['user']               = self.options['user']
-        jhd['vna_info']           = self.options['vna_info']
-        jhd['antennas']           = self.options['antennas']
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['working_directory'])
+        jhd.update(self.options)  #update with all of our input options
         jhd['notes']              = None
 
         for key,val in six.iteritems(additional_header_info):
@@ -232,9 +225,9 @@ class metaFile:
             raw_file_path = self.tmpfPath
         #first build header
         jhd = OrderedDict({})
-        jhd["working_directory"]  = self.options['root_dir']
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['root_dir'])
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['root_dir'])
+        jhd["working_directory"]  = self.options['working_directory']
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['working_directory'])
         jhd["metafile_version"]   = self.options['metafile_version']
         jhd['experiment']         = self.options['experiment']
         jhd['experiment_version'] = self.options['experiment_version']
@@ -249,7 +242,7 @@ class metaFile:
 
         #now loop through json file to add measurements
         self.jsonData = jhd
-        rfp = os.path.join(self.options['root_dir'],raw_file_path)
+        rfp = os.path.join(self.options['working_directory'],raw_file_path)
         #GET number of measurements from raw file
         rawLineCount = 0
         with open(rfp,'r') as rawfile:
@@ -270,7 +263,7 @@ class metaFile:
                     locId = self.jsonData['total_measurements']-1
                     ls = line.split('|')
                     measId = int(ls[1])
-                    fname  = os.path.relpath(ls[2].strip(),self.options['root_dir'])
+                    fname  = os.path.relpath(ls[2].strip(),self.options['working_directory'])
                     cfname = ls[3]
                     time   = ls[4]
                     notes  = ls[6]
@@ -340,7 +333,7 @@ class metaFile:
             
         #build the file line from our parameters
         with open(self.tmpfPath,writeType) as metafile:
-            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self.options['root_dir'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['root_dir'])+'   |   '
+            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self.options['working_directory'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['working_directory'])+'   |   '
                     +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+"   |   "+json.dumps(options['dict_data'])+"   |\n")
             metafile.write(headerLine)
             metafile.write(line)
