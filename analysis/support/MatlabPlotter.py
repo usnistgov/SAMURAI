@@ -26,6 +26,7 @@ class MatlabPlotter:
         @brief initialize the class and start our MATLAB engine
         @param[in/OPT] arg_options - keyword arguments as follows:
             verbose - be verbose in our plotting (default False)
+            debug - extra verbose for debugging
         '''
         self.options = {}
         self.options['verbose'] = False
@@ -54,6 +55,7 @@ class MatlabPlotter:
         '''
         funct = getattr(self.engine,funct_name)
         args,kwargs = self.args2matlab(*args,**kwargs)
+        if self.options['debug']: print("CALL: %s" %(funct_name),*args)
         return funct(*args,**kwargs)
     
     def call_functs_from_dict(self,funct_dict,**kwargs):
@@ -83,25 +85,27 @@ class MatlabPlotter:
             kwargs will just have special required keyword args like nargout
         '''
         args_out = []
-        for arg in args: #loop through each argument
-            if type(arg)==np.ndarray: arg = arg.tolist()
+        for arg in args: #loop through each argument.
             if type(arg)==tuple:      arg = list(arg)
+            if type(arg)==list :      arg = np.array(arg) #alwyas have nparray to get dtype
             #now convert lists to matlab
-            if type(arg)==list: #this assumes consistent values across list
-                if type(arg[0]==float):
-                    args_out.append(matlab.double(arg))
-                elif type(arg[0]==int):
-                    args_out.append(matlab.int32(arg))
+            if type(arg)==np.ndarray: #this assumes consistent values across list
+                if arg.dtype==np.float64:
+                    args_out.append(matlab.double(arg.tolist()))
+                elif arg.dtype==np.int32:
+                    args_out.append(matlab.int32(arg.tolist()))
+                else:
+                    args_out.append(arg.tolist())
             else:
                 args_out.append(arg)
         #keyword args
         if kwargs:
-            kargs,kwargs = self.__kwargs2matlab(**kwargs)
+            kargs,kwargs = self._kwargs2matlab(**kwargs)
             args_out+=kargs
         
         return tuple(args_out),kwargs
     
-    def __kwargs2matlab(self,**kwargs):
+    def _kwargs2matlab(self,**kwargs):
         '''
         @brief convert kwargs to list of name/value pairs
         @note the following special values will be passed back as a dictionary
@@ -113,7 +117,7 @@ class MatlabPlotter:
         spec_kwargs_dict = {k:v for k,v in spec_kwargs_dict.items() if v is not None} #remove none values (not provided)
         name_list = list(kwargs.keys())
         vals_list = list(kwargs.values())
-        vals_list = list(self.args2matlab(*tuple(vals_list))) #change to matlab stuff
+        vals_list,_ = list(self.args2matlab(*tuple(vals_list))) #change to matlab stuff
         name_val_pairs = list(chain.from_iterable(zip(name_list, vals_list)))
         return name_val_pairs,spec_kwargs_dict
     
@@ -187,7 +191,7 @@ if __name__=='__main__':
     mp = MatlabPlotter(verbose=True)
     x = np.linspace(0,3.*np.pi,1000)
     y = np.cos(x)
-    args = mp.args2matlab(x,y,DisplayName='testing',xlim=[0,10])
+    args,_ = mp.args2matlab(x,y,DisplayName='testing',xlim=[0,10])
     #kargs = mp.kwargs2matlab(DisplayName='testing',xlim=[0,10])
     #print(kargs)
     mp.figure()
