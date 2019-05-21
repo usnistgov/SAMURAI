@@ -20,6 +20,7 @@ from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
 from samurai.analysis.support.MatlabPlotter import MatlabPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
+from samurai.acquisition.support.SamuraiPlotter import SamuraiPlotter
 
 @deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
@@ -537,10 +538,12 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] freqs - list of frequencies (if we are storing multiple)
         @param[in/OPT] arg_options - optional input keyword arguments as follows:
                 plot_program - 'matlab' or 'plotly' possible (default 'matlab')
+                verbose - whether or not to be verbose (default False)
         @return CalculatedSyntheticAperture class
         '''
         self.options = {}
         self.options['plot_program'] = 'matlab'
+        self.options['verbose'] = False
         for key,val in six.iteritems(arg_options):
             self.options[key] = val
         AZ = np.array(AZIMUTH)
@@ -552,6 +555,7 @@ class CalculatedSyntheticAperture:
         self.mp = None #initialize matlab plotter to none
         self.complex_values = np.array([])
         self.freq_list = np.array([])
+        self.plotter = SamuraiPlotter(**self.options)
         if complex_values.size>0 and freqs.size>0: #populate data if provided
             self.add_frequency_data(complex_values,freqs)
         
@@ -584,7 +588,7 @@ class CalculatedSyntheticAperture:
             self.complex_values = np.insert(self.complex_values,in_ord,cv,axis=2)
         self.freq_list = np.insert(self.freq_list,in_ord,freqs)
         
-    def set_options(**arg_options):
+    def set_options(self,**arg_options):
         '''
         @brief set options of the class
         '''
@@ -606,6 +610,8 @@ class CalculatedSyntheticAperture:
             self.options[key] = val
             
         plot_data = self.get_data(plot_type,mean_flg=True)
+        
+        
         
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
