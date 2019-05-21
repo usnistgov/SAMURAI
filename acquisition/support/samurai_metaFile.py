@@ -35,7 +35,7 @@ class metaFile:
         
         #some info about the system
         #defaults
-        self.options['metafile_version']   = 2.00
+        self.options['metafile_version']   = 2.01
         self.options['metafile_changelog'] = {
                 1.03: ["Added new defaults and heavily updated the code to be more user friendly"],
                 2.00: ["(5/10/2019) Updated reference frame. THIS IS VERY IMPORTANT FOR ALL USES OF MEAUSUREMENTS.\\n" 
@@ -44,7 +44,8 @@ class metaFile:
                        "      Y - up/down\\n"
                        "      Z - in/out (i.e. propogation direction)\\n"
                        "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"]
-                      }
+                2.01: ["external positions now have units property and all 'position_mm' changed to 'position' and 'residual_mm' changed to 'residual'"]      
+                }
         self.options['experiment']         = 'SAMURAI Measurements'
         self.options['experiment_version'] = 1.0
         self.options['positioner']         = 'Meca500'
