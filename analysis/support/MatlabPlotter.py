@@ -50,13 +50,28 @@ class MatlabPlotter:
         @brief call a matlab function given by name funct_name
         @param[in] funct_name - name of function to call
         @param[in/OPT] *args - variable arguments to pass to matlab funciton
-        @parma[in/OPT] **kwargs - keyword args to pass to matlab function
+        @parma[in/OPT] **kwargs - keyword args to pass to matlab function (all except nargout)
         '''
         funct = getattr(self.engine,funct_name)
-        args = self.args2matlab(*args,**kwargs)
-        return funct(*args)
-        #return funct(*args,**kwargs)
+        args,kwargs = self.args2matlab(*args,**kwargs)
+        return funct(*args,**kwargs)
     
+    def call_functs_from_dict(self,funct_dict,**kwargs):
+        '''
+        @brief call a set of matlab functions from a dictionary
+        @param[in] funct_dict - dictionary of function:argument pairs
+            multiple arguments MUST be provided as tuple
+        @param[in/OPT] kwargs - keyword arguments to be passed to call_matlab_funct for all values
+            nargout - typically called for functions that have no outputs use 'nargout=0'
+        @return list of function returns
+        '''
+        rv = []
+        for k,v in funct_dict.items():
+            if type(v) is not tuple:
+                v=(v,) #then make it a tuple
+            rvc = self.call_matlab_funct(k,*v,**kwargs)
+            rv.append(rvc)
+        return rv
 
     def args2matlab(self,*args,**kwargs):
         '''
@@ -64,11 +79,14 @@ class MatlabPlotter:
             kwargs will also be converted to name/value pairs
         @param[in] *args - variable arguments
         @param[in/OPT] **kwargs - kwargs will be converted to name/value pairs
+        @return tuple of variable args (*args) and dict for keyword arguments
+            kwargs will just have special required keyword args like nargout
         '''
         args_out = []
         for arg in args: #loop through each argument
-            if type(arg)==np.ndarray: #convert to list if needed
-                arg = arg.tolist()
+            if type(arg)==np.ndarray: arg = arg.tolist()
+            if type(arg)==tuple:      arg = list(arg)
+            #now convert lists to matlab
             if type(arg)==list: #this assumes consistent values across list
                 if type(arg[0]==float):
                     args_out.append(matlab.double(arg))
@@ -78,19 +96,26 @@ class MatlabPlotter:
                 args_out.append(arg)
         #keyword args
         if kwargs:
-            args_out+=self.__kwargs2matlab(**kwargs)
+            kargs,kwargs = self.__kwargs2matlab(**kwargs)
+            args_out+=kargs
         
-        return tuple(args_out)
+        return tuple(args_out),kwargs
     
     def __kwargs2matlab(self,**kwargs):
         '''
         @brief convert kwargs to list of name/value pairs
+        @note the following special values will be passed back as a dictionary
+        and should be passed to matlab as kwargs
+                nargout - number of output arguments required to be 0 for some functions
         '''
+        special_kwargs = ['nargout']
+        spec_kwargs_dict = {k:kwargs.pop(k,None) for k in special_kwargs} #get our function dictionary
+        spec_kwargs_dict = {k:v for k,v in spec_kwargs_dict.items() if v is not None} #remove none values (not provided)
         name_list = list(kwargs.keys())
         vals_list = list(kwargs.values())
         vals_list = list(self.args2matlab(*tuple(vals_list))) #change to matlab stuff
         name_val_pairs = list(chain.from_iterable(zip(name_list, vals_list)))
-        return name_val_pairs
+        return name_val_pairs,spec_kwargs_dict
     
     def nparray2matlab(self,mynparray):
         '''
