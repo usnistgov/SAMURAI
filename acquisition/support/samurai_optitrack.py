@@ -65,7 +65,7 @@ class MotiveInterface:
         #now calculate the statistics and return a dictionary
         pos = self.calculate_statistics(np.array(pos),**arg_options)
         rot = self.calculate_statistics(np.array(rot),**arg_options)
-        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'position_mm':pos,'rotation':rot}
+        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'units','mm','position':pos,'rotation':rot}
     
     def get_labeled_marker_data(self,id,**arg_options):
         '''
@@ -92,7 +92,7 @@ class MotiveInterface:
         #now calculate the statistics and return a dictionary
         pos = self.calculate_statistics(np.array(pos),**arg_options)
         res = self.calculate_statistics(np.array(res),**arg_options)
-        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'position_mm':pos,'residual_mm':res}
+        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'units','mm','position':pos,'residual':res}
         
     def get_position_data(self,id_name_dict,**arg_options):
         '''
