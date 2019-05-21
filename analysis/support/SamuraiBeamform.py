@@ -176,15 +176,15 @@ if __name__=='__main__':
     testb = False
     #test case for simple beamforming
     if(testa):
-        
+        '''
         #measured data test
         #test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
         test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
         #test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_horizontal_polarization\binary\metafile_binary.json"
         #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
         mysp = SamuraiBeamform(test_path,verbose=True)
-        
         '''
+        
         #synthetic data test
         #testing our synthetic data capabilities
         mysp = SamuraiBeamform(verbose=True,units='m')
@@ -222,14 +222,15 @@ if __name__=='__main__':
         #pos[:,2] = np.append(Z.flatten(),Z.flatten())
         mysp.all_positions = pos;
         #mysp.freq_list = [26.5e9,30e9,40e9]
-        mysp.freq_list = [40e9]
+        freqs = [26.5e9,27e9,28e9,29e9,30e9,31e9,33e9,35e9,40e9]
+        mysp.freq_list = freqs
         #mysp.freq_list= np.arange(27,41)*1e9
         #mysp.add_plane_wave(0,0,-90)
         mysp.add_plane_wave(45,0,-90)
         #mysp.add_plane_wave(45,45,-90)
         #mysp.add_plane_wave(32,43,-90)
         #mysp.add_plane_wave(0,45,-90)
-        '''
+        
         '''
         #synthetic 1 beam lines test
         mysp = SamuraiBeamform(verbose=True,units='m')
@@ -263,20 +264,22 @@ if __name__=='__main__':
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True,antenna_pattern=myap)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[30e9,40e9],verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
-        mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,40e9],verbose=True)
+        #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,40e9],verbose=True)
+        import cProfile
+        cProfile.run("mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),freqs,verbose=True)")
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
         #UV beamform
         #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
-        mycsa.plot_3d()
-        mycsa.mp.view([90,90])
+        #mycsa.plot_3d()
+        #mycsa.mp.view([90,90])
         #print("Max Beamwidth ",mycsa.get_max_beamwidth())
         #mycsa.plot_uv()
         #mycsa.plot_scatter_3d()
         #print("Max-Mean = %f" %(mycsa.mag_db.max()-mycsa.mag_db.mean()))
         #bw_freqs = 'all'
         #mybw = mycsa.get_beamwidth(mycsa.get_max_beam_idx(bw_freqs),bw_freqs)
-        [az,azv] = mycsa.get_azimuth_cut(0,mean_flg=True)
-        [el,elv] = mycsa.get_elevation_cut(0,mean_flg=True)
+        #[az,azv] = mycsa.get_azimuth_cut(0,mean_flg=True)
+        #[el,elv] = mycsa.get_elevation_cut(0,mean_flg=True)
         #mycsa.get_data('mag_db')
         #import os
         #os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-24-2018\meas\processed\samurai_scan\test')

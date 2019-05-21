@@ -20,7 +20,7 @@ from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
 from samurai.analysis.support.MatlabPlotter import MatlabPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
-from samurai.acquisition.support.SamuraiPlotter import SamuraiPlotter
+#from samurai.acquisition.support.SamuraiPlotter import SamuraiPlotter
 
 @deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
 class SamuraiPostProcess(MetaFileController):
@@ -555,7 +555,7 @@ class CalculatedSyntheticAperture:
         self.mp = None #initialize matlab plotter to none
         self.complex_values = np.array([])
         self.freq_list = np.array([])
-        self.plotter = SamuraiPlotter(**self.options)
+        #self.plotter = SamuraiPlotter(**self.options)
         if complex_values.size>0 and freqs.size>0: #populate data if provided
             self.add_frequency_data(complex_values,freqs)
         
