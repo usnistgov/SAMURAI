@@ -30,7 +30,9 @@ class MetaFileController(OrderedDict):
         self.load(metafile_path,suppress_empty_warning)
         
        
-    #load file
+    ###########################################################################
+    ### File IO methods
+    ###########################################################################
     def load(self,metafile_path,suppress_empty_warning=0):
         '''
         @brief load a json metafile
@@ -59,6 +61,179 @@ class MetaFileController(OrderedDict):
                 #self.jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
                 self.update(json.load(jsonFile, object_pairs_hook=OrderedDict))
                 self.jsonData = self
+                
+    def write(self,outPath='default'):
+        '''
+        @brief write out edited metafile
+        @param[in/OPT] outPath - path where to write out file. If not specified, use the previous filename
+        '''
+        self.saved = 1
+        if(outPath=='default'):
+            outPath = os.path.join(self.metadir,self.metafile)
+        with open(outPath,'w+') as jsonFile:
+            json.dump(self.jsonData,jsonFile,indent=4) 
+            
+    #now functions for dealing with the data
+    @deprecated("Use MetaFileController.load_data() method")
+    def load_all_meas(self):
+        '''
+        @brief load s2p files into this class DEPRECATED
+        @DEPRECATED use load_data method
+        '''
+        self.s2pData = []
+        self.numLoadedMeas = 0
+        measurements = self.jsonData['measurements']
+        for meas in measurements:
+            self.s2pData.append(snp(meas['filename'].strip()))
+            self.numLoadedMeas+=1
+            
+    def load_data(self,verbose=False,read_header=True):
+        '''
+        @brief load up all measurements into list of snp or wnp files
+        @param[in/OPT] verbose - whether or not to be verbose when loading
+        @param[in/OPT] read_header - whether or not to skip reading the header. Should be faster with false
+        @return list of snp or wnp classes
+        '''
+        snpData = []
+        numLoadedMeas = 0
+        wdir = self.wdir
+        measurements = self.jsonData['measurements']
+        if verbose: print("Loading Measurement %5d" %(0),end='')
+        for meas in measurements:
+            snpData.append(snp(os.path.join(wdir,meas['filename'].strip()),read_header=read_header))
+            numLoadedMeas+=1
+            if verbose: 
+                if not numLoadedMeas%10: 
+                    print("%s %5d" %('\b'*6,numLoadedMeas),end='')
+        if verbose: print("\nLoading Complete")
+        return snpData,numLoadedMeas
+    
+    ###########################################################################
+    ### Position operations
+    ###########################################################################
+    def get_positions(self,meas_num=-1):
+        '''
+        @brief get all of the location vectors for each measurement
+        @param[in/OPT] meas_num which measurement position to load (-1 for all)
+        @return np array of measurement locations or a single set of location data
+        '''
+        if(meas_num<0):
+            loc_list = []
+            for meas in self.measurements:
+                loc_list.append(meas['position'])
+            return np.array(loc_list)
+        else:
+            return meas[meas_num]['position']
+        
+    @property
+    def positions(self):
+        '''
+        @brief getter property for positions
+        @return numpy array of our positions
+        '''
+        return self.get_positions()
+    
+    def get_external_positions(self,label=None,meas_num=-1):
+        '''
+        @brief get externally measured positions. 
+            If label is specified, a list of positional data for the data point
+            or rigid body with that label will be returned. This return value
+            will be a list of dictionaries with the entries various entries providing info on the measurements
+        @param[in/OPT] meas_num - which measurement position to load (-1 for all)
+        @param[in/OPT] label - what marker label to pull out (if none, get all)
+        @return
+        '''
+        ext_meas_key = 'external_position_measurements'
+        if not label:
+            return [d[ext_meas_key] for d in self['measurements']]
+        else:
+            return [d[ext_meas_key][label] for d in self['measurements']]
+        
+    def external_positions(self):
+        '''
+        @brief getter for external positions
+        '''
+        return self.get_external_positions()
+    
+    def get_external_positions_mean(self,label,meas_type='position',meas_num=-1):
+        '''
+        @brief get mean from our external positions
+        @param[in] label - label of the marker or rigid body to get the mean of
+        @param[in/OPT] meas_type - the type of measurement we want the mean of
+            -for rigid bodies, this should be 'position' or 'rotation'.
+            -for single markers this should be 'position' or 'residual'
+        @return numpy array of [X,Y,Z] mean values (or alpha,beta,gamma or scalar for residual)
+        '''
+        return self._get_external_positions_value('mean',label,meas_type,meas_num)
+    
+    def get_external_positions_std(self,label,meas_type='position',meas_num=-1):
+        '''
+        @brief get standard deviation from our external positions
+        @param[in] label - label of the marker or rigid body to get the stdev of
+        @param[in/OPT] meas_type - the type of measurement we want the stdev of
+            -for rigid bodies, this should be 'position' or 'rotation'.
+            -for single markers this should be 'position' or 'residual'
+        @return numpy array of [X,Y,Z] stdev values (or alpha,beta,gamma or scalar for residual)
+        '''
+        return self._get_external_positions_value('standard_deviation',label,meas_type,meas_num)
+    
+    def get_external_positions_cov(self,label,meas_type='position',meas_num=-1):
+        '''
+        @brief get covariance matrix from our external positions
+        @param[in] label - label of the marker or rigid body to get the covariance matrix of
+        @param[in/OPT] meas_type - the type of measurement we want the covariance matrix of
+            -for rigid bodies, this should be 'position' or 'rotation'.
+            -for single markers this should be 'position' or 'residual'
+        @return numpy array of covariance matrices value (or alpha,beta,gamma or scalar for residual)
+        '''
+        return self._get_external_positions_value('covariance_matrix',label,meas_type,meas_num)
+    
+    def get_external_positions_units(self):
+        '''
+        @brief return the units our external positions are in
+            pre v2.01 we assume mm. otherwise get the units from the first measurement
+        '''
+        if self.version<=2:
+            return 'mm'
+        else:
+            pos = self.get_external_positions(meas_num=0)
+            units = pos[pos.keys()[0]]['units']
+            return units
+        
+    def _get_external_positions_value(self,value,label,meas_type,meas_num):
+        '''
+        @brief get value from our external positions
+        @param[in] value - this can be 'standard_deviation','covariance_matrix','mean'
+        @param[in] label - label of the marker or rigid body to get the value of
+        @param[in] meas_type - the type of measurement we want the value of
+            -for rigid bodies, this should be 'position' or 'rotation'.
+                This returns a list of [X,Y,Z] (or alpha,beta,gamma values)
+            -for single markers this should be 'position' or 'residual'
+                which will return a [X,Y,Z] values or a single value
+        @param[in] meas_num - which measurement ot get (<0 value returns all)
+        @return numpy array of [X,Y,Z] values
+        '''
+        ext_meas_key = 'external_position_measurements'
+        if self.version<=2: #remove _mm for pre 2.01 metafiles
+            if meas_type in ['position','residual']:
+                meas_type+='_mm'
+        if(meas_num<0):
+            loc_list = [d[ext_meas_key][label][meas_type][value] for d in self['measurements']]
+            return np.array(loc_list)
+        else:
+            return self['measurements'][ext_meas_key][meas_num][label][meas_type][value]
+    
+    
+    ###########################################################################
+    ### Getters and setters for various things
+    ###########################################################################
+    @property
+    def version(self):
+        '''
+        @brief getter for version
+        @return the metafile version
+        '''
+        return self['metafile_version']
     
     @property
     def wdir(self):
@@ -146,66 +321,6 @@ class MetaFileController(OrderedDict):
             self.jsonData['measurements']=measurements
         else:
             self.jsonData['measurements'][measNum] = measurements
-        
-    def write(self,outPath='default'):
-        '''
-        @brief write out edited metafile
-        @param[in/OPT] outPath - path where to write out file. If not specified, use the previous filename
-        '''
-        self.saved = 1
-        if(outPath=='default'):
-            outPath = os.path.join(self.metadir,self.metafile)
-        with open(outPath,'w+') as jsonFile:
-            json.dump(self.jsonData,jsonFile,indent=4) 
-            
-    #now functions for dealing with the data
-    @deprecated("Use MetaFileController.load_data() method")
-    def load_all_meas(self):
-        '''
-        @brief load s2p files into this class DEPRECATED
-        @DEPRECATED use load_data method
-        '''
-        self.s2pData = []
-        self.numLoadedMeas = 0
-        measurements = self.jsonData['measurements']
-        for meas in measurements:
-            self.s2pData.append(snp(meas['filename'].strip()))
-            self.numLoadedMeas+=1
-            
-    def load_data(self,verbose=False,read_header=True):
-        '''
-        @brief load up all measurements into list of snp or wnp files
-        @param[in/OPT] verbose - whether or not to be verbose when loading
-        @param[in/OPT] read_header - whether or not to skip reading the header. Should be faster with false
-        @return list of snp or wnp classes
-        '''
-        snpData = []
-        numLoadedMeas = 0
-        wdir = self.wdir
-        measurements = self.jsonData['measurements']
-        if verbose: print("Loading Measurement %5d" %(0),end='')
-        for meas in measurements:
-            snpData.append(snp(os.path.join(wdir,meas['filename'].strip()),read_header=read_header))
-            numLoadedMeas+=1
-            if verbose: 
-                if not numLoadedMeas%10: 
-                    print("%s %5d" %('\b'*6,numLoadedMeas),end='')
-        if verbose: print("\nLoading Complete")
-        return snpData,numLoadedMeas
-    
-    def get_positions(self,meas_num=-1):
-        '''
-        @brief get all of the location vectors for each measurement
-        @param[in/OPT] meas_num which measurement position to load (-1 for all)
-        @return np array of measurement locations or a single set of location data
-        '''
-        if(meas_num<0):
-            loc_list = []
-            for meas in self.measurements:
-                loc_list.append(meas['position'])
-            return np.array(loc_list)
-        else:
-            return meas[meas_num]['position']
 
     @property
     def filenames(self):
@@ -395,3 +510,9 @@ def copy_s_param_measurement_to_binary(metafile_path,output_directory):
     return new_name
             
             
+if __name__=='__main__':
+    metafile_path = './metafile_v2.json'
+    mf = MetaFileController(metafile_path)
+    
+    
+    
