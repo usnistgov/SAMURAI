@@ -231,6 +231,59 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         return self.positions[:,:3].ptp(axis=0)
     
+    def plot_positions(self,pos_units='m',plot_type='weights',**arg_options):
+        '''
+        @brief plot the positions of our aperture in 3D
+            points will be colored based on the plot type
+        @param[in/OPT] pos_units - units for position (m,mm,cm,in)
+        @param[in/OPT] plot_type - whether to plot 'weights','mag','phase','phase_d','real','imag'
+        @param[in/OPT] **arg_options - keyword args as follows 
+                out_name - plot output name (for plotly)
+                freq_point - which s-parameter frequency point to plot (default 0)
+        '''
+        options = {}
+        options['out_name'] = 'positions_plot.html'
+        options['freq_point'] = 0
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        fp = options['freq_point']
+        #get our data 
+        plot_data_dict = {
+            'weights':self.weights,
+            'mag_db':lambda: 20*np.log10(np.abs(self.s_parameter_data[:,fp])),
+            'mag':lambda: np.abs(self.s_parameter_data[:,fp]),
+            'phase':lambda: np.angle(self.s_parameter_data[:,fp]),
+            'phase_d':lambda: np.angle(self.s_parameter_data[:,fp])*180/np.pi,
+            'real':lambda: np.abs(self.s_parameter_data[:,fp]),
+            'imag':lambda: np.abs(self.s_parameter_data[:,fp])
+            }
+        plot_data =  plot_data_dict[plot_type]#use phase at first frequency
+        pos = self.get_positions(pos_units)
+        #now get our xyz values
+        X = pos[:,0]
+        Y = pos[:,1]
+        Z = pos[:,2]
+        #and plot
+        plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
+                                    mode = 'markers',
+                                    marker = dict(
+                                            color=plot_data,
+                                            colorbar=dict(title='Phase (degrees)')
+                                            )
+                                    )]
+        layout = go.Layout(
+            title='Aperture Positions',
+            scene = dict(
+                xaxis = dict(title='X'),
+                yaxis = dict(title='Y'),
+                zaxis = dict(title='Z')
+            ),
+            autosize=True,
+            margin=dict(l=65,r=50,b=65,t=90),
+        )
+        fig = go.Figure(data=plotly_surf,layout=layout)
+        ploff.plot(fig,filename=options['out_name'])
+    
     
     ###########################################################################
     ### Steering Vector Functions
@@ -410,61 +463,11 @@ class SamuraiSyntheticApertureAlgorithm:
         @brief reset our window to all equal weighting (i.e. no windowing)
         '''
         self.weights = np.ones(self.positions.shape[0])
-            
-    def plot_positions(self,pos_units='m',plot_type='weights',**arg_options):
-        '''
-        @brief plot the positions of our aperture in 3D
-            points will be colored based on the plot type
-        @param[in/OPT] pos_units - units for position (m,mm,cm,in)
-        @param[in/OPT] plot_type - whether to plot 'weights','mag','phase','phase_d','real','imag'
-        @param[in/OPT] **arg_options - keyword args as follows 
-                out_name - plot output name (for plotly)
-                freq_point - which s-parameter frequency point to plot (default 0)
-        '''
-        options = {}
-        options['out_name'] = 'positions_plot.html'
-        options['freq_point'] = 0
-        for key,val in six.iteritems(arg_options):
-            options[key] = val
-        fp = options['freq_point']
-        #get our data 
-        plot_data_dict = {
-            'weights':self.weights,
-            'mag_db':lambda: 20*np.log10(np.abs(self.s_parameter_data[:,fp])),
-            'mag':lambda: np.abs(self.s_parameter_data[:,fp]),
-            'phase':lambda: np.angle(self.s_parameter_data[:,fp]),
-            'phase_d':lambda: np.angle(self.s_parameter_data[:,fp])*180/np.pi,
-            'real':lambda: np.abs(self.s_parameter_data[:,fp]),
-            'imag':lambda: np.abs(self.s_parameter_data[:,fp])
-            }
-        plot_data =  plot_data_dict[plot_type]#use phase at first frequency
-        pos = self.get_positions(pos_units)
-        #now get our xyz values
-        X = pos[:,0]
-        Y = pos[:,1]
-        Z = pos[:,2]
-        #and plot
-        plotly_surf = [go.Scatter3d(z = Z, x = X, y = Y,
-                                    mode = 'markers',
-                                    marker = dict(
-                                            color=plot_data,
-                                            colorbar=dict(title='Phase (degrees)')
-                                            )
-                                    )]
-        layout = go.Layout(
-            title='Aperture Positions',
-            scene = dict(
-                xaxis = dict(title='X'),
-                yaxis = dict(title='Y'),
-                zaxis = dict(title='Z')
-            ),
-            autosize=True,
-            margin=dict(l=65,r=50,b=65,t=90),
-        )
-        fig = go.Figure(data=plotly_surf,layout=layout)
-        ploff.plot(fig,filename=options['out_name'])
     
-
+    
+    ###########################################################################
+    ### weighting and s param properties
+    ########################################################################### 
     @property
     def s_parameter_data(self):
         '''
@@ -495,6 +498,7 @@ class SamuraiSyntheticApertureAlgorithm:
         @todo implemment masking
         '''
         self.all_weights = weights
+        
         
 ###########################################################################
 ### some useful other functions
