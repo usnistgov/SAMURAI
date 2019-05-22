@@ -43,7 +43,7 @@ class metaFile:
                        "      X - left/right\\n"
                        "      Y - up/down\\n"
                        "      Z - in/out (i.e. propogation direction)\\n"
-                       "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"]
+                       "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"],
                 2.01: ["external positions now have units property and all 'position_mm' changed to 'position' and 'residual_mm' changed to 'residual'"]      
                 }
         self.options['experiment']         = 'SAMURAI Measurements'
