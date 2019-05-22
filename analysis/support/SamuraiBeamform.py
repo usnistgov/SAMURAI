@@ -320,24 +320,21 @@ if __name__=='__main__':
     
     if(testc):
         #monte carlo analysis testing for 1D setup
+        mysp = SamuraiBeamform(verbose=True,units='m')
         az_vals = [] #list for appending azimuth beamformed values to
         zlocs = 0
         xlocs = np.arange(0,0.103,0.003) #default positions in m
         ylocs = np.arange(0,0.103,0.003)
-
         [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
-
         pos = np.zeros((X.size,6))
         pos[:,0] = X.flatten()
         pos[:,1] = Y.flatten()
         pos[:,2] = Z.flatten()
-
         mysp.all_positions = pos;
         freqs = [40e9]
         mysp.freq_list = freqs
         mysp.add_plane_wave(43,0,-90)
-        
-        az_pos = np.arange(-90,90,1)
+        az_pos = np.arange(-90,90,.1)
         el_pos = 0
         
         nom_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False)
@@ -345,13 +342,16 @@ if __name__=='__main__':
         pos_uncert = [0.001,0.001,0.001,0,0,0]
         mycsas = []
         az_vals = []
-        num_reps = 10
+        num_reps = 100
         for i in range(num_reps): 
+            print("rep {} Complete".format(i))
             mysp.perturb_positions(pos_uncert)
             cur_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False)
             mycsas.append(cur_csa)
             az_vals.append(cur_csa.get_azimuth_cut(0)[1])
-            
+        az_vals = np.array(az_vals)
+        az_std = np.std(az_vals,axis=0)
+        
         
         
         

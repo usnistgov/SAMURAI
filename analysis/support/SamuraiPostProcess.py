@@ -123,11 +123,14 @@ class SamuraiSyntheticApertureAlgorithm:
         @return all desired positions that are not masked out
         @todo implemment masking
         '''
-        #retrun a copy
-        pos = self.all_positions.copy()   
-        #now perturb if that is set. we must return a copy as to not overwrite the original positions
-        if self.all_positions_perturbation is not None:
-            pos += self.all_positions_perturbation
+        if self.all_positions is not None:
+            #retrun a copy
+            pos = self.all_positions.copy()   
+            #now perturb if that is set. we must return a copy as to not overwrite the original positions
+            if self.all_positions_perturbation is not None:
+                pos += self.all_positions_perturbation
+        else:
+            pos=None
         return pos
           
     def get_positions(self,units='m'):
@@ -167,6 +170,13 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         to_meters_dict=self.unit_conversion_dict
         multiplier = to_meters_dict[units]/to_meters_dict[self.options['units']]
+        #now extend along our axes if required
+        stdev = np.array(stdev)
+        pos_shape = np.array(self.all_positions).shape
+        if len(stdev.shape)<1: #then extend to 1d from scalar
+            stdev = np.repeat(stdev,pos_shape[1],axis=0)
+        if len(stdev.shape)<2: #then extend to 2d
+            stdev = np.repeat([stdev],pos_shape[0],axis=0)
         self.all_positions_perturbation = multiplier*np.random.normal(scale=stdev)
     
     def clear_position_perturbation(self):
@@ -277,9 +287,12 @@ class SamuraiSyntheticApertureAlgorithm:
         @return all s_parameter_data for desired positions that are not masked out
         @todo implemment masking
         '''
-        sp_dat = self.all_s_parameter_data
-        if self.all_data_perturbation is not None:
-            sp_dat+=self.all_data_perturbation
+        if self.all_s_parameter_data is not None:
+            sp_dat = self.all_s_parameter_data.copy()
+            if self.all_data_perturbation is not None:
+                sp_dat+=self.all_data_perturbation
+        else:
+            sp_dat = None
         return sp_dat
     
     def perturb_data(self,stdev):
