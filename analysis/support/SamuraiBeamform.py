@@ -169,11 +169,17 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 
         return mycsa,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
-    
+
+
+
+###############################################################################
+### Test Cases
+###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    testa = True
+    testa = False
     testb = False
+    testc = True
     #test case for simple beamforming
     if(testa):
         '''
@@ -198,21 +204,21 @@ if __name__=='__main__':
         #hex_grid_offset = np.append(hgo,np.array([0,hgo]*17)) #(offset every other row)
         #now reshape for adding
         #hex_grid_offset = hex_grid_offset.reshape((1,1,-1)) #for y values
-        xlocs = 0
-        ylocs = np.arange(0,0.103,0.003) #default positions in m
-        zlocs = np.arange(0,0.103,0.003)
-        #xlocs = 0
-        #ylocs = np.arange(0,0.053,0.003) #default positions in m
-        #zlocs = np.arange(0,0.053,0.003)
+        zlocs = 0
+        xlocs = np.arange(0,0.103,0.003) #default positions in m
+        ylocs = np.arange(0,0.103,0.003)
+        #zlocs = 0
+        #xlocs = np.arange(0,0.053,0.003) #default positions in m
+        #ylocs = np.arange(0,0.053,0.003)
         [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
         npts = 500
-        #X = np.zeros(npts)
+        #Z = np.zeros(npts)
+        #X = np.random.rand(npts)*0.103
         #Y = np.random.rand(npts)*0.103
-        #Z = np.random.rand(npts)*0.103
         pos = np.zeros((X.size,6))
         #pos = np.zeros((X.size*2,6))
         #Y = Y+hex_grid_offset
-        #Z = Z+hex_grid_offsetz.reshape((-1,1,1))
+        #X = X+hex_grid_offsetz.reshape((-1,1,1))
         pos[:,0] = X.flatten()
         pos[:,1] = Y.flatten()
         pos[:,2] = Z.flatten()
@@ -265,8 +271,9 @@ if __name__=='__main__':
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[30e9,40e9],verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,40e9],verbose=True)
-        import cProfile
-        cProfile.run("mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),freqs,verbose=True)")
+        mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-10,10.1,10),[40e9],verbose=True)
+        #import cProfile
+        #cProfile.run("mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),freqs,verbose=True)")
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
         #UV beamform
         #mycsa_list,ant_vals = mysp.beamforming_farfield_uv(np.arange(-1,1.001,0.01),np.arange(-1,1.001,0.01),40e9,verbose=True,antenna_pattern=myap)
@@ -301,7 +308,7 @@ if __name__=='__main__':
         mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
         mycsa.plot_3d()
         '''
-    
+
     if(testb):
         #write out a horizontal sweep to s parameter files
         import os
@@ -310,6 +317,45 @@ if __name__=='__main__':
         [csa,_] = bf.beamforming_farfield_azel(np.arange(-45,46,1),[0],'all',verbose=True)
         os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\calibrated')
         mys = csa.write_snp_data('az_sweep_vals/')
+    
+    if(testc):
+        #monte carlo analysis testing for 1D setup
+        az_vals = [] #list for appending azimuth beamformed values to
+        zlocs = 0
+        xlocs = np.arange(0,0.103,0.003) #default positions in m
+        ylocs = np.arange(0,0.103,0.003)
+
+        [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+
+        pos = np.zeros((X.size,6))
+        pos[:,0] = X.flatten()
+        pos[:,1] = Y.flatten()
+        pos[:,2] = Z.flatten()
+
+        mysp.all_positions = pos;
+        freqs = [40e9]
+        mysp.freq_list = freqs
+        mysp.add_plane_wave(43,0,-90)
+        
+        az_pos = np.arange(-90,90,1)
+        el_pos = 0
+        
+        nom_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False)
+        nom_az_vals = nom_csa.get_azimuth_cut(0)[1]
+        pos_uncert = [0.001,0.001,0.001,0,0,0]
+        mycsas = []
+        az_vals = []
+        num_reps = 10
+        for i in range(num_reps): 
+            mysp.perturb_positions(pos_uncert)
+            cur_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False)
+            mycsas.append(cur_csa)
+            az_vals.append(cur_csa.get_azimuth_cut(0)[1])
+            
+        
+        
+        
+    
     
     
     

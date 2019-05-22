@@ -1576,6 +1576,7 @@ if __name__=='__main__':
     
         def test_location_perturbation(self):
             #test perturbing the positions
+            #this tests to make sure we can perturb and return
             mysp = SamuraiSyntheticApertureAlgorithm()
             zlocs = 0
             xlocs = np.arange(0,0.103,0.003) #default positions in m
@@ -1586,7 +1587,12 @@ if __name__=='__main__':
             pos[:,1] = Y.flatten()
             pos[:,2] = Z.flatten()
             mysp.set_positions(pos,'m') #set our positions 
+            p_m = mysp.get_positions('m')
             mysp.perturb_positions([1,1,1,0,0,0],'mm')
+            pp_m = mysp.get_positions('m')
+            self.assertFalse(np.all(pp_m==p_m),'Perturbation not set correctly')
+            mysp.clear_position_perturbation()
+            self.assertTrue(np.all(p_m==mysp.get_positions('m')),'Perturbation not cleared correctly')
             
             
     unittest.main()
