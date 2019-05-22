@@ -51,6 +51,7 @@ class SamuraiSyntheticApertureAlgorithm:
 
         #initialize so we know if weve loaded them or not
         self.all_s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
+        self.all_data_perturbation = None #perturbation on our S parameters
         self.freq_list = None
         self.all_weights = None #weighting for our antennas
         self.all_positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
@@ -251,6 +252,33 @@ class SamuraiSyntheticApertureAlgorithm:
     
     
     ###########################################################################
+    ### s parameter functions
+    ########################################################################### 
+    @property
+    def s_parameter_data(self):
+        '''
+        @brief getter for our s parameter data. This will allow us to mask out undesired locations
+        @return all s_parameter_data for desired positions that are not masked out
+        @todo implemment masking
+        '''
+        sp_dat = self.all_s_parameter_data
+        if self.all_data_perturbation is not None:
+            sp_dat+=self.all_data_perturbation
+        return sp_dat
+    
+    def perturb_data(self,stdev):
+        '''
+        @brief generate and add a perturbation to our s parameter data.
+            This will be added to self.all_data_perturbation as to not change
+            the raw data. This will then be added to the data
+            when getting the s_parameter_data property. If self.all_data_perturbation = None
+            the raw data will be returned.
+        @param[in] stdev - standard deviation to generate a random normal perturbation from.
+            This value can be a scalar, or a set of values equal to the shape of the s_parameter_data
+        '''
+        self.all_data_perturbation = np.random.normal(scale=stdev)
+    
+    ###########################################################################
     ### Steering Vector Functions
     ###########################################################################
     def get_steering_vectors(self,az_u,el_v,k,coord='azel',**arg_options):
@@ -423,24 +451,18 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         pass
     
+    def set_tchebyshev_window(self):
+        '''
+        @brief set a tschebyshev window on the data
+        @todo implement this
+        '''
+        pass
+    
     def reset_window(self):
         '''
         @brief reset our window to all equal weighting (i.e. no windowing)
         '''
         self.weights = np.ones(self.positions.shape[0])
-    
-    
-    ###########################################################################
-    ### weighting and s param properties
-    ########################################################################### 
-    @property
-    def s_parameter_data(self):
-        '''
-        @brief getter for our s parameter data. This will allow us to mask out undesired locations
-        @return all s_parameter_data for desired positions that are not masked out
-        @todo implemment masking
-        '''
-        return self.all_s_parameter_data
     
     @property
     def weights(self):
@@ -519,6 +541,10 @@ def get_k(freq,eps_r=1,mu_r=1):
     k = 2*np.pi/lam
     return k
     
+
+###########################################################################
+### Calculated aperture output
+########################################################################### 
 #import matplotlib.pyplot as plt
 #from matplotlib import cm
 #from mpl_toolkits.mplot3d import Axes3D
