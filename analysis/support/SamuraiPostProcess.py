@@ -22,41 +22,6 @@ from samurai.analysis.support.MatlabPlotter import MatlabPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 #from samurai.acquisition.support.SamuraiPlotter import SamuraiPlotter
 
-@deprecated("Change to utilize SamuraiSyntheticApertureAlgorithm class")
-class SamuraiPostProcess(MetaFileController):
-    '''
-    @brief this is a class to inherit from for processing samurai data
-        This will implement generic things like loading metadata used for all
-        post-processing techniques. It currently inherits from metafile controller
-    @todo add positional masking capability (masking functions, polygon, and manual points)
-    '''
-    def __init__(self,metafile_path, **arg_options):
-        '''
-        @brief initilization for class. We can load our metafile here or not
-        @param[in] metafile_path - metafile if we want to load one now
-        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit
-                        No keyword args yet!
-        '''
-        self.loaded_flg = False #whether data has been loaded to memory or not
-        super(SamuraiPostProcess,self).__init__(metafile_path,arg_options) # load in our metafile
-    
-    def load_s_params_to_memory(self,verbose=False,load_key=21):
-        '''
-        @brief load S-parameter data into memory if it has not already been loaded
-        @param[in/OPT] verbose - whether or not to be verbose
-        @param[in/OPT] load_key - dictionary key for ports to load (default s21)
-        @note this function sets the loaded_flg to true
-        '''
-        #load from files if not done already
-        if not self.loaded_flg: #then we load
-            [s_data,_] = self.load_data(verbose=verbose)
-            self.loaded_data = s_data #store all of the data for if we change (may want to adjust this later for memory conservation)
-            self.loaded_flg = True
-        #now get the values we are looking for
-        s_vals = np.array([s.S[load_key].raw for s in self.loaded_data]) #turn the s parameters into an array
-        freq_list = self.loaded_data[0].S[load_key].freq_list #get frequencies from first file (assume theyre all the same)
-        return freq_list,s_vals
-
 #generic class for synthetic aperture algorithms
 class SamuraiSyntheticApertureAlgorithm:
     '''
