@@ -18,7 +18,7 @@ from samurai.analysis.support.snpEditor import SnpEditor as snp
 from samurai.analysis.support.generic import deprecated
 
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
-
+from samurai.acquisition.support.samurai_optitrack import MotiveInterface
 
 
 class MetaFileController(OrderedDict):
@@ -163,7 +163,7 @@ class MetaFileController(OrderedDict):
         '''
         return self.get_positions()
     
-    def get_external_positions(self,label=None,meas_num=-1):
+    def get_external_positions(self,label=None):
         '''
         @brief get externally measured positions. 
             If label is specified, a list of positional data for the data point
@@ -171,7 +171,6 @@ class MetaFileController(OrderedDict):
             will be a list of dictionaries with the entries various entries providing info on the measurements
         @param[in/OPT] meas_num - which measurement position to load (-1 for all)
         @param[in/OPT] label - what marker label to pull out (if none, get all)
-        @return
         '''
         ext_meas_key = 'external_position_measurements'
         if not label:
@@ -229,6 +228,44 @@ class MetaFileController(OrderedDict):
             pos = self.get_external_positions(meas_num=0)
             units = pos[pos.keys()[0]]['units']
             return units
+        
+    def update_external_measurement(self,label,measurement):
+        '''
+        @brief update (or add) an external measurement to our metafile
+        @param[in] measurement - measurement to add. (typically a dictionary)
+        '''
+        ext_meas_key = 'external_position_measurements'
+        for m in self['measurements']:
+            m[ext_meas_key].update({label:measurement})
+        
+        
+    def add_external_marker(self,label,data,res_data=None,**arg_options):
+        '''
+        @brief manually add an external position marker
+        @param[in] data - the externally measured values
+        @param[in/OPT] res_data - data for the residual (just 1 number)
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            sample_wait_time - time between samples
+            id - id of the tag 
+            units - units of the measurement
+        '''
+        pos_meas = {}
+        pos_meas['id'] = None
+        pos_meas['sample_wait_time'] = None
+        pos_meas['units'] = 'mm'
+        for k,v in arg_options.items():
+            pos_meas[k] = v
+        
+        data = np.array(data) #ensure its a numpy array
+        pos_meas['num_samples'] = data.shape[0]
+        data_stats = MotiveInterface.calculate_statistics(data)
+        if res_data is not None:
+            res_stats = MotiveInterface.calculate_statistics(res_data)
+        else:
+            res_stats = None
+        pos_meas['position'] = data_stats
+        pos_meas['residual'] = res_stats
+        self.update_external_measurement(label,pos_meas)
         
     def _get_external_positions_value(self,value,label,meas_type,meas_num):
         '''

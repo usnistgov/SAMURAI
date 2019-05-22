@@ -127,10 +127,13 @@ class MotiveInterface:
         
         return data_dict
     
-    def calculate_statistics(self,data,**arg_options):
+    @staticmethod
+    def calculate_statistics(data,**arg_options):
         '''
         @brief calculate statistics on positional data
         @param[in] data - 2D numpy array of data with each row as a sample
+        @param[in/OPT] arg_options - keyword arguents as follows:
+            include_raw_data - whether or not to include the raw data in the dict
         @return dictionary of statistics. Must be lists so json serializable
         '''
         options = {}
