@@ -48,6 +48,13 @@ class SamuraiSyntheticApertureAlgorithm:
         self.options['units']           = 'mm' #units of our position measurements (may want to load from metafile)
         for key,val in six.iteritems(arg_options):
             self.options[key] = val #set kwargs
+            
+        self.unit_conversion_dict = { #dictionary to get to meters
+                'mm': 0.001,
+                'cm': 0.01,
+                'm' : 1,
+                'in': 0.0254
+                }
 
         #initialize so we know if weve loaded them or not
         self.all_s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
@@ -116,32 +123,11 @@ class SamuraiSyntheticApertureAlgorithm:
         @return all desired positions that are not masked out
         @todo implemment masking
         '''
-        if self.metafile:
-            if self.metafile["positioner"]=='maturo':
-                #then finangle the positions to match the meca
-                z = self.all_positions[:,0]
-                y = self.all_positions[:,3]
-                x = np.zeros_like(z)
-                alph = np.zeros_like(z)
-                beta = np.zeros_like(z)
-                gamm = np.zeros_like(z)
-                self.options['units']='cm'
-                pos = np.stack([x,y,z,alph,beta,gamm],axis=1)
-            else:
-                #otherwise we are using the meca
-                pos = self.all_positions
-            if(self.metafile['metafile_version']<2): #if pre v2, we need to convert
-                pos = np.matmul(pos,v1_to_v2_convert) #convert version 1 to version 2
-            elif(self.metafile['metafile_version']<3): #we are currently on v2
-                pass
-        else:
-            #otherwise we are using the meca
-            pos = self.all_positions
-            
-        #now perturb if that is set
+        #retrun a copy
+        pos = self.all_positions.copy()   
+        #now perturb if that is set. we must return a copy as to not overwrite the original positions
         if self.all_positions_perturbation is not None:
-            pos +=self.all_positions_perturbation
-            
+            pos += self.all_positions_perturbation
         return pos
           
     def get_positions(self,units='m'):
@@ -150,18 +136,23 @@ class SamuraiSyntheticApertureAlgorithm:
         @param[in/OPT] units - what units to get our positions in (default meters)
         @return return our position in whatever units specified (default meters)
         '''
-        to_meters_dict={ #dictionary to get to meters
-                'mm': 0.001,
-                'cm': 0.01,
-                'm' : 1,
-                'in': 0.0254
-                }
-        
+        to_meters_dict=self.unit_conversion_dict
         #multiply to get to meters and divide to get to desired units
         multiplier = to_meters_dict[self.options['units']]/to_meters_dict[units] 
         return self.positions*multiplier
     
-    def perturb_positions(self,stdev):
+    def set_positions(self,positions,units='m'):
+        '''
+        @brief set our positions with unit checking
+        @param[in] positions [[X,Y,Z,alpha,beta,gamma],...] 2D numpy array of positions
+        @param[in/OPT] units - units of the input positions default 'm' (meters)
+        '''
+        to_meters_dict=self.unit_conversion_dict
+        #multiply to get to meters and divide to get to desired units
+        multiplier = to_meters_dict[units]/to_meters_dict[self.options['units']]
+        self.all_positions = multiplier*positions
+    
+    def perturb_positions(self,stdev,units='m'):
         '''
         @brief generate and add a perturbation to our positions.
             This will be added to self.all_positions_perturbation as to not change
@@ -172,9 +163,34 @@ class SamuraiSyntheticApertureAlgorithm:
             This value can be a scalar, a set of 6 values for [x,y,z,alpha,beta,gamma],
             or an array of [x,y,z,alpha,beta,gamma] with length equal to the number of positions
             in which case each position has its own stdev
+        @param[in/OPT] units - units that the input data is in ('mm','cm','m','in') defaults meters 'm'
         '''
-        self.all_positions_perturbation = np.random.normal(scale=stdev)
-        
+        to_meters_dict=self.unit_conversion_dict
+        multiplier = to_meters_dict[units]/to_meters_dict[self.options['units']]
+        self.all_positions_perturbation = multiplier*np.random.normal(scale=stdev)
+    
+    def clear_position_perturbation(self):
+        '''
+        @brief clear our perturbing of the position
+        '''
+        self.all_positions_perturbation = None
+    
+    @property
+    def position_units(self):
+        '''
+        @brief get the units that the positions are in
+        '''
+        return self.options['units']
+    
+    def set_position_units(self,units):
+        '''
+        @brief change the units of our positions ('mm','cm','m','in') possible
+            for this we must also convert our positions
+        @param[in] units - the units to change to ('mm','cm','m','in')
+        '''
+        to_meters_dict=self.unit_conversion_dict
+        multiplier = to_meters_dict[self.options['units']]/to_meters_dict[units]
+        self.all_positions *= multiplier
         
     def get_max_positions(self):
         '''
@@ -1530,7 +1546,17 @@ if __name__=='__main__':
     #myap.plot_scatter_3d()
     #myant['pattern'].plot_scatter_3d()
     #print(myap.get_values([0,0.5,1,45,-45],[0,0,0,0,0]))
-    
+    mysp = SamuraiSyntheticApertureAlgorithm()
+    zlocs = 0
+    xlocs = np.arange(0,0.103,0.003) #default positions in m
+    ylocs = np.arange(0,0.103,0.003)
+    [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+    pos = np.zeros((X.size,6))
+    pos[:,0] = X.flatten()
+    pos[:,1] = Y.flatten()
+    pos[:,2] = Z.flatten()
+    mysp.set_positions(pos,'m') #set our positions 
+    mysp.perturb_positions([1,1,1,0,0,0],'mm')
     #some unit tests
     import unittest
     class TestSamuraiPostProcess(unittest.TestCase):   
@@ -1547,6 +1573,22 @@ if __name__=='__main__':
             kvecs = get_k_vectors(az,el)
             kr = np.sqrt(kvecs[0]**2+kvecs[1]**2+kvecs[2]**2) #r should be 1
             self.assertTrue(np.all(np.round(kr,2)==1),'K Vector radius mean = %f' %kr.mean())
+    
+        def test_location_perturbation(self):
+            #test perturbing the positions
+            mysp = SamuraiSyntheticApertureAlgorithm()
+            zlocs = 0
+            xlocs = np.arange(0,0.103,0.003) #default positions in m
+            ylocs = np.arange(0,0.103,0.003)
+            [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+            pos = np.zeros((X.size,6))
+            pos[:,0] = X.flatten()
+            pos[:,1] = Y.flatten()
+            pos[:,2] = Z.flatten()
+            mysp.set_positions(pos,'m') #set our positions 
+            mysp.perturb_positions([1,1,1,0,0,0],'mm')
+            
+            
     unittest.main()
             
     

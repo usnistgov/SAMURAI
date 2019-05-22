@@ -17,6 +17,9 @@ import numpy as np
 from samurai.analysis.support.snpEditor import SnpEditor as snp
 from samurai.analysis.support.generic import deprecated
 
+from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
+
+
 
 class MetaFileController(OrderedDict):
     
@@ -61,6 +64,7 @@ class MetaFileController(OrderedDict):
                 #self.jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
                 self.update(json.load(jsonFile, object_pairs_hook=OrderedDict))
                 self.jsonData = self
+            self.update_format() #update if the format is bad
                 
     def write(self,outPath='default'):
         '''
@@ -107,6 +111,32 @@ class MetaFileController(OrderedDict):
                     print("%s %5d" %('\b'*6,numLoadedMeas),end='')
         if verbose: print("\nLoading Complete")
         return snpData,numLoadedMeas
+    
+    def update_format(self):
+        '''
+        @brief Update our metafile format to the most recent. This takes care
+            of things such as old positioner reference frames and old maturo
+            positioner data
+        '''
+        if self["positioner"]=='maturo':
+            #then finangle the positions to match the meca
+            for i,m in enumerate(self.get_meas()): #loop through all measurements
+                pos = np.array(m['position'])
+                pos_mm = pos*10 #cm to mm
+                m['units'] = 'mm'
+                m['position'] = [pos_mm[3],pos_mm[0],0,0,0,0]
+                self.set_meas(m,i)
+        else:
+            if(self['metafile_version']<2): #if pre v2, we need to convert
+                for i,m in enumerate(self.get_meas()): #loop through all measurements
+                    pos = m['position']
+                    pos = np.matmul(pos,v1_to_v2_convert)
+                    m['position'] = pos
+                    self.set_meas(m,i)
+                 #convert version 1 to version 2
+            elif(self['metafile_version']<3): #we are currently on v2
+                pass
+            
     
     ###########################################################################
     ### Position operations
@@ -511,8 +541,10 @@ def copy_s_param_measurement_to_binary(metafile_path,output_directory):
             
             
 if __name__=='__main__':
-    metafile_path = './metafile_v2.json'
+    metafile_path = r'./metafile_v2.json'
+    #maturo_metafile_path = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\processed\synthetic_aperture\metaFile.json'
     mf = MetaFileController(metafile_path)
+    #mmf = MetaFileController(maturo_metafile_path)
     
     
     
