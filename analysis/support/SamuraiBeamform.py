@@ -320,6 +320,8 @@ if __name__=='__main__':
     
     if(testc):
         #monte carlo analysis testing for 1D setup
+        '''
+        #synthetic data
         mysp = SamuraiBeamform(verbose=True,units='m')
         az_vals = [] #list for appending azimuth beamformed values to
         zlocs = 0
@@ -334,10 +336,21 @@ if __name__=='__main__':
         freqs = [40e9]
         mysp.freq_list = freqs
         mysp.add_plane_wave(43,0,-90)
+        '''
+        
+        #measured data test
+        test_path = r".\\data\\2-13-2019\\binary_aperture_planar\\metafile_binary.json"
+        #test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
+        #test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_horizontal_polarization\binary\metafile_binary.json"
+        #test_path = r".\\data\\2-13-2019\\binary_aperture_cylindrical\\metafile_binary.json"
+        mysp = SamuraiBeamform(test_path,verbose=True)
+        
+        
+        mysp.set_cosine_sum_window_by_name('hamming')
         az_pos = np.arange(-90,90,.1)
         el_pos = 0
         
-        nom_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False)
+        nom_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,40e9,verbose=False)
         nom_az_vals = nom_csa.get_azimuth_cut(0)[1]
         pos_uncert = [0.001,0.001,0.001,0,0,0]
         mycsas = []
@@ -345,8 +358,8 @@ if __name__=='__main__':
         num_reps = 100
         for i in range(num_reps): 
             print("rep {} Complete".format(i))
-            mysp.perturb_positions(pos_uncert)
-            cur_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False)
+            mysp.perturb_positions_normal(pos_uncert)
+            cur_csa,_ = mysp.beamforming_farfield_azel(az_pos,el_pos,40e9,verbose=False)
             mycsas.append(cur_csa)
             az_vals.append(cur_csa.get_azimuth_cut(0)[1])
         az_vals = np.array(az_vals)

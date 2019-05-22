@@ -155,29 +155,62 @@ class SamuraiSyntheticApertureAlgorithm:
         multiplier = to_meters_dict[units]/to_meters_dict[self.options['units']]
         self.all_positions = multiplier*positions
     
-    def perturb_positions(self,stdev,units='m'):
+    def perturb_positions(self,perturb_funct,*args,**kwargs):
         '''
         @brief generate and add a perturbation to our positions.
             This will be added to self.all_positions_perturbation as to not change
             the raw positions themselved. This will then be added to the positions
             when getting the positions property. If self.all_positions_perturbation = None
             the raw positions will be returned.
-        @param[in] stdev - standard deviation to generate a random normal perturbation from.
-            This value can be a scalar, a set of 6 values for [x,y,z,alpha,beta,gamma],
-            or an array of [x,y,z,alpha,beta,gamma] with length equal to the number of positions
-            in which case each position has its own stdev
-        @param[in/OPT] units - units that the input data is in ('mm','cm','m','in') defaults meters 'm'
+        @param[in] perturb_funct - function to use to generate perturbation values.
+            This will typically be from numpy.random.(normal/uniform/binomial/etc...) 
+            but could also be a user made function that takes a 2D array of values
+            and outputs perturbed values of the same shape
+        @param[in] *args - these are the arguments for the perturbation function.
+            before being passed to the funciton, if a scalar or 1D array is passed in
+            it will be extended to match the shape of the positions
+        @param[in/OPT] kwargs - keyword arguments as follows
+            units - units that the input data is in ('mm','cm','m','in') defaults meters 'm'
         '''
+        options = {}
+        options['units'] = 'm' #default to meters
+        for k,v in kwargs.items():
+            options[k] = v #overwrite defaults
+        
         to_meters_dict=self.unit_conversion_dict
-        multiplier = to_meters_dict[units]/to_meters_dict[self.options['units']]
+        multiplier = to_meters_dict[options['units']]/to_meters_dict[self.options['units']]
         #now extend along our axes if required
-        stdev = np.array(stdev)
+        args_new = []
+        for arg in args:
+            arg_new = self.expand_position_perturbation_val(arg)
+            args_new.append(arg_new*multiplier)
+        args_new = tuple(args_new)
+        self.all_positions_perturbation = perturb_funct(*args_new)
+    
+    def perturb_positions_normal(self,stdev,units='m'):
+        '''
+        @brief generate positional perturbations using a normal distribution
+        @param[in] stdev - standard deviation of the positions. Can be a scalar,
+            1D array [x,y,z,alph,bet,gam] or 2D array [[x,y,z,alph,bet,gam],...]
+            to match the size of the position array from self.all_positions
+        @param[in/OPT] units - units that the standard deviations are in
+        '''
+        self.perturb_positions(np.random.normal,0,stdev,units=units)
+        
+    def expand_position_perturbation_val(self,val):
+        '''
+        @brief expand a perturbation value to the correct size (e.g. scalar to 2D array)
+        @param[in] val - value to expand
+        '''
+        val = np.array(val)
         pos_shape = np.array(self.all_positions).shape
-        if len(stdev.shape)<1: #then extend to 1d from scalar
-            stdev = np.repeat(stdev,pos_shape[1],axis=0)
-        if len(stdev.shape)<2: #then extend to 2d
-            stdev = np.repeat([stdev],pos_shape[0],axis=0)
-        self.all_positions_perturbation = multiplier*np.random.normal(scale=stdev)
+        if len(val.shape)<1: #then extend to 1d from scalar
+            val = np.repeat(val,pos_shape[1],axis=0)
+        if len(val.shape): #then extend to 2d
+            val = np.repeat([val],pos_shape[0],axis=0)
+        return val
+    
+
     
     def clear_position_perturbation(self):
         '''
@@ -1569,7 +1602,7 @@ if __name__=='__main__':
     pos[:,1] = Y.flatten()
     pos[:,2] = Z.flatten()
     mysp.set_positions(pos,'m') #set our positions 
-    mysp.perturb_positions([1,1,1,0,0,0],'mm')
+    mysp.perturb_positions_normal([1,1,1,0,0,0],units='mm')
     #some unit tests
     import unittest
     class TestSamuraiPostProcess(unittest.TestCase):   
@@ -1601,7 +1634,7 @@ if __name__=='__main__':
             pos[:,2] = Z.flatten()
             mysp.set_positions(pos,'m') #set our positions 
             p_m = mysp.get_positions('m')
-            mysp.perturb_positions([1,1,1,0,0,0],'mm')
+            mysp.perturb_positions_normal([1,1,1,0,0,0],units='mm')
             pp_m = mysp.get_positions('m')
             self.assertFalse(np.all(pp_m==p_m),'Perturbation not set correctly')
             mysp.clear_position_perturbation()
