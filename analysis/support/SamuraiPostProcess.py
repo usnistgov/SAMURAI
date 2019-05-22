@@ -89,6 +89,7 @@ class SamuraiSyntheticApertureAlgorithm:
         self.freq_list = None
         self.all_weights = None #weighting for our antennas
         self.all_positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
+        self.all_positions_perturbation = None #perturbations
         self.metafile = None
         if(metafile_path): #if theres a metafile load it
             self.load_metafile(metafile_path)
@@ -137,7 +138,46 @@ class SamuraiSyntheticApertureAlgorithm:
             raise(Exception("Frequency list not provided"))
         if np.any(self.weights==None) or len(self.weights)<1:
             raise(Exception("Weights not set"))
+    
+    
+    ###########################################################################
+    ### Positional Functions
+    ###########################################################################
+    @property
+    def positions(self):
+        '''
+        @brief getter for our positinos. This will allow us to mask out undesired locations
+        @return all desired positions that are not masked out
+        @todo implemment masking
+        '''
+        if self.metafile:
+            if self.metafile["positioner"]=='maturo':
+                #then finangle the positions to match the meca
+                z = self.all_positions[:,0]
+                y = self.all_positions[:,3]
+                x = np.zeros_like(z)
+                alph = np.zeros_like(z)
+                beta = np.zeros_like(z)
+                gamm = np.zeros_like(z)
+                self.options['units']='cm'
+                pos = np.stack([x,y,z,alph,beta,gamm],axis=1)
+            else:
+                #otherwise we are using the meca
+                pos = self.all_positions
+            if(self.metafile['metafile_version']<2): #if pre v2, we need to convert
+                pos = np.matmul(pos,v1_to_v2_convert) #convert version 1 to version 2
+            elif(self.metafile['metafile_version']<3): #we are currently on v2
+                pass
+        else:
+            #otherwise we are using the meca
+            pos = self.all_positions
             
+        #now perturb if that is set
+        if self.all_positions_perturbation is not None:
+            pos +=self.all_positions_perturbation
+            
+        return pos
+          
     def get_positions(self,units='m'):
         '''
         @brief check our units options and get our positions in a given unit
@@ -155,6 +195,46 @@ class SamuraiSyntheticApertureAlgorithm:
         multiplier = to_meters_dict[self.options['units']]/to_meters_dict[units] 
         return self.positions*multiplier
     
+    def perturb_positions(self,stdev):
+        '''
+        @brief generate and add a perturbation to our positions.
+            This will be added to self.all_positions_perturbation as to not change
+            the raw positions themselved. This will then be added to the positions
+            when getting the positions property. If self.all_positions_perturbation = None
+            the raw positions will be returned.
+        @param[in] stdev - standard deviation to generate a random normal perturbation from.
+            This value can be a scalar, a set of 6 values for [x,y,z,alpha,beta,gamma],
+            or an array of [x,y,z,alpha,beta,gamma] with length equal to the number of positions
+            in which case each position has its own stdev
+        '''
+        self.all_positions_perturbation = np.random.normal(scale=stdev)
+        
+        
+    def get_max_positions(self):
+        '''
+        @brief return maximum x,y,z coordinate values unmasked positions
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].max(axis=0)
+    
+    def get_min_positions(self):
+        '''
+        @brief return minimum x,y,z coordinate values
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].min(axis=0)
+    
+    def get_rng_positions(self):
+        '''
+        @brief return range x,y,z coordinate values
+        @return [x,y,z] coordinate in units given as self.options['units']
+        '''
+        return self.positions[:,:3].ptp(axis=0)
+    
+    
+    ###########################################################################
+    ### Steering Vector Functions
+    ###########################################################################
     def get_steering_vectors(self,az_u,el_v,k,coord='azel',**arg_options):
         '''
         @brief get our steering vectors with wavenumber provided. calculates np.exp(1j*k*kvec)
@@ -238,29 +318,11 @@ class SamuraiSyntheticApertureAlgorithm:
             sv_sum = sv.sum(axis=1)*amplitude #sum across freqs and get our amplitude
             self.all_s_parameter_data[:,fi]+=sv_sum
     
+
     
-    ### Here we definine some standard weighting window types ###
-    def get_max_positions(self):
-        '''
-        @brief return maximum x,y,z coordinate values unmasked positions
-        @return [x,y,z] coordinate in units given as self.options['units']
-        '''
-        return self.positions[:,:3].max(axis=0)
-    
-    def get_min_positions(self):
-        '''
-        @brief return minimum x,y,z coordinate values
-        @return [x,y,z] coordinate in units given as self.options['units']
-        '''
-        return self.positions[:,:3].min(axis=0)
-    
-    def get_rng_positions(self):
-        '''
-        @brief return range x,y,z coordinate values
-        @return [x,y,z] coordinate in units given as self.options['units']
-        '''
-        return self.positions[:,:3].ptp(axis=0)
-        
+    ###########################################################################
+    ### Windowing Functions
+    ###########################################################################
     def set_sine_window(self):
         '''
         @brief set our weights to reflect a sine window
@@ -402,37 +464,7 @@ class SamuraiSyntheticApertureAlgorithm:
         fig = go.Figure(data=plotly_surf,layout=layout)
         ploff.plot(fig,filename=options['out_name'])
     
-    
-    @property
-    def positions(self):
-        '''
-        @brief getter for our positinos. This will allow us to mask out undesired locations
-        @return all desired positions that are not masked out
-        @todo implemment masking
-        '''
-        if self.metafile:
-            if self.metafile["positioner"]=='maturo':
-                #then finangle the positions to match the meca
-                z = self.all_positions[:,0]
-                y = self.all_positions[:,3]
-                x = np.zeros_like(z)
-                alph = np.zeros_like(z)
-                beta = np.zeros_like(z)
-                gamm = np.zeros_like(z)
-                self.options['units']='cm'
-                pos = np.stack([x,y,z,alph,beta,gamm],axis=1)
-            else:
-                #otherwise we are using the meca
-                pos = self.all_positions
-            if(self.metafile['metafile_version']<2): #if pre v2, we need to convert
-                pos = np.matmul(pos,v1_to_v2_convert) #convert version 1 to version 2
-            elif(self.metafile['metafile_version']<3): #we are currently on v2
-                pass
-        else:
-            #otherwise we are using the meca
-            pos = self.all_positions
-        return pos
-    
+
     @property
     def s_parameter_data(self):
         '''
@@ -464,6 +496,9 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         self.all_weights = weights
         
+###########################################################################
+### some useful other functions
+###########################################################################        
 def to_azel(az_u,el_v,coord,replace_val = np.nan):
     '''
     @brief change a provided coordinate system ('azel' or 'uv') to azel
