@@ -30,6 +30,7 @@ class MatlabPlotter:
         '''
         self.options = {}
         self.options['verbose'] = False
+        self.options['debug'] = False
         for key,val in six.iteritems(arg_options):
             self.options[key]=val
         if self.options['verbose']: print("Starting MATLAB Engine")
