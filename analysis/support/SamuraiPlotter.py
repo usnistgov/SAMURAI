@@ -18,11 +18,13 @@ class SamuraiPlotter:
             verbose - whether or not to be verbose
             debug - extra verbose debug statements
             plot_order - list of strings for order of libs to try ['matlab','plotly','matplotlib'] acceptable
+            matlab_engine - can pass an already running matlab engine
         '''
         self.options = {}
         self.options['verbose'] = False
         self.options['debug'] = True
         self.options['plot_order'] = ['matlab','plotly','matplotlib']
+        self.options['matlab_engine'] = None
         for key,val in arg_options.items():
             self.options[key] = val
             
@@ -208,7 +210,7 @@ class SamuraiPlotter:
         '''
         if not self.matlab:
             from samurai.analysis.support.MatlabPlotter import MatlabPlotter
-            self.matlab = MatlabPlotter(**self.options)
+            self.matlab = MatlabPlotter(engine=self.options['matlab_engine'],**self.options)
             
     def _init_matplotlib(self):
         '''
