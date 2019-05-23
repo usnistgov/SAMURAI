@@ -5,7 +5,7 @@ Created on Fri Mar 22 15:41:34 2019
 @author: ajw5
 """
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
-from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k
+from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k,calculate_steering_vector_from_partial_k
 from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
 from samurai.analysis.support.SamuraiPostProcess import Antenna
 import numpy as np #import constants
@@ -156,6 +156,9 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 #            k = 2.*np.pi/lam
             k = get_k(freq)
             steering_vectors = np.exp(1j*k*psv_vecs)
+            
+            #k = np.full(psv_vecs.shape,k,dtype=np.complex64)
+            #steering_vectors = calculate_steering_vector_from_partial_k(psv_vecs.astype(np.complex64),k)
 
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
@@ -179,7 +182,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 if __name__=='__main__':
     testa = False
     testb = False
-    testc = True
+    testc = False
+    testd = True
     #test case for simple beamforming
     if(testa):
         '''
@@ -365,10 +369,27 @@ if __name__=='__main__':
         az_vals = np.array(az_vals)
         az_std = np.std(az_vals,axis=0)
         
-        
-        
-        
-    
+    if(testd):
+        #timing test
+        import timeit
+        mysp = SamuraiBeamform(verbose=True,units='m')
+        az_vals = [] #list for appending azimuth beamformed values to
+        zlocs = 0
+        xlocs = np.arange(0,0.103,0.003) #default positions in m
+        ylocs = np.arange(0,0.103,0.003)
+        [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+        pos = np.zeros((X.size,6))
+        pos[:,0] = X.flatten()
+        pos[:,1] = Y.flatten()
+        pos[:,2] = Z.flatten()
+        mysp.all_positions = pos;
+        freqs = [40e9]
+        mysp.freq_list = freqs
+        mysp.add_plane_wave(43,0,-90)
+        az_pos = np.arange(-90,90,1)
+        el_pos = np.arange(-90,90,1)
+        f1 = lambda: mysp.beamforming_farfield_azel(az_pos,el_pos,40e9,verbose=False)
+        timeit.timeit(f1)
     
     
     
