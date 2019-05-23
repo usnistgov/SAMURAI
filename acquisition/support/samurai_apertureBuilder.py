@@ -456,6 +456,7 @@ def gen_offset_position_csv(csv_name_in, shift_value_list,flip_flg=True):
         write_nparray_to_csv(os.path.join(ind_shift_dir,fname_no_extension)+'_shift_'+str(i)+'.csv',shift_list[i])
     return shift_full
     '''
+    pass
 
 def cat_positions_file(in_path_1,in_path_2,out_path,flip_flg=True):
     '''
