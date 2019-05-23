@@ -19,7 +19,7 @@ from samurai.analysis.support.generic import deprecated
 from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.support.samurai_optitrack import MotiveInterface
-from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
+from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
 
 
 class MetaFileController(OrderedDict):
@@ -348,15 +348,6 @@ class MetaFileController(OrderedDict):
         self.plotter.legend(interpreter=None,nargout=0)
         return fig
         
-    def plot_beamformed_data(self,csa,origin_label,ax=None):
-        '''
-        @brief plot beamformed data to overlay on our positional plot
-        @param[in] csa - calculated synthetic aperture to overlay data from
-        @param[in] origin_label - label of marker to place origin at 
-        @todo add rotation to this
-        @param[in/OPT] ax - axis to plot on. This should most likely be the axis of the 3D scatterplot
-        '''
-        pass
     
     ###########################################################################
     ### Getters and setters for various things

@@ -195,10 +195,11 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 ###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    testa = False
+    #testa = True
     testb = False
     testc = False
-    testd = True
+    testd = False
+    teste = True #plot markers with beamformed data
     #test case for simple beamforming
     if(testa):
         '''
@@ -416,6 +417,14 @@ if __name__=='__main__':
         #with pip install numpy (openblas)
         #Time = 13.072751499999995
         #Time per freq = 2.178791916666666
+        
+    if(teste):
+       test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
+       mysp = SamuraiBeamform(test_path,verbose=True) 
+       fig = mysp.metafile.plot_external_positions() #plot the external positions
+       eng = mysp.metafile.plotter.matlab #get the matlab engine
+       mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[40e9],verbose=True) #beamform
+       
     
     
     
