@@ -5,7 +5,9 @@ Created on Fri Mar 22 15:41:34 2019
 @author: ajw5
 """
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
-from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k,calculate_steering_vector_from_partial_k
+from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k
+from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector_from_partial_k
+from samurai.analysis.support.SamuraiPostProcess import vector_mult_complex,vector_div_complex
 from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
 from samurai.analysis.support.SamuraiPostProcess import Antenna
 import numpy as np #import constants
@@ -86,6 +88,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             verbose         - whether or not to be verbose (default False)
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             unit_mult - unit multiplier for positions
+            use_vectorized - use vectorized numba operations (default true)
         @note theta and phi vals will be created into a meshgrid
         @return list of CalculatedSyntheticAperture objects
         '''
@@ -93,6 +96,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         options = {}
         options['verbose'] = self.options['verbose']
         options['antenna_pattern'] = self.options['antenna_pattern']
+        options['use_vectorized'] = True
         for key,val in six.iteritems(arg_options):
             options[key] = val #set kwargs
         antenna_pattern = options['antenna_pattern']
@@ -103,7 +107,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
         #list of calulcated synthetic apertures        
         s_freq_list = self.freq_list
-        s21_vals = self.s_parameter_data
+        s21_vals = self.s_parameter_data.astype(np.complex64)
+        weights = self.weights.astype(np.complex64)
         
         #set our frequency list
         if freq_list=='all': #make all frequcnies if 'all'
@@ -124,15 +129,15 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         #this delta_r will be a 2D array with the first dimension being for each position
         # the second dimeino will be each of the theta/phi pairs for the angles
         if verbose: print("Finding Partial Steering Vectors vectors")
-        psv_vecs =  self.get_partial_steering_vectors(azimuth,elevation) #k_vectors*position_vectors
+        psv_vecs =  self.get_partial_steering_vectors(azimuth,elevation).astype(np.complex64) #k_vectors*position_vectors
         
         #set our antenna values
         az_adj = -1*az_angles[:,np.newaxis]+np.reshape(azimuth,(-1,))
         el_adj = np.zeros(az_adj.shape)
         if(antenna_pattern is not None):
-            antenna_values = antenna_pattern.get_values(az_adj,el_adj)
-        else:
-            antenna_values = np.ones(psv_vecs.shape)
+            antenna_values = antenna_pattern.get_values(az_adj,el_adj).astype(np.complex64)
+        #else:
+            #antenna_values = np.ones(psv_vecs.shape,dtype=np.complex64)
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
@@ -149,26 +154,36 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             else:
                 freq_idx = freq_idx[0]
             #if we make it here the frequency exists. now get our s params for the current frequency
-            s21_current = s21_vals[:,freq_idx]
+            s21_current = np.ascontiguousarray(s21_vals[...,freq_idx])
             #now we can calculate the beam phases for each of the angles at each position
-            #here we add a
-#            lam = sp_consts.c/freq
-#            k = 2.*np.pi/lam
             k = get_k(freq)
-            steering_vectors = np.exp(1j*k*psv_vecs)
+            if options['use_vectorized']:
+                steering_vectors = calculate_steering_vector_from_partial_k(psv_vecs,k)
+                s21_weighted = vector_mult_complex(s21_current,weights)
+                if(antenna_pattern is not None):
+                    sv_div_ants  = vector_div_complex(steering_vectors,antenna_values)
+                else:
+                    sv_div_ants = steering_vectors
+            else:
+                steering_vectors = np.exp(1j*k*psv_vecs)    
+                s21_weighted = s21_current*weights
+                if(antenna_pattern is not None):
+                    sv_div_ants  = steering_vectors/antenna_values
+                else:
+                    sv_div_ants = steering_vectors            
             
-            #k = np.full(psv_vecs.shape,k,dtype=np.complex64)
-            #steering_vectors = calculate_steering_vector_from_partial_k(psv_vecs.astype(np.complex64),k)
-
             # sum(value_at_position*steering_vector) for each angle
             # now calculate the values at each angle
-            beamformed_vals = np.dot(s21_current*self.weights,steering_vectors/antenna_values)/self.weights.sum()
+            #beamformed_vals = np.dot(s21_current*self.weights,steering_vectors/antenna_values)/self.weights.sum()
+            beamformed_vals = np.dot(s21_weighted,sv_div_ants)/self.weights.sum()
             
             #now pack into our CSA (CaluclateSynbteticAperture)
             mycsa.add_frequency_data(np.reshape(beamformed_vals,azimuth.shape),freq)
             #csa_list.append(CalculatedSyntheticAperture(azimuth,elevation,np.reshape(beamformed_vals,azimuth.shape)))
-        
-        ant_vals = CalculatedSyntheticAperture(azimuth,elevation,np.reshape(antenna_values[1,:],azimuth.shape),**self.options)
+        if antenna_pattern is not None:
+            ant_vals = CalculatedSyntheticAperture(azimuth,elevation,np.reshape(antenna_values[1,:],azimuth.shape),**self.options)
+        else:
+            ant_vals = None
 
         return mycsa,ant_vals
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
@@ -383,14 +398,24 @@ if __name__=='__main__':
         pos[:,1] = Y.flatten()
         pos[:,2] = Z.flatten()
         mysp.all_positions = pos;
-        freqs = [40e9]
+        freqs = np.arange(35e9,40.1e9,1e9)#[40e9]
         mysp.freq_list = freqs
         mysp.add_plane_wave(43,0,-90)
         az_pos = np.arange(-90,90,1)
         el_pos = np.arange(-90,90,1)
-        f1 = lambda: mysp.beamforming_farfield_azel(az_pos,el_pos,40e9,verbose=False)
-        timeit.timeit(f1)
-    
+        f1 = lambda: mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False)
+        t = timeit.timeit(f1,number=1)
+        print("Vectorized:")
+        print("  Time = {}".format(t))
+        print("  Time per freq = {}".format(t/len(freqs)))
+        f1 = lambda: mysp.beamforming_farfield_azel(az_pos,el_pos,'all',verbose=False,use_vectorized=False)
+        t = timeit.timeit(f1,number=1)
+        print("Non-Vectorized:")
+        print("  Time = {}".format(t))
+        print("  Time per freq = {}".format(t/len(freqs)))
+        #with pip install numpy (openblas)
+        #Time = 13.072751499999995
+        #Time per freq = 2.178791916666666
     
     
     

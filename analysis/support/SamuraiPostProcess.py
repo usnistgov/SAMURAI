@@ -606,6 +606,15 @@ import cmath
 @vectorize(['complex64(complex64,complex64)'],target='cpu')
 def calculate_steering_vector_from_partial_k(partial_k,k):
     return cmath.exp(-1j*k*partial_k)
+
+@vectorize(['complex64(complex64,complex64)'],target='cuda')
+def vector_mult_complex(a,b):
+    return a*b
+
+@vectorize(['complex64(complex64,complex64)'],target='cpu')
+def vector_div_complex(num,denom):
+    return num/denom
+
     
     
 
