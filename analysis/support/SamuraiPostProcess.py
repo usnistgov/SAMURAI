@@ -9,8 +9,6 @@ import numpy as np #import constants
 #import math #for vectorize math functions
 import scipy.constants as sp_consts #import constants for speed of light
 import scipy.interpolate as interp
-import cmath #cmath for phase
-from numba import vectorize
 import six
 import json
 
@@ -602,6 +600,13 @@ def get_k(freq,eps_r=1,mu_r=1):
     lam = cr/freq
     k = 2*np.pi/lam
     return k
+
+from numba import vectorize, complex64,float32
+import cmath
+@vectorize(['complex64(complex64,complex64)'],target='cpu')
+def calculate_steering_vector_from_partial_k(partial_k,k):
+    return cmath.exp(-1j*k*partial_k)
+    
     
 
 ###########################################################################
@@ -1557,10 +1562,6 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @todo IMPLEMENT
         '''
         return []
-    
-@vectorize(['complex128(float64,float64)'],target='cpu')
-def calculate_steering_vector(k_vector,k):
-    return cmath.exp(-1j*k*k_vector)
 
 #fig = plt.figure()
 #ax = fig.add_subplot(111, projection='3d')
