@@ -21,9 +21,10 @@ class MatlabPlotter:
         deleted
     '''
     
-    def __init__(self,**arg_options):
+    def __init__(self,engine=None,**arg_options):
         '''
         @brief initialize the class and start our MATLAB engine
+        @param[in/OPT] engine - pass an engine from a different instance
         @param[in/OPT] arg_options - keyword arguments as follows:
             verbose - be verbose in our plotting (default False)
             debug - extra verbose for debugging
@@ -33,12 +34,17 @@ class MatlabPlotter:
         self.options['debug'] = False
         for key,val in six.iteritems(arg_options):
             self.options[key]=val
+        if self.options['debug']:
+            self.options['verbose'] = True #if were in debug also be in verbose
         if self.options['verbose']: print("Starting MATLAB Engine")
         #running_engines = matlab.engine.find_matlab()
         #eng_name = 'PyMatPlottingEngine'
         #if not eng_name in running_engines: #check if the engine is running and start it if is
         #self.engine = matlab.engine.start_matlab('-r "matlab.engine.shareEngine(\''+eng_name+'\')"') #connect to an engine, or start if needed
-        self.engine = matlab.engine.start_matlab()
+        if engine is None:
+            self.engine = matlab.engine.start_matlab()
+        else:
+            self.engine = engine #allow passing of engine from other place
         self.beep('off')
         #import io
         #out = io.StringIO()
@@ -87,8 +93,10 @@ class MatlabPlotter:
         '''
         args_out = []
         for arg in args: #loop through each argument.
-            if type(arg)==tuple:      arg = list(arg)
-            if type(arg)==list :      arg = np.array(arg) #alwyas have nparray to get dtype
+            if np.isscalar(arg) and type(arg)!=str: arg = np.array([arg]) #put into a list if its not a string or already a list
+            if arg is None     :    arg = 'none' #replace None with text none for matlab
+            if type(arg)==tuple:    arg = list(arg)
+            if type(arg)==list :    arg = np.array(arg) #alwyas have nparray to get dtype
             #now convert lists to matlab
             if type(arg)==np.ndarray: #this assumes consistent values across list
                 if arg.dtype==np.float64:

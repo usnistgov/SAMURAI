@@ -55,6 +55,15 @@ class SamuraiPlotter:
     def surf(self,*args,**kwargs):
         '''
         @brief abstracted surface plotting function
+        @param[in] args - arguments for the plot function (in MATLAB fasion)
+        @param[in] kwargs - keyword arguments will be used as name/value pairs
+            again in MATLAB format except for the following special keywords:
+                xlim,ylim,zlim - set the x,y,z limits on the plot
+                xlabel,ylable,zlabel - set the x,y,z labels on the plot
+                view - set the plot view
+                shading - set the shading (for matlab. usually 'interp')
+                title - title of the plot
+                colorbar - arguements (as a tuple) to pass to the colorbar function
         '''
         kwargs = {k.lower():v for k,v in kwargs.items()} #make all keys lowercase
         rv = self.run_plot_function('surf',*args,**kwargs)
@@ -152,6 +161,42 @@ class SamuraiPlotter:
         cb.ax.set_yticklabels(xtl)
         return fig
 
+    ###########################################################################
+    ####### regular 2D plots
+    ###########################################################################
+    #def plot(self,*args,**kwargs):
+    #    '''
+    #    @brief abstracted 2D plotting function
+    #    @param[in] args - arguments for the plot function (in MATLAB fasion)
+    #    @param[in] kwargs - keyword arguments will be used as name/value pairs
+    #        again in MATLAB format except for the following special keywords:
+    #            xlim,ylim,zlim - set the x,y,z limits on the plot
+    #            xlabel,ylable,zlabel - set the x,y,z labels on the plot
+    #            view - set the plot view
+    #            shading - set the shading (for matlab. usually 'interp')
+    #            title - title of the plot
+    #            colorbar - arguements (as a tuple) to pass to the colorbar function
+    #    '''
+    #    kwargs = {k.lower():v for k,v in kwargs.items()} #make all keys lowercase
+    #    rv = self.run_plot_function('plot',*args,**kwargs)
+    #    return rv
+    
+    ###########################################################################
+    ####### for all unimplemented, try to call from the first value in plot order
+    ###########################################################################
+    def __getattr__(self,name):
+        '''
+        @brief this function will be called when the attribute or method 
+            is not found. The call will look in the first value of
+            self.options['plot_order'] for the method or property
+        @param[in] name - attribute name
+        '''
+        plotter_name = self.options['plot_order'][0]
+        init_plotter_funct = getattr(self,'_init_'+plotter_name)
+        init_plotter_funct() #init the plotter
+        plotter = getattr(self,plotter_name) #get the plotter
+        attr = getattr(plotter,name)
+        return attr
         
         
     ###########################################################################

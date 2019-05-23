@@ -16,13 +16,15 @@ import numpy as np
 
 from samurai.analysis.support.snpEditor import SnpEditor as snp
 from samurai.analysis.support.generic import deprecated
-
+from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.support.samurai_optitrack import MotiveInterface
+from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
 
 
 class MetaFileController(OrderedDict):
     
+
     def __init__(self,metafile_path,suppress_empty_warning=0):
         '''
         @brief initialize our class to control our metafile and the data within it
@@ -31,6 +33,14 @@ class MetaFileController(OrderedDict):
         '''
         OrderedDict.__init__(self) #initialize ordereddict
         self.load(metafile_path,suppress_empty_warning)
+        self.plotter = SamuraiPlotter()
+        
+        self.unit_conversion_dict = { #dictionary to get to meters
+                'mm': 0.001,
+                'cm': 0.01,
+                'm' : 1,
+                'in': 0.0254
+                }
         
        
     ###########################################################################
@@ -163,7 +173,7 @@ class MetaFileController(OrderedDict):
         '''
         return self.get_positions()
     
-    def get_external_positions(self,label=None):
+    def get_external_positions(self,label=None,meas_num=-1):
         '''
         @brief get externally measured positions. 
             If label is specified, a list of positional data for the data point
@@ -173,16 +183,36 @@ class MetaFileController(OrderedDict):
         @param[in/OPT] label - what marker label to pull out (if none, get all)
         '''
         ext_meas_key = 'external_position_measurements'
-        if not label:
-            return [d[ext_meas_key] for d in self['measurements']]
+        if meas_num<0:
+            if not label:
+                rv = [d[ext_meas_key] for d in self['measurements']]
+            else:
+                rv = [d[ext_meas_key][label] for d in self['measurements']]
         else:
-            return [d[ext_meas_key][label] for d in self['measurements']]
+            if not hasattr(meas_num,'__iter__'):
+                meas_num=[meas_num] #make sure its a list (so we can support lists of indices)
+            if not label:
+                rv = [self['measurements'][i][ext_meas_key] for i in meas_num]
+            else:
+                rv = [self['measurements'][i][ext_meas_key][label] for i in meas_num]
+            if len(rv)==1:
+                rv = rv[0] #if we have only 1 value dont return a list
+        return rv
+            
         
+    @property
     def external_positions(self):
         '''
         @brief getter for external positions
         '''
         return self.get_external_positions()
+    
+    def get_external_positions_labels(self):
+        '''
+        @brief get the labels of all of the external positions (use the first measurement)
+        '''
+        ext_pos = self.get_external_positions(meas_num=0)
+        return ext_pos.keys()
     
     def get_external_positions_mean(self,label,meas_type='position',meas_num=-1):
         '''
@@ -239,32 +269,40 @@ class MetaFileController(OrderedDict):
             m[ext_meas_key].update({label:measurement})
         
         
-    def add_external_marker(self,label,data,res_data=None,**arg_options):
+    def add_external_marker(self,label,data,res_data=None,units='mm',**arg_options):
         '''
         @brief manually add an external position marker
         @param[in] data - the externally measured values
         @param[in/OPT] res_data - data for the residual (just 1 number)
+        @param[in/OPT] units - units of the input data
         @param[in/OPT] arg_options - keyword arguments as follows:
             sample_wait_time - time between samples
             id - id of the tag 
-            units - units of the measurement
         '''
         pos_meas = {}
         pos_meas['id'] = None
         pos_meas['sample_wait_time'] = None
-        pos_meas['units'] = 'mm'
         for k,v in arg_options.items():
             pos_meas[k] = v
-        
-        data = np.array(data) #ensure its a numpy array
+            
+        meas_units = self.get_external_positions_units() #external measurement units        
+        pos_meas['units'] = meas_units
+        unit_mult = self.unit_conversion_dict[units]/self.unit_conversion_dict[meas_units]
+        data = np.array(data)*unit_mult #ensure its a numpy array
+        if data.ndim<2: #then extend to 2 dimensions
+            data = data[np.newaxis,:]
         pos_meas['num_samples'] = data.shape[0]
         data_stats = MotiveInterface.calculate_statistics(data)
         if res_data is not None:
             res_stats = MotiveInterface.calculate_statistics(res_data)
         else:
             res_stats = None
-        pos_meas['position'] = data_stats
-        pos_meas['residual'] = res_stats
+        if self.version<=2:  
+            pos_meas['position_mm'] = data_stats
+            pos_meas['residual_mm'] = res_stats
+        else:
+            pos_meas['position'] = data_stats
+            pos_meas['residual'] = res_stats
         self.update_external_measurement(label,pos_meas)
         
     def _get_external_positions_value(self,value,label,meas_type,meas_num):
@@ -289,7 +327,36 @@ class MetaFileController(OrderedDict):
             return np.array(loc_list)
         else:
             return self['measurements'][ext_meas_key][meas_num][label][meas_type][value]
-    
+        
+    def plot_external_positions(self,label_names=None,ax=None):
+        '''
+        @brief plot all of our external positions.
+            This most likely will only work with MatlabPlotter for quite a while...
+        @param[in/OPT] label_names - a list of label names to plot. If none, all labels will be plotted
+        @param[in/OPT] ax - axis to plot on. if not available a new figure will be created
+        @return handle to the figure
+        '''
+        if label_names is None:
+            label_names = mf.get_external_positions_labels()
+        elif type(label_names)!=list or type(label_names)!=tuple:
+            label_names = [label_names] #check in case we got a single value
+        if ax is None:
+            fig = self.plotter.figure(); self.plotter.hold('on',nargout=0); ax = self.plotter.gca()
+        for l in label_names:   
+            pos = mf.get_external_positions_mean(l)
+            self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
+        self.plotter.legend(interpreter=None,nargout=0)
+        return fig
+        
+    def plot_beamformed_data(self,csa,origin_label,ax=None):
+        '''
+        @brief plot beamformed data to overlay on our positional plot
+        @param[in] csa - calculated synthetic aperture to overlay data from
+        @param[in] origin_label - label of marker to place origin at 
+        @todo add rotation to this
+        @param[in/OPT] ax - axis to plot on. This should most likely be the axis of the 3D scatterplot
+        '''
+        pass
     
     ###########################################################################
     ### Getters and setters for various things
@@ -485,13 +552,16 @@ class MetaFileController(OrderedDict):
 #alias
 metaFileController = MetaFileController         
 
-      
+###########################################################################
+### various useful functions
+###########################################################################
 #update to current directory
-def update_wdir(metaFile='metafile.json'):
+def update_wdir(metafile_path):
     '''
     @brief set the wdir to the current directory
+    @param[in] metafile_path - path to the metafile
     '''
-    mymfc = metaFileController(metaFile)
+    mymfc = metaFileController(metafile_path)
     mymfc.set_wdir() #set current directory as working directory
     mymfc.write()
     
@@ -582,6 +652,15 @@ if __name__=='__main__':
     #maturo_metafile_path = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\processed\synthetic_aperture\metaFile.json'
     mf = MetaFileController(metafile_path)
     #mmf = MetaFileController(maturo_metafile_path)
+    #5-17-2019 data
+    beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
+    beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
+    mf.add_external_marker('beam-3',beam3_loc,units='m')
+    mf.add_external_marker('beam-2',beam2_loc,units='m')
+    mf.plot_external_positions()
+    
+    
+    
     
     
     
