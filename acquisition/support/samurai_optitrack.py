@@ -8,6 +8,7 @@ Created on Mon Apr 15 14:45:56 2019
 import numpy as np
 import six
 import time
+import json
 
 from samurai.acquisition.support.NatNetClient import NatNetClient
 class MotiveInterface:
@@ -130,6 +131,7 @@ class MotiveInterface:
     def write_marker_to_file(self,id_name_dict,out_path,**arg_options):
         '''
         @brief write a marker out to a file. the data input is the same as in self.get_position_data 
+            By default include the raw measurement data
         @param[in] id_name_dict - dictionary containing key value pairs in the form {name:id}
             for markers and {name:None} for rigid bodies
             Marker names CAN NOT be the same as a rigid body name
@@ -138,6 +140,7 @@ class MotiveInterface:
             passed to self.get_position_data (see **arg_options of that method)
         '''
         options = {}
+        options['include_raw_data'] = True
         for key,val in six.iteritems(arg_options):
             options[key] = val
         data_dict = self.get_position_data(id_name_dict,**options)
