@@ -663,18 +663,37 @@ class CalculatedSyntheticAperture:
             pass
         return tuple(out_vals)
     
-    def get_3d_data(self,data_type='mag_db'):
+    def get_3d_data(self,data_type='mag_db',**arg_options):
         '''
         @brief get 3D data values X,Y,Z for 3D plotting
-        @param[in] data_type - the type data to get. can be 'mag','phase','phase_d','real','imag'
+        @param[in/OPT] data_type - the type data to get. can be 'mag','phase','phase_d','real','imag' (default mag_db)
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            translation_xyz - set of [x,y,z] values to translate the 3D data in space
+            scale - value for how to scale the size of the points.
         @return [X,Y,Z,plot_data_adj,caxis_min,caxis_max] 3D data positions(X,Y,Z), adjusted plot data (to remove negative vals),
             min and max values of our caxis (colorbar)
         '''
+        options = {}
+        options['translate_xyz'] = [0,0,0]
+        options['scale'] = 1
+        for k,v in arg_options.items():
+            options[k] = v
+        
         plot_data = self.get_data(data_type,mean_flg=True)
         [plot_data_adj,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,data_type,60)
         Z = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
         X = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
         Y = plot_data_adj*np.sin(np.deg2rad(self.elevation))
+        
+        #scale
+        X *= options['scale']
+        Y *= options['scale']
+        Z *= options['scale']
+        #translate
+        X += options['translate_xyz'][0]
+        Y += options['translate_xyz'][0]
+        Z += options['translate_xyz'][0]
+        
         return [X,Y,Z,plot_data_adj,caxis_min,caxis_max]
         
     @property
