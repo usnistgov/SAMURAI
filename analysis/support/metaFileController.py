@@ -337,13 +337,13 @@ class MetaFileController(OrderedDict):
         @return handle to the figure
         '''
         if label_names is None:
-            label_names = mf.get_external_positions_labels()
+            label_names = self.get_external_positions_labels()
         elif type(label_names)!=list or type(label_names)!=tuple:
             label_names = [label_names] #check in case we got a single value
         if ax is None:
             fig = self.plotter.figure(); self.plotter.hold('on',nargout=0); ax = self.plotter.gca()
         for l in label_names:   
-            pos = mf.get_external_positions_mean(l)
+            pos = self.get_external_positions_mean(l)
             self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
         self.plotter.legend(interpreter=None,nargout=0)
         return fig
