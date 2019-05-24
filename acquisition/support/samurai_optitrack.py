@@ -127,6 +127,24 @@ class MotiveInterface:
         
         return data_dict
     
+    def write_marker_to_file(self,id_name_dict,out_path,**arg_options):
+        '''
+        @brief write a marker out to a file. the data input is the same as in self.get_position_data 
+        @param[in] id_name_dict - dictionary containing key value pairs in the form {name:id}
+            for markers and {name:None} for rigid bodies
+            Marker names CAN NOT be the same as a rigid body name
+        @param[in] out_path - output path the save the data to
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            passed to self.get_position_data (see **arg_options of that method)
+        '''
+        options = {}
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        data_dict = self.get_position_data(id_name_dict,**options)
+        #now write this out to our JSON file
+        with open(out_path,'w+') as fp:
+            json.dump(data_dict,fp,indent=4)
+            
     @staticmethod
     def calculate_statistics(data,**arg_options):
         '''
