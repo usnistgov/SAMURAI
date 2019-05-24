@@ -65,7 +65,7 @@ class MotiveInterface:
         #now calculate the statistics and return a dictionary
         pos = self.calculate_statistics(np.array(pos),**arg_options)
         rot = self.calculate_statistics(np.array(rot),**arg_options)
-        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'position_mm':pos,'rotation':rot}
+        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'units':'mm','position':pos,'rotation':rot}
     
     def get_labeled_marker_data(self,id,**arg_options):
         '''
@@ -92,7 +92,7 @@ class MotiveInterface:
         #now calculate the statistics and return a dictionary
         pos = self.calculate_statistics(np.array(pos),**arg_options)
         res = self.calculate_statistics(np.array(res),**arg_options)
-        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'position_mm':pos,'residual_mm':res}
+        return {'id':id,'num_samples':options['num_samples'],'sample_wait_time':options['sample_wait_time'],'units':'mm','position':pos,'residual':res}
         
     def get_position_data(self,id_name_dict,**arg_options):
         '''
@@ -127,10 +127,31 @@ class MotiveInterface:
         
         return data_dict
     
-    def calculate_statistics(self,data,**arg_options):
+    def write_marker_to_file(self,id_name_dict,out_path,**arg_options):
+        '''
+        @brief write a marker out to a file. the data input is the same as in self.get_position_data 
+        @param[in] id_name_dict - dictionary containing key value pairs in the form {name:id}
+            for markers and {name:None} for rigid bodies
+            Marker names CAN NOT be the same as a rigid body name
+        @param[in] out_path - output path the save the data to
+        @param[in/OPT] arg_options - keyword arguments as follows:
+            passed to self.get_position_data (see **arg_options of that method)
+        '''
+        options = {}
+        for key,val in six.iteritems(arg_options):
+            options[key] = val
+        data_dict = self.get_position_data(id_name_dict,**options)
+        #now write this out to our JSON file
+        with open(out_path,'w+') as fp:
+            json.dump(data_dict,fp,indent=4)
+            
+    @staticmethod
+    def calculate_statistics(data,**arg_options):
         '''
         @brief calculate statistics on positional data
         @param[in] data - 2D numpy array of data with each row as a sample
+        @param[in/OPT] arg_options - keyword arguents as follows:
+            include_raw_data - whether or not to include the raw data in the dict
         @return dictionary of statistics. Must be lists so json serializable
         '''
         options = {}
