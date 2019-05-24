@@ -16,6 +16,7 @@ from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
 from samurai.analysis.support.MatlabPlotter import MatlabPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
+#from samurai.analysis.support.SamuraiPostProcess import mask_value
 
 import plotly.graph_objs as go
 import plotly.offline as ploff
@@ -964,3 +965,17 @@ class AntennaPattern(CalculatedSyntheticAperture):
         @todo IMPLEMENT
         '''
         return []
+    
+def mask_value(arr,mask,value=0):
+    '''
+    @brief replace values in ndarray from mask
+    @param[in] arr   - array to mask
+    @param[in] mask  - masking values (these values will be changed)
+    @param[in] value - value to exchange for (if none delete)
+    '''
+    mask = mask.flatten()
+    shape = arr.shape #original size
+    af = arr.flatten()
+    af[mask] = value
+    rv = np.reshape(af,shape)
+    return rv

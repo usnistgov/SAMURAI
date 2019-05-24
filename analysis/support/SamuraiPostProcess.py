@@ -602,6 +602,7 @@ def get_k(freq,eps_r=1,mu_r=1):
     k = 2*np.pi/lam
     return k
 
+
 from numba import vectorize, complex64,float32
 import cmath
 @vectorize(['complex64(complex64,complex64)'],target='cpu')
@@ -623,19 +624,7 @@ def vector_div_complex(num,denom):
 #ax.plot_surface(y.reshape((35,35)),z.reshape((35,35)),(np.angle(s21.reshape(X.shape))))
 # ax.plot_surface(y.reshape((35,35)),z.reshape((35,35)),dr[:,10000].reshape(35,35))
     
-def mask_value(arr,mask,value=0):
-    '''
-    @brief replace values in ndarray from mask
-    @param[in] arr   - array to mask
-    @param[in] mask  - masking values (these values will be changed)
-    @param[in] value - value to exchange for (if none delete)
-    '''
-    mask = mask.flatten()
-    shape = arr.shape #original size
-    af = arr.flatten()
-    af[mask] = value
-    rv = np.reshape(af,shape)
-    return rv
+
 
     
 if __name__=='__main__':
