@@ -379,7 +379,7 @@ class metaFile:
                 self.jsonData['measurements'][measId]['timestamp'] = time
                 self.jsonData['measurements'][measId]['calibration_file'] = cfname
                 if dict_data is not None:
-                    for key,val in dict_data:
+                    for key,val in six.iteritems(dict_data):
                         self.jsonData['measurements'][measId][key] = val
                 #increment filled measurements
                 self.jsonData['completed_measurements']+=1

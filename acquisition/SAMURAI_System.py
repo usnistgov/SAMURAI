@@ -395,7 +395,7 @@ if __name__=='__main__':
     [stat,_,_] = mysam.rx_positioner.get_status()
     #if not stat[2]:
     #    raise Exception("Not in simulation mode")
-    mysam.csv_sweep('./test/','sweep_files/samurai_planar_hp.csv',run_vna=False)
+    mysam.csv_sweep('./test/','sweep_files/samurai_planar_dp.csv',run_vna=False)
     mysam.disconnect_rx_positioner()
     
     
