@@ -421,11 +421,17 @@ if __name__=='__main__':
     if(teste):
        test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
        mysp = SamuraiBeamform(test_path,verbose=True) 
+       beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
+       beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
+       mysp.metafile.add_external_marker('beam-3',beam3_loc,units='m')
+       mysp.metafile.add_external_marker('beam-2',beam2_loc,units='m')
+       mhm = mysp.metafile.get_external_positions_mean('meca_head').mean(0) #meca_head mean location (center of array)
        fig = mysp.metafile.plot_external_positions() #plot the external positions
        mp = mysp.metafile.plotter.matlab #get the MatlabPlotter
        mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[40e9],verbose=True) #beamform
-       [X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db')
-       mp.surf(X,Z,Y,plot_data)
+       [X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db',scale=5)
+       mp.surf(-X+mhm[0],Z+mhm[1],Y+mhm[2],plot_data,DisplayName='Beamformed Data')
+       mp.shading('interp')
        num_increments = 3 #(number of label increments)
        db_range = caxis_max-caxis_min
        mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
