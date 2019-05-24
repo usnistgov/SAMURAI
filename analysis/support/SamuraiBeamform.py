@@ -8,8 +8,8 @@ from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticAperture
 from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k
 from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector_from_partial_k
 from samurai.analysis.support.SamuraiPostProcess import vector_mult_complex,vector_div_complex
-from samurai.analysis.support.SamuraiPostProcess import CalculatedSyntheticAperture
-from samurai.analysis.support.SamuraiPostProcess import Antenna
+from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
+from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import Antenna
 import numpy as np #import constants
 
 import six #backward compatability
@@ -422,9 +422,13 @@ if __name__=='__main__':
        test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
        mysp = SamuraiBeamform(test_path,verbose=True) 
        fig = mysp.metafile.plot_external_positions() #plot the external positions
-       eng = mysp.metafile.plotter.matlab #get the matlab engine
+       mp = mysp.metafile.plotter.matlab #get the MatlabPlotter
        mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[40e9],verbose=True) #beamform
-       
+       [X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db')
+       mp.surf(X,Z,Y,plot_data)
+       num_increments = 3 #(number of label increments)
+       db_range = caxis_max-caxis_min
+       mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
     
     
     
