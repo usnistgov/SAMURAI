@@ -305,6 +305,17 @@ class MetaFileController(OrderedDict):
             pos_meas['residual'] = res_stats
         self.update_external_measurement(label,pos_meas)
         
+    def add_external_marker_from_file(self,file_path): 
+        '''
+        @brief add marker data from an external .json file
+        @param[in] file_path - path to the file to import positions from
+            This file should be a dictionary of positional markers
+        '''
+        with open(file_path) as fp:
+            data = json.load(fp) #load the json data
+        for k,v in data.items(): #for each marker
+            self.update_external_measurement(k,v) #update measurements
+        
     def _get_external_positions_value(self,value,label,meas_type,meas_num):
         '''
         @brief get value from our external positions
