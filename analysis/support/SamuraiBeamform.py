@@ -195,7 +195,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 ###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    #testa = True
+    testa = False
     testb = False
     testc = False
     testd = False
@@ -419,18 +419,28 @@ if __name__=='__main__':
         #Time per freq = 2.178791916666666
         
     if(teste):
+       
        test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
        mysp = SamuraiBeamform(test_path,verbose=True) 
        beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
        beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
        mysp.metafile.add_external_marker('beam-3',beam3_loc,units='m')
        mysp.metafile.add_external_marker('beam-2',beam2_loc,units='m')
+       
+       '''
+       test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-24-2019\aperture_vertical_polarization\binary\metafile_binary.json"
+       mysp = SamuraiBeamform(test_path,verbose=True) 
+       loc_data_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\5-24-2019\external_data\positions\positions.json"
+       mysp.metafile.add_external_marker_from_file(loc_data_path)
+       '''
        mhm = mysp.metafile.get_external_positions_mean('meca_head').mean(0) #meca_head mean location (center of array)
        fig = mysp.metafile.plot_external_positions() #plot the external positions
        mp = mysp.metafile.plotter.matlab #get the MatlabPlotter
+       mysp.set_cosine_sum_window_by_name('hamming')
        mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[40e9],verbose=True) #beamform
        [X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db',scale=5)
-       mp.surf(-X+mhm[0],Z+mhm[1],Y+mhm[2],plot_data,DisplayName='Beamformed Data')
+       #mp.surf(-X+mhm[0],Z+mhm[1],Y+mhm[2],plot_data,DisplayName='Beamformed Data')
+       #mp.surf(Z+mhm[0],-X+mhm[1],Y+mhm[2],plot_data,DisplayName='Beamformed Data')
        mp.shading('interp')
        num_increments = 3 #(number of label increments)
        db_range = caxis_max-caxis_min
