@@ -512,11 +512,18 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         pass
     
-    def set_tchebyshev_window(self):
+    def set_tchebyshev_window(self,sll):
         '''
         @brief set a tschebyshev window on the data
-        @todo implement this
+        @note this only works for equally spaced elements where each row and 
+            column have the same spacing (rectangular planar array)
+        @todo implement this correctly for 2D
         '''
+        x_unique = np.unique(self.positions[...,0])
+        y_unique = np.unique(self.positions[...,1])
+        #assume the positions are stored [x1,x2,...xn,x1,x2,...,xn-1,xn] 
+        # and [y1,y1,y1,...,y2,y2,y2...,yn,yn,yn]
+        
         pass
     
     def reset_window(self):

@@ -62,7 +62,7 @@ class MatlabPlotter:
         '''
         funct = getattr(self.engine,funct_name)
         args,kwargs = self.args2matlab(*args,**kwargs)
-        if self.options['debug']: print("CALL: %s" %(funct_name),*args)
+        if self.options['debug']: print("CALL: %s - " %(funct_name),*tuple([type(a) for a in args]))#print("CALL: %s" %(funct_name),*args)
         return funct(*args,**kwargs)
     
     def call_functs_from_dict(self,funct_dict,**kwargs):
@@ -99,8 +99,10 @@ class MatlabPlotter:
             if type(arg)==list :    arg = np.array(arg) #alwyas have nparray to get dtype
             #now convert lists to matlab
             if type(arg)==np.ndarray: #this assumes consistent values across list
-                if arg.dtype==np.float64:
+                if arg.dtype==np.float64 or arg.dtype==np.float32:
                     args_out.append(matlab.double(arg.tolist()))
+                #if arg.dtype==np.float32:
+                #    args_out.append(matlab.single(arg.tolist()))
                 elif arg.dtype==np.int32:
                     args_out.append(matlab.int32(arg.tolist()))
                 else:

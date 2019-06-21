@@ -187,8 +187,9 @@ class WnpEditor:
                 for i in range(len(self.options['header'])):
                     fp.write('#%s\n' %(self.options['header'][i]))
                 #now write data
-                for i in range(len(self.A[11].raw)):
-                    line_vals = [self.A[11].freq_list[i]]
+                first_key = list(self.A.keys())[0]
+                for i in range(len(self.A[first_key].raw)):
+                    line_vals = [self.A[first_key].freq_list[i]]
                     for k in self.dict_keys:
                         line_vals += [self.A[k].raw[i].real,self.A[k].raw[i].imag]
                         line_vals += [self.B[k].raw[i].real,self.B[k].raw[i].imag]
@@ -197,7 +198,29 @@ class WnpEditor:
                 
         else:
             print('Write Type not implemented')
-
+            
+   def delete_port(self,port_num): 
+       '''
+       @brief delete a port from the class
+       @param[in] port_num - the number of the port to delete (must be less than self.options['num_ports'])
+           This will start at 1 not 0 indexing
+       @todo finish this when needed
+       '''
+       num_ports = self.options['num_ports']
+       if port_num > num_ports:
+           raise Exception("Cant remove port {} when there are only {} ports!".format(port_num,num_ports))
+       num_ports -= 1
+       self.options['num_ports'] = num_ports #decrement our number of ports
+       #now get the keys for the port to remove
+       removed_a = [] #removed b waves
+       removed_b = [] #removed a waves
+       dict_keys = self.dict_keys.copy() #local copy
+       for k in dict_keys:
+           if str(port_num) in str(k): #if it has the digit matching the port
+               removed_a.append(self.A.pop(k))
+               removed_b.append(self.B.pop(k))
+               self.dict_keys.remove(k)
+            
    def __getitem__(self,key):
         '''
         @brief override of [] operator to get S parameters
@@ -397,6 +420,18 @@ class SnpEditor:
         #and pack the port data with 0s
         for i in range(len(self.dict_keys)):
             self.S[self.dict_keys[i]] = WnpParam(np.array(freqs),np.zeros(len(freqs)))
+            
+   def delete_port(self,port_num): 
+       '''
+       @brief delete a port from the class
+       @param[in] port_num - the number of the port to delete (must be less than self.options['num_ports'])
+           This will start at 1 not 0 indexing
+       @todo finish this when needed
+       '''
+       num_ports = self.options['num_ports']
+       if port_num > num_ports:
+           raise Exception("Cant remove port {} when there are only {} ports!".format(port_num,num_ports))
+       
        
    def write(self,out_file,ftype='default',delimiter=' '):
         '''
@@ -1174,5 +1209,9 @@ class MalformedSnpError(SnpError):
     def __init__(self,err_msg):
         super().__init__(err_msg)
     
-    
+
+if __name__=='__main__':
+    load_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\4-5-2019\cal\calibration_pre\load.w3p"
+    load = WnpEditor(load_path)
+    load.delete_port(2)
         
