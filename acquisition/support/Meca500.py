@@ -371,7 +371,7 @@ class Meca500:
             prv = "Not Paused"
 
         #clear the buffer. For some reason comms get off without this
-        self.flush_com_buffer(send_and_flush=True)
+        #self.flush_com_buffer(send_and_flush=True)
         
         self.get_status() #update the status
  
