@@ -179,6 +179,7 @@ class ApertureBuilder():
         @brief generate a cylindrical aperture
         @param[in] origin - [x,y,z,alpha,beta,gamma] position for cylinder center
         @param[in] radius - radius of cylinder in mm
+        @param[in] height - height of the cylinder to generate
         @param[in] height_step_size_mm - step size in vertical direction in mm
         @param[in] sweep_angle - angle to sweep in degrees
         @param[in] angle_step_size_degrees - azimuthal angular step in degrees
@@ -201,15 +202,16 @@ class ApertureBuilder():
         #now calculate where our outer circle is
         #x = rcos(theta)+xo, y=rsin(theta)+yo, z=z;
         #start with the x,y values
-        x = radius*np.cos(theta_vals*np.pi/180.)+xo; y = radius*np.sin(theta_vals*np.pi/180.)+yo
+        z = radius*np.cos(theta_vals*np.pi/180.)+zo; x = radius*np.sin(theta_vals*np.pi/180.)+xo
         #now generate z from origin to origin+height
-        z = np.arange(zo,zo+height+height_step_size_mm,height_step_size_mm)
+        y = np.arange(yo,yo+height+height_step_size_mm,height_step_size_mm)
         #now combine to get all of our values
         #now tile this for the number of z locations
+        #these x,y,z values are swapped because of the changed reference frame
+        z_tot     = np.tile(z,len(z))
         x_tot     = np.tile(x,len(z))
-        y_tot     = np.tile(y,len(z))
-        z_tot  = np.repeat(z,len(theta_vals)) #repeat z for every theta
-        theta_tot = np.tile(theta_vals,len(z))
+        y_tot  = np.repeat(y,len(theta_vals)) #repeat z for every theta
+        theta_tot = np.tile(theta_vals,len(y))
         alph_tot  = np.repeat(alpho,theta_tot.size)
         bet_tot   = np.repeat(beto,theta_tot.size)
         #finally combine into positoins
@@ -364,12 +366,16 @@ class ApertureBuilder():
         '''
         self.add_positions(ap2.positions)
         
-    def change_reference_frame(self,rotation_matrix):
+    def change_reference_frame(self,rotation_matrix,external_positions=None):
         '''
         @brief change our reference frame using a rotation matrix. This matrix should be 6 by 6
         @param[in] rotation_matrix - 6 by 6 matrix for rotation
+        @param[in/OPT] external_positions - external positions to change. If none operate on self.positions
         '''
-        self.positions = np.matmul(self.positions,rotation_matrix)
+        if external_positions is None:
+            self.positions = np.matmul(self.positions,rotation_matrix)
+        else:
+            return np.matmul(external_positions,rotation_matrix)
         
     def flipud(self):
         '''
