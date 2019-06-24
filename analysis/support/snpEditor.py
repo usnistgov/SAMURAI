@@ -1138,6 +1138,12 @@ class WnpParam:
         self.freq_list = freq_list
         self.raw = raw_list
         
+    def calculate_time_domain(self):
+        ifft_vals = np.fft.ifft(self.raw)
+        total_time = 1/np.diff(self.freq_list).mean()
+        times = np.linspace(0,total_time,self.freq_list.shape[0])
+        return times,ifft_vals
+        
     @property
     def mag(self):
         '''
