@@ -16,6 +16,7 @@ from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
 from samurai.analysis.support.MatlabPlotter import MatlabPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
+from samurai.acquisition.support.samurai_optitrack import rotate_3d
 #from samurai.analysis.support.SamuraiPostProcess import mask_value
 
 import plotly.graph_objs as go
@@ -227,21 +228,25 @@ class CalculatedSyntheticAperture:
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
         @param[in/OPT] arg_options - keyword arguments as follows:
             plot_program - 'matlab' or 'plotly' possible (default 'matlab')
+            translation - [x,y,z] translation points
+            rotation - [alpha,beta,gamma] (XYZ) rotation of points
         @return a handle for the figure
         '''
         options = {}
         options['plot_program'] = self.options['plot_program']
+        options['translation'] = [0,0,0]
+        options['rotation'] = [0,0,0]
         for key,val in six.iteritems(arg_options):
-            self.options[key] = val
+            options[key] = val
             
-        plot_data = self.get_data(plot_type,mean_flg=True)
+        #plot_data = self.get_data(plot_type,mean_flg=True)
         #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
         
         #now get our xyz values
         #Z = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
         #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
         #Y = plot_data*np.sin(np.deg2rad(self.elevation))
-        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type)
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type,translation=options['translation'],rotation=options['rotation'])
         db_range = caxis_max-caxis_min
         
         if(options['plot_program'].lower()=='matlab'):
@@ -355,7 +360,7 @@ class CalculatedSyntheticAperture:
         '''
         @brief get the desired data from a string (e.g. 'mag_db','phase_d','mag', etc.)
             this can also be used to select which frequencies to average
-        @param[in] data_str - string of the data to get. can be 'mag','phase','phase_d','real','imag'
+        @param[in] data_str - string of the data to get. can be 'mag','phase','phase_d','real','imag',complex
         @param[in/OPT] freqs - which frequencies to average (default 'all'). if the freq doesnt exist, throw an exception
         @param[in/OPT] arg_options - keyword arguments as follows
                 mean_flg - whether or not to return the mean across all frequencies
@@ -374,7 +379,8 @@ class CalculatedSyntheticAperture:
             'phase':self.phase,
             'phase_d':self.phase_d,
             'real':self.real,
-            'imag':self.imag
+            'imag':self.imag,
+            'complex':self.complex_values
             }
         freq_idx = self.get_freq_idx(freqs)
         data = data_dict[data_str]
@@ -463,7 +469,7 @@ class CalculatedSyntheticAperture:
             meas_data.append(mys)
             meas_info.append({'filepath':out_path,'azimuth':float(az),'elevation':float(el)})
         with open(os.path.join(out_dir,'beamformed.json'),'w+') as fp:
-            json.dump(meas_info,fp)
+            json.dump(meas_info,fp, indent=4, sort_keys=True)
         return meas_data
     
     def get_max_beam_idx(self,freqs='all',**arg_options):
@@ -668,14 +674,17 @@ class CalculatedSyntheticAperture:
         @brief get 3D data values X,Y,Z for 3D plotting
         @param[in/OPT] data_type - the type data to get. can be 'mag','phase','phase_d','real','imag' (default mag_db)
         @param[in/OPT] arg_options - keyword arguments as follows:
-            translation_xyz - set of [x,y,z] values to translate the 3D data in space
+            translation - set of [x,y,z] values to translate the 3D data in space
             scale - value for how to scale the size of the points.
+            rotation - rotation in degrees. this will rotate XYZ in the same form as the meca robot
         @return [X,Y,Z,plot_data_adj,caxis_min,caxis_max] 3D data positions(X,Y,Z), adjusted plot data (to remove negative vals),
-            min and max values of our caxis (colorbar)
+            min and max values of our caxis (colorbar). Here z is in the propogation direction.
         '''
         options = {}
-        options['translate_xyz'] = [0,0,0]
+        options['translation'] = [0,0,0]
+        options['rotation'] = [0,0,0]
         options['scale'] = 1
+        options['forward_axis'] = 'z'
         for k,v in arg_options.items():
             options[k] = v
         
@@ -685,14 +694,21 @@ class CalculatedSyntheticAperture:
         X = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
         Y = plot_data_adj*np.sin(np.deg2rad(self.elevation))
         
+        #rotation
+        x_shape = X.shape; y_shape = Y.shape; z_shape = Z.shape
+        coords = np.concatenate((X.reshape((-1,1)),Y.reshape((-1,1)),Z.reshape((-1,1))),axis=1)
+        rcoords = rotate_3d('xyz',options['rotation'],coords)
+        Xf,Yf,Zf = np.split(rcoords,3,axis=1)
+        X = Xf.reshape(x_shape); Y = Yf.reshape(y_shape); Z = Zf.reshape(z_shape)
+        
         #scale
         X *= options['scale']
         Y *= options['scale']
         Z *= options['scale']
         #translate
-        X += options['translate_xyz'][0]
-        Y += options['translate_xyz'][0]
-        Z += options['translate_xyz'][0]
+        X += options['translation'][0]
+        Y += options['translation'][1]
+        Z += options['translation'][2]
         
         return [X,Y,Z,plot_data_adj,caxis_min,caxis_max]
         
