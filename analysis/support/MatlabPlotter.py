@@ -93,20 +93,22 @@ class MatlabPlotter:
         '''
         args_out = []
         for arg in args: #loop through each argument.
-            if np.isscalar(arg) and type(arg)!=str: arg = np.array([arg]) #put into a list if its not a string or already a list
+            if np.isscalar(arg) and type(arg)!=str: arg = np.array([arg],dtype='double') #put into a list if its not a string or already a list
             if arg is None     :    arg = 'none' #replace None with text none for matlab
             if type(arg)==tuple:    arg = list(arg)
-            if type(arg)==list :    arg = np.array(arg) #alwyas have nparray to get dtype
+            if type(arg)==list :    arg = np.array(arg,dtype='double') #alwyas have nparray to get dtype
             #now convert lists to matlab
             if type(arg)==np.ndarray: #this assumes consistent values across list
                 if arg.dtype==np.float64 or arg.dtype==np.float32:
                     args_out.append(matlab.double(arg.tolist()))
                 #if arg.dtype==np.float32:
                 #    args_out.append(matlab.single(arg.tolist()))
-                elif arg.dtype==np.int32:
-                    args_out.append(matlab.int32(arg.tolist()))
+                #elif arg.dtype==np.int32:
+                #    args_out.append(matlab.int32(arg.tolist()))
+                #else:
+                #    args_out.append(arg.tolist())
                 else:
-                    args_out.append(arg.tolist())
+                    args_out.append(matlab.double(arg.tolist())) #default
             else:
                 args_out.append(arg)
         #keyword args
