@@ -230,14 +230,16 @@ class WnpEditor:
        num_ports -= 1
        self.options['num_ports'] = num_ports #decrement our number of ports
        #now get the keys for the port to remove
-       removed_a = [] #removed b waves
-       removed_b = [] #removed a waves
+       removed_waves = {}
+       for wk in self.waves.keys():
+           removed_waves[wk] = []
        dict_keys = self.wave_dict_keys.copy() #local copy
        for k in dict_keys:
            if str(port_num) in str(k): #if it has the digit matching the port
-               removed_a.append(self.A.pop(k))
-               removed_b.append(self.B.pop(k))
-               self.wave_dict_keys.remove(k)
+               for wk in self.waves.keys():
+                   removed_waves[wk].append(self.waves[wk].pop(k))
+                   self.wave_dict_keys.remove(k)
+       return removed_waves
             
    def __getitem__(self,key):
         '''
@@ -287,45 +289,47 @@ class WnpEditor:
        '''
        return self.waves[self.waves.keys()[0]]
     
+   def _call_wnp_param_funct(self,fname,*args):
+       '''
+       @brief call a function from wnp param on all waves and all parameters
+       '''
+       for k in self.wave_dict_keys:
+           for wk in self.waves.keys():
+               _funct = getattr(self.waves[wk][k])
+               _funct(*args) #call the function with the input args
     
    def sort(self):
        '''
        @brief sort each of our parameters by frequency
        '''
-       for k in self.wave_dict_keys:
-           self.A[k].sort()
-           self.B[k].sort()
-
+       self._call_wnp_param_funct('sort')
        
    def crop(self,lo_freq=0,hi_freq=1e60):
        '''
        @brief remove values outside a window
        '''
-       for k in self.wave_dict_keys:
-           self.A[k].crop(lo_freq,hi_freq)
-           self.B[k].crop(lo_freq,hi_freq)
+       self._call_wnp_param_funct('crop',lo_freq,hi_freq)
        
    def cut(self,lo_freq=0,hi_freq=1e60):
        '''
        @brief remove values inside a window
        '''
-       for k in self.wave_dict_keys:
-           self.A[k].cut(lo_freq,hi_freq)
-           self.B[k].cut(lo_freq,hi_freq)
+       self._call_wnp_param_funct('cut',lo_freq,hi_freq)
            
    def round_freq_lists(self):
        '''
        @brief round frequencies to nearest hz (assuming they are in GHz)
        '''
-       for k in self.wave_dict_keys:
-           self.A[k].round_freq_list()
-           self.B[k].round_freq_list()
+       self._call_wnp_param_funct('round_freq_list')
            
    #always assume mixing up negative will mix down
    #frequency in Ghz. 
    #very simply ideal mixing (add our LO freqeuncy)
    #this allows easy if/rf measurement fixing
    def mix_port(self,port,LO_freq = 26e9):
+       '''
+       @todo update for new setup
+       '''
        for k in self.wave_dict_keys:
         if(int(k/10)==port): #see if its port 2
             self.A[k].freq_list += np.round(LO_freq/1e9)
@@ -335,6 +339,11 @@ class WnpEditor:
             self.B[k].round_freq_list()
 
 class SnpEditor:
+    
+    pass
+
+@deprecated("use updated SnpEditor")
+class SnpEditor_old:
    '''
    @brief init arbitrary port S parameter class
    @param[in] input_file - path of file to load in. 
