@@ -242,22 +242,134 @@ def quaternion_to_euler(quat):
 
         return X, Y, Z
         
-        
+    
+def rotate_3d(axis,angle,coords):
+    '''
+    @brief rotate a set of 3d points given in X,Y,Z
+    @param[in] axis - 'x','y','z', or a string (e.g. 'xyz') of them to generate the rotation matrix
+    @param[in] angle - value or list of values(for len(axis)>1) in degrees to rotate 
+    @param[in] coords - list of [x,y,z] (i.e. [[x1,y1,z1],[x2,y2,z2],...]) coordinate values to rotate
+        Should be of shape (n,3) where n is the number of coordinates
+    '''
+    R = generate_rotation_matrix_3d(axis,angle)
+    rotated_coords = np.matmul(coords,R.transpose()) #same as np.matmul(R,coords.transpose()).transpose()
+    return rotated_coords
+
+def generate_rotation_matrix_3d(axis,angle):
+    '''
+    @brief generate a rotation matrix for a set of rotations
+    @param[in] axis - 'x','y','z', or a string (e.g. 'xyz') of them to generate the rotation matrix
+    @param[in] angle - value or list of values(for len(axis)>1) in degrees to rotate (just like alpha beta gamma of meca) 
+    '''
+    if not hasattr(angle,'__iter__'):
+        angle = [angle] #make sure we can iterate over
+    rot_mats = [] #list of individual rotation matrices
+    for i,ax in enumerate(axis): #generate individual rotation matrices
+        cur_angle = angle[i]
+        if ax=='x':
+            rm = np.array([[1,0                             ,0                            ],
+                           [0,np.cos(np.deg2rad(cur_angle)),-np.sin(np.deg2rad(cur_angle))],
+                           [0,np.sin(np.deg2rad(cur_angle)), np.cos(np.deg2rad(cur_angle))]])
+            rot_mats.append(rm)
+        if ax=='y':
+            rm = np.array([[ np.cos(np.deg2rad(cur_angle)),0,np.sin(np.deg2rad(cur_angle))],
+                           [0                            ,1,0                             ],
+                           [-np.sin(np.deg2rad(cur_angle)),0,np.cos(np.deg2rad(cur_angle))]])
+            rot_mats.append(rm)
+        if ax=='z':
+            rm = np.array([[ np.cos(np.deg2rad(cur_angle)),-np.sin(np.deg2rad(cur_angle)),0],
+                           [ np.sin(np.deg2rad(cur_angle)), np.cos(np.deg2rad(cur_angle)),0],
+                           [0                             ,0                            ,1]])
+            rot_mats.append(rm)
+    #now multiply to get our rotation matrix
+    R = np.array([[1,0,0], #start with identity matrix
+                  [0,1,0],
+                  [0,0,1]])
+    for rm in rot_mats: #generate rotational matrix
+        R = np.matmul(R,rm)
+    return R
+    
         
 if __name__=='__main__':
-    import json
-    mymot = MotiveInterface()
+    testa = False #print data to json
+    testb = True #test rotational matrix
+    if(testa):
+        import json
+        mymot = MotiveInterface()
+        
+        id_dict = {}
+        #rigid bodies
+        id_dict['meca_head'] = None
+        id_dict['origin']    = None
+        #labeled markers
+        id_dict['tx_antenna'] = 50436
+        id_dict['cyl_1']      = 50359
+        id_dict['cyl_2']      = 50358
+        
+        data = mymot.get_position_data(id_dict)
+        print(json.dumps(data,indent=4))
+        
+    if(testb):
+        #this is checked with https://mecademic.com/resources/Euler-angles/Euler-angles.html
+        #should be identity matrix
+        print("\n----------------\n Test A")
+        rota_ax = 'xyz'
+        rota_an = [0,0,0]
+        rota = generate_rotation_matrix_3d(rota_ax,rota_an)
+        print(rota)
+        print("Should be")
+        rc = np.array([[ 1.000, 0.000, 0.000],
+                        [ 0.000, 1.000, 0.000],
+                        [ 0.000, 0.000, 1.000]])
+        print(rc, np.all(rc==np.round(rota,3)))
+        
+        #should be
+        print("\n----------------\n Test B")
+        rotb_ax = 'xyz'
+        rotb_an = [0,0,25]
+        rotb = generate_rotation_matrix_3d(rotb_ax,rotb_an)
+        print(rotb)
+        print("\nShould be")
+        rc =np.array([[ 0.906,-0.423, 0.000],
+                        [ 0.423, 0.906, 0.000],
+                        [ 0.000, 0.000, 1.000]])
+        print(rc, np.all(rc==np.round(rotb,3)))
     
-    id_dict = {}
-    #rigid bodies
-    id_dict['meca_head'] = None
-    id_dict['origin']    = None
-    #labeled markers
-    id_dict['tx_antenna'] = 50436
-    id_dict['cyl_1']      = 50359
-    id_dict['cyl_2']      = 50358
+        #should be
+        print("\n----------------\n Test C")
+        rotc_ax = 'xyz'
+        rotc_an = [0,-33,25]
+        rotc = generate_rotation_matrix_3d(rotc_ax,rotc_an)
+        print(rotc)
+        print("\nShould be")
+        rc = np.array([[ 0.760,-0.354,-0.545],
+                        [ 0.423, 0.906, 0.000],
+                        [ 0.494,-0.230, 0.839]])
+        print(rc, np.all(rc==np.round(rotc,3)))
     
-    data = mymot.get_position_data(id_dict)
-    print(json.dumps(data,indent=4))
+        #should be
+        print("\n----------------\n Test D")
+        rotd_ax = 'xyz'
+        rotd_an = [32,-33,25]
+        rotd = generate_rotation_matrix_3d(rotd_ax,rotd_an)
+        print(rotd)
+        print("\nShould be")
+        rc = np.array([[ 0.760,-0.354,-0.545],
+                        [-0.604,-0.077,-0.793],
+                        [ 0.239, 0.932,-0.273]])
+        print(rc, np.all(rc==np.round(rotd,3)))
+    
+        #should be
+        print("\n----------------\n Test E")
+        rotd_ax = 'xyz'
+        rotd_an = [32,-33,25]
+        rotd = generate_rotation_matrix_3d(rotd_ax,rotd_an)
+        print(rotd)
+        print("\nShould be")
+        rc = np.array([[ 0.760,-0.354,-0.545],
+                        [-0.604,-0.077,-0.793],
+                        [ 0.239, 0.932,-0.273]])
+        print(rc, np.all(rc==np.round(rote,3)))
+        
     
     
