@@ -26,6 +26,11 @@ class WnpEditor:
         @param[in] input_file - path of file to load in. 
                     A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                     measurement with n ports and frequencies [f1,f2,...] 
+        @param[in] arg_options - keywor arguments as follows:
+            header - header to write out to the file (text only)
+            comments - comments to write to file (text only)
+            read_header - True/False whether or not to read in header from text files (faster if false, default to true)
+            waves - list of what waves we are measuring for self.waves dictionary (default ['A','B'] for s params should be ['S'])
         '''
         self.options = {}
         self.options['header'] = []
@@ -114,7 +119,7 @@ class WnpEditor:
                 
         #now split the data (text and binary input should be formatted the same here)
         #first check if our file is named correctly
-        num_ports_from_file = int(round(np.sqrt((num_cols-1)/4))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
+        num_ports_from_file = int(round(np.sqrt((num_cols-1)/(len(self.waves)*2)))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
         if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
             raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
         
@@ -125,8 +130,8 @@ class WnpEditor:
         for ki,k in enumerate(self.wave_dict_keys):
             for wi,w in enumerate(self.waves):
                 idx = ki*len(self.waves)*2+(1+2*wi)
-                data = raw_data[:,idx]+raw_data[:idx+1]*1j
-                self.waves[w] = WnpParam(np.array(freqs),np.array(data))
+                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
+                self.waves[w][k] = WnpParam(np.array(freqs),np.array(data))
     
    def load_empty(self,num_ports,freqs):
         '''
@@ -181,25 +186,23 @@ class WnpEditor:
         elif(ftype=='text'):
             with open(out_file,'w+') as fp:
                 #write our comments
-                if(type(self.options['comments']!=list)): #assume if its not a list ts a string
+                if type(self.options['comments']) is not list: #assume if its not a list ts a string
                     self.options['comments'] = [self.options['comments']]
                 for i in range(len(self.options['comments'])):
                     fp.write('!%s\n' %(self.options['comments'][i]))
                 #write our header
-                if(type(self.options['header']!=list)): #assume if its not a list ts a string
+                if type(self.options['header']) is not list: #assume if its not a list ts a string
                     self.options['header'] = [self.options['header']]
                 for i in range(len(self.options['header'])):
                     fp.write('#%s\n' %(self.options['header'][i]))
                 #now write data
-                
-                first_key = list(self.A.keys())[0]
-                for i in range(len(self.A[first_key].raw)):
-                    line_vals = [self.A[first_key].freq_list[i]]
+                for i in range(len(self.w1[11].raw)):
+                    line_vals = [self.w1[11].freq_list[i]]
                     for k in self.wave_dict_keys:
-                        for w in self.waves:
+                        for w in self.waves.values():
                             line_vals += [w[k].raw[i].real,w[k].raw[i].imag]
-
-                    fp.write(delimiter.join([str(v) for v in line_vals])+'\n')
+                    #write the line to the file. The upper ensures we get E not e
+                    fp.write(delimiter.join([str(v).upper() for v in line_vals])+'\n')
                 
         else:
             print('Write Type not implemented')
@@ -209,7 +212,7 @@ class WnpEditor:
        @brief make sure all parameters of all waves have the same frequency list
        @raise raises an SnpError if they don't match
        '''
-       w1_key = self.waves.keys()[0]
+       w1_key = list(self.waves.keys())[0]
        p1_key = self.wave_dict_keys[0]
        comp_freqs = self.waves[w1_key][p1_key].freq_list #frequency list to compare to
        for k in self.wave_dict_keys:
@@ -280,14 +283,14 @@ class WnpEditor:
        try:
            return self.waves[attr]
        except:
-           raise Exception("not a wave")
+           raise AttributeError("Attribute does not exist and is not a key in self.waves")
     
    @property
    def w1(self):
        '''
        @brief shortcut for first wave 
        '''
-       return self.waves[self.waves.keys()[0]]
+       return self.waves[list(self.waves.keys())[0]]
     
    def _call_wnp_param_funct(self,fname,*args):
        '''
@@ -295,7 +298,7 @@ class WnpEditor:
        '''
        for k in self.wave_dict_keys:
            for wk in self.waves.keys():
-               _funct = getattr(self.waves[wk][k])
+               _funct = getattr(self.waves[wk][k],fname)
                _funct(*args) #call the function with the input args
     
    def sort(self):
@@ -331,17 +334,43 @@ class WnpEditor:
        @todo update for new setup
        '''
        for k in self.wave_dict_keys:
-        if(int(k/10)==port): #see if its port 2
-            self.A[k].freq_list += np.round(LO_freq/1e9)
-            self.B[k].freq_list += np.round(LO_freq/1e9)
-            #now round the frequencies to nearest Hz
-            self.A[k].round_freq_list()
-            self.B[k].round_freq_list()
+        if(int(k/10)==port): #see if its our port
+            for wk in self.waves.keys():
+                self.waves[wk][k].freq_list += np.round(LO_freq/1e9)
+                #now round the frequencies to nearest Hz
+                self.waves[wk][k].round_freq_list()
 
-class SnpEditor:
-    
-    pass
+class SnpEditor(WnpEditor):
+    '''
+    @brief class for s parameter file (*.snp)
+    '''
+    def __init__(self,input_file,**arg_options):
+        '''
+        @brief init arbitrary port s parameter class
+        @param[in] input_file - path of file to load in. 
+                    A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
+                    measurement with n ports and frequencies [f1,f2,...] 
+        '''
+        wave_list = ['S'] #do s parameters
+        super().__init__(input_file,waves=wave_list,**arg_options)
 
+    def _gen_dict_keys(self):
+       '''
+       @brief function to generate the dictionary keys for each wave in self.waves
+       @note this should be redefined in inheriting classes
+       @note the keys are placed in self.wave_dict_keys
+       '''
+       #adding the additional self.options['waves']==['s'] here allows us to
+       #extend this class and still use the wnp functionalily simply by
+       #changing our 'waves' option to ['A','B']
+       if self.options['num_ports']==2 and self.options['waves']==['S']:
+           self.wave_dict_keys = [11,21,12,22] #because s2p files wanted to be special
+       else:
+           super()._gen_dict_keys() #otherwise use the generic
+
+##############################################################################
+# before snpeditor inherited from wnpeditor
+##############################################################################
 @deprecated("use updated SnpEditor")
 class SnpEditor_old:
    '''
@@ -784,7 +813,53 @@ class MalformedSnpError(SnpError):
     
 
 if __name__=='__main__':
-    load_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\4-5-2019\cal\calibration_pre\load.w3p"
-    load = WnpEditor(load_path)
-    load.delete_port(2)
+
+    snp_test = True
+    wnp_test = False
+    
+    #geyt the current file directory
+    import os 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
+    if wnp_test:
+        print("Loading *.wnp files")
+        #load_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\4-5-2019\cal\calibration_pre\load.w3p"
+        #load = WnpEditor(load_path)
+        #load.delete_port(2)
+        wnp_text_path = os.path.join(dir_path,'test.w2p')
+        wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
+        wnp_text = WnpEditor(wnp_text_path)
+        wnp_bin  = WnpEditor(wnp_bin_path)
+    if snp_test:
+        print("Loading *.snp files")
+        snp_text_path = os.path.join(dir_path,'test.s2p')
+        snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
+        snp_text = SnpEditor(snp_text_path)
+        snp_bin  = SnpEditor(snp_bin_path)
+        snp_text.write('test2.s2p')
+        snp_text.write('test2.s2p_binary')
+        snp_text2 = SnpEditor('test2.s2p_binary')
+        snp_text2.write('test22.s2p')
+        print(snp_text==snp_text2)
+        snp_bin.write('test3.s2p')
+        snp_bin2 = SnpEditor('test3.s2p')
+        print(snp_bin==snp_bin2)
+        
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         

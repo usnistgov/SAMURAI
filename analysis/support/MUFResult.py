@@ -7,7 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.analysis.support.snpEditor import SnpEditor,WnpEditor
 
-class MUFResult(:
+class MUFResult(WnpEditor):
     '''
     @brief a class to deal with MUF results (and easily get uncertainties, monte_carlos, and whatnot)
     '''
