@@ -11,6 +11,8 @@ import re
 import six
 from xml.dom.minidom import parse 
 
+from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
+
 from samurai.analysis.support.generic import deprecated
 
 class WnpEditor:
@@ -283,7 +285,7 @@ class WnpEditor:
        try:
            return self.waves[attr]
        except:
-           raise AttributeError("Attribute does not exist and is not a key in self.waves")
+           raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
     
    @property
    def w1(self):
@@ -666,12 +668,22 @@ class WnpParam:
     '''
     @brief class for a single wave parameter (e.g. A[11])
     '''
-    def __init__(self,freq_list,raw_list):
+    def __init__(self,freq_list,raw_list,**arg_options):
         '''
         @brief initialize our parameter
         @param[in] freq_list - list of frequencies for the parameter data
         @param[in] raw_list  - raw complex data for the parameter
+        @param[in/OPT] arg_options - keyword arg options as follows
+            plotter - SamuraiPlotter class to override if not available
+            plot_options - dictionary of args to pass to SamuraiPlotter (if plotter not specified)
         '''
+        self.options = {}
+        self.options['plot_options'] = {'plot_order':['matplotlib']}
+        self.options['plotter'] = None
+        for k,v in arg_options.items():
+            self.options[k] = v
+        if self.options['plotter'] is None: #start up plotter if not provided
+            self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         self.update(freq_list,raw_list)
         
     def sort(self):
@@ -683,6 +695,15 @@ class WnpParam:
         freq_list,raw = zip(*myzipped)
         self.freq_list = np.array(freq_list)
         self.raw = np.array(raw)
+        
+    def plot(self,data_type='mag_db'):
+        '''
+        @brief plot parameter data and return the figure
+        @param[in/OPT] data_type - type of data to plot. 'mag_db','mag','phase','phase_d','raw' possible
+        '''
+        data = getattr(self,data_type)
+        rv = self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (GHz)',ylabel=data_type)
+        return rv
         
     #crop out all frequencies outside a window given by lo and hi frequencies (in Hz)
     def crop(self,lo_freq=0,hi_freq=1e60):
@@ -742,14 +763,21 @@ class WnpParam:
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])
         return times,ifft_vals
-        
+    
+    @property
+    def mag_db(self):
+        '''
+        @brief get the magnitude in db (20*log10(raw))
+        '''
+        return 20*np.log10(self.raw)
+    
     @property
     def mag(self):
         '''
         @brief property for magnitude
         @return list of magnitude data
         '''
-        return [abs(i) for i in self]
+        return np.abs(self.raw)
 
     @property
     def phase(self):
@@ -757,7 +785,7 @@ class WnpParam:
         @brief property for phase in radians
         @return list of phase data in radians
         '''
-        return [cmath.phase(i) for i in self]
+        return np.phase(self.raw)
 
     @property
     def phase_d(self):
@@ -765,10 +793,7 @@ class WnpParam:
         @brief property for phase in degrees
         @return list of phase data in degrees
         '''
-        return [cmath.phase(i)*180/np.pi for i in self]
-    
-    def __get__(self,instance,owner):
-        return instance.raw
+        return np.phase(self.raw)*180/np.pi
     
     def __getitem__(self,idx):
         return self.raw[idx]
@@ -781,6 +806,8 @@ class WnpParam:
         freq_eq = np.equal(self.freq_list,other.freq_list).all()
         data_eq = np.equal(self.raw,other.raw).all()
         return freq_eq,data_eq
+    
+    
         
 class SnpParam(WnpParam):
      

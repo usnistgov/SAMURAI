@@ -26,7 +26,7 @@ class MUFResult(SnpEditor):
             all arguments also passed to SnpEditor constructor
         @todo ADD case for if we do not get a *.meas but get a snp or wnp file
         '''
-        self.parse_dom(meas_path)
+        self.parse_xml(meas_path)
         nom_path = self.nominal_value_path
         #lets set the correct options for w/s params
         _,ext = os.path.splitext(nom_path)
@@ -49,10 +49,18 @@ class MUFResult(SnpEditor):
         '''
         @brief  parse our file into a dom struct
         @param[in] meas_path - path to *.meas file
+        @note this also extracts the following etree elements
+            _root - root of the tree
+            _controls - *.meas 'Controls' element
+            _nominal  - *.meas 'Controls->MeasSParams' element
+            _monte_carlo - *.meas 'Controls->MonteCarloPerturbedSParams' element
         '''
         self._xml_file_path = meas_path
         self._etree = ET.parse(meas_path)
         self._root = self._etree.getroot()
+        self._controls = self._root.find('Controls') #*.meas controls
+        self._nominal  = self._controls.find('MeasSParams')
+        self._monte_carlo = self._controls.find('MonteCarloPerturbedSParams')
      
     def get_monte_carlo_path_list(self):
         '''
@@ -66,11 +74,9 @@ class MUFResult(SnpEditor):
         '''
         @brief property to return the path of the nominal value
         '''
-        msp = self._dom.getElementsByTagName('MeasSParams').item(0)
-        unpt = msp.getElementsByTagName('Item').item(0)
-        unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
+        unpt_name = self._nominal[0][1].get('Text')
         return unpt_name
-    
+
 
 if __name__=='__main__':
     meas_path = 'test.meas'
