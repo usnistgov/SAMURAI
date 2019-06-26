@@ -8,6 +8,7 @@ from datetime import datetime as dt
 import samurai.acquisition.support.pnaController as pnaController
 #import pnaController as pnaController
 import six
+import getpass
 
 #class for meta file with JSON and temp file
 #import directory and file name
@@ -50,7 +51,7 @@ class metaFile:
         self.options['experiment_version'] = 1.0
         self.options['positioner']         = 'Meca500'
         self.options['positioner_rotation_format'] = "X\'Y\'Z\'"
-        self.options['user']               = 'ajw'
+        self.options['user']               = getpass.getuser()
         self.options['units']              = 'mm'
         self.options['position_key']       = ['X','Y','Z','alpha','beta','gamma']
         self.options['vna_info']           = {'info':'NO VNA QUERIED',"start":26.5e9,"stop":40e9,"step":20e6,"ifbw":10,"power":0}
