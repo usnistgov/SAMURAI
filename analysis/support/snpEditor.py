@@ -351,8 +351,11 @@ class SnpEditor(WnpEditor):
                     A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                     measurement with n ports and frequencies [f1,f2,...] 
         '''
-        wave_list = ['S'] #do s parameters
-        super().__init__(input_file,waves=wave_list,**arg_options)
+        options = {}
+        options['waves'] = ['S'] #do s parameters
+        for k,v in arg_options.items():
+            options[k] = v
+        super().__init__(input_file,**options)
 
     def _gen_dict_keys(self):
        '''

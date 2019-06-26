@@ -5,7 +5,7 @@ Created on Mon Jun 24 16:02:04 2019
 @author: ajw5
 """
 
-from samurai.analysis.support.snpEditor import SnpEditor,WnpEditor
+from samurai.analysis.support.snpEditor import SnpEditor,WnpEditor,SnpError
 
 from xml.dom.minidom import parse, parseString
 import os
@@ -23,21 +23,26 @@ class MUFResult(SnpEditor):
         @param[in/OPT] arg_options - keyword arguments as follows:
             None yet!
             all arguments also passed to SnpEditor constructor
+        @todo ADD case for if we do not get a *.meas but get a snp or wnp file
         '''
         self.parse_dom(meas_path)
         nom_path = self.nominal_value_path
         #lets set the correct options for w/s params
-        _,ext = os.path.splitext(nom_path):
+        _,ext = os.path.splitext(nom_path)
         #use re to get wp or sp (remove all numbers and '_binary')
         rc = re.compile('\d+|_binary')
         ext_cut = rc.sub('',ext)
-        if ext_cut is '.sp':
+        if ext_cut == '.sp':
             self.param_type = 's'
-            wave_list = ['S']
-        elif ext_cut is '.wp':
+            waves = ['S']
+            arg_options['waves'] = waves
+        elif ext_cut == '.wp':
             self.param_type = 'w'
-            wave_list = ['A','B']
-        super().__init__(nom_path,waves=wave_list) #init wave params or s params
+            waves = ['A','B']
+            arg_options['waves'] = waves
+        else:
+            raise SnpError("Nominal file extension not recognized")
+        super().__init__(nom_path,**arg_options) #init wave params or s params
             
     def parse_dom(self,meas_path):
         '''
@@ -46,6 +51,12 @@ class MUFResult(SnpEditor):
         '''
         self._dom_file_path = meas_path
         self._dom = parse(meas_path)
+     
+    def get_monte_carlo_path_list(self):
+        '''
+        @brief get a list of paths to our monte carlo data
+        @return list of paths to monte carlo data
+        '''
         
         
     @property
@@ -57,5 +68,10 @@ class MUFResult(SnpEditor):
         unpt = msp.getElementsByTagName('Item').item(0)
         unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
         return unpt_name
-        
+    
+
+if __name__=='__main__':
+    meas_path = 'test.meas'
+    res = MUFResult(meas_path)
+    
         
