@@ -768,7 +768,7 @@ class WnpParam:
         return [cmath.phase(i)*180/np.pi for i in self]
     
     def __get__(self,instance,owner):
-        return self.raw
+        return instance.raw
     
     def __getitem__(self,idx):
         return self.raw[idx]
@@ -847,6 +847,10 @@ if __name__=='__main__':
         snp_bin.write('test3.s2p')
         snp_bin2 = SnpEditor('test3.s2p')
         print(snp_bin==snp_bin2)
+        os.remove('test2.s2p')
+        os.remove('test2.s2p_binary')
+        os.remove('test22.s2p')
+        os.remove('test3.s2p')
         
 
         

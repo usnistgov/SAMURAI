@@ -7,7 +7,8 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.analysis.support.snpEditor import SnpEditor,WnpEditor,SnpError
 
-from xml.dom.minidom import parse, parseString
+#from xml.dom.minidom import parse, parseString
+import xml.etree.ElementTree as ET
 import os
 import re
 
@@ -44,20 +45,21 @@ class MUFResult(SnpEditor):
             raise SnpError("Nominal file extension not recognized")
         super().__init__(nom_path,**arg_options) #init wave params or s params
             
-    def parse_dom(self,meas_path):
+    def parse_xml(self,meas_path):
         '''
         @brief  parse our file into a dom struct
         @param[in] meas_path - path to *.meas file
         '''
-        self._dom_file_path = meas_path
-        self._dom = parse(meas_path)
+        self._xml_file_path = meas_path
+        self._etree = ET.parse(meas_path)
+        self._root = self._etree.getroot()
      
     def get_monte_carlo_path_list(self):
         '''
         @brief get a list of paths to our monte carlo data
         @return list of paths to monte carlo data
         '''
-        
+        pass
         
     @property
     def nominal_value_path(self):
