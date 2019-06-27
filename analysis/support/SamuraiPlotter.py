@@ -6,6 +6,7 @@ Created on Mon May 20 15:04:22 2019
 """
 
 import numpy as np
+import traceback
 
 class SamuraiPlotter:
     '''
@@ -46,8 +47,9 @@ class SamuraiPlotter:
             try: 
                 rv = funct(*args,**kwargs)
             except Exception as e: 
+                traceback.print_exc(1)
                 print(e)
-                print("{} Failed, trying next engine".format(pp))
+                print("{} Failed (line {}), trying next engine".format(pp,traceback.tb_li))
         if not rv: #if nothing is returned
             raise Exception("No plotting library found or no value returned")
         return rv
@@ -285,7 +287,7 @@ class SamuraiPlotter:
             ax_funct_dict.update({'{}label'.format(d):'set_{}label'.format(d)})
             
         #now get a list of the functions specified and remove from kwargs
-        funct_list = list(ax_funct_dict.values())
+        funct_list = list(ax_funct_dict.keys())
         arg_dict = {k:kwargs.pop(k,None) for k in funct_list} #get our function dictionary
         arg_dict = {k:v for k,v in arg_dict.items() if v is not None} #remove none values (not provided)
         

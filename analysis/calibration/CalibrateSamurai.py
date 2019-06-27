@@ -12,18 +12,18 @@ Before running
 @author: ajw5
 """
 
-import sys
+#import sys
 import os
 
-from samurai.analysis.support.snpEditor import s2pEditor as s2p
+#from samurai.analysis.support.snpEditor import s2pEditor as s2p
 from samurai.analysis.support.metaFileController import metaFileController as mfc
-from samurai.analysis.support.metaFileController import update_wdir
+#from samurai.analysis.support.metaFileController import update_wdir
 from samurai.analysis.support.PostProcPy import PostProcPy as pppy
 
-from collections import OrderedDict
-import json
-import datetime
-import os
+#from collections import OrderedDict
+#import json
+#import datetime
+#import os
 from shutil import copyfile
 
 #default paths

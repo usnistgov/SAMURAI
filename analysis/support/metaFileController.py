@@ -49,7 +49,7 @@ class MetaFileController(OrderedDict):
     def load(self,metafile_path,suppress_empty_warning=0):
         '''
         @brief load a json metafile
-        @param[in] metafile_path - path to the metafile to load, create one if it doesnt exist
+        @param[in] metafile_path - path to the metafile to load
         @param[in] suppress_empty_warning - if true suprress the warning that an empty file was created
         '''
         metaPath = metafile_path
@@ -59,12 +59,7 @@ class MetaFileController(OrderedDict):
 
         #create an empty class if no metafile was defined
         if not os.path.exists(metafile_path):
-            if not suppress_empty_warning:
-                print("No metafile specified - Creating empty file")
-            [metadir,metafile]= os.path.split(metaPath)
-            self.metafile = metafile
-            self.metadir  = metadir
-            #self.jsonData = OrderedDict()
+            raise FileNotFoundError
         else:
             #here we assume the working directory is the location of our metafile
             [metadir,metafile]= os.path.split(metaPath)

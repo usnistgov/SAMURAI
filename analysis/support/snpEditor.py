@@ -293,6 +293,13 @@ class WnpEditor:
        @brief shortcut for first wave 
        '''
        return self.waves[list(self.waves.keys())[0]]
+   
+   @property
+   def freq_list(self):
+       '''
+       @brief get the frequency list of the first dict key parameter (assume they all match)
+       '''
+       return self.waves[self.w1].freq_list
     
    def _call_wnp_param_funct(self,fname,*args):
        '''
@@ -372,295 +379,6 @@ class SnpEditor(WnpEditor):
            self.wave_dict_keys = [11,21,12,22] #because s2p files wanted to be special
        else:
            super()._gen_dict_keys() #otherwise use the generic
-
-##############################################################################
-# before snpeditor inherited from wnpeditor
-##############################################################################
-@deprecated("use updated SnpEditor")
-class SnpEditor_old:
-   '''
-   @brief init arbitrary port S parameter class
-   @param[in] input_file - path of file to load in. 
-               A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-               measurement with n ports and frequencies [f1,f2,...] 
-   '''
-   def __init__(self,input_file,**arg_options):
-        '''
-        @brief init arbitrary port wave parameter class
-        @param[in] input_file - path of file to load in. 
-                    A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-                    measurement with n ports and frequencies [f1,f2,...] 
-        @param[in/OPT] arg_options - keyword argument options. options are as follows:
-                        'read_header' - whether or not to read the header. defaults to true, false may be faster on text files
-                        'header' - header to write out
-                        'comments' - comments to write to file
-        '''
-        #default options
-        self.options = {}
-        self.options['header'] = []
-        self.options['comments'] = []
-        self.options['read_header'] = True
-        for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
-            self.options[key] = val 
-        self.S = dict()
-        self.dict_keys = [] #keys for our measurement dictionary
-        #now load the file
-        if(type(input_file)==str):
-            self.load(input_file,read_header=self.options['read_header'])
-        elif(type(input_file)==tuple or type(input_file)==list):
-            self.load_empty(input_file[0],input_file[1])
-        
-            
-   def load(self,input_file,ftype='auto',read_header=True):
-        '''
-        @brief load a s parameter file and parse into the class
-        @param[in] input_file - path of file to load
-        @param[in/OPT] ftype  - type of file we are loading (e.g. 'text' or 'binary')
-        @param[in] read_header - whether or not to read the header and comments in text files. It is faster to not read the header/comments
-        '''
-        #check if were loading a .meas file first and update input accordingly
-        if(input_file.split('.')[-1]=='meas'):
-            input_file = get_unperturbed_meas(input_file)
-            
-       #if we default grab from end of file path
-        if(ftype=='auto'):
-            if(input_file.split('_')[-1]=='binary'):
-                ftype='binary'
-            else:
-                ftype='text'
-                
-        #get the number of ports from the file extension
-        file_ext = os.path.splitext(input_file)[-1]
-        self.options['num_ports'] = int(''.join(re.findall(r'\d',file_ext)))
-        #now set our keys
-        self.dict_keys = [j*10+i for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
-        
-        #if we have a binary file (e.g. *.s2p_binary)
-        if(ftype=='binary'):
-            #first read the header
-            self.options['header'].append('GHz S RI 50')
-            self.options['comments'].append('data read from binary file')
-            [num_rows,num_cols] = np.fromfile(input_file,dtype=np.uint32,count=2) 
-            raw_data = np.fromfile(input_file,dtype=np.float64) #read raw data
-            raw_data = raw_data[1:] #remove header
-            raw_data = raw_data.reshape((num_rows,num_cols)) #match the text output
-            
-        #if we have a text file (e.g. *.s2p)
-        elif(ftype=='text'):
-            #first read in comments
-            if(read_header): #flag for reading header for speed
-                with open(input_file,'r') as fp: 
-                    for line in fp:
-                        if(line.strip()[0]=='#'):
-                            self.options['header'].append(line.strip()[1:])
-                        elif(line.strip()[0]=='!'):
-                            self.options['comments'].append(line.strip()[1:])
-                        else: #else its data
-                            pass     
-            else: #dont read comments
-                self.options['header'].append('GHz S RI 50')
-                self.options['comments'].append('Header and comments NOT read from file')
-            #now read in data from the file with many possible delimiters in cases
-            #of badly formated files
-            with open(input_file) as fp:
-                regex_str = r'[ ,|\t]+'
-                rc = re.compile(regex_str)
-                raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!'])                  
-                num_rows = np.size(raw_data,0)
-                num_cols = np.size(raw_data,1) #get the number of columns
-                
-        #now split the data (text and binary input should be formatted the same here)
-        #first check if our file is named correctly
-        num_ports_from_file = int(round(np.sqrt((num_cols-1)/2))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
-        if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
-            raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
-        
-        #file is good if we make it here so continue to unpacking
-        freqs = raw_data[:,0] #extract our frequencies
-        
-        #now get the data for each port. This assumes that the keys are in the same order as the file info (which they should be)
-        for i in range(len(self.dict_keys)):
-            s_idx = i*2+1
-            s_data = raw_data[:,s_idx]+raw_data[:,s_idx+1]*1j
-            self.S[self.dict_keys[i]] = SnpParam(np.array(freqs),np.array(s_data))
-    
-   def load_empty(self,num_ports,freqs):
-        '''
-        @brief create a WnpEditor class with all values as 0
-        @param[in] num_ports - number of ports for the class
-        @param[in] num_measurements - number of measurements per parameter (i.e. number of frequencies)
-        '''
-        self.options['num_ports'] = num_ports #set the number of ports
-        #now set our keys
-        if self.options['num_ports'] == 2: 
-            # s2p files follow a different format... because why not
-            # http://na.support.keysight.com/plts/help/WebHelp/FilePrint/SnP_File_Format.htm
-            self.dict_keys = [11,21,12,22]
-        else:
-            self.dict_keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
-        
-        #and pack the port data with 0s
-        for i in range(len(self.dict_keys)):
-            self.S[self.dict_keys[i]] = WnpParam(np.array(freqs),np.zeros(len(freqs)))
-            
-   def delete_port(self,port_num): 
-       '''
-       @brief delete a port from the class
-       @param[in] port_num - the number of the port to delete (must be less than self.options['num_ports'])
-           This will start at 1 not 0 indexing
-       @todo finish this when needed
-       '''
-       num_ports = self.options['num_ports']
-       if port_num > num_ports:
-           raise Exception("Cant remove port {} when there are only {} ports!".format(port_num,num_ports))
-       
-       
-   def write(self,out_file,ftype='default',delimiter=' '):
-        '''
-        @brief write out data to S parameter file (e.g. '.s2p')
-        @param[in] out_file - path of file name to write to
-        @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)
-        @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')
-        '''
-        if(ftype=='default'):
-            if(out_file.split('_')[-1]=='binary'):
-                ftype='binary'
-            else:
-                ftype='text'
-       
-        #round frequencies to nearest Hz
-        self.round_freq_lists()
-        
-        #make sure the frequency lists are equal before writing; just in case somthing went wrong
-        for i in range(1,len(self.dict_keys)):
-            if(not np.equal(self.S[self.dict_keys[i]].freq_list,self.S[self.dict_keys[i-1]].freq_list).all()):
-               print("ERROR: Frequency Ranges are not all equal! Aborting")
-               return -1 
-        
-        #pack into correct data list
-        #assume all parameters are same length
-        if(ftype=='binary'):
-            num_rows = len(self.S[11].freq_list)
-            temp_list = [self.S[11].freq_list]
-            for k in self.dict_keys:
-                temp_list += [self.S[k].raw.real,self.S[k].raw.imag]
-                
-            data = np.transpose(np.array(temp_list))
-            
-            with open(out_file,'wb') as fp:
-                num_cols = len(self.dict_keys)*2+1
-                np.array([num_rows,num_cols],dtype=np.uint32).tofile(fp)
-                data.tofile(fp)
-                
-        elif(ftype=='text'):
-            with open(out_file,'w+') as fp:
-                #write our comments
-                if(type(self.options['comments']!=list)): #assume if its not a list ts a string
-                    self.options['comments'] = [self.options['comments']]
-                for i in range(len(self.options['comments'])):
-                    fp.write('!%s\n' %(self.options['comments'][i]))
-                #write our header
-                if(type(self.options['header']!=list)): #assume if its not a list ts a string
-                    self.options['header'] = [self.options['header']]
-                for i in range(len(self.options['header'])):
-                    fp.write('#%s\n' %(self.options['header'][i]))
-                #now write data
-                for i in range(len(self.S[11].raw)):
-                    line_vals = [self.S[11].freq_list[i]]
-                    for k in self.dict_keys:
-                        line_vals += [self.S[k].raw[i].real,self.S[k].raw[i].imag]
-                    fp.write(delimiter.join([str(v) for v in line_vals])+'\n')
-                
-        else:
-            print('Write Type not implemented')
-            
-   def __eq__(self,other):
-       '''
-       @brief override default to check equality of each port. 
-         we will return whther number of ports match, then lists of A matching and B matching
-       @param[in] other - Wnp Editor to compare to 
-       @return list of equality for each port for A and B [num_ports_eq,[S,S,S,S]]
-           if the number of ports arent equal just return [num_ports_eq,num_ports_self,num_ports_other]
-       '''
-       num_ports_eq = self.options['num_ports']==other.options['num_ports']
-       if(not num_ports_eq): #dont check more if number of ports arent equal
-           return [num_ports_eq,self.options['num_ports'],other.options['num_ports']]
-       s_list = []
-       for k in self.dict_keys:
-           s_list.append(self.S[k]==other.S[k])
-       return [num_ports_eq,s_list]   
-    
-    
-   def sort(self):
-       '''
-       @brief sort each of our parameters by frequency
-       '''
-       for k in self.dict_keys:
-           self.S[k].sort()
-       
-   def crop(self,lo_freq=0,hi_freq=1e60):
-       '''
-       @brief remove values outside a window
-       '''
-       for k in self.dict_keys:
-           self.S[k].crop(lo_freq,hi_freq)
-       
-   def cut(self,lo_freq=0,hi_freq=1e60):
-       '''
-       @brief remove values inside a window
-       '''
-       for k in self.dict_keys:
-           self.S[k].cut(lo_freq,hi_freq)
-           
-   def round_freq_lists(self):
-       '''
-       @brief round frequencies to nearest hz (assuming they are in GHz)
-       '''
-       for k in self.dict_keys:
-           self.S[k].round_freq_list()
-           
-   #always assume mixing up negative will mix down
-   #frequency in Ghz. 
-   #very simply ideal mixing (add our LO freqeuncy)
-   #this allows easy if/rf measurement fixing
-   def mix_port(self,port,LO_freq = 26e9):
-       for k in self.dict_keys:
-        if(int(k/10)==port): #see if its port 2
-            self.S[k].freq_list += np.round(LO_freq/1e9)
-            #now round the frequencies to nearest Hz
-            self.S[k].round_freq_list()
-
-   def __getitem__(self,key):
-        '''
-        @brief override of [] operator to get S parameters
-            This is a shortcut that will return freqeuncy/complex value data
-        @param[in] key - key of s parameters to get
-        @return [frequency_list,complex_values] list of lists from the S parameter
-        '''
-        return [self.S[key].freq_list,self.S[key].raw]
-
-# =============================================================================
-# class snpEditor:
-#     
-#     def __init__(self,inputFile='none'):
-#         self.freqs   = [];
-#         self.sParams = {} #dicitionary of our S params
-# #        if(inputFile!='none'):
-# #            self.parseFile(inputFile);
-#         
-#     def loadS2P(self,filePath):
-#         portDict = {"raw":[],"mag":[],"phase":[],"phase_d":[]}
-#         self.sParams.update({"S11":portDict})
-#         self.sParams.update({"S12":portDict})
-#         self.sParams.update({"S21":portDict})
-#         self.sParams.update({"S22":portDict})
-#             
-#     #pase the input file
-#  #   def parseFile(self,filePath):
-#         #first find what kind of file
-#  #       fend = filePath.split('.')[-1];
-#  
-# =============================================================================
  
 
 #acutally is the same as snpParam
@@ -757,6 +475,15 @@ class WnpParam:
         '''
         self.freq_list = freq_list
         self.raw = raw_list
+        
+    def get_value_from_frequency(self,freq):
+        '''
+        @brief get a raw value from a provided frequency
+            if the exact frequency is not found, the closest will be provided
+        @param[in] freq - frequency (in Hz) to get the value of
+        '''
+        fm = freq-self.freq_list
+        return self.raw[np.argmin(fm)]
         
     def calculate_time_domain(self):
         ifft_vals = np.fft.ifft(self.raw)
