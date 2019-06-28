@@ -39,8 +39,13 @@ class WnpEditor:
         self.options['comments'] = []
         self.options['read_header'] = True
         self.options['waves'] = ['A','B'] #waves to store. default to wave parameter
+        self.options['plotter'] = None
+        self.options['plot_options'] = {}
         for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
             self.options[key] = val 
+        #init plotter if not providied
+        if self.options['plotter'] is None:
+            self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #initialize dictionary of waves
         self.waves = dict()
         for w in self.options['waves']:
@@ -133,7 +138,7 @@ class WnpEditor:
             for wi,w in enumerate(self.waves):
                 idx = ki*len(self.waves)*2+(1+2*wi)
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
-                self.waves[w][k] = WnpParam(np.array(freqs),np.array(data))
+                self.waves[w][k] = WnpParam(np.array(freqs),np.array(data),plotter=self.options['plotter'])
     
    def load_empty(self,num_ports,freqs):
         '''
@@ -148,7 +153,7 @@ class WnpEditor:
         #and pack the port data with 0s
         for k in self.wave_dict_keys:
             for wave in self.waves.keys():
-                self.waves[wave][k] = WnpParam(np.array(freqs),np.zeros(len(freqs)))
+                self.waves[wave][k] = WnpParam(np.array(freqs),np.zeros(len(freqs)),plotter=self.options['plotter'])
        
    def write(self,out_file,ftype='default',delimiter=' '):
         '''
@@ -209,6 +214,29 @@ class WnpEditor:
         else:
             print('Write Type not implemented')
             
+   def plot(self,keys='all',waves='all',data_type='mag_db'):
+       '''
+       @brief plot our wave or s parameter data
+       @param[in/OPT] key - port of data to plot or list of ports to plot, or 'all'
+       @param[in/OPT] waves - list of keys for self.waves to plot (default 'all')
+       @param[in/OPT] data_type - type of data to plot (e.g. mag_db,phase,phase_d)
+       '''
+       # first our keys for 11,12,21,22,etc...
+       if keys=='all': #check for all
+           keys = self.wave_dict_keys
+       if not hasattr(keys,'__iter__'): #check for single input
+           keys = [keys]
+       # now fix our wave input
+       if waves=='all':
+           waves = list(self.waves.keys())
+       if not hasattr(waves,'__iter__'):
+           waves = [waves]
+       #now plot
+       for w in waves:
+           for k in keys:
+               self.waves[w][k].plot(data_type)
+           
+            
    def _verify_freq_lists(self):
        '''
        @brief make sure all parameters of all waves have the same frequency list
@@ -253,7 +281,7 @@ class WnpEditor:
         @param[in] key - key of A,B parameters to get
         @return [frequency_list,A_complex_values,B_complex_values] list of lists from the S parameter
         '''
-        out_list =  [self.waves[self.w1].freq_list]
+        out_list =  [self.freq_list]
         for w in self.waves.keys():
             out_list.append(self.waves[w][key].raw)
         return out_list
@@ -299,7 +327,7 @@ class WnpEditor:
        '''
        @brief get the frequency list of the first dict key parameter (assume they all match)
        '''
-       return self.waves[self.w1].freq_list
+       return self.w1[11].freq_list
     
    def _call_wnp_param_funct(self,fname,*args):
        '''
@@ -414,13 +442,13 @@ class WnpParam:
         self.freq_list = np.array(freq_list)
         self.raw = np.array(raw)
         
-    def plot(self,data_type='mag_db'):
+    def plot(self,data_type='mag_db',**arg_options):
         '''
         @brief plot parameter data and return the figure
         @param[in/OPT] data_type - type of data to plot. 'mag_db','mag','phase','phase_d','raw' possible
         '''
         data = getattr(self,data_type)
-        rv = self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (GHz)',ylabel=data_type)
+        rv = self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (GHz)',ylabel=data_type,**arg_options)
         return rv
         
     #crop out all frequencies outside a window given by lo and hi frequencies (in Hz)
@@ -494,9 +522,9 @@ class WnpParam:
     @property
     def mag_db(self):
         '''
-        @brief get the magnitude in db (20*log10(raw))
+        @brief get the magnitude in db (20*log10(mag_lin))
         '''
-        return 20*np.log10(self.raw)
+        return 20*np.log10(self.mag)
     
     @property
     def mag(self):
