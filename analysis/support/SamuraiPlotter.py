@@ -46,10 +46,11 @@ class SamuraiPlotter:
             funct = getattr(self,funct_name)
             try: 
                 rv = funct(*args,**kwargs)
+                break
             except Exception as e: 
-                traceback.print_exc(1)
-                print(e)
-                print("{} Failed (line {}), trying next engine".format(pp,traceback.tb_li))
+                traceback.print_exc(3)
+                #print(e)
+                print("{} Failed, trying next engine".format(pp))
         if not rv: #if nothing is returned
             raise Exception("No plotting library found or no value returned")
         return rv
@@ -82,9 +83,7 @@ class SamuraiPlotter:
         '''
         self._init_matlab() #initialize matlab
         #extract some arguments that require separate commands
-        funct_keys = ['xlim','ylim','zlim','xlabel','ylabel','zlabel','view','shading','title','colorbar']
-        funct_dict = {k:kwargs.pop(k,None) for k in funct_keys} #get our function dictionary
-        funct_dict = {k:v for k,v in funct_dict.items() if v is not None} #remove none values (not provided)
+        kwargs,funct_dict = self._clean_matlab_kwargs(**kwargs)
         fig = self.matlab.surf(*args,**kwargs)
         self.matlab.call_functs_from_dict(funct_dict,nargout=0) #call our functions
         return fig
@@ -193,11 +192,24 @@ class SamuraiPlotter:
         '''
         self._check_arg_count(len(args),2,2) #must have exactly 2 args
         self._init_matplotlib()
-        fig = self.matplotlib.figure()
-        ax = fig.gca()
+        #fig = self.matplotlib.figure()
+        ax = self.matplotlib.gca()
         kwargs = self._matlab2matplotlib(ax,**kwargs)
-        ax.plot(*args,**kwargs)
+        self.matplotlib.plot(*args,**kwargs)
+        return ax
+    
+    def _plot_matlab(self,*args,**kwargs):
+        '''
+        @brief 1D plot in matlab
+        '''
+        self._init_matlab() #initialize matlab
+        #extract some arguments that require separate commands
+        kwargs,funct_dict = self._clean_matlab_kwargs(**kwargs)
+        fig = self.matlab.plot(*args,**kwargs)
+        self.matlab.hold('on')
+        self.matlab.call_functs_from_dict(funct_dict,nargout=0) #call our functions
         return fig
+        
 
     
     ###########################################################################
@@ -211,11 +223,13 @@ class SamuraiPlotter:
         @param[in] name - attribute name
         '''
         plotter_name = self.options['plot_order'][0]
-        init_plotter_funct = getattr(self,'_init_'+plotter_name)
-        init_plotter_funct() #init the plotter
-        plotter = getattr(self,plotter_name) #get the plotter
-        attr = getattr(plotter,name)
-        return attr
+        plotter_attr = getattr(self,plotter_name)
+        if plotter_attr: #make sure we have initailized
+            init_plotter_funct = getattr(self,'_init_'+plotter_name)
+            init_plotter_funct() #init the plotter
+            plotter = getattr(self,plotter_name) #get the plotter
+            attr = getattr(plotter,name)
+            return attr
         
         
     ###########################################################################
@@ -290,16 +304,34 @@ class SamuraiPlotter:
         funct_list = list(ax_funct_dict.keys())
         arg_dict = {k:kwargs.pop(k,None) for k in funct_list} #get our function dictionary
         arg_dict = {k:v for k,v in arg_dict.items() if v is not None} #remove none values (not provided)
-        
         #now loop through and run the functions with the arguments
         #ax_funct_return_dict = {} #return 'function':rv key/value pair
         for k,v in arg_dict.items():
             funct = getattr(ax,ax_funct_dict[k]) #now get the method to run form the axis
             rv = funct(v)
             #ax_funct_return_dict[v,rv] #matplotlib function name/return-value
+            
+        #now lets do parameter translation (e.g. DisplayName to label)
+        param_trans_dict = {
+                'displayname':'label'
+                }
+        for k,v in param_trans_dict.items():
+            pv = kwargs.pop(k,None)
+            if pv is not None:
+                kwargs[v] = pv #replace key with translated key
+            
         return kwargs
     
-    
+    def _clean_matlab_kwargs(self,**kwargs):
+        '''
+        @brief this will extract a set of kwargs to run when provided as input parameters (e.g. xlim)
+        @return normal kwargs, dictionary of extracted functions
+        '''
+          #extract some arguments that require separate commands
+        funct_keys = ['xlim','ylim','zlim','xlabel','ylabel','zlabel','view','shading','title','colorbar']
+        funct_dict = {k:kwargs.pop(k,None) for k in funct_keys} #get our function dictionary
+        funct_dict = {k:v for k,v in funct_dict.items() if v is not None} #remove none values (not provided)
+        return kwargs,funct_dict
             
 if __name__=='__main__':
     plot_test = True
