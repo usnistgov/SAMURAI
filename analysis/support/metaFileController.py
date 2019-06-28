@@ -59,7 +59,7 @@ class MetaFileController(OrderedDict):
 
         #create an empty class if no metafile was defined
         if not os.path.exists(metafile_path):
-            raise FileNotFoundError
+            raise FileNotFoundError("File '{}' not found".format(os.path.abspath(metafile_path)))
         else:
             #here we assume the working directory is the location of our metafile
             [metadir,metafile]= os.path.split(metaPath)
