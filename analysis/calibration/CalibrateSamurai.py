@@ -38,7 +38,7 @@ class CalibrateSamurai:
 ##load in our metadata file
 #with open(metaPath,'r') as jsonFile:
 #    jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
-    def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path=''):
+    def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path='',post_proc_template_override=None):
         '''
         @brief initialize the class
         @param[in] metaFile - path to metafile of measurement to calibrate
@@ -63,6 +63,9 @@ class CalibrateSamurai:
             self.post_proc_template = default_pp_cal_template
         else:
             raise IOError("bad extension please check the file extensions start with .s or .w") #<@todo replace with real exception
+        if post_proc_template_override:
+            self.post_proc_template = post_proc_template_override
+        
         
         self.times = self.mfc.timestamps
       
@@ -97,11 +100,7 @@ class CalibrateSamurai:
         self.ppc.run()
         print("Calibration Complete. Updating MetaFile and Moving Data...")
         #update metafile and move data
-        self.update_metafile_and_move()
-
-    #def populate_post_proc_and_calibrate_wnp(self,convert_to_s2p_flg):
-        
-        
+        self.update_metafile_and_move()      
         
     def update_metafile_and_move(self):
         
@@ -200,10 +199,16 @@ class CalibrateSamurai:
         '''
 
 if __name__=='__main__':
+    '''
     mf_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\antennas\Measurements\6-25-2019\synthetic_aperture\metafile.json"
     out_dir = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\antennas\Measurements\calibrated\6-25-TEST'
     in_cal_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\antennas\Measurements\6-25-2019\cal\calibration_pre\cal_pre_vnauncert_Results\Solution.meas"
-    mycs = CalibrateSamurai(mf_path,out_dir,in_cal_path)
+    '''
+    mf_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\processed\synthetic_aperture\metaFile.json"
+    out_dir = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\uncertainty_testing\8-27-2018'
+    in_cal_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\processed\cal\lsna_calibration_vnauncert_Results\Solution.meas"
+    
+    mycs = CalibrateSamurai(mf_path,out_dir,in_cal_path,post_proc_template_override=default_pp_cal_template)
     
     #now move calibrated results
     mycs.update_metafile_and_move()
