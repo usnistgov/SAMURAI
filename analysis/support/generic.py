@@ -135,4 +135,55 @@ def floor_arb(value,multiple):
     ndigs = math.ceil(-1*math.log10(multiple))
     return round(multiple*math.floor(value/multiple),ndigits=ndigs)
 
+class ProgressCounter:
+    '''
+    @brief class to provid a printed counter of progress (like a progress bar)
+    '''
+    def __init__(self,total_count,string_value='',**arg_options):
+        '''
+        @brief constructor for the class
+        @note Nothing else should be printed between init and finalization
+        @param[in] - total_count - total number of values being processed
+        @param[in/OPT] string_value - value to be printed as a descriptor
+        @param[in/OPT] arg_options - keyword values as follows
+                update_period - how often to print (default=10)
+        '''
+        #some important things
+        self.total_count = total_count
+        self.num_digs = len(str(total_count))
+        self.format_str = "{:%d}" %(self.num_digs)
+        self.count_str_template = (self.format_str+'/'+self.format_str)
+        self.update_str_len = len(self.count_str_template.format(0,self.total_count))
+        self.options = {}
+        self.options['update_period'] = 10
+        for k,v in arg_options.items():
+            self.options[k] = v
+        #and print our first value
+        print((string_value+' '+self.coutn_str_template),end='')
+        
+    def update(self,i):
+        '''
+        @brief update the counter
+        @param[in] i - current count value (0-self.total_count-1)
+        '''
+        i+=1 #increment so we are between 1 and self.total_count
+        print("\b"*self.update_str_len,end='') #remove the old values
+        print(self.count_str_template.format(i,self.total_count),end='')
+        
+    def finalize(self):
+        '''
+        @brief finalize the counter
+        '''
+        print('') #just print a newline
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+
 
