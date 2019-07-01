@@ -33,6 +33,7 @@ class WnpEditor:
             comments - comments to write to file (text only)
             read_header - True/False whether or not to read in header from text files (faster if false, default to true)
             waves - list of what waves we are measuring for self.waves dictionary (default ['A','B'] for s params should be ['S'])
+            no_load - if True, do not immediatly load the file (default False)
         '''
         self.options = {}
         self.options['header'] = []
@@ -41,6 +42,7 @@ class WnpEditor:
         self.options['waves'] = ['A','B'] #waves to store. default to wave parameter
         self.options['plotter'] = None
         self.options['plot_options'] = {}
+        self.options['no_load'] = False
         for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
             self.options[key] = val 
         #init plotter if not providied
@@ -52,10 +54,11 @@ class WnpEditor:
             self.waves[w] = dict()
         self.wave_dict_keys = [] #keys for our measurement dictionary
         #now load the file
-        if(type(input_file)==str):
-            self.load(input_file,read_header=self.options['read_header'])
-        elif(type(input_file)==tuple or type(input_file)==list):
-            self.load_empty(input_file[0],input_file[1])
+        if not self.options['no_load']:
+            if(type(input_file)==str):
+                self.load(input_file,read_header=self.options['read_header'])
+            elif(type(input_file)==tuple or type(input_file)==list):
+                self.load_empty(input_file[0],input_file[1])
             
    def _gen_dict_keys(self):
        '''
