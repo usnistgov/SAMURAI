@@ -7,6 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.analysis.support.snpEditor import SnpEditor,SnpError
 from samurai.analysis.support.snpEditor import WnpParam
+from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 
 #from xml.dom.minidom import parse, parseString
 import numpy as np

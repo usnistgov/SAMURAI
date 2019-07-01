@@ -13,6 +13,7 @@ import json
 import os
 from shutil import copyfile,copy
 import numpy as np
+from datetime import datetime #for timestamps
 
 from samurai.analysis.support.snpEditor import SnpEditor as snp
 from samurai.analysis.support.generic import deprecated
@@ -25,14 +26,14 @@ from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import Calculat
 class MetaFileController(OrderedDict):
     
 
-    def __init__(self,metafile_path,suppress_empty_warning=0):
+    def __init__(self,metafile_path,**arg_options):
         '''
         @brief initialize our class to control our metafile and the data within it
         @param[in] metafile_path - path to the metafile to load (if it doesnt exist it will be created)
         @param[in/OPT] supress_empty_warning - dont give a warning if the file loaded doesnt exist or is empty
         '''
         OrderedDict.__init__(self) #initialize ordereddict
-        self.load(metafile_path,suppress_empty_warning)
+        self.load(metafile_path)
         self.plotter = SamuraiPlotter()
         
         self.unit_conversion_dict = { #dictionary to get to meters
@@ -46,16 +47,11 @@ class MetaFileController(OrderedDict):
     ###########################################################################
     ### File IO methods
     ###########################################################################
-    def load(self,metafile_path,suppress_empty_warning=0):
+    def load(self,metafile_path):
         '''
         @brief load a json metafile
         @param[in] metafile_path - path to the metafile to load
-        @param[in] suppress_empty_warning - if true suprress the warning that an empty file was created
         '''        
-        #if(prompt):
-        #    metaPath = tkFileDialog.askopenfilename(initialdir='../../',title='Select Metadata File',filetypes=(('Synthetic Aperture MetaFile','*.json'),));
-
-        #create an empty class if no metafile was defined
         if not os.path.exists(metafile_path):
             raise FileNotFoundError("File '{}' not found".format(os.path.abspath(metafile_path)))
         else:
@@ -68,32 +64,18 @@ class MetaFileController(OrderedDict):
                 self.update(json.load(jsonFile, object_pairs_hook=OrderedDict))
             self.update_format() #update if the format is bad
                 
-    def write(self,outPath='default'):
+    def write(self,outPath=None):
         '''
         @brief write out edited metafile
         @param[in/OPT] outPath - path where to write out file. If not specified, use the previous filename
         @return the path to the written file
         '''
         self.saved = 1
-        if(outPath=='default'):
+        if not outPath:
             outPath = os.path.join(self.wdir,self.metafile)
         with open(outPath,'w+') as jsonFile:
             json.dump(self,jsonFile,indent=4) 
         return outPath
-            
-    #now functions for dealing with the data
-    @deprecated("Use MetaFileController.load_data() method")
-    def load_all_meas(self):
-        '''
-        @brief load s2p files into this class DEPRECATED
-        @DEPRECATED use load_data method
-        '''
-        self.s2pData = []
-        self.numLoadedMeas = 0
-        measurements = self['measurements']
-        for meas in measurements:
-            self.s2pData.append(snp(meas['filename'].strip()))
-            self.numLoadedMeas+=1
             
     def load_data(self,verbose=False,read_header=True):
         '''
@@ -104,11 +86,9 @@ class MetaFileController(OrderedDict):
         '''
         snpData = []
         numLoadedMeas = 0
-        wdir = self.wdir
-        measurements = self['measurements']
         if verbose: print("Loading Measurement %5d" %(0),end='')
-        for meas in measurements:
-            snpData.append(snp(os.path.join(wdir,meas['filename'].strip()),read_header=read_header))
+        for meas in self.measurements:
+            snpData.append(snp(os.path.join(self.wdir,meas['filename'].strip()),read_header=read_header))
             numLoadedMeas+=1
             if verbose: 
                 if not numLoadedMeas%10: 
@@ -351,8 +331,7 @@ class MetaFileController(OrderedDict):
             pos = self.get_external_positions_mean(l)
             self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
         self.plotter.legend(interpreter=None,nargout=0)
-        return fig
-        
+        return fig 
     
     ###########################################################################
     ### Getters and setters for various things
@@ -381,24 +360,25 @@ class MetaFileController(OrderedDict):
         self.set_wdir(path)
         
     #update working directory to current location
-    def set_wdir(self,wdir=None):
+    def set_wdir(self,wdir):
         '''
         @brief set the working directory
         @param[in/OPT] wdir - the new working directory to set. if '' use the directory the file was opened from
         '''
-        if(wdir==''):
-            wdir = self.wdir
         wdir = os.path.abspath(wdir)
         self.saved=0
         # Update the name and working directory
         self.update({'working_directory':wdir})
         self.update({'metafile_path':self.metafile})
-        
-    def get_timestamp_data(self,measNum=0):
-        ts = self['measurements'][measNum]['timestamp']
-        [ts_date, ts_time] = filter(None,ts.split())
-        [ts_year,ts_month,ts_day] = ts_date.split('-')
-        return ts, ts_month, ts_day, ts_year, ts_time
+    
+    @property
+    def timestamps(self):
+        '''
+        @brief get the timestamps from the metafile
+        @return list of timestamps as datetime objects
+        '''
+        time_str = [self.measurements[num]['timestamp'].strip() for num in range(len(self.measurements))]
+        return [datetime.strptime(ts,'%Y-%m-%d %H:%M:%S.%f') for ts in time_str]
     
     @property
     def measurements(self):
@@ -555,19 +535,21 @@ metaFileController = MetaFileController
 ###########################################################################
 from samurai.analysis.support.MUFResult import MUFResult
 
-def copy_touchstone_from_muf(self,metafile,out_dir='./touchstone'):
+def copy_touchstone_from_muf(metafile,out_dir='./touchstone'):
     '''
     @brief take a metafile with *.meas data and copy the touchstone (*.snp/wnp) files
         to a new directory with a new metafile (for backward compatability with peter)
     @param[in] metafile - metafile containing the *.meas files
-    @param[in/OPT] out_dir - output directory to save the new files to. Defaults to './touchstone'
+    @param[in/OPT] out_dir - output directory to save the new files to realtive to old metafile path. Defaults to './touchstone'
     '''
     #open the metafile
     mf = MetaFileController(metafile)
     fnames = mf.filenames
+    cur_wdir = mf.wdir
+    out_dir = os.path.join(cur_wdir,out_dir)
     #make the dir if it doesnt exist
-    if not os.path.exists(os.path.join(out_dir)):
-        os.mkdir(os.path.join(out_dir))
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
     #now loop through our filenames and get the nominal paths
     nominal_paths = []
     print("Getting nominal values from *.meas files")
@@ -578,10 +560,16 @@ def copy_touchstone_from_muf(self,metafile,out_dir='./touchstone'):
     print("Copying Files: {:5}/{:5}".format(0,len(nominal_paths)),end='')
     out_file_paths = []
     for i,nom_path in enumerate(nominal_paths):
-        out_file_paths.append(copy(nom_path,out_dir))
+        meas_name,_ = os.path.splitext(os.path.split(fnames[i])[-1]) #get the name of the measurement
+        _,file_ext = os.path.splitext(os.path.split(nom_path)[-1])
+        out_path = os.path.join(out_dir,meas_name+file_ext)
+        copy(nom_path,out_path)
+        out_file_paths.append(out_path)
         if not i%10:
-            print("\b"*11+"{:5}/{:5}".format(i,len(nominal_paths)))
+            print("\b"*11+"{:5}/{:5}".format(i,len(nominal_paths)),end='')
+    print('') #newline
     #now update our metafile with the new paths and working directory
+    cur_wdir
     mf.set_wdir(out_dir)
     mf.filenames = out_file_paths
     mf.write()
@@ -691,7 +679,7 @@ if __name__=='__main__':
     beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
     mf.add_external_marker('beam-3',beam3_loc,units='m')
     mf.add_external_marker('beam-2',beam2_loc,units='m')
-    mf.plot_external_positions()
+    #mf.plot_external_positions()
     
     
     
