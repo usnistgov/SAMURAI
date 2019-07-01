@@ -26,7 +26,7 @@ from samurai.analysis.support.metaFileController import copy_touchstone_from_muf
 #import json
 #import datetime
 #import os
-from shutil import copyfile
+from shutil import copy
 
 #default paths
 default_pp_cal_template     = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template.post')
@@ -64,7 +64,7 @@ class CalibrateSamurai:
         else:
             raise IOError("bad extension please check the file extensions start with .s or .w") #<@todo replace with real exception
         
-        self.times = self.mfc.get_timestamp_data()
+        self.times = self.mfc.timestamps
       
         self.out_dir = out_dir
         #path to our .meas error box file
@@ -107,21 +107,25 @@ class CalibrateSamurai:
         
         print("Moving calibrated results")
         new_mf_path = self.move_calibrated_results() #this now also updates and writes the metafile
+        #new_mf_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\antennas\Measurements\calibrated\6-25-TEST\metafile.json"
+        print("Metafile at {}".format(new_mf_path))
         print("Copying results to touchstone")
-        self.move_calibrated_results_touchstone(new_mf_path)
+        self.move_calibrated_nominal_results_touchstone(new_mf_path)
         #self.mfc.set_calibration_file(self.in_cal_path)
         #now rewrite a new metafile in new folder
         #self.mfc.set_wdir(self.out_dir)
         #self.mfc.write()
 
-    def _update_metafile(self,subdir):
+    def _update_metafile(self,filename_list,subdir):
         '''
         @brief update our metafile for use with *.meas MUF outputs
+        @param[in] filename_list - list of filenames to update to
         @param[in] subdir - subdirectory passed from self.move_calibrated_results
         @return path to written metafile
         '''
         self.mfc.set_calibration_file(self.in_cal_path)
-        self.mfc.set_wdir(os.path.join(self.out_dir,subdir)) #update the output directory
+        self.mfc.wdir = os.path.join(self.out_dir,subdir) #update the output directory
+        self.mfc.set_filename(filename_list) #set list to metafile
         return self.mfc.write() #write out
     
     def move_calibrated_results(self,subdir='.'):
@@ -129,7 +133,7 @@ class CalibrateSamurai:
         @brief move our calibrated *.meas files
         @param[in/OPT] subdir - subdirectory to put them in (default to no subdir)
         '''
-        fnames = self.mfc.get_filename_list() #get the original file names
+        fnames = self.mfc.filenames #get the original file names
         #our calibration folder name
         cal_menu_name = os.path.splitext(os.path.split(self.post_proc_template)[-1])[0] #get the name of our file (this is added to output names of *.meas files)
         cal_folder_path = os.path.join(self.out_dir,cal_menu_name+'_post_Results') #full path to our calibration folder
@@ -146,16 +150,14 @@ class CalibrateSamurai:
             #we will always have *.meas here
             meas_name += '_'+cal_menu_name+'.meas'
             copy_src = os.path.join(cal_folder_path,meas_name)
-            meas_out_name = meas_name+'.meas'
-            copy_dst = os.path.join(self.out_dir,subdir,meas_out_name)#now set our copy destination
+            copy_dst = os.path.join(self.out_dir,subdir)#now set our copy destination
             #now we actually copy
-            copyfile(copy_src,copy_dst)
+            meas_out_name = copy(copy_src,copy_dst)
             #make list of output file names
             fname_out_list.append(meas_out_name)
         #now update the metafile entry
         #this assumes that all of the files have been read and written in order
-        self.mfc.set_filename(fname_out_list) #set list to metafile
-        return self._update_metafile(subdir)
+        return self._update_metafile(fname_out_list,subdir)
     
     def move_calibrated_nominal_results_touchstone(self,metafile_path):
         '''
