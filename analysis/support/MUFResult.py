@@ -60,7 +60,7 @@ class MUFResult(SnpEditor):
             arg_options['waves'] = waves
         else:
             raise SnpError("Nominal file extension not recognized")
-        super().__init__(nom_path,**arg_options) #init wave params or s params
+        super().__init__(nom_path,**self.options) #init wave params or s params
         
         #uncertainty statistics
         self.monte_carlo = None
