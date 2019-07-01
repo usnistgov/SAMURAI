@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<PostProcessor FileName="U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Software\SAMURAI_Control\support\cal_template.post" CreationTime="12/14/2018 10:08:27 AM" AssemblyVersion="1.4.25.20916" UserName="ajw5">
+<PostProcessor FileName="C:\SAMURAI\git\samurai\analysis\calibration\templates\cal_template.post" CreationTime="6/28/2019 3:18:09 PM" AssemblyVersion="1.4.28.28069" UserName="ajw5">
   <MenuStripItems>
     <MatLabToolStripMenuItem Enabled="True" Checked="False" />
     <SelectResultsDirectory Enabled="True" Checked="False" />
     <SavemeasFilesInSubdirectories Enabled="True" Checked="False" />
-    <Binary Enabled="True" Checked="False" />
+    <Binary Enabled="True" Checked="True" />
     <SupressSensitivityAnalysis Enabled="True" Checked="False" />
     <DoNotRecalculateExistingResultsToolStripMenuItem Enabled="True" Checked="False" />
     <FrequenciesToolStripMenuItem Enabled="True" Checked="False" />
@@ -15,10 +15,13 @@
     <AddToInputListToolStripMenuItem Enabled="False" Checked="False" />
     <CreateMatLabTemplateToolStripMenuItem Enabled="False" Checked="False" />
     <RunMatLabPostProcessor Enabled="False" Checked="False" />
+    <EstimateUncertaintyFromResiduals Enabled="True" Checked="False" />
   </MenuStripItems>
   <MenuStripTextBoxes>
     <ResultsDirectory Enabled="True" Text="" />
     <NumberMonteCarloSimulations Enabled="True" Text="0" />
+    <ExperimentName Enabled="True" Text="" />
+    <GaussianLimit Enabled="True" Text="3.0" />
     <StartFrequency Enabled="True" Text="1" />
     <StopFrequency Enabled="True" Text="50" />
     <StepFrequency Enabled="True" Text="1" />
@@ -27,6 +30,10 @@
     <StepTime Enabled="True" Text="1" />
     <EpsEffR Enabled="True" Text="1" />
     <EpsEffI Enabled="True" Text="0" />
+    <GradientStoppingCondition Enabled="True" Text="0.000001" />
+    <NormStoppingCondition Enabled="True" Text="0.0" />
+    <DeltaxStoppingCondition Enabled="True" Text="0.0" />
+    <maxits Enabled="True" Text="0" />
   </MenuStripTextBoxes>
   <MenuStripComboBoxes>
     <MagnitudePhaseInterpolationMethod Enabled="True" SelectedIndex="-1" />
@@ -86,14 +93,14 @@
       <Item Index="0" Text="Two-Tier Interior Crosstalk Calibration Model" />
       <Item Index="1" Text="Conventional Calibration Model" />
     </ComboBox1>
-    <ComboBox2 ControlType="System.Windows.Forms.ComboBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox2" Enabled="True" Visible="False" SelectedIndex="-1" Count="5">
+    <ComboBox2 ControlType="System.Windows.Forms.ComboBox" ControlText="Gradient stopping condition" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox2" Enabled="True" Visible="False" SelectedIndex="-1" Count="5">
       <Item Index="0" Text="Add uncertainties to calibrated data" />
       <Item Index="1" Text="Correct uncalibrated data and add uncertainties" />
       <Item Index="2" Text="Uncorrect calibrated data and add uncertainties" />
       <Item Index="3" Text="Add uncertainties to uncalibrated data" />
       <Item Index="4" Text="Do not correct or add uncertainties" />
     </ComboBox2>
-    <ComboBox3 ControlType="System.Windows.Forms.ComboBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox3" Enabled="True" Visible="False" SelectedIndex="-1" Count="3">
+    <ComboBox3 ControlType="System.Windows.Forms.ComboBox" ControlText="Fit over all frequencies." FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox3" Enabled="True" Visible="False" SelectedIndex="-1" Count="3">
       <Item Index="0" Text="Don't normalize phase of .wnp fundamentals to zero" />
       <Item Index="1" Text="Normalize phase of .wnp fundamentals to zero" />
       <Item Index="2" Text="Convert .wnp files to .snp files" />
