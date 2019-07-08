@@ -224,12 +224,12 @@ class SamuraiPlotter:
         '''
         plotter_name = self.options['plot_order'][0]
         plotter_attr = getattr(self,plotter_name)
-        if plotter_attr: #make sure we have initailized
+        if not plotter_attr: #make sure we have initailized
             init_plotter_funct = getattr(self,'_init_'+plotter_name)
             init_plotter_funct() #init the plotter
-            plotter = getattr(self,plotter_name) #get the plotter
-            attr = getattr(plotter,name)
-            return attr
+        plotter = getattr(self,plotter_name) #get the plotter
+        attr = getattr(plotter,name)
+        return attr
         
         
     ###########################################################################
