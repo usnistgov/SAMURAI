@@ -16,7 +16,8 @@ import numpy as np
 from datetime import datetime #for timestamps
 
 from samurai.analysis.support.snpEditor import SnpEditor as snp
-from samurai.analysis.support.generic import deprecated
+from samurai.analysis.support.MUFResult import MUFResult
+from samurai.analysis.support.generic import deprecated, ProgressCounter
 from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.support.samurai_optitrack import MotiveInterface
@@ -77,23 +78,39 @@ class MetaFileController(OrderedDict):
             json.dump(self,jsonFile,indent=4) 
         return outPath
             
-    def load_data(self,verbose=False,read_header=True):
+    def load_data(self,verbose=False,read_header=True,**arg_options):
         '''
         @brief load up all measurements into list of snp or wnp files
         @param[in/OPT] verbose - whether or not to be verbose when loading
         @param[in/OPT] read_header - whether or not to skip reading the header. Should be faster with false
+        @param[in/OPT] arg_options -keyword arguments as follows
+            data_type - nominal,monte_carlo,perturbed,etc. If none do nominal
+            data_meas_num - which measurement of monte_carlo or perturbed to use
         @return list of snp or wnp classes
         '''
+        options = {}
+        options['data_type'] = None
+        options['data_meas_num'] = 0
+        for k,v in arg_options.items():
+            options[k] = v
         snpData = []
         numLoadedMeas = 0
-        if verbose: print("Loading Measurement %5d" %(0),end='')
+        if verbose: pc = ProgressCounter(len(self.measurements),'Loading Metafile Data: ',update_period=5)
         for meas in self.measurements:
-            snpData.append(snp(os.path.join(self.wdir,meas['filename'].strip()),read_header=read_header))
+            fname = os.path.join(self.wdir,meas['filename'].strip())
+            #if options['data_type'] is None or options['data_type']=='nominal':
+            #    snpData.append(snp(fname,read_header=read_header))
+            if options['data_type']=='monte_carlo':
+                muf_res = MUFResult(fname,no_load=True)
+                fname = muf_res.get_monte_carlo_path(options['data_meas_num'])
+            if options['data_type']=='perturbed':
+                muf_res = MUFResult(fname,no_load=True)
+                fname = muf_res.get_perturbed_path(options['data_meas_num'])
+            snpData.append(snp(fname,read_header=read_header))
             numLoadedMeas+=1
-            if verbose: 
-                if not numLoadedMeas%10: 
-                    print("%s %5d" %('\b'*6,numLoadedMeas),end='')
-        if verbose: print("\nLoading Complete")
+            #print(numLoadedMeas)
+            if verbose: pc.update()
+        if verbose: pc.finalize(); print('Loading Complete')
         return snpData,numLoadedMeas
     
     def update_format(self):

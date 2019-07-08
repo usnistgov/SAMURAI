@@ -447,11 +447,12 @@ class CalculatedSyntheticAperture:
         @param[in] out_dir - output directory to save the files
         @param[in/OPT] arg_options - keyword args as follows:
                 -None Yet!
-        @return list of SnpEditor classes with the data written out
+        @return list of SnpEditor classes with the data written out, and list of absolute paths to the files
         '''
         #loop through all of our positions
         meas_info = []
         meas_data = [] #values for returning
+        meas_paths = []
         freqs = self.freq_list/1e9 #freqs in ghz
         for i in range(self.num_positions):
             cur_idx = np.unravel_index(i,self.azimuth.shape)
@@ -465,12 +466,13 @@ class CalculatedSyntheticAperture:
             #now save out
             out_name = 'beamformed_'+str(i)+'.s2p'
             out_path = os.path.join(out_dir,out_name)
+            meas_paths.append(os.path.abspath(out_path))
             mys.write(out_path)
             meas_data.append(mys)
             meas_info.append({'filepath':out_path,'azimuth':float(az),'elevation':float(el)})
         with open(os.path.join(out_dir,'beamformed.json'),'w+') as fp:
             json.dump(meas_info,fp, indent=4, sort_keys=True)
-        return meas_data
+        return meas_data, meas_paths
     
     def get_max_beam_idx(self,freqs='all',**arg_options):
         '''

@@ -513,7 +513,7 @@ class WnpParam:
             if the exact frequency is not found, the closest will be provided
         @param[in] freq - frequency (in Hz) to get the value of
         '''
-        fm = freq-self.freq_list
+        fm = np.abs(freq-self.freq_list*1e9)
         return self.raw[np.argmin(fm)]
         
     def calculate_time_domain(self):
