@@ -135,7 +135,55 @@ def floor_arb(value,multiple):
     ndigs = math.ceil(-1*math.log10(multiple))
     return round(multiple*math.floor(value/multiple),ndigits=ndigs)
 
-class ProgressCounter:
+
+class ValueCounter:
+    '''
+    @brief class to print a set of values and delete the previous (like when printing frequencies for calculations)
+    '''
+    def __init__(self,value_list,string_value,**arg_options):
+        '''
+        @brief constructor for the class
+        @note Nothing else should be printed between init and finalization
+        @param[in] value_list - total number of values being processed
+        @param[in/OPT] string_value - formattable string to place values into (should contain a {:#} type number format for consistency)
+        @param[in/OPT] arg_options - keyword values as follows
+            update_period - how often to print (default=1 every value)
+        '''
+        self.value_list = value_list
+        self.string_value = string_value
+        self.options = {}
+        self.options['update_period'] = 1
+        for k,v in arg_options.items():
+            self.options[k] = v
+            
+        #now flags for running
+        self.i = 0
+        self.prev_str_len = 0 #length of previously printed string
+
+    def update(self,value=None):
+        '''
+        @brief update to the next value in value_list
+        @param[in/OPT] if value is None, the current increment of value_list will be used
+             This allows self.value_list to be None and value to just be provided
+        '''
+        if value is None:
+            cur_value = self.value_list[self.i]
+        else:
+            cur_value = value
+        if (self.i+1)%self.options['update_period']==0:
+            backspace_str = "\b"*self.prev_str_len #remove the old values
+            cur_string = self.string_value.format(cur_value)
+            print(backspace_str+cur_string,end='')
+            self.prev_str_len = len(cur_string)
+        self.i+=1
+        
+    def finalize(self):
+        '''
+        @brief finalize the counter
+        '''
+        print('') #just print a newline
+
+class ProgressCounter(ValueCounter):
     '''
     @brief class to provid a printed counter of progress (like a progress bar)
     '''
@@ -147,37 +195,46 @@ class ProgressCounter:
         @param[in/OPT] string_value - value to be printed as a descriptor
         @param[in/OPT] arg_options - keyword values as follows
                 update_period - how often to print (default=10)
+                print_zero - do we print 0/#?
         '''
         #some important things
         self.total_count = total_count
-        self.num_digs = len(str(total_count))
-        self.format_str = "{:%d}" %(self.num_digs)
-        self.count_str_template = (self.format_str+'/'+self.format_str)
-        self.update_str_len = len(self.count_str_template.format(0,self.total_count))
-        self.options = {}
-        self.options['update_period'] = 10
+        num_digs = len(str(total_count))
+        format_str = "{:%d}" %(num_digs)
+        count_str_template = (format_str+'/'+'%'+str(num_digs)+'d') %(self.total_count)
+        full_string = string_value+' '+count_str_template
+        count_values = range(1,self.total_count+1) #values to count
+        
+        options = {}
+        options['update_period'] = 10
+        options['print_zero'] = True
         for k,v in arg_options.items():
-            self.options[k] = v
+            options[k] = v
+        #initialize superclass
+        super().__init__(count_values,full_string,**options)
         #and print our first value
-        print((string_value+' '+self.coutn_str_template),end='')
+        if self.options['print_zero']:
+            self.update(0) #set first value to 0
+            self.i = 0 #reset count to 0
         
-    def update(self,i):
-        '''
-        @brief update the counter
-        @param[in] i - current count value (0-self.total_count-1)
-        '''
-        i+=1 #increment so we are between 1 and self.total_count
-        print("\b"*self.update_str_len,end='') #remove the old values
-        print(self.count_str_template.format(i,self.total_count),end='')
-        
-    def finalize(self):
-        '''
-        @brief finalize the counter
-        '''
-        print('') #just print a newline
-        
-        
-        
+import numpy as np
+import time
+if __name__=='__main__':
+    testa = True #valueCounter
+    testb = False #progressCounter
+    
+    if testa:
+        vals = np.arange(0.1,2,0.1)
+        vc = ValueCounter(vals,'Test {}')
+        for v in vals:
+            vc.update()
+            time.sleep(0.5)
+            
+    if testb:
+        pc = ProgressCounter(100,'Test ')
+        for v in range(100):
+            pc.update()
+            time.sleep(0.05)
         
         
         
