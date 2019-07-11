@@ -28,22 +28,23 @@ class pnaController():
         #dylans vna USB0::0x0957::0x0118::US49150144::INSTR
         self.visa_addr = visa_address
         
+        self.settings = {}
         #init our pna info 
-        self.info        = -1
-        self.ifbw        = -1.
-        self.freq_start  = -1.
-        self.freq_stop   = -1.
-        self.freq_step   = -1.
-        self.freq_span   = -1.
-        self.freq_cent   = -1.
-        self.num_pts     =  0 
-        self.dwell_time  = -1.
-        self.sdelay_time = -1.
-        self.power       = -1e32
-        self.sweep_type  = 'NO READ'
-        self.sweep_time  = 0
+        self.settings['info']        = -1
+        self.settings['ifbw']        = -1.
+        self.settings['freq_start']  = -1.
+        self.settings['freq_stop']   = -1.
+        self.settings['freq_step']   = -1.
+        self.settings['freq_span']   = -1.
+        self.settings['freq_cent']   = -1.
+        self.settings['num_pts']     =  0 
+        self.settings['dwell_time']  = -1.
+        self.settings['delay_time']  = -1.
+        self.settings['power']       = -1e32
+        self.settings['sweep_type']  = 'NO READ'
+        self.settings['sweep_time']  = 0
         
-        self.info = 'NO INFO'
+        self.settings['info']        = 'NO INFO'
         
         self.is_connected = False
         
@@ -362,7 +363,16 @@ class pnaController():
             self.pna.write(start_com)
             self.pna.write(stop_com)
             #self.write(pts_com); #dont change points. this can cause further issues
-            
+         
+    def __getattr___(self,attr):
+        '''
+        @brief this should make us backward compatable with previous setup
+            If an attribute doesnt exist, check the settings dictionary
+        '''
+        try:
+            return self.settings[attr]
+        except KeyError:
+            raise AttributeError("{} is not an attribute or in self.settings['{}']".format(attr))
     
 #alias the class name to hold python standards (while also being backward compatable)
 PnaController = pnaController    
