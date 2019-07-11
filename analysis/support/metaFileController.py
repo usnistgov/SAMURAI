@@ -21,8 +21,7 @@ from samurai.analysis.support.generic import deprecated, ProgressCounter
 from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.support.samurai_optitrack import MotiveInterface
-from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
-
+from samurai.acquisition.support.samurai_metaFile import metaFile
 
 class MetaFileController(OrderedDict):
     
@@ -30,11 +29,19 @@ class MetaFileController(OrderedDict):
     def __init__(self,metafile_path,**arg_options):
         '''
         @brief initialize our class to control our metafile and the data within it
-        @param[in] metafile_path - path to the metafile to load (if it doesnt exist it will be created)
-        @param[in/OPT] supress_empty_warning - dont give a warning if the file loaded doesnt exist or is empty
+        @param[in] metafile_path - path to the metafile to load 
+            This can also be passed as None. If this is done, a
+            OrderedDict will be created from samurai_metaFile acquisition code
+            with a blank measurements list
         '''
         OrderedDict.__init__(self) #initialize ordereddict
-        self.load(metafile_path)
+        if metafile_path is not None:
+            self.load(metafile_path)
+        else:
+            self.metafile = None
+            self.wdir = os.path.abspath('./') #get the current path
+            self.update(OrderedDict(metaFile(None,None)))
+            
         self.plotter = SamuraiPlotter()
         
         self.unit_conversion_dict = { #dictionary to get to meters
@@ -127,6 +134,8 @@ class MetaFileController(OrderedDict):
                 m['units'] = 'mm'
                 m['position'] = [pos_mm[3],pos_mm[0],0,0,0,0]
                 self.set_meas(m,i)
+        elif self['positioner']=='beamforming': #we beamformed to get the data
+            pass #do nothing for now
         else:
             if(self['metafile_version']<2): #if pre v2, we need to convert
                 for i,m in enumerate(self.get_meas()): #loop through all measurements
