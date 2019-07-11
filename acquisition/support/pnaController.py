@@ -50,7 +50,6 @@ class pnaController():
         
         self.vrm = visa.ResourceManager()
         
-        
         self.connect()
         
     def __del__(self):
@@ -61,11 +60,10 @@ class pnaController():
         if(not self.is_connected):
             try:
                 self.pna = self.vrm.open_resource(self.visa_addr)
-                self.info = self.pna.query('*IDN?')
+                self.settings['info'] = self.pna.query('*IDN?')
                 self.pna.timeout = 60000 #timeout wasnt working at 3 or 10
             except:
-                print("Unable to connect to PNA")
-                return
+                raise IOError("Unable to connect to PNA")
             #if it worked were connected;
             self.is_connected = True
             
@@ -106,25 +104,25 @@ class pnaController():
         self.connect()
         
         #now get all of our values
-        self.info        = self.pna.query('*IDN?')
-        self.ifbw        = float(self.pna.query('SENS:BAND?'))
-        self.freq_start  = float(self.pna.query('SENS:FREQ:STAR?'))
-        self.freq_stop   = float(self.pna.query('SENS:FREQ:STOP?'))
-        self.num_pts     = int  (self.pna.query('SENS:SWE:POIN?'))
+        self.settings['info']        = self.pna.query('*IDN?')
+        self.settings['ifbw']        = float(self.pna.query('SENS:BAND?'))
+        self.settings['freq_start']  = float(self.pna.query('SENS:FREQ:STAR?'))
+        self.settings['freq_stop']   = float(self.pna.query('SENS:FREQ:STOP?'))
+        self.settings['num_pts']     = int  (self.pna.query('SENS:SWE:POIN?'))
         #gives timeout error self.freq_step   = float(pna.query('SENS:FREQ:CENT:STEP:SIZE?'));
-        self.freq_span   = float(self.pna.query('SENS:FREQ:SPAN?'))
-        self.freq_cent   = float(self.pna.query('SENS:FREQ:CENT?'))
-        self.dwell_time  = float(self.pna.query('SENS:SWE:DWEL?'))
-        self.sdelay_time = float(self.pna.query('SENS:SWE:DWEL:SDEL?'))
-        self.power       = float(self.pna.query('SOUR:POW?'))
-        self.sweep_type  = self.pna.query('SENS:SWE:TYPE?')
-        self.sweep_time  = float(self.pna.query('SENS:SWE:TIME?'))
+        self.settings['freq_span']   = float(self.pna.query('SENS:FREQ:SPAN?'))
+        self.settings['freq_cent']   = float(self.pna.query('SENS:FREQ:CENT?'))
+        self.settings['dwell_time']  = float(self.pna.query('SENS:SWE:DWEL?'))
+        self.settings['sdelay_time'] = float(self.pna.query('SENS:SWE:DWEL:SDEL?'))
+        self.settings['power']       = float(self.pna.query('SOUR:POW?'))
+        self.settings['sweep_type']  = self.pna.query('SENS:SWE:TYPE?')
+        self.settings['sweep_time']  = float(self.pna.query('SENS:SWE:TIME?'))
         
         #close our visa connection
         self.disconnect()
         
         #calculate values
-        self.freq_step = self.freq_span/float(self.num_pts-1)
+        self.settings['freq_step'] = self.freq_span/float(self.num_pts-1)
             
         #set our frequencies in hz
     def set_freq_sweep(self,start_freq,stop_freq,freq_step=-1,num_pts=-1,chan=1):
