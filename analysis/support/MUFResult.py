@@ -30,11 +30,11 @@ class MUFResult(SnpEditor):
     def __init__(self,meas_path,**arg_options):
         '''
         @brief load up and initialize the *.meas file
-        @param[in] meas_path - path to the *.meas file to load
+        @param[in] meas_path - path to the *.meas file to load. 
+            This can be passed as None if self.create_meas() is going to be run
         @param[in/OPT] arg_options - keyword arguments as follows:
             None yet!
             all arguments also passed to SnpEditor constructor
-        @todo ADD case for if we do not get a *.meas but get a snp or wnp file
         '''
         self.options = {}
         self.options = {}
@@ -46,29 +46,33 @@ class MUFResult(SnpEditor):
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #make sure were getting a .meas, if not get the correct data
+        if meas_path is not None:
+            _,ext = os.path.splitext(meas_path) #get our extension
+            if '.meas' not in ext:
+                nom_path = meas_path
+            else:        
+                self.load_xml(meas_path)
+                nom_path = self.nominal_value_path
+                #lets set the correct options for w/s params
+                _,ext = os.path.splitext(nom_path)
+            #use re to get wp or sp (remove all numbers and '_binary')
+            rc = re.compile('\d+|_binary')
+            ext_cut = rc.sub('',ext)
+            if ext_cut == '.sp':
+                self.param_type = 's'
+                waves = ['S']
+                arg_options['waves'] = waves
+            elif ext_cut == '.wp':
+                self.param_type = 'w'
+                waves = ['A','B']
+                arg_options['waves'] = waves
+            else:
+                raise SnpError("Nominal file extension not recognized")
+            super().__init__(nom_path,**self.options) #init wave params or s params
         
-        _,ext = os.path.splitext(meas_path) #get our extension
-        if '.meas' not in ext:
-            nom_path = meas_path
-        else:        
-            self.load_xml(meas_path)
-            nom_path = self.nominal_value_path
-            #lets set the correct options for w/s params
-            _,ext = os.path.splitext(nom_path)
-        #use re to get wp or sp (remove all numbers and '_binary')
-        rc = re.compile('\d+|_binary')
-        ext_cut = rc.sub('',ext)
-        if ext_cut == '.sp':
-            self.param_type = 's'
-            waves = ['S']
-            arg_options['waves'] = waves
-        elif ext_cut == '.wp':
-            self.param_type = 'w'
-            waves = ['A','B']
-            arg_options['waves'] = waves
+        #otherwise lets create a new MUFResult
         else:
-            raise SnpError("Nominal file extension not recognized")
-        super().__init__(nom_path,**self.options) #init wave params or s params
+            pass #just make sure to run MUFResult.create_meas on the instance in this case
         
         #uncertainty statistics
         self.monte_carlo = None
@@ -193,7 +197,7 @@ class MUFResult(SnpEditor):
         self._root = ET.Element('CorrectedMeasurement')
         self._root.set('FileName','./')
         self._root.set('UserName',getpass.getuser())
-        self._root.set('CreationTime',datetime.datetime.now())
+        self._root.set('CreationTime',str(datetime.datetime.now()))
         self._etree._setroot(self._root)
         #create controls element
         self._controls = ET.SubElement(self._root,'Controls')  
@@ -201,17 +205,17 @@ class MUFResult(SnpEditor):
         self._xml_nominal = ET.SubElement(self._controls,'MeasSParams')
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
-        self._xml_nominal.set('Count',0)
+        self._xml_nominal.set('Count',str(0))
         #and monte carlo
         self._xml_monte_carlo = ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
         self._xml_monte_carlo.set('FullName',"Me_SplitContainer2__GroupBox3_Panel2_MonteCarloPerturbedSParams")
-        self._xml_monte_carlo.set('Count',0)
+        self._xml_monte_carlo.set('Count',str(0))
         #and monte carlo
         self._xml_perturbed = ET.SubElement(self._controls,'PerturbedSParams')
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
-        self._xml_perturbed.set('Count',0)
+        self._xml_perturbed.set('Count',str(0))
         
     def _add_nominal_path(self,nom_path):
         '''
@@ -227,7 +231,7 @@ class MUFResult(SnpEditor):
         for i,path in enumerate(path_list):
             item = self._create_meas_item(path,i)
             parent_element.append(item)
-        parent_element.set('Count',len(path_list))
+        parent_element.set('Count',str(len(path_list)))
     
     def _create_meas_item(self,path,index,name=None):
         '''
@@ -239,16 +243,16 @@ class MUFResult(SnpEditor):
         if name is None:
             name = os.path.splitext(os.path.split(path)[-1])[0] #get the file name
         item = ET.Element('Item')
-        item.set('Index',index)
+        item.set('Index',str(index))
         item.set('Text',name)
         #now add our subitems
         subitem_text = [name,path]
         for i,t in enumerate(subitem_text):
             si = ET.SubElement(item,'SubItem')
             si.set('Text',t)
-            si.set('Index',i)
+            si.set('Index',str(i))
         #now set the number of subitems
-        item.set('Count',len(item))
+        item.set('Count',str(len(item)))
         return item
     
     ##########################################################################
