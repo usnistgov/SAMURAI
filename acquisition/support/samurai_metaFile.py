@@ -14,30 +14,30 @@ import getpass
 #import directory and file name
 #also give the csv file where positions are running from to build JSON template
 #Written by Alec Weiss 2018
-class metaFile:
+class metaFile(OrderedDict):
     # init our class
     def __init__(self,csv_path,pna_addr,**arg_options):
 
         #input options
-        self.options = OrderedDict({})
+        super().__init__() #initialize ordereddict
 
         #Some default values
-        self.options['working_directory'] = os.path.abspath('./')
-        self.options['csv_path'] = csv_path
-        self.options['metafile_name'] = 'metafile'
-        self.options['pna_address'] = pna_addr
-        self.options['csv_delimiter'] = ','
+        self['working_directory'] = os.path.abspath('./')
+        self['csv_path'] = csv_path
+        self['metafile_name'] = 'metafile'
+        self['pna_address'] = pna_addr
+        self['csv_delimiter'] = ','
         
         #default calPath
-        self.options['cal_path'] = './calibration.s4p'
+        self['cal_path'] = './calibration.s4p'
         
         #1.02 added relative paths to working directory in metafile
         #1.03 changed most inputs to dictionary for easy setting from outside
         
         #some info about the system
         #defaults
-        self.options['metafile_version']   = 2.01
-        self.options['metafile_changelog'] = {
+        self['metafile_version']   = 2.01
+        self['metafile_changelog'] = {
                 1.03: ["Added new defaults and heavily updated the code to be more user friendly"],
                 2.00: ["(5/10/2019) Updated reference frame. THIS IS VERY IMPORTANT FOR ALL USES OF MEAUSUREMENTS.\\n" 
                        "New reference frame is as follows when looking from behind the robot: \\n"
@@ -47,15 +47,15 @@ class metaFile:
                        "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"],
                 2.01: ["external positions now have units property and all 'position_mm' changed to 'position' and 'residual_mm' changed to 'residual'"]      
                 }
-        self.options['experiment']         = 'SAMURAI Measurements'
-        self.options['experiment_version'] = 1.0
-        self.options['positioner']         = 'Meca500'
-        self.options['positioner_rotation_format'] = "X\'Y\'Z\'"
-        self.options['user']               = getpass.getuser()
-        self.options['units']              = 'mm'
-        self.options['position_key']       = ['X','Y','Z','alpha','beta','gamma']
-        self.options['vna_info']           = {'info':'NO VNA QUERIED',"start":26.5e9,"stop":40e9,"step":20e6,"ifbw":10,"power":0}
-        self.options['antennas']           = []
+        self['experiment']         = 'SAMURAI Measurements'
+        self['experiment_version'] = 1.0
+        self['positioner']         = 'Meca500'
+        self['positioner_rotation_format'] = "X\'Y\'Z\'"
+        self['user']               = getpass.getuser()
+        self['units']              = 'mm'
+        self['position_key']       = ['X','Y','Z','alpha','beta','gamma']
+        self['vna_info']           = {'info':'NO VNA QUERIED'}
+        self['antennas']           = []
         
         #get our vna information if possible
         self.get_vna_params(pna_addr=pna_addr)
@@ -80,11 +80,12 @@ class metaFile:
         self.add_antenna(antenna1)
         self.add_antenna(antenna2)
 
+        self['measurements'] = [] #empty for now
         #write any input options
         for key,value in six.iteritems(arg_options):
             if(key=='working_directory'): #get abspath if rootdir
                 value = os.path.abspath(value)
-            self.options[key] = value
+            self[key] = value
 
         #delimeter of csv file (typically ',')
 
@@ -98,9 +99,9 @@ class metaFile:
         @param[in] OPTIONAL idx - if provided, overwrite given slot in antenna
         '''
         if(idx):
-            self.options['antennas'][idx] = antenna
+            self['antennas'][idx] = antenna
         else:
-            self.options['antennas'].append(antenna)
+            self['antennas'].append(antenna)
 
     def set_options(self,**options):
         '''
@@ -108,7 +109,7 @@ class metaFile:
         @param[in] options - key value pairs of options to set
         '''
         for key,value in six.iteritems(options):
-            self.options[key] = value
+            self[key] = value
 
      #clean and create file names
     def make_file_names(self,clean=True):
@@ -118,10 +119,10 @@ class metaFile:
         '''
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
-        self.jsonPath = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.json')
-        self.raw_path = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.raw')
+        self.jsonPath = os.path.join(self['working_directory'],self['metafile_name']+'.json')
+        self.raw_path = os.path.join(self['working_directory'],self['metafile_name']+'.raw')
         self.raw_path = self.raw_path
-        self.csvPath  = self.options['csv_path']
+        self.csvPath  = self['csv_path']
         #build JSON template
         #first check if we already have a metaFile rename if needed
         if(clean):
@@ -138,21 +139,11 @@ class metaFile:
         '''
         try:
             pnaCont = pnaController.pnaController(pna_addr)
-            pnaCont.getParams()
-            self.options['vna_info'].update({'info':pnaCont.info})
-            self.options['vna_info'].update({'start':pnaCont.freq_start})
-            self.options['vna_info'].update({'stop':pnaCont.freq_stop})
-            self.options['vna_info'].update({'step':pnaCont.freq_step})
-            self.options['vna_info'].update({'ifbw':pnaCont.ifbw})
-            self.options['vna_info'].update({'num_pts':pnaCont.num_pts})
-            self.options['vna_info'].update({'dwell_time':pnaCont.dwell_time})
-            self.options['vna_info'].update({'sweep_delay':pnaCont.sdelay_time})
-            self.options['vna_info'].update({'power':pnaCont.power})
-            self.options['vna_info'].update({'sweep_type':pnaCont.sweep_type})
-            self.options['vna_info'].update({'sweep_time':pnaCont.sweep_time})
+            pnaCont.getParams() #update the parameters
+            self['vna_info'].update(pnaCont.settings) #write to metafile
         except:
-            print("Unable to get parameters from VNA, Using defaults")
-        
+            print("Unable to get parameters from VNA")
+            
     #init function to be called after all values set by user
     #This will call init JSON and other files to build template.
     #parameters after this cannot be changed
@@ -180,7 +171,7 @@ class metaFile:
         options_omit_keys = ['measurements'] #json keys to omit when we overwrite self.options
         for key,val in self.jsonData.items():
             if key not in options_omit_keys:
-                self.options[key] = val
+                self[key] = val
         
     def load_raw_file(self,raw_path):
         '''
@@ -199,8 +190,8 @@ class metaFile:
         '''
         #first build header
         jhd = OrderedDict({})
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
-        jhd['rawfile_path']       = os.path.relpath(self.raw_path,self.options['working_directory'])
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.raw_path,self['working_directory'])
         jhd.update(self.options)  #update with all of our input options
         jhd['notes']              = None
 
@@ -222,12 +213,12 @@ class metaFile:
                     self.jsonData['total_measurements']+=1
                     locId = self.jsonData['total_measurements']-1
                     #extract our position from the csv file
-                    strArr = line.split(self.options['csv_delimiter'])
+                    strArr = line.split(self['csv_delimiter'])
                     pos = [float(i) for i in strArr]
                     self.jsonData['measurements'].append(OrderedDict({'ID':locId}))
-                    self.jsonData['measurements'][locId].update({'position_key':self.options['position_key']})
+                    self.jsonData['measurements'][locId].update({'position_key':self['position_key']})
                     self.jsonData['measurements'][locId].update({'position':pos})
-                    self.jsonData['measurements'][locId].update({'units':self.options['units']})
+                    self.jsonData['measurements'][locId].update({'units':self['units']})
                     self.jsonData['measurements'][locId].update({'notes':'none'})
                     self.jsonData['measurements'][locId].update({'filename':'INCOMPLETE'})
                     self.jsonData['measurements'][locId].update({'timestamp':'INCOMPLETE'})
@@ -251,16 +242,16 @@ class metaFile:
             raw_file_path = self.raw_path
         #first build header
         jhd = OrderedDict({})
-        jhd["working_directory"]  = self.options['working_directory']
-        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
-        jhd['rawfile_path']       = os.path.relpath(self.raw_path,self.options['working_directory'])
-        jhd["metafile_version"]   = self.options['metafile_version']
-        jhd['experiment']         = self.options['experiment']
-        jhd['experiment_version'] = self.options['experiment_version']
-        jhd['positioner']         = self.options['positioner']
-        jhd['user']               = self.options['user']
-        jhd['vna_info']           = self.options['vna_info']
-        jhd['antennas']           = self.options['antennas']
+        jhd["working_directory"]  = self['working_directory']
+        jhd['metafile_path']      = os.path.relpath(self.jsonPath,self['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.raw_path,self['working_directory'])
+        jhd["metafile_version"]   = self['metafile_version']
+        jhd['experiment']         = self['experiment']
+        jhd['experiment_version'] = self['experiment_version']
+        jhd['positioner']         = self['positioner']
+        jhd['user']               = self['user']
+        jhd['vna_info']           = self['vna_info']
+        jhd['antennas']           = self['antennas']
         jhd['notes']              = None
         
         for key,val in six.iteritems(additional_header_info):
@@ -268,7 +259,7 @@ class metaFile:
 
         #now loop through json file to add measurements
         self.jsonData = jhd
-        rfp = os.path.join(self.options['working_directory'],raw_file_path)
+        rfp = os.path.join(self['working_directory'],raw_file_path)
         #GET number of measurements from raw file
         rawLineCount = 0
         with open(rfp,'r') as rawfile:
@@ -289,7 +280,7 @@ class metaFile:
                     locId = self.jsonData['total_measurements']-1
                     ls = line.split('|')
                     measId = int(ls[1])
-                    fname  = os.path.relpath(ls[2].strip(),self.options['working_directory'])
+                    fname  = os.path.relpath(ls[2].strip(),self['working_directory'])
                     cfname = ls[3]
                     time   = ls[4]
                     notes  = ls[6]
@@ -306,7 +297,7 @@ class metaFile:
                     except ValueError:
                         pos_out = 'NO Positioner'
                     #extract our position from the csv file
-                    #strArr = line.split(self.options['csv_delimiter']);
+                    #strArr = line.split(self['csv_delimiter']);
                     #pos = [float(i) for i in strArr];
                     self.jsonData['measurements'].append(OrderedDict({'ID':measId}))
                     self.jsonData['measurements'][locId].update({'position_key':'Unknown'})
@@ -337,7 +328,7 @@ class metaFile:
             measID - id of the measurement (default -1 autodetects)
             dict_data - dicitionary of extra data to write to the measurement piece
         '''
-        defaults = {'cal_file_path':self.options['cal_path'],'note':'none','measID':-1}
+        defaults = {'cal_file_path':self['cal_path'],'note':'none','measID':-1}
         defaults['dict_data'] = None 
         options = {}
         for key, value in six.iteritems(defaults):
@@ -359,7 +350,7 @@ class metaFile:
             
         #build the file line from our parameters
         with open(self.raw_path,writeType) as metafile:
-            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self.options['working_directory'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['working_directory'])+'   |   '
+            line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self['working_directory'])+"    |    "+os.path.relpath(options['cal_file_path'],self['working_directory'])+'   |   '
                     +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+"   |   "+json.dumps(options['dict_data'])+"   |\n")
             metafile.write(headerLine)
             metafile.write(line)
