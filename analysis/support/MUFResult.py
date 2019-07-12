@@ -320,7 +320,7 @@ class MUFStatistic:
         '''
         @brief calculate and store all statistics
         '''
-        if self.file_paths != []: #make sure its not empty first
+        if len(self.file_paths) > 2: #make sure we have enough to make a statistic
             snp_list = self._load_stat_files_to_list()
             data_dict = self._extract_data_dict(snp_list)
             #estimate
