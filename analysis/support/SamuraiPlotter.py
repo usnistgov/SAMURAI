@@ -12,23 +12,30 @@ class SamuraiPlotter:
     '''
     @brief a class to abstract plotting between matplolib, matlab, and plotly, (and potentially others)
     '''
-    def __init__(self,**arg_options):
+    def __init__(self,plot_program=None,**arg_options):
         '''
         @brief initializer for plotting class
+        @param[in/OPT] plot_program - What program to use to plot 
+            ('matlab','matplotlib','plotly')
+            some plotting types may only be supported with some programs
         @param[in/OPT] arg_options - keyword arguments as follows:
             verbose - whether or not to be verbose
             debug - extra verbose debug statements
-            plot_order - list of strings for order of libs to try ['matlab','plotly','matplotlib'] acceptable
-            matlab_engine - can pass an already running matlab engine
+            matlab_engine - can pass an already running matlab engine if matlab 
+                is being used
         '''
+        self.plot_program = plot_program
+        
+        #some options
         self.options = {}
         self.options['verbose'] = False
         self.options['debug'] = True
-        self.options['plot_order'] = ['matlab','plotly','matplotlib']
         self.options['matlab_engine'] = None
+        self.options['supported_plotting_programs'] = ['matlab','matplotlib','plotly']
         for key,val in arg_options.items():
             self.options[key] = val
             
+        #these will hold our engines after initialization
         self.matlab = None #matlab 
         self.plotly = None #plotly 
         self.matplotlib = None #matplotlib
@@ -40,21 +47,18 @@ class SamuraiPlotter:
         @params[in] args - variable arguments to pass to pltting funciton
         @param[in] kwargs - keyword ags to pass to plotting funciton
         '''
-        rv = None
-        for pp in self.options['plot_order']:
-            funct_name = '_'+plot_funct_name+'_'+pp
-            funct = getattr(self,funct_name)
-            try: 
-                rv = funct(*args,**kwargs)
-                break
-            except Exception as e: 
-                traceback.print_exc(3)
-                #print(e)
-                print("{} Failed, trying next engine".format(pp))
-        if not rv: #if nothing is returned
-            raise Exception("No plotting library found or no value returned")
-        return rv
-        
+        if self.plot_program in self.options['supported_plotting_programs']:
+            init_funct_name = '_init_'+self.plot_program
+            init_funct = getattr(self,init_funct_name)
+            init_funct() #make sure were initialized
+            funct_name = '_'+plot_funct_name+'_'+self.plot_program
+            funct = getattr(self,funct_name) 
+            rv = funct(*args,**kwargs)
+            return rv
+        else:
+            raise Exception("'{}' is not a supported plotting program,' 
+                            'please set self.plot_program to one of the'
+                            ' following {}'.format(self.options['supported_plotting_programs']))
     
     ###########################################################################
     ####### Surface Plots
@@ -81,7 +85,6 @@ class SamuraiPlotter:
         @brief surface plot in matlab
             These inputs are the standard matlab inputs (except name/val pairs can be keyword args)
         '''
-        self._init_matlab() #initialize matlab
         #extract some arguments that require separate commands
         kwargs,funct_dict = self._clean_matlab_kwargs(**kwargs)
         fig = self.matlab.surf(*args,**kwargs)
@@ -92,7 +95,6 @@ class SamuraiPlotter:
         '''
         @brief surface plot in plotly
         '''
-        self._init_plotly()
         if len(args)<3: raise Exception("At least 3 input arguments required")
         if len(args)>4: raise Exception("Too many arguments (3 or 4 expected, {} recieved)".format(len(args)))
         if len(args)==3: plot_data = args[2] #make Z
@@ -132,7 +134,6 @@ class SamuraiPlotter:
         '''
         @brief surface plot in matplotlib
         '''
-        self._init_matplotlib()
         if len(args)<3: raise Exception("At least 3 input arguments required")
         if len(args)>4: raise Exception("Too many arguments (3 or 4 expected, {} recieved)".format(len(args)))
         if len(args)==3: plot_data = args[2] #make Z
@@ -191,7 +192,6 @@ class SamuraiPlotter:
         @brief 1D plot in matplotlib
         '''
         self._check_arg_count(len(args),2,2) #must have exactly 2 args
-        self._init_matplotlib()
         #fig = self.matplotlib.figure()
         ax = self.matplotlib.gca()
         kwargs = self._matlab2matplotlib(ax,**kwargs)
@@ -202,7 +202,6 @@ class SamuraiPlotter:
         '''
         @brief 1D plot in matlab
         '''
-        self._init_matlab() #initialize matlab
         #extract some arguments that require separate commands
         kwargs,funct_dict = self._clean_matlab_kwargs(**kwargs)
         fig = self.matlab.plot(*args,**kwargs)
