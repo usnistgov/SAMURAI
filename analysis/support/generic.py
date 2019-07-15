@@ -148,11 +148,13 @@ class ValueCounter:
         @param[in/OPT] string_value - formattable string to place values into (should contain a {:#} type number format for consistency)
         @param[in/OPT] arg_options - keyword values as follows
             update_period - how often to print (default=1 every value)
+            delete_on_finalize - should we delete everything on finalize (default False)
         '''
         self.value_list = value_list
         self.string_value = string_value
         self.options = {}
         self.options['update_period'] = 1
+        self.options['delete_on_finalize'] = False
         for k,v in arg_options.items():
             self.options[k] = v
             
@@ -181,7 +183,10 @@ class ValueCounter:
         '''
         @brief finalize the counter
         '''
-        print('') #just print a newline
+        if self.options['delete_on_finalize']: #delete everything when finalizing
+            print("\b"*self.prev_str_len)
+        else:
+            print('') #just print a newline
 
 class ProgressCounter(ValueCounter):
     '''
