@@ -196,8 +196,8 @@ class ApertureBuilder():
         #along z axis gamma is our theta value
         #first calculate our angles
         #range is gamma+sweep/2 to gamma-sweep/2
-        theta_start = gamo-float(sweep_angle)/2
-        theta_end   = gamo+float(sweep_angle)/2
+        theta_start = beto-float(sweep_angle)/2
+        theta_end   = beto+float(sweep_angle)/2
         theta_vals  = np.arange(theta_start,theta_end+angle_step_size_degrees,angle_step_size_degrees)
         #now calculate where our outer circle is
         #x = rcos(theta)+xo, y=rsin(theta)+yo, z=z;
@@ -208,14 +208,14 @@ class ApertureBuilder():
         #now combine to get all of our values
         #now tile this for the number of z locations
         #these x,y,z values are swapped because of the changed reference frame
-        z_tot     = np.tile(z,len(z))
-        x_tot     = np.tile(x,len(z))
+        z_tot     = np.tile(z,len(y))
+        x_tot     = np.tile(x,len(y))
         y_tot  = np.repeat(y,len(theta_vals)) #repeat z for every theta
         theta_tot = np.tile(theta_vals,len(y))
         alph_tot  = np.repeat(alpho,theta_tot.size)
-        bet_tot   = np.repeat(beto,theta_tot.size)
+        gam_tot   = np.repeat(gamo,theta_tot.size)
         #finally combine into positoins
-        pos_vals = np.array([x_tot,y_tot,z_tot,alph_tot,bet_tot,theta_tot]).transpose()
+        pos_vals = np.array([x_tot,y_tot,z_tot,alph_tot,theta_tot,gam_tot]).transpose()
         return pos_vals
             
     def curve_array(self,curve_radius_mm):
@@ -508,6 +508,7 @@ if __name__=='__main__':
     myap.change_reference_frame(v1_to_v2_convert)
     myap2.change_reference_frame(v1_to_v2_convert)
     '''
+    '''
     #about lambda/2 at 40GHz
     lam_at_forty = 2.99e8/40e9/2*1000 #lambda at 40GHz in mm
     myap.gen_planar_aperture_from_center([0,125,60,0,0,0],step=[lam_at_forty,lam_at_forty,0],numel=[35,35,1])
@@ -522,10 +523,14 @@ if __name__=='__main__':
     myap.write(fout2)
     fout_dp = 'sweep_files/samurai_planar_dp.csv'
     cat_positions_file(fout1,fout2,fout_dp)
-    
+    '''
     #myap.load(fout_dp)
     #myap.plot_path_2D()
-    
+    ap1 = myap.gen_cylindrical_aperture([0,128,-80,0,0,0],201,0,1,180,0.25)
+    ap2 = myap.gen_cylindrical_aperture([0,128,-80,0,0,90],201,0,1,180,0.25)
+    ap = np.concatenate((ap1,np.flipud(ap2)))
+    myap.positions = ap
+    myap.write('sweep_files/azimuth_antenna_sweep_fine.csv')
 
         
         
