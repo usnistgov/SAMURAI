@@ -96,7 +96,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         options = {}
         options['verbose'] = self.options['verbose']
         options['antenna_pattern'] = self.options['antenna_pattern']
-        options['use_vectorized'] = True
+        options['use_vectorized'] = False
         for key,val in six.iteritems(arg_options):
             options[key] = val #set kwargs
         antenna_pattern = options['antenna_pattern']
@@ -165,7 +165,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
                 else:
                     sv_div_ants = steering_vectors
             else:
-                steering_vectors = np.exp(1j*k*psv_vecs)    
+                steering_vectors = np.exp(-1j*k*psv_vecs)    
                 s21_weighted = s21_current*weights
                 if(antenna_pattern is not None):
                     sv_div_ants  = steering_vectors/antenna_values
@@ -195,8 +195,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 ###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    testa = False
-    testb = False
+    testa = False #synthetic and real data tests (commented out)
+    testb = False #data from usc 5-27-2019 (s2p padp output)
     testc = False
     testd = False
     teste = True #plot markers with beamformed data
@@ -291,7 +291,7 @@ if __name__=='__main__':
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[30e9,40e9],verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,40e9],verbose=True)
-        mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-10,10.1,10),[40e9],verbose=True)
+        mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,5),np.arange(-90,90,5),[40e9],verbose=True)
         #import cProfile
         #cProfile.run("mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),freqs,verbose=True)")
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)
@@ -328,13 +328,18 @@ if __name__=='__main__':
         mycsa_list,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),40e9,verbose=True)
         mycsa.plot_3d()
         '''
+        #mycsa.mp = mp
+        #mycsa.plot_3d(rotation=[20,45,45])
 
     if(testb):
         #write out a horizontal sweep to s parameter files
         import os
         bf = SamuraiBeamform(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\calibrated\metaFile.json',verbose=True)
-        bf.set_cosine_sum_window_by_name('hamming')
+        #bf.set_cosine_sum_window_by_name('hamming')
         [csa,_] = bf.beamforming_farfield_azel(np.arange(-45,46,1),[0],'all',verbose=True)
+        #[csa,_] = bf.beamforming_farfield_azel(np.arange(-45,46,1),np.arange(-45,45,1),[40e9],verbose=True)
+        #csa.mp = mp
+        #csa.plot_3d()
         os.chdir(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\calibrated')
         mys = csa.write_snp_data('az_sweep_vals/')
     
@@ -420,6 +425,7 @@ if __name__=='__main__':
         
     if(teste):
        
+       #5-17-2019 conference room #1
        test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-17-2019\aperture_vertical_polarization\binary\metafile_binary.json"
        mysp = SamuraiBeamform(test_path,verbose=True) 
        beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
@@ -428,23 +434,51 @@ if __name__=='__main__':
        mysp.metafile.add_external_marker('beam-2',beam2_loc,units='m')
        
        '''
+       #5-24-2019 conference room #2
        test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-24-2019\aperture_vertical_polarization\binary\metafile_binary.json"
        mysp = SamuraiBeamform(test_path,verbose=True) 
        loc_data_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\5-24-2019\external_data\positions\positions.json"
        mysp.metafile.add_external_marker_from_file(loc_data_path)
        '''
+       '''
+       #5-31-2019 conference room #3
+       test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\5-31-2019\aperture_vertical_polarization\binary\metafile_binary.json"
+       mysp = SamuraiBeamform(test_path,verbose=True) 
+       loc_data_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\5-31-2019\external_data\positions\positions.json"
+       mysp.metafile.add_external_marker_from_file(loc_data_path)
+       '''
        mhm = mysp.metafile.get_external_positions_mean('meca_head').mean(0) #meca_head mean location (center of array)
+       mhrm_temp = mysp.metafile.get_external_positions_mean('meca_head','rotation').mean(0)
+       mhrm = mhrm_temp.copy()
+       mhrm[0] = mhrm_temp[0]; mhrm[1] = mhrm_temp[2]; mhrm[2] = mhrm_temp[1] #z is y and y is z
+       #mysp.metafile.plotter.matlab = mp #uncomment once matlab engine has been started
        fig = mysp.metafile.plot_external_positions() #plot the external positions
-       mp = mysp.metafile.plotter.matlab #get the MatlabPlotter
        mysp.set_cosine_sum_window_by_name('hamming')
+       #mhm_t[1] = -mhm[1]
+       mhrm = [0,90,0]
        mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[40e9],verbose=True) #beamform
-       [X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db',scale=5)
+       #[X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db',scale=5,rotation=mhrm+np.array([0,90,0]),translation=mhm)
+       [X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db',scale=5,rotation=mhrm+np.array([0,0,0]))
+       #[X,Y,Z,plot_data,caxis_min,caxis_max] = mycsa.get_3d_data('mag_db',scale=5,rotation=mhrm+np.array([0,0,0]))
+       #X = mhm[0]+X; Y = mhm[1]+Z; Z = mhm[2]+Y
+       Yt = Y.copy(); Y = Z; Z = Yt #switch axes to correct values
+       X += mhm[0]; Y+=mhm[1]; Z+=mhm[2]
+       mp = mysp.metafile.plotter.matlab #get the MatlabPlotter
+       mp.surf(X,Y,Z,plot_data,DisplayName='Beamformed Data')
+       mycsa.mp = mp
        #mp.surf(-X+mhm[0],Z+mhm[1],Y+mhm[2],plot_data,DisplayName='Beamformed Data')
        #mp.surf(Z+mhm[0],-X+mhm[1],Y+mhm[2],plot_data,DisplayName='Beamformed Data')
        mp.shading('interp')
+       mp.xlabel('X')
+       mp.ylabel('Y')
+       mp.zlabel('Z')
        num_increments = 3 #(number of label increments)
        db_range = caxis_max-caxis_min
        mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
-    
-    
+       tx_loc  = np.array([1643.37,-287.4565,696.7996])
+       txl = tx_loc
+       lx,ly,lz = np.split(np.stack([txl,mhm]),3,axis=1)
+       mp.plot3(lx,ly,lz)
+       
+       
     

@@ -118,14 +118,14 @@ class metaFile:
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
         self.jsonPath = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.json')
-        self.tmpfPath = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.raw')
-        self.raw_path = self.tmpfPath
+        self.raw_path = os.path.join(self.options['working_directory'],self.options['metafile_name']+'.raw')
+        self.raw_path = self.raw_path
         self.csvPath  = self.options['csv_path']
         #build JSON template
         #first check if we already have a metaFile rename if needed
         if(clean):
             [self.jsonPath,iij]=clean_file_name(self.jsonPath)
-            [self.tmpfPath,_  ]=clean_file_name(self.tmpfPath,iij)
+            [self.raw_path,_  ]=clean_file_name(self.raw_path,iij)
     #alias
     makeFileNames = make_file_names    
     
@@ -165,6 +165,30 @@ class metaFile:
         #init our continuation file in case of failure
  #       self.initContFile();
 
+    def load_json_template(self,metafile_path):
+        '''
+        @brief load an already created json template (metafile without measurements)
+            This is usually done in case of failure of a mesurement. It will overwrite our options for this class too
+        @param[in] metafile_path - path to the metafile template (*.json) to load
+        '''
+        #load the json data
+        self.jsonPath = metafile_path
+        with open(self.jsonPath,'r') as jsonFile:
+            jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
+        self.jsonData = jsonData
+        options_omit_keys = ['measurements'] #json keys to omit when we overwrite self.options
+        for key,val in self.jsonData.items():
+            if key not in options_omit_keys:
+                self.options[key] = val
+        
+    def load_raw_file(self,raw_path):
+        '''
+        @brief 'load' an already created raw (*.raw) file from a measurement.
+            Again usually used in case self.finalize is not reached in a measurement.
+            This actually just sets the self.tempfpath property
+        @param[in] raw_path - path to the raw (*.raw) file
+        '''
+        self.raw_path = raw_path
         
     #build the initial template for our json file
     def build_json_template(self,**additional_header_info):
@@ -175,7 +199,7 @@ class metaFile:
         #first build header
         jhd = OrderedDict({})
         jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.raw_path,self.options['working_directory'])
         jhd.update(self.options)  #update with all of our input options
         jhd['notes']              = None
 
@@ -223,12 +247,12 @@ class metaFile:
         @param[in/OPT] additional_header_info - keyword arguments to be added to the header
         '''
         if(raw_file_path=='default'):
-            raw_file_path = self.tmpfPath
+            raw_file_path = self.raw_path
         #first build header
         jhd = OrderedDict({})
         jhd["working_directory"]  = self.options['working_directory']
         jhd['metafile_path']      = os.path.relpath(self.jsonPath,self.options['working_directory'])
-        jhd['rawfile_path']       = os.path.relpath(self.tmpfPath,self.options['working_directory'])
+        jhd['rawfile_path']       = os.path.relpath(self.raw_path,self.options['working_directory'])
         jhd["metafile_version"]   = self.options['metafile_version']
         jhd['experiment']         = self.options['experiment']
         jhd['experiment_version'] = self.options['experiment_version']
@@ -320,7 +344,7 @@ class metaFile:
         for key, value in six.iteritems(arg_options):
             options[key] = value
         #open and append our data to our text file        
-        if(os.path.isfile(self.tmpfPath)!=True): #see if the file doesnt already exist
+        if(os.path.isfile(self.raw_path)!=True): #see if the file doesnt already exist
             #if it doesnt exist make it and create header
             writeType = 'w+'
             headerLine = "|   ID   |   FILENAME   |   CALFILE   |   TIME   |   POSITION   |   NOTES   | DICT_DATA\n"
@@ -333,7 +357,7 @@ class metaFile:
             headerLine = ''
             
         #build the file line from our parameters
-        with open(self.tmpfPath,writeType) as metafile:
+        with open(self.raw_path,writeType) as metafile:
             line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self.options['working_directory'])+"    |    "+os.path.relpath(options['cal_file_path'],self.options['working_directory'])+'   |   '
                     +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+"   |   "+json.dumps(options['dict_data'])+"   |\n")
             metafile.write(headerLine)
@@ -352,7 +376,7 @@ class metaFile:
         jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
         jsonFile.close()
         #fill JSON Data from tmpFile
-        with open(self.tmpfPath,'r') as tmpFile:
+        with open(self.raw_path,'r') as tmpFile:
             next(tmpFile)
             for line in tmpFile:
                 ls = line.split('|')
@@ -398,7 +422,7 @@ class metaFile:
      
     #get the file id of the last entry
     def get_last_meas_id(self):
-        with open(self.tmpfPath,'r') as fp:
+        with open(self.raw_path,'r') as fp:
             #get last line
             for line in fp:
                 pass
@@ -430,8 +454,31 @@ def clean_file_name(file_path,num=-1):
     return fout,i
 
 #alias
-MetaFile = metaFile    
+MetaFile = metaFile
 
+def finalize_metafile(metafile_path,raw_path,**kwargs):
+    '''
+    @brief finalize a metafile in case of failure. 
+        This will finalize a metafile given the metafile path and the raw data path
+    @param[in] metafile_path - path to the metafile (.json) template create at the beginning of the measurement
+    @param[in] raw_path - path to the raw file (.raw) created from the mesaurements taken
+    '''
+    mymf = MetaFile(None,None)
+    mymf.load_json_template(metafile_path)
+    mymf.load_raw_file(raw_path)
+    mymf.finalize()
+    
+    
+    
 #os.chdir('U:/67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\VNA_Drift/3-16-18_driftData\processed_data')
 #mf = metaFile();
 #mf.buildJsonFromRaw('metaFile.raw')
+
+if __name__=='__main__':
+    import os
+    mydir = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\6-17-2019\synthetic_aperture'
+    finalize_metafile(os.path.join(mydir,'metafile.json'),os.path.join(mydir,'metafile.raw'))
+
+
+
+
