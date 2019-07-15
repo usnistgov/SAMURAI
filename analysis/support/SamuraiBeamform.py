@@ -10,6 +10,7 @@ from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vecto
 from samurai.analysis.support.SamuraiPostProcess import vector_mult_complex,vector_div_complex
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import Antenna
+from samurai.analysis.support.generic import ValueCounter
 import numpy as np #import constants
 
 import six #backward compatability
@@ -141,9 +142,10 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
-        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options)
+        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options,metafile = self.metafile)
+        vc = ValueCounter(freq_list,'    Calculating for {:10G} Hz',update_period=10)
         for freq in freq_list:
-            if verbose: print("    Calculating for %f Hz" %(freq))
+            if verbose: vc.update(freq)
             freq_idx = np.where(s_freq_list==freq)[0]
             if(freq_idx.size<1):
                 print("    WARNING: Frequency %f Hz not found. Aborting." %(freq))
@@ -180,6 +182,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             #now pack into our CSA (CaluclateSynbteticAperture)
             mycsa.add_frequency_data(np.reshape(beamformed_vals,azimuth.shape),freq)
             #csa_list.append(CalculatedSyntheticAperture(azimuth,elevation,np.reshape(beamformed_vals,azimuth.shape)))
+        vc.finalize()
         if antenna_pattern is not None:
             ant_vals = CalculatedSyntheticAperture(azimuth,elevation,np.reshape(antenna_values[1,:],azimuth.shape),**self.options)
         else:
@@ -479,6 +482,21 @@ if __name__=='__main__':
        txl = tx_loc
        lx,ly,lz = np.split(np.stack([txl,mhm]),3,axis=1)
        mp.plot3(lx,ly,lz)
+       
+    if(testf):
+       #monte carlos on USC measurements
+       pass
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
        
        
     

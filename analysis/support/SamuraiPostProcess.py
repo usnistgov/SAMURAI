@@ -37,6 +37,7 @@ class SamuraiSyntheticApertureAlgorithm:
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             measured_values_flg - are we using measurements, or simulated data (default True)
             load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+            These are also passed to the load_metafile function
         '''
         #options for the class
         self.options = {}
@@ -64,16 +65,17 @@ class SamuraiSyntheticApertureAlgorithm:
         self.all_positions_perturbation = None #perturbations
         self.metafile = None
         if(metafile_path): #if theres a metafile load it
-            self.load_metafile(metafile_path)
+            self.load_metafile(metafile_path,**arg_options)
 
-    def load_metafile(self,metafile_path,freq_mult=1e9):
+    def load_metafile(self,metafile_path,freq_mult=1e9,**arg_options):
         '''
         @brief function to load in our metafile and S parameter data from it
         @param[in] metafile_path - path to the metafile to load measurement from
         @param[in/OPT] freq_mult - how much to multiply the freq by to get hz (e.g. 1e9 for GHz)
+        @param[in/OPT] keyword arguments passed to MetaFileController init and MetaFileController.load_data
         '''
-        self.metafile = MetaFileController(metafile_path)
-        [s_data,_] = self.metafile.load_data(verbose=self.options['verbose'])
+        self.metafile = MetaFileController(metafile_path,**arg_options)
+        [s_data,_] = self.metafile.load_data(**arg_options)
         #now get the values we are looking for
         self.all_s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
         self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
