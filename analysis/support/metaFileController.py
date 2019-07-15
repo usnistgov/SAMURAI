@@ -134,6 +134,8 @@ class MetaFileController(OrderedDict):
                 m['units'] = 'mm'
                 m['position'] = [pos_mm[3],pos_mm[0],0,0,0,0]
                 self.set_meas(m,i)
+                self['positioner'] = 'maturo_updated_positions'
+                self['metafile_version'] = 2 #we update to version 2 here also
         elif self['positioner']=='beamforming': #we beamformed to get the data
             pass #do nothing for now
         else:
@@ -386,7 +388,7 @@ class MetaFileController(OrderedDict):
         self.set_wdir(path)
         
     #update working directory to current location
-    def set_wdir(self,wdir):
+    def set_wdir(self,wdir='./'):
         '''
         @brief set the working directory
         @param[in/OPT] wdir - the new working directory to set. if '' use the directory the file was opened from
