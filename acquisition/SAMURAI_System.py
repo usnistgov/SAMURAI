@@ -314,7 +314,7 @@ class SAMURAI_System():
         '''
         if(software_limits):
             np_pos_vals = np.array(pos_vals)
-            np_lower_bound = np.array([-1e3,50,-1e3,-360,-360,-360]) #just limit y axis
+            np_lower_bound = np.array([-1e3,25,-1e3,-360,-360,-360]) #just limit y axis
             np_upper_bound = np.array([1e3,1e3,1e3,360,360,360]) #no upper bound
             if(any(np_pos_vals<np_lower_bound)):
                 print("ERROR: Position below lower bound")
