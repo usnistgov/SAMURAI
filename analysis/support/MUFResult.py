@@ -11,7 +11,8 @@ from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 
 #from xml.dom.minidom import parse, parseString
 import numpy as np
-import xml.etree.ElementTree as ET
+#import xml.etree.ElementTree as ET
+from lxml import etree as ET
 import os
 import re
 
@@ -283,7 +284,7 @@ class MUFResult(SnpEditor):
         @brief write out our current xml file
         @param[in] out_path - path to writ ethe file out to 
         '''
-        self._etree.write(out_path)
+        self._etree.write(out_path,pretty_print=True)
   
         
 import scipy.stats as st
@@ -345,6 +346,19 @@ class MUFStatistic:
         cim = self.confidence_interval['-'].S[key]
         stp = self.standard_uncertainty['+'].S[key]
         stm = self.standard_uncertainty['-'].S[key]
+        return est,cip,cim,stp,stm
+    
+    def get_statistics_from_frequency(self,key,freq):
+        '''
+        @brief return statistics for a given key at a given frequency (hz)
+        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
+        @param[in] freq - frequency (in Hz) to get the values at
+        '''
+        est = self.estimate.S[key].get_value_from_frequency(freq)
+        cip = self.confidence_interval['+'].S[key].get_value_from_frequency(freq)
+        cim = self.confidence_interval['-'].S[key].get_value_from_frequency(freq)
+        stp = self.standard_uncertainty['+'].S[key].get_value_from_frequency(freq)
+        stm = self.standard_uncertainty['-'].S[key].get_value_from_frequency(freq)
         return est,cip,cim,stp,stm
     
     def plot(self,key,label=''):
