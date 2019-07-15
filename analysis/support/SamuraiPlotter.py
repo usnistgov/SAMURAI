@@ -6,7 +6,6 @@ Created on Mon May 20 15:04:22 2019
 """
 
 import numpy as np
-import traceback
 
 class SamuraiPlotter:
     '''
@@ -47,19 +46,15 @@ class SamuraiPlotter:
         @params[in] args - variable arguments to pass to pltting funciton
         @param[in] kwargs - keyword ags to pass to plotting funciton
         '''
-        if self.plot_program in self.options['supported_plotting_programs']:
-            init_funct_name = '_init_'+self.plot_program
-            init_funct = getattr(self,init_funct_name)
-            init_funct() #make sure were initialized
-            funct_name = '_'+plot_funct_name+'_'+self.plot_program
-            funct = getattr(self,funct_name) 
-            rv = funct(*args,**kwargs)
-            return rv
-        else:
-            raise Exception("'{}' is not a supported plotting program,' 
-                            'please set self.plot_program to one of the'
-                            ' following {}'.format(self.options['supported_plotting_programs']))
-    
+        self._verify_plot_program()
+        init_funct_name = '_init_'+self.plot_program
+        init_funct = getattr(self,init_funct_name)
+        init_funct() #make sure were initialized
+        funct_name = '_'+plot_funct_name+'_'+self.plot_program
+        funct = getattr(self,funct_name) 
+        rv = funct(*args,**kwargs)
+        return rv
+
     ###########################################################################
     ####### Surface Plots
     ########################################################################### 
@@ -191,7 +186,7 @@ class SamuraiPlotter:
         '''
         @brief 1D plot in matplotlib
         '''
-        self._check_arg_count(len(args),2,2) #must have exactly 2 args
+        #self._check_arg_count(len(args),2,2) #must have exactly 2 args
         #fig = self.matplotlib.figure()
         ax = self.matplotlib.gca()
         kwargs = self._matlab2matplotlib(ax,**kwargs)
@@ -221,12 +216,10 @@ class SamuraiPlotter:
             self.options['plot_order'] for the method or property
         @param[in] name - attribute name
         '''
-        plotter_name = self.options['plot_order'][0]
-        plotter_attr = getattr(self,plotter_name)
-        if not plotter_attr: #make sure we have initailized
-            init_plotter_funct = getattr(self,'_init_'+plotter_name)
-            init_plotter_funct() #init the plotter
-        plotter = getattr(self,plotter_name) #get the plotter
+        self._verify_plot_program() #make sure program is acceptable
+        init_plotter_funct = getattr(self,'_init_'+self.plot_program)
+        init_plotter_funct() #init the plotter
+        plotter = getattr(self,self.plot_program) #get the plotter
         attr = getattr(plotter,name)
         return attr
         
@@ -277,7 +270,16 @@ class SamuraiPlotter:
             raise TypeError("At least 3 input arguments required")
         if arg_count>max_args: 
             raise TypeError("Too many arguments (3 or 4 expected, {} recieved)".format(arg_count))
-        
+            
+    def _verify_plot_program(self):
+        '''
+        @brief verify self.plot_program is supported, if not raise an exception
+        '''
+        if self.plot_program not in self.options['supported_plotting_programs']:
+            raise Exception(("'{}' is not a supported plotting program,"
+             'please set self.plot_program to one of the'
+             ' following {}').format(self.plot_program,self.options['supported_plotting_programs']))
+    
     
     ###########################################################################
     ####### argument translation
