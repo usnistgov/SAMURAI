@@ -192,7 +192,7 @@ class metaFile(OrderedDict):
         jhd = OrderedDict({})
         jhd['metafile_path']      = os.path.relpath(self.jsonPath,self['working_directory'])
         jhd['rawfile_path']       = os.path.relpath(self.raw_path,self['working_directory'])
-        jhd.update(self.options)  #update with all of our input options
+        jhd.update(self)  #update with all of our input options
         jhd['notes']              = None
 
         for key,val in six.iteritems(additional_header_info):
