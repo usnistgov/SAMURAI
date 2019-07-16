@@ -23,7 +23,7 @@ default_info['steps_per_rotation'] = 400
 
 class BislideController():
     '''
-    @brief class to abstract bislide control
+    @brief class to abstract bislide control. THIS IS ONLY FOR VELMEX BISLIDES
     '''
     
     def __init__(self,com_port,**options):
@@ -45,6 +45,9 @@ class BislideController():
             
     
     def connect(self):
+        '''
+        @brief open the bislide serial port
+        '''
         #set options
         self.ser.port = self.com_port
         self.set_options() #write options to serial values
@@ -52,6 +55,9 @@ class BislideController():
         return"Bislide Connected : %s" % self.ser.is_open
         
     def disconnect(self):
+        '''
+        @brief close the bislide serial port
+        '''
         self.ser.close()
         return "Bislide Connected : %s" % self.ser.is_open
     
@@ -71,7 +77,12 @@ class BislideController():
         self.zero_position_reg()
         self.clear_commands()
     
-    def move_steps(self,num_steps,motor_num=1):
+    def move_steps(self,num_steps,motor_num):
+        '''
+        @brief move a motor a given number of steps
+        @param[in] num_steps - number of steps to move
+        @param[in] motor_num - which motor number to move
+        '''
         com = "I%dM%d\r" %(motor_num,num_steps)
         self.enable_online_mode()
         self.write(com)
@@ -80,11 +91,21 @@ class BislideController():
         self.clear_commands()
         
     def move_mm(self,distance_mm,motor_num=1):
+        '''
+        @brief move a motor a given number of mm
+        @param[in] num_steps - number of steps to move
+        @param[in/OPT] motor_num - which motor number to move (default 1)
+        '''
         steps = self.mm_to_steps(distance_mm)
         self.move_steps(steps,motor_num)
         return self.get_position()
     
     def set_position_steps(self,num_steps,motor_num):
+        '''
+        @brief set the position of the bislide in steps
+        @param[in] num_steps - how many steps from 0 to move to
+        @param[in] motor_num - which motor to move
+        '''
         com = "IA%dM%d\r" %(motor_num,num_steps)
         self.enable_online_mode()
         self.write(com)
@@ -93,12 +114,22 @@ class BislideController():
         self.clear_commands()
     
     def set_position(self,location_mm,motor_num=1):
+        '''
+        @brief move a motor a given location from zero in mm
+        @param[in] num_steps - number of steps to move
+        @param[in/OPT] motor_num - which motor number to move (default 1)
+        '''
         steps = self.mm_to_steps(location_mm)
         self.set_position_steps(steps,motor_num)
         return self.get_position()
         
         
     def get_limit_status(self):
+        '''
+        @brief get the status of the limit switches
+        @return a dictionary with entries 1-,1+,2-,2+ 
+            which shows whehter the limit switches are activated
+        '''
         self.enable_online_mode()
         lim_val = self.query('?')
         motor_bits = get_bits(lim_val.encode())
@@ -110,10 +141,17 @@ class BislideController():
         return motor_lims
         
     def read_current_program(self):
+        '''
+        @brief get the current program the slide is running
+        '''
         prog = self.query('lst',terminator=b'\r')
         return prog
         
     def enable_online_mode(self):
+        '''
+        @brief enable the ability to control interactively 
+            (one command at a time)
+        '''
         self.write('F')
         return self.get_controller_status()
     
@@ -125,9 +163,16 @@ class BislideController():
         return self.get_position()
     
     def clear_commands(self):
+        '''
+        @brief clear all commands in the queue
+        '''
         self.write('C')
         
     def interactive_write(self,msg):
+        '''
+        @brief interactively write commands Should probably be DEPRECATED. 
+            Not commonly used because we zero the position regs here.
+        '''
         #interactive command as shown in the manual
         self.write('F') #put the VXM online
         self.write('N') #zero position registers
@@ -136,10 +181,17 @@ class BislideController():
         
         
     def wait_motor_ready(self,ready_character='^'):
+        '''
+        @brief wait until our motor returns a ready character (blocking)
+        '''
         while(self.read() != ready_character):
             pass
     
-    def get_position_steps(self,motor_num=1):
+    def get_position_steps(self,motor_num):
+        '''
+        @brief get our position in steps of a motor
+        @param[in] motor_num - which motor to get the steps of
+        '''
         motor_dict = {}
         motor_dict[1] = 'X'
         motor_dict[2] = 'Y'
@@ -149,10 +201,17 @@ class BislideController():
         return int(rv)
     
     def get_position(self,motor_num=1):
+        '''
+        @brief get the position of our motor in mm
+        @param[in/OPT] motor_num - which motor to query (default 1)
+        '''
         steps = self.get_position_steps(motor_num)
         return self.steps_to_mm(steps)
         
     def get_controller_status(self):
+        '''
+        @brief get and unpack the status of the controller
+        '''
         qv =  self.query('V')
         #now change to a message
         status_dict = {}
@@ -174,6 +233,10 @@ class BislideController():
         self.ser.timeout  = self.options['timeout']
         
     def write(self,msg):
+        '''
+        @brief write a message to the bislide
+        @param[in] msg - message to write
+        '''
         self.ser.write(msg.encode())
         
     def read(self,terminator=None):
@@ -203,12 +266,27 @@ class BislideController():
         return rv
     
     def steps_to_mm(self,steps):
+        '''
+        @brief convert # of steps to millimeters
+        @param[in] steps - number of steps to convert
+        @return converted value in millimeters
+        '''
         return steps*self.options['mm_per_rotation']/self.options['steps_per_rotation']
     
     def mm_to_steps(self,mm): 
+        '''
+        @brief convert millimeters to # of steps
+        @param[in] mm - number of millimeters to convert
+        @return converted value in steps rounded to the nearest whole number
+        '''
         return round(mm*self.options['steps_per_rotation']/self.options['mm_per_rotation'])
 
 def get_bits(val):
+    '''
+    @brief unpack bits from a given value in LSB order
+    @param[in] val - value to unpack to bits
+    @return array of unpacked bits
+    '''
     ba = bytearray(val)
     len_ba = len(ba)
     mybits = [0]*8*len_ba #get zeros

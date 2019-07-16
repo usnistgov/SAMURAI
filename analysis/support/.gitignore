@@ -4,3 +4,5 @@ data/
 test*
 #html plotly files
 *.html
+#log files
+*.log

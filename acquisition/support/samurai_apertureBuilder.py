@@ -179,6 +179,7 @@ class ApertureBuilder():
         @brief generate a cylindrical aperture
         @param[in] origin - [x,y,z,alpha,beta,gamma] position for cylinder center
         @param[in] radius - radius of cylinder in mm
+        @param[in] height - height of the cylinder to generate
         @param[in] height_step_size_mm - step size in vertical direction in mm
         @param[in] sweep_angle - angle to sweep in degrees
         @param[in] angle_step_size_degrees - azimuthal angular step in degrees
@@ -195,25 +196,26 @@ class ApertureBuilder():
         #along z axis gamma is our theta value
         #first calculate our angles
         #range is gamma+sweep/2 to gamma-sweep/2
-        theta_start = gamo-float(sweep_angle)/2
-        theta_end   = gamo+float(sweep_angle)/2
+        theta_start = beto-float(sweep_angle)/2
+        theta_end   = beto+float(sweep_angle)/2
         theta_vals  = np.arange(theta_start,theta_end+angle_step_size_degrees,angle_step_size_degrees)
         #now calculate where our outer circle is
         #x = rcos(theta)+xo, y=rsin(theta)+yo, z=z;
         #start with the x,y values
-        x = radius*np.cos(theta_vals*np.pi/180.)+xo; y = radius*np.sin(theta_vals*np.pi/180.)+yo
+        z = radius*np.cos(theta_vals*np.pi/180.)+zo; x = radius*np.sin(theta_vals*np.pi/180.)+xo
         #now generate z from origin to origin+height
-        z = np.arange(zo,zo+height+height_step_size_mm,height_step_size_mm)
+        y = np.arange(yo,yo+height+height_step_size_mm,height_step_size_mm)
         #now combine to get all of our values
         #now tile this for the number of z locations
-        x_tot     = np.tile(x,len(z))
-        y_tot     = np.tile(y,len(z))
-        z_tot  = np.repeat(z,len(theta_vals)) #repeat z for every theta
-        theta_tot = np.tile(theta_vals,len(z))
+        #these x,y,z values are swapped because of the changed reference frame
+        z_tot     = np.tile(z,len(y))
+        x_tot     = np.tile(x,len(y))
+        y_tot  = np.repeat(y,len(theta_vals)) #repeat z for every theta
+        theta_tot = np.tile(theta_vals,len(y))
         alph_tot  = np.repeat(alpho,theta_tot.size)
-        bet_tot   = np.repeat(beto,theta_tot.size)
+        gam_tot   = np.repeat(gamo,theta_tot.size)
         #finally combine into positoins
-        pos_vals = np.array([x_tot,y_tot,z_tot,alph_tot,bet_tot,theta_tot]).transpose()
+        pos_vals = np.array([x_tot,y_tot,z_tot,alph_tot,theta_tot,gam_tot]).transpose()
         return pos_vals
             
     def curve_array(self,curve_radius_mm):
@@ -364,12 +366,16 @@ class ApertureBuilder():
         '''
         self.add_positions(ap2.positions)
         
-    def change_reference_frame(self,rotation_matrix):
+    def change_reference_frame(self,rotation_matrix,external_positions=None):
         '''
         @brief change our reference frame using a rotation matrix. This matrix should be 6 by 6
         @param[in] rotation_matrix - 6 by 6 matrix for rotation
+        @param[in/OPT] external_positions - external positions to change. If none operate on self.positions
         '''
-        self.positions = np.matmul(self.positions,rotation_matrix)
+        if external_positions is None:
+            self.positions = np.matmul(self.positions,rotation_matrix)
+        else:
+            return np.matmul(external_positions,rotation_matrix)
         
     def flipud(self):
         '''
@@ -502,6 +508,7 @@ if __name__=='__main__':
     myap.change_reference_frame(v1_to_v2_convert)
     myap2.change_reference_frame(v1_to_v2_convert)
     '''
+    '''
     #about lambda/2 at 40GHz
     lam_at_forty = 2.99e8/40e9/2*1000 #lambda at 40GHz in mm
     myap.gen_planar_aperture_from_center([0,125,60,0,0,0],step=[lam_at_forty,lam_at_forty,0],numel=[35,35,1])
@@ -516,10 +523,14 @@ if __name__=='__main__':
     myap.write(fout2)
     fout_dp = 'sweep_files/samurai_planar_dp.csv'
     cat_positions_file(fout1,fout2,fout_dp)
-    
+    '''
     #myap.load(fout_dp)
     #myap.plot_path_2D()
-    
+    ap1 = myap.gen_cylindrical_aperture([0,128,-80,0,0,0],201,0,1,180,0.25)
+    ap2 = myap.gen_cylindrical_aperture([0,128,-80,0,0,90],201,0,1,180,0.25)
+    ap = np.concatenate((ap1,np.flipud(ap2)))
+    myap.positions = ap
+    myap.write('sweep_files/azimuth_antenna_sweep_fine.csv')
 
         
         
