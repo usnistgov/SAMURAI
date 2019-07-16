@@ -11,28 +11,37 @@ This assumes our data has been calibrated with the MUF and DUTs are within that 
 from collections import OrderedDict
 import json
 import os
-from shutil import copyfile
+from shutil import copyfile,copy
 import numpy as np
+from datetime import datetime #for timestamps
 
 from samurai.analysis.support.snpEditor import SnpEditor as snp
-from samurai.analysis.support.generic import deprecated
+from samurai.analysis.support.MUFResult import MUFResult
+from samurai.analysis.support.generic import deprecated, ProgressCounter
 from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.support.samurai_optitrack import MotiveInterface
-from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
-
+from samurai.acquisition.support.samurai_metaFile import metaFile
 
 class MetaFileController(OrderedDict):
     
 
-    def __init__(self,metafile_path,suppress_empty_warning=0):
+    def __init__(self,metafile_path,**arg_options):
         '''
         @brief initialize our class to control our metafile and the data within it
-        @param[in] metafile_path - path to the metafile to load (if it doesnt exist it will be created)
-        @param[in/OPT] supress_empty_warning - dont give a warning if the file loaded doesnt exist or is empty
+        @param[in] metafile_path - path to the metafile to load 
+            This can also be passed as None. If this is done, a
+            OrderedDict will be created from samurai_metaFile acquisition code
+            with a blank measurements list
         '''
         OrderedDict.__init__(self) #initialize ordereddict
-        self.load(metafile_path,suppress_empty_warning)
+        if metafile_path is not None:
+            self.load(metafile_path)
+        else:
+            self.metafile = None
+            self.wdir = os.path.abspath('./') #get the current path
+            self.update(OrderedDict(metaFile(None,None)))
+            
         self.plotter = SamuraiPlotter()
         
         self.unit_conversion_dict = { #dictionary to get to meters
@@ -46,80 +55,69 @@ class MetaFileController(OrderedDict):
     ###########################################################################
     ### File IO methods
     ###########################################################################
-    def load(self,metafile_path,suppress_empty_warning=0):
+    def load(self,metafile_path):
         '''
         @brief load a json metafile
-        @param[in] metafile_path - path to the metafile to load, create one if it doesnt exist
-        @param[in] suppress_empty_warning - if true suprress the warning that an empty file was created
-        '''
-        metaPath = metafile_path
-        
-        #if(prompt):
-        #    metaPath = tkFileDialog.askopenfilename(initialdir='../../',title='Select Metadata File',filetypes=(('Synthetic Aperture MetaFile','*.json'),));
-
-        #create an empty class if no metafile was defined
+        @param[in] metafile_path - path to the metafile to load
+        '''        
         if not os.path.exists(metafile_path):
-            if not suppress_empty_warning:
-                print("No metafile specified - Creating empty file")
-            [metadir,metafile]= os.path.split(metaPath)
-            self.metafile = metafile
-            self.metadir  = metadir
-            #self.jsonData = OrderedDict()
+            raise FileNotFoundError("File '{}' not found".format(os.path.abspath(metafile_path)))
         else:
             #here we assume the working directory is the location of our metafile
-            [metadir,metafile]= os.path.split(metaPath)
+            [wdir,metafile]= os.path.split(metafile_path)
             self.metafile = metafile
-            self.metadir     = metadir
-            with open(metaPath,'r') as jsonFile:
-                #self.jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
+            self.wdir     = wdir
+            with open(metafile_path,'r') as jsonFile:
+                #self = json.load(jsonFile, object_pairs_hook=OrderedDict)
                 self.update(json.load(jsonFile, object_pairs_hook=OrderedDict))
-                self.jsonData = self
             self.update_format() #update if the format is bad
                 
-    def write(self,outPath='default'):
+    def write(self,outPath=None):
         '''
         @brief write out edited metafile
         @param[in/OPT] outPath - path where to write out file. If not specified, use the previous filename
+        @return the path to the written file
         '''
         self.saved = 1
-        if(outPath=='default'):
-            outPath = os.path.join(self.metadir,self.metafile)
+        if not outPath:
+            outPath = os.path.join(self.wdir,self.metafile)
         with open(outPath,'w+') as jsonFile:
-            json.dump(self.jsonData,jsonFile,indent=4) 
+            json.dump(self,jsonFile,indent=4) 
+        return outPath
             
-    #now functions for dealing with the data
-    @deprecated("Use MetaFileController.load_data() method")
-    def load_all_meas(self):
-        '''
-        @brief load s2p files into this class DEPRECATED
-        @DEPRECATED use load_data method
-        '''
-        self.s2pData = []
-        self.numLoadedMeas = 0
-        measurements = self.jsonData['measurements']
-        for meas in measurements:
-            self.s2pData.append(snp(meas['filename'].strip()))
-            self.numLoadedMeas+=1
-            
-    def load_data(self,verbose=False,read_header=True):
+    def load_data(self,verbose=False,read_header=True,**arg_options):
         '''
         @brief load up all measurements into list of snp or wnp files
         @param[in/OPT] verbose - whether or not to be verbose when loading
         @param[in/OPT] read_header - whether or not to skip reading the header. Should be faster with false
+        @param[in/OPT] arg_options -keyword arguments as follows
+            data_type - nominal,monte_carlo,perturbed,etc. If none do nominal
+            data_meas_num - which measurement of monte_carlo or perturbed to use
         @return list of snp or wnp classes
         '''
+        options = {}
+        options['data_type'] = None
+        options['data_meas_num'] = 0
+        for k,v in arg_options.items():
+            options[k] = v
         snpData = []
         numLoadedMeas = 0
-        wdir = self.wdir
-        measurements = self.jsonData['measurements']
-        if verbose: print("Loading Measurement %5d" %(0),end='')
-        for meas in measurements:
-            snpData.append(snp(os.path.join(wdir,meas['filename'].strip()),read_header=read_header))
+        if verbose: pc = ProgressCounter(len(self.measurements),'Loading Metafile Data: ',update_period=5)
+        for meas in self.measurements:
+            fname = os.path.join(self.wdir,meas['filename'].strip())
+            #if options['data_type'] is None or options['data_type']=='nominal':
+            #    snpData.append(snp(fname,read_header=read_header))
+            if options['data_type']=='monte_carlo':
+                muf_res = MUFResult(fname,no_load=True)
+                fname = muf_res.get_monte_carlo_path(options['data_meas_num'])
+            if options['data_type']=='perturbed':
+                muf_res = MUFResult(fname,no_load=True)
+                fname = muf_res.get_perturbed_path(options['data_meas_num'])
+            snpData.append(snp(fname,read_header=read_header))
             numLoadedMeas+=1
-            if verbose: 
-                if not numLoadedMeas%10: 
-                    print("%s %5d" %('\b'*6,numLoadedMeas),end='')
-        if verbose: print("\nLoading Complete")
+            #print(numLoadedMeas)
+            if verbose: pc.update()
+        if verbose: pc.finalize(); print('Loading Complete')
         return snpData,numLoadedMeas
     
     def update_format(self):
@@ -136,6 +134,10 @@ class MetaFileController(OrderedDict):
                 m['units'] = 'mm'
                 m['position'] = [pos_mm[3],pos_mm[0],0,0,0,0]
                 self.set_meas(m,i)
+                self['positioner'] = 'maturo_updated_positions'
+                self['metafile_version'] = 2 #we update to version 2 here also
+        elif self['positioner']=='beamforming': #we beamformed to get the data
+            pass #do nothing for now
         else:
             if(self['metafile_version']<2): #if pre v2, we need to convert
                 for i,m in enumerate(self.get_meas()): #loop through all measurements
@@ -357,8 +359,7 @@ class MetaFileController(OrderedDict):
             pos = self.get_external_positions_mean(l)
             self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
         self.plotter.legend(interpreter=None,nargout=0)
-        return fig
-        
+        return fig 
     
     ###########################################################################
     ### Getters and setters for various things
@@ -377,7 +378,7 @@ class MetaFileController(OrderedDict):
         @brief property to return working directory
         @return the working directory
         '''
-        return self.get_wdir()
+        return self['working_directory'].strip()
     
     @wdir.setter
     def wdir(self,path):
@@ -385,39 +386,34 @@ class MetaFileController(OrderedDict):
         @brief set the wdir property
         '''
         self.set_wdir(path)
-
-    def get_wdir(self):
-        '''
-        @brief get the working directory
-        '''
-        return self.jsonData['working_directory'].strip()
         
     #update working directory to current location
-    def set_wdir(self,wdir=''):
+    def set_wdir(self,wdir='./'):
         '''
         @brief set the working directory
         @param[in/OPT] wdir - the new working directory to set. if '' use the directory the file was opened from
         '''
-        if(wdir!=''):
-            self.metadir = wdir
-        wdir = os.path.abspath(self.metadir)
+        wdir = os.path.abspath(wdir)
         self.saved=0
         # Update the name and working directory
-        self.jsonData.update({'working_directory':wdir})
-        self.jsonData.update({'metafile_path':self.metafile})
-        
-    def get_timestamp_data(self,measNum=0):
-        ts = self.jsonData['measurements'][measNum]['timestamp']
-        [ts_date, ts_time] = filter(None,ts.split())
-        [ts_year,ts_month,ts_day] = ts_date.split('-')
-        return ts, ts_month, ts_day, ts_year, ts_time
+        self.update({'working_directory':wdir})
+        self.update({'metafile_path':self.metafile})
+    
+    @property
+    def timestamps(self):
+        '''
+        @brief get the timestamps from the metafile
+        @return list of timestamps as datetime objects
+        '''
+        time_str = [self.measurements[num]['timestamp'].strip() for num in range(len(self.measurements))]
+        return [datetime.strptime(ts,'%Y-%m-%d %H:%M:%S.%f') for ts in time_str]
     
     @property
     def measurements(self):
         '''
         @brief property to quickly access measurements
         '''
-        return self.jsonData['measurements']
+        return self['measurements']
     
     def get_meas(self,measNum=-1):
         '''
@@ -428,10 +424,11 @@ class MetaFileController(OrderedDict):
                 measNum = [measNum]
         if(measNum[0]<0):
             #load all
-            return self.jsonData['measurements']
+            return self['measurements']
         else:
-            return [self.jsonData['measurements'][num] for num in measNum]
+            return [self['measurements'][num] for num in measNum]
         
+    @deprecated("Please use self.get_filename_list() or self.filenames")
     def get_meas_path(self,measNum=-1):
         '''
         @brief get the measurement path
@@ -439,11 +436,11 @@ class MetaFileController(OrderedDict):
         '''
         if(measNum<0):
             #load all
-            wdir = self.get_wdir()
-            measPathList = [os.path.join(wdir,meas['filename'].strip()) for meas in self.jsonData['measurements']]
+            wdir = self.wdir
+            measPathList = [os.path.join(wdir,meas['filename'].strip()) for meas in self['measurements']]
             return measPathList
         else:
-            return os.path.join(self.get_wdir(),self.jsonData['measurements'][measNum])
+            return os.path.join(self.wdir,self['measurements'][measNum])
         
     def set_meas(self,measurements,measNum=-1):
         '''
@@ -454,9 +451,9 @@ class MetaFileController(OrderedDict):
         self.saved = 0
         if(measNum<0):
             #write whole list
-            self.jsonData['measurements']=measurements
+            self['measurements']=measurements
         else:
-            self.jsonData['measurements'][measNum] = measurements
+            self['measurements'][measNum] = measurements
 
     @property
     def filenames(self):
@@ -464,6 +461,13 @@ class MetaFileController(OrderedDict):
         @brief property to get list of filenames with absolute paths
         '''
         return self.get_filename_list(abs_path=True)
+    
+    @filenames.setter
+    def filenames(self,path_list):
+        '''
+        @brief set the filenames from a list
+        '''
+        self.set_filename(path_list)
 
     def get_filename_list(self,abs_path=False):
         '''
@@ -471,12 +475,12 @@ class MetaFileController(OrderedDict):
         @param[in/OPT] abs_path - whether or not to return an absolute path (default False)
         '''
         fnames = []
-        measurements = self.jsonData['measurements']
+        measurements = self['measurements']
         for meas in measurements:
             cur_fname = meas['filename'].strip()
             if(abs_path):
                 #then add the wdir
-                cur_fname = os.path.join(self.get_wdir(),cur_fname)
+                cur_fname = os.path.join(self.wdir,cur_fname)
             fnames.append(cur_fname)
         return fnames
 
@@ -486,11 +490,11 @@ class MetaFileController(OrderedDict):
         @param[in] meas_num - which measurement to get the filename of (index from 0)
         @param[in/OPT] abs_path - whether or not to return an absolute path (default False)
         '''
-        meas = self.jsonData['measurements'][meas_num]
+        meas = self['measurements'][meas_num]
         fname = meas['filename'].strip()
         if(abs_path):
             #then add the wdir
-            fname = os.path.join(self.get_wdir(),fname)
+            fname = os.path.join(self.wdir,fname)
         return fname
     
     #write filenames, default to whole list
@@ -502,47 +506,47 @@ class MetaFileController(OrderedDict):
         @param[in/OPT] meas_num - which measurement to set. -1 for all
         '''
         if(meas_num<0):
-            num_meas = len(self.jsonData['measurements']) #get the number of measurements
+            num_meas = len(self['measurements']) #get the number of measurements
             if(num_meas!=len(fnames)):
-                print("ERROR: Filename list length does not match number of measurements in metafile")
+                raise ValueError("Filename list length does not match number of measurements in metafile")
                 return -1
             for i in range(num_meas):
-                self.jsonData['measurements'][i]['filename'] = fnames[i] #set the filename from the list
+                self['measurements'][i]['filename'] = os.path.relpath(fnames[i],self.wdir) #set the filename from the list
         else: #its a meas index then
-            self.jsonData['measurements'][meas_num]['filename'] = fnames #should just be one name here
+            self['measurements'][meas_num]['filename'] = os.path.relpath(fnames,self.wdir) #should just be one name here
         return 0
     
     def set_calibration_file(self,calfile,measNum=-1,set_calibrated_flg=True):
         self.saved = 0
         if(measNum<0):
-            measurements = self.jsonData['measurements']
+            measurements = self['measurements']
             for meas in measurements:
                 meas['calibration_file'] = calfile
                 if(set_calibrated_flg):
                     meas.update({'calibrated':True})
-            self.jsonData['measurements'] = measurements
+            self['measurements'] = measurements
             
     def add_calibrated_filename(self,dutDir,measNum=-1,set_calibrated_flg=True):
         self.saved = 0
         if(measNum<0):
-            measurements = self.jsonData['measurements']
+            measurements = self['measurements']
             for meas in measurements:
                 #assume muf format with DUTs all in single folder and s2ps in subfolders
                 s2pDir = meas['filename'].split('.')[0].strip()+'_Support'
                 cal_fname = meas['filename'].split('.')[0].strip()+'_0.s2p'
                 cal_path = os.path.join(dutDir,s2pDir,cal_fname)
-                cal_rel  = os.path.relpath(cal_path,self.get_wdir())
+                cal_rel  = os.path.relpath(cal_path,self.wdir)
                 meas.update({'calibrated_filename': cal_rel})
                 
                 if(set_calibrated_flg):
                     meas.update({'calibrated':True})
                     
-            self.jsonData['measurements'] = measurements
+            self['measurements'] = measurements
             
     def get_header_dict(self):
         #just get the header out of the data (everytrhing but the mesaurements)
         non_header_keys = ['measurements']
-        myheaderdict = {k: v for k,v in self.jsonData.items() if k not in non_header_keys}
+        myheaderdict = {k: v for k,v in self.items() if k not in non_header_keys}
         return myheaderdict
     
     def rename(self,new_name):
@@ -557,6 +561,50 @@ metaFileController = MetaFileController
 ###########################################################################
 ### various useful functions
 ###########################################################################
+from samurai.analysis.support.MUFResult import MUFResult
+
+def copy_touchstone_from_muf(metafile,out_dir='./touchstone'):
+    '''
+    @brief take a metafile with *.meas data and copy the touchstone (*.snp/wnp) files
+        to a new directory with a new metafile (for backward compatability with peter)
+    @param[in] metafile - metafile containing the *.meas files
+    @param[in/OPT] out_dir - output directory to save the new files to realtive to old metafile path. Defaults to './touchstone'
+    '''
+    #open the metafile
+    mf = MetaFileController(metafile)
+    fnames = mf.filenames
+    cur_wdir = mf.wdir
+    out_dir = os.path.join(cur_wdir,out_dir)
+    #make the dir if it doesnt exist
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+    #now loop through our filenames and get the nominal paths
+    nominal_paths = []
+    print("Getting nominal values from *.meas files")
+    for fname in fnames:
+        mr = MUFResult(fname,no_load=True) #do not load the data, just parse the XML
+        nominal_paths.append(mr.nominal_value_path) #get the nominal value
+    #now copy all of our nominal paths to the output directory
+    print("Copying Files: {:5}/{:5}".format(0,len(nominal_paths)),end='')
+    out_file_paths = []
+    for i,nom_path in enumerate(nominal_paths):
+        meas_name,_ = os.path.splitext(os.path.split(fnames[i])[-1]) #get the name of the measurement
+        _,file_ext = os.path.splitext(os.path.split(nom_path)[-1])
+        out_path = os.path.join(out_dir,meas_name+file_ext)
+        copy(nom_path,out_path)
+        out_file_paths.append(out_path)
+        if not i%10:
+            print("\b"*11+"{:5}/{:5}".format(i,len(nominal_paths)),end='')
+    print('') #newline
+    #now update our metafile with the new paths and working directory
+    cur_wdir
+    mf.set_wdir(out_dir)
+    mf.filenames = out_file_paths
+    mf.write()
+    
+        
+        
+
 #update to current directory
 def update_wdir(metafile_path):
     '''
@@ -586,12 +634,12 @@ def split_metafile(metafile_path,meas_split,label='split'):
     for i in range(num_splits):
         # Open blank metafile, then add header and our measurements
         split_mfc = metaFileController(metafile_path,suppress_empty_warning=1) 
-        split_mfc.jsonData.update(mymfc_header)
+        split_mfc.update(mymfc_header)
         meas_nums = meas_split[i]
-        split_mfc.jsonData['total_measurements'] = len(meas_nums)
-        split_mfc.jsonData['completed_measurements'] = len(meas_nums)
+        split_mfc['total_measurements'] = len(meas_nums)
+        split_mfc['completed_measurements'] = len(meas_nums)
         meas_dict_list = mymfc.get_meas(meas_nums)
-        split_mfc.jsonData.update({'measurements':meas_dict_list})
+        split_mfc.update({'measurements':meas_dict_list})
         # Now we can change the name and write out.
         mf_name   = mymfc_mf_name+'_'+label+'_'+str(i)+'.json'
         split_mfc.rename(mf_name)
@@ -611,7 +659,7 @@ def evenly_split_metafile(metafile_path,num_splits,label='split'):
     
     # First we get the number of measurements per split.
     mymfc = metaFileController(metafile_path)
-    num_meas = mymfc.jsonData['total_measurements']
+    num_meas = mymfc['total_measurements']
     num_meas_per_split = num_meas/num_splits
     # Now we will generate the split lists for splitting.
     meas_split_boundaries = [[i*num_meas_per_split,(i+1)*num_meas_per_split] 
@@ -659,7 +707,7 @@ if __name__=='__main__':
     beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
     mf.add_external_marker('beam-3',beam3_loc,units='m')
     mf.add_external_marker('beam-2',beam2_loc,units='m')
-    mf.plot_external_positions()
+    #mf.plot_external_positions()
     
     
     
