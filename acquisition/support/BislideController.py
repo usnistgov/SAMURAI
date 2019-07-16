@@ -61,10 +61,13 @@ class BislideController():
         self.ser.close()
         return "Bislide Connected : %s" % self.ser.is_open
     
-    def zero(self,direction='-',motor_num=1):
+    def zero(self,direction='-',motor_num=1,zero_position_reg=True):
         '''
         @brief zero to limit switch
         @param[in] direction '+' for positive '-' for negative 
+        @param[in/OPT] zero_position_reg - do we reset our position to zero?
+            defaults to true, but if we zero to the + direction should probably
+            be false otherwise all position values will be negative
         '''
         if direction=='-':
             com = "I%dM-0\r" %(motor_num)
@@ -74,7 +77,8 @@ class BislideController():
         self.write(com)
         self.write('R')
         self.wait_motor_ready()
-        self.zero_position_reg()
+        if zero_position_reg:
+            self.zero_position_reg()
         self.clear_commands()
     
     def move_steps(self,num_steps,motor_num):
@@ -221,6 +225,19 @@ class BislideController():
         status_dict['b'] = 'Host jogging/slewing'
         #and return the message and value
         return status_dict[qv],qv
+    
+    def set_step_speed(self,steps_per_second=2000,motor_num=1):
+        '''
+        @brief set the speed of the motor. Default is 2000 Steps per second
+        @param[in/OPT] steps_per_second - number of steps per second (default 2000)
+            2000 is also the value the controller starts up at
+        @param[in/OPT] motor_num - which motor to set the speed for (default 1)
+        @note This is set for 70% power (SmMx command) This can be changed
+            To use 100% power using the SAmMx command (m is motor#, x is steps_per_second)
+        '''
+        sps_int = int(steps_per_second) #convert to integer
+        command = "S%dM%d\r" %(int(motor_num),sps_int) #generate the command
+        self.write(command) #write to the controller
         
     def set_options(self,**options):
         '''
