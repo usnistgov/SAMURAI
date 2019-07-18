@@ -132,19 +132,20 @@ class MetaFileController(OrderedDict):
                 pos = np.array(m['position'])
                 pos_mm = pos*10 #cm to mm
                 m['units'] = 'mm'
-                m['position'] = [pos_mm[3],pos_mm[0],0,0,0,0]
+                m['position'] = list([pos_mm[3],pos_mm[0],0,0,0,0])
                 self.set_meas(m,i)
                 self['positioner'] = 'maturo_updated_positions'
-                self['metafile_version'] = 2 #we update to version 2 here also
+                self['metafile_version'] = 2.000001 #we update to version 2 here also
         elif self['positioner']=='beamforming': #we beamformed to get the data
             pass #do nothing for now
         else:
             if(self['metafile_version']<2): #if pre v2, we need to convert
                 for i,m in enumerate(self.get_meas()): #loop through all measurements
                     pos = m['position']
-                    pos = np.matmul(pos,v1_to_v2_convert)
+                    pos = np.matmul(pos,v1_to_v2_convert).tolist()
                     m['position'] = pos
                     self.set_meas(m,i)
+                    self['metafile_version'] = 2.000001
                  #convert version 1 to version 2
             elif(self['metafile_version']<3): #we are currently on v2
                 pass
