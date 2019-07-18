@@ -14,7 +14,7 @@ import json
 from samurai.analysis.support.generic import incomplete,deprecated,verified
 from samurai.analysis.support.generic import round_arb
 from samurai.analysis.support.snpEditor import SnpEditor
-from samurai.analysis.support.MatlabPlotter import MatlabPlotter
+from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 from samurai.analysis.support.metaFileController import MetaFileController
 from samurai.acquisition.support.samurai_optitrack import rotate_3d
 
@@ -117,7 +117,7 @@ class CalculatedSyntheticAperture:
         plot_data = self.get_data(plot_type,mean_flg=True)
         
         
-        
+        '''
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
             fig = self.mp.figure()
@@ -126,8 +126,8 @@ class CalculatedSyntheticAperture:
             self.mp.xlabel('Azimuth')
             self.mp.ylabel('Elevation')
             self.mp.zlabel(plot_type)
-            
-        elif(options['plot_program'].lower()=='plotly'):
+        '''  
+        if(options['plot_program'].lower()=='plotly'):
             plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
             layout = go.Layout(
                 title='UV Beamformed Plot',
@@ -189,6 +189,7 @@ class CalculatedSyntheticAperture:
         #    ,cmap=cm.summer,linewidth=0, antialiased=False)
         #ax.set_xlabel("U (Azimuth)")
         #ax.set_ylabel("V (Elevation)")
+        '''
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
             fig = self.mp.figure()
@@ -198,8 +199,8 @@ class CalculatedSyntheticAperture:
             self.mp.ylabel('V (Elevation)')
             self.mp.zlabel(plot_type)
             return fig
-            
-        elif(options['plot_program'].lower()=='plotly'): 
+        '''  
+        if(options['plot_program'].lower()=='plotly'): 
             ##### Plotly #####
             plotly_surf = [go.Surface(z = Dn, x = Un, y = Vn)]
             layout = go.Layout(
@@ -252,7 +253,7 @@ class CalculatedSyntheticAperture:
         #Y = plot_data*np.sin(np.deg2rad(self.elevation))
         [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type,translation=options['translation'],rotation=options['rotation'])
         db_range = caxis_max-caxis_min
-        
+        '''
         if(options['plot_program'].lower()=='matlab'):
             self.init_matlab_plotter()
             fig = self.mp.figure()
@@ -268,8 +269,8 @@ class CalculatedSyntheticAperture:
             self.mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
             self.mp.view([170,20])
             return fig
-            
-        elif(options['plot_program'].lower()=='plotly'): 
+        '''  
+        if(options['plot_program'].lower()=='plotly'): 
             #and plot
             plotly_surf = [go.Surface(z = Y, x = X, y = Z,surfacecolor=plot_data,
                                       colorbar=dict(
@@ -352,14 +353,7 @@ class CalculatedSyntheticAperture:
         #ax.plot_surface(X,Y,Z,cmap=cm.coolwarm,
         #               linewidth=0, antialiased=False)
         return fig
-    
-    def init_matlab_plotter(self):
-        '''
-        @brief initialize the matlab plotter (dont open if already open)
-        '''
-        if not self.mp:
-            self.mp = MatlabPlotter(**self.options)
-    
+     
     def get_data(self,data_str,freqs='all',**arg_options):
         '''
         @brief get the desired data from a string (e.g. 'mag_db','phase_d','mag', etc.)
