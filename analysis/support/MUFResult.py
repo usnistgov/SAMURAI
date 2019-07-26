@@ -20,6 +20,7 @@ class MUFResult(SnpEditor):
     '''
     @brief a class to deal with MUF results (and easily get uncertainties, monte_carlos, and whatnot)
         self is the nominal value. Other values will be contained to generate uncerts
+    @TODO add serial reading implementation for quick grabbing of path lists for large files
     
     Example
     -------
