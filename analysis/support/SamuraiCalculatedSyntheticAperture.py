@@ -46,7 +46,7 @@ class CalculatedSyntheticAperture:
         @return CalculatedSyntheticAperture class
         '''
         self.options = {}
-        self.options['plot_program'] = 'matlab'
+        self.options['plot_program'] = 'plotly'
         self.options['verbose'] = False
         self.options['metafile'] = None
         for key,val in six.iteritems(arg_options):
@@ -60,7 +60,7 @@ class CalculatedSyntheticAperture:
         self.mp = None #initialize matlab plotter to none
         self.complex_values = np.array([])
         self.freq_list = np.array([])
-        #self.plotter = SamuraiPlotter(**self.options)
+        self.plotter = SamuraiPlotter(**self.options)
         if complex_values.size>0 and freqs.size>0: #populate data if provided
             self.add_frequency_data(complex_values,freqs)
         
