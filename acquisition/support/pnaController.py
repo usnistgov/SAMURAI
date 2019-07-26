@@ -11,6 +11,9 @@ import time
 
 #chain for changing list of tuples into 1d list
 from itertools import chain
+from collections import OrderedDict
+
+from samurai.acquisition.support.InstrumentControl import SCPICommandDict
 
 #>>> import visa
 #>>> rm = visa.ResourceManager()
@@ -19,32 +22,35 @@ from itertools import chain
 #>>> inst = rm.open_resource('GPIB0::12::INSTR')
 #>>> print(inst.query("*IDN?"))
 
-class pnaController():
+import os
+script_path = os.path.dirname(os.path.realpath(__file__))
+command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_communication_dictionary.json') 
+
+
+class PnaController(OrderedDict):
     
-    #default set to address when taking initial samurai measurements
-    #def __init__(self,visa_address='USB0::0x0957::0x0118::SG49151009::0::INSTR'):
-    def __init__(self,visa_address):#='TCPIP0::10.0.0.2::inst0::INSTR')
-        #damirs vna is USB0::0x0957::0x0118::SG49151009::0::INSTR
-        #dylans vna USB0::0x0957::0x0118::US49150144::INSTR
+    def __init__(self,visa_address):
         self.visa_addr = visa_address
         
-        self.settings = {}
-        #init our pna info 
-        self.settings['info']        = -1
-        self.settings['ifbw']        = -1.
-        self.settings['freq_start']  = -1.
-        self.settings['freq_stop']   = -1.
-        self.settings['freq_step']   = -1.
-        self.settings['freq_span']   = -1.
-        self.settings['freq_cent']   = -1.
-        self.settings['num_pts']     =  0 
-        self.settings['dwell_time']  = -1.
-        self.settings['delay_time']  = -1.
-        self.settings['power']       = -1e32
-        self.settings['sweep_type']  = 'NO READ'
-        self.settings['sweep_time']  = 0
+        self.control_dict = SCPICommandDict(command_set_path)
         
-        self.settings['info']        = 'NO INFO'
+        #init our pna info 
+        self_alias_dict = OrderedDict({
+                'info'       :'*IDN?',
+                'ifbw'       :'SENS:BAND',
+                'freq_start' :'SENS:FREQ:STAR',
+                'freq_stop'  :'SENS:FREQ:STOP',
+                'freq_span'  :'SENS:FREQ:SPAN',
+                'freq_cent'  :'SENS:FREQ:CENT',
+                'num_points' :'SENS:SWE:POIN',
+                'dwell_time' :'SENS:SWE:DWEL',
+                'sdelay_time':'SENS:SWE:DWEL:SDEL',
+                'power'      :'SOUR:POW',
+                'sweep_type' :'SENS:SWE:TYPE',
+                'sweep_time' :'SENS:SWE:TIME'
+                })
+        super().__init__()
+        self.update({'info':'NO INFO READ'})
         
         self.is_connected = False
         
@@ -60,7 +66,7 @@ class pnaController():
         if(not self.is_connected):
             try:
                 self.pna = self.vrm.open_resource(self.visa_addr)
-                self.settings['info'] = self.pna.query('*IDN?')
+                self['info'] = self.pna.query('*IDN?')
                 self.pna.timeout = 60000 #timeout wasnt working at 3 or 10
             except:
                 raise IOError("Unable to connect to PNA")
@@ -68,24 +74,10 @@ class pnaController():
             self.is_connected = True
             
     def write(self,msg):
-        
-        #not my favorite way to do this but prevents timeouts when writing 100 values to segment table for source
-        #i wish there was a :LIST command for segment source like there is for segment recievers
-        #seems to work though regardless
-        #ready = False
+        '''
+        @brief write a message to the PNA
+        '''
         self.pna.write('*WAI')
-       # while(not ready):
-       #     try:
-       #         self.pna.query('*OPC?');
-       #         ready = True;
-       #     except:
-       #         ready = False;
-            
-       # try:
-       #     self.pna.query('*OPC?');
-       # except:
-       #     print('Query Timed out when sending '+msg)
-        #self.pna.write('*WAI')
         self.pna.write(msg)
         self.pna.query('*OPC?')        
         #time.sleep(0.10);
@@ -104,25 +96,19 @@ class pnaController():
         self.connect()
         
         #now get all of our values
-        self.settings['info']        = self.pna.query('*IDN?')
-        self.settings['ifbw']        = float(self.pna.query('SENS:BAND?'))
-        self.settings['freq_start']  = float(self.pna.query('SENS:FREQ:STAR?'))
-        self.settings['freq_stop']   = float(self.pna.query('SENS:FREQ:STOP?'))
-        self.settings['num_pts']     = int  (self.pna.query('SENS:SWE:POIN?'))
-        #gives timeout error self.freq_step   = float(pna.query('SENS:FREQ:CENT:STEP:SIZE?'));
-        self.settings['freq_span']   = float(self.pna.query('SENS:FREQ:SPAN?'))
-        self.settings['freq_cent']   = float(self.pna.query('SENS:FREQ:CENT?'))
-        self.settings['dwell_time']  = float(self.pna.query('SENS:SWE:DWEL?'))
-        self.settings['sdelay_time'] = float(self.pna.query('SENS:SWE:DWEL:SDEL?'))
-        self.settings['power']       = float(self.pna.query('SOUR:POW?'))
-        self.settings['sweep_type']  = self.pna.query('SENS:SWE:TYPE?')
-        self.settings['sweep_time']  = float(self.pna.query('SENS:SWE:TIME?'))
+        for k,v in self.setting_alias_dict.items():
+            read_val = self.pna.query(self.command_dict.call_alias(v)('?'))
+            try: #try to convert to float
+                read_val = float(read_val)
+            except ValueError: #otherwise its fine as a string
+                pass
+            self[k] = read_val
         
         #close our visa connection
         self.disconnect()
         
         #calculate values
-        self.settings['freq_step'] = self.freq_span/float(self.num_pts-1)
+        self['freq_step'] = self.freq_span/float(self.num_pts-1)
             
         #set our frequencies in hz
     def set_freq_sweep(self,start_freq,stop_freq,freq_step=-1,num_pts=-1,chan=1):
@@ -149,28 +135,16 @@ class pnaController():
         self.write(pts_str)
         self.write(type_str)
         
-        #close connection
-        #self.disconnect();
-        
-        
-    def set_start_freq(self,start_freq,chan=0):
-        self.connect()
-        self.write("SENS%d:FREQ:STAR %e" % (chan,start_freq))
-        #self.disconnect();
-        
-    def get_start_freq(self):
-        return float(self.pna.query('SENS:FREQ:STAR?'))
     
+    def __getattr___(self,attr):
+        '''
+        @brief we will get the command for doing each of the things in the dict
+        '''
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError("{} is not an attribute or a in self[{}]".format(attr))
     
-    def set_num_pts(self,num_pts):
-        pts_str   = "SENS:SWE:POIN %d" % num_pts
-        self.write(pts_str)
-        
-    def get_num_pts(self):
-        self.connect()
-        rv = int(self.pna.query('SENS:SWE:POIN?'))
-        #self.disconnect();
-        return rv
     
   #  def get_s_param_data():
   #      self.connect();
@@ -362,19 +336,10 @@ class pnaController():
             self.pna.write(stop_com)
             #self.write(pts_com); #dont change points. this can cause further issues
          
-    def __getattr___(self,attr):
-        '''
-        @brief this should make us backward compatable with previous setup
-            If an attribute doesnt exist, check the settings dictionary
-        '''
-        try:
-            return self.settings[attr]
-        except KeyError:
-            raise AttributeError("{} is not an attribute or in self.settings['{}']".format(attr))
-    
+
 #alias the class name to hold python standards (while also being backward compatable)
-PnaController = pnaController    
-        
+pnaController = PnaController    
+
         
         
 
