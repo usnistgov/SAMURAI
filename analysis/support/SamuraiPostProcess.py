@@ -10,6 +10,7 @@ import numpy as np #import constants
 import scipy.constants as sp_consts #import constants for speed of light
 #import scipy.interpolate as interp
 import six
+import os
 #import json
 
 from samurai.analysis.support.metaFileController import MetaFileController 
