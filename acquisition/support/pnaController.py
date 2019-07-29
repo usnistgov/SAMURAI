@@ -190,20 +190,38 @@ class PnaController(OrderedDict):
     def get_all_trace_data(self):
         '''
         @brief get data from all traces on a single channel
-        @return [frequency_list, dict(trace_name:[values])]
+        @return [frequency_list, {trace_name:{'parameter':param,'data':[values]}]
         '''
         self.connect();
         #self.write('FORM:DATA REAL,64'); #set the data format
         freq_list = self.get_freq_list()
         trace_dict = self.get_traces()
         data_dict = {}
-        for key in trace_dict.keys():
+        for key,val in trace_dict.items():
             self.write(self.command_dict.get('CALC:PAR:SEL')("'{}'".format(key))) #select the trace
             data_str = self.query(self.command_dict.get('CALC:DATA?')('sdata'))
             data = np.array(data_str.split(','),dtype='float64') #data as floating point
             data_cplx = data[::2]+data[1::2]*1j #change to complex
-            data_dict[key] = data_cplx
+            data_dict[key] = {'parameter':val,'data':data_cplx}
         return freq_list,data_dict
+    
+    def measure_s_params(self,out_path):
+        '''
+        @brief measure s parameters of current traces and write out to out_path
+        '''
+        #first lets get the data of the current traces
+        freqs,data_dict = self.get_all_trace_data()
+        #import snp editor
+        from samurai.analysis.support.snpEditor import SnpEditor
+        #now lets get the number of ports from the out_path
+        num_ports = float(re.findall('(?<=s)\d+(?=p)',out_path)[0])
+        #now lets create our Snp Object
+        snp = SnpEditor([num_ports,freqs])
+        for d in data_dict:
+            if d['parameter'][0].upper()=='S': #then its an s param measurement
+                s_key = float(d['parameter'][1:])
+                snp.S[s_key].raw = d['data']
+        snp.write(out_path)
         
     def get_freq_list(self):
         '''
