@@ -8,6 +8,7 @@ Created on Fri May 11 13:23:47 2018
 import pyvisa as visa
 import numpy as np
 import time
+import re
 
 #chain for changing list of tuples into 1d list
 from itertools import chain
@@ -32,17 +33,16 @@ class PnaController(OrderedDict):
     def __init__(self,visa_address):
         self.visa_addr = visa_address
         
-        self.control_dict = SCPICommandDict(command_set_path)
+        self.command_dict = SCPICommandDict(command_set_path)
         
         #init our pna info 
-        self_alias_dict = OrderedDict({
-                'info'       :'*IDN?',
+        self.setting_alias_dict = OrderedDict({
                 'ifbw'       :'SENS:BAND',
                 'freq_start' :'SENS:FREQ:STAR',
                 'freq_stop'  :'SENS:FREQ:STOP',
                 'freq_span'  :'SENS:FREQ:SPAN',
                 'freq_cent'  :'SENS:FREQ:CENT',
-                'num_points' :'SENS:SWE:POIN',
+                'num_pts'    :'SENS:SWE:POIN',
                 'dwell_time' :'SENS:SWE:DWEL',
                 'sdelay_time':'SENS:SWE:DWEL:SDEL',
                 'power'      :'SOUR:POW',
@@ -67,7 +67,7 @@ class PnaController(OrderedDict):
             try:
                 self.pna = self.vrm.open_resource(self.visa_addr)
                 self['info'] = self.pna.query('*IDN?')
-                self.pna.timeout = 60000 #timeout wasnt working at 3 or 10
+                self.pna.timeout = 10000 #timeout wasnt working at 3 or 10
             except:
                 raise IOError("Unable to connect to PNA")
             #if it worked were connected;
@@ -84,20 +84,25 @@ class PnaController(OrderedDict):
         
     def query(self,msg):
         #self.pna.write('*OPC?')
+        print('QUERY: {}'.format(msg))
         return self.pna.query(msg)
     
     def disconnect(self):
         self.pna.close()
         self.is_connected = False
         
-    def getParams(self):
+    def get_params(self):
         
         #connect to pna
         self.connect()
-        
+        print("Getting params")
+        self['info'] = self.pna.query('*IDN?')
         #now get all of our values
         for k,v in self.setting_alias_dict.items():
-            read_val = self.pna.query(self.command_dict.call_alias(v)('?'))
+            command = self.command_dict.get(v)('?')
+            print(command)
+            read_val = self.pna.query(command)
+            #read_val = 'test'
             try: #try to convert to float
                 read_val = float(read_val)
             except ValueError: #otherwise its fine as a string
@@ -108,7 +113,19 @@ class PnaController(OrderedDict):
         self.disconnect()
         
         #calculate values
-        self['freq_step'] = self.freq_span/float(self.num_pts-1)
+        self['freq_step'] = np.divide(self['freq_span'],float(self['num_pts']-1))
+        
+    def set(self,command,*args,**kwargs):
+        '''
+        @brief set a value from self.setting_alias_dict or try command_dict
+        @param[in] command - can be an alias from setting_alias_dict, or command_dict
+        @param[in] *args - arguments for the commands
+        @param[in] **kwargs - keyword arguments for the command
+        '''
+        com = self.setting_alias_dict.get(command,None)
+        if com is None: #was not in the setting alias dict
+            com = self.command_dict.get(com) #assume its in the command_dict
+        
             
         #set our frequencies in hz
     def set_freq_sweep(self,start_freq,stop_freq,freq_step=-1,num_pts=-1,chan=1):
@@ -135,22 +152,67 @@ class PnaController(OrderedDict):
         self.write(pts_str)
         self.write(type_str)
         
-    
-    def __getattr___(self,attr):
+    def setup_s_param_measurement(self,parameter_list):
         '''
-        @brief we will get the command for doing each of the things in the dict
+        @brief setup n port s parameter measurement
+        @param[in] parameter_list - which parameters to measure (e.g. [11,21,22,21])
+        @note help from http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm
         '''
-        try:
-            return self[attr]
-        except KeyError:
-            raise AttributeError("{} is not an attribute or a in self[{}]".format(attr))
+        #first reset the vna
+        #self.write(self.command_dict.get('SYST:FPR')())
+        #now turn on window 1
+        #self.write(self.command_dict.get('DISP:WIND')('ON'))
+        #delete all other measurements
+        self.write(self.command_dict.get('CALC:PAR:DEL:ALL')())
+        #define our measurements
+        meas_names = ["'S_{}'".format(int(pc)) for pc in parameter_list]
+        meas_types = ["S{}".format(int(pc)) for pc in parameter_list]
+        #and add the measurements
+        for i,mn in enumerate(meas_names):
+            self.write(self.command_dict.get('CALC:PAR:EXT')(mn,meas_types[i]))
+        #and add them to the window
+        for i,mn in enumerate(meas_names):
+            self.write(self.command_dict.get('DISP:WIND:TRAC:FEED')(mn,tnum=i+1))
     
+    def set_continuous_trigger(self,on_off):
+        '''
+        @brief set continuous trigger on or off
+        '''
+        self.write(self.command_dict.get('INIT:CONT')(on_off))
+        
+    def trigger(self):
+        '''
+        @brief trigger the vna when in manual mode. This will also wait for the sweep to complete
+        '''
+        self.write(self.command_dict('INIT:IMM')())
+        
     
-  #  def get_s_param_data():
-  #      self.connect();
-  #      self.write('FORM:DATA REAL,64'); #set the data format
-  #      dat_str = self.query(')
-    
+    def get_all_trace_data(self):
+        '''
+        @brief get data from all traces on a single channel
+        @return [frequency_list, dict(trace_name:[values])]
+        '''
+        self.connect();
+        #self.write('FORM:DATA REAL,64'); #set the data format
+        freq_list = self.get_freq_list()
+        trace_dict = self.get_traces()
+        data_dict = {}
+        for key in trace_dict.keys():
+            self.write(self.command_dict.get('CALC:PAR:SEL')("'{}'".format(key))) #select the trace
+            data_str = self.query(self.command_dict.get('CALC:DATA?')('sdata'))
+            data = np.array(data_str.split(','),dtype='float64') #data as floating point
+            data_cplx = data[::2]+data[1::2]*1j #change to complex
+            data_dict[key] = data_cplx
+        return freq_list,data_dict
+        
+    def get_freq_list(self):
+        '''
+        @brief get a list of the frequencies from the vna
+        '''
+        freq_str = self.query('SENS:X?') #newer CALC:X? command doesnt work on typical VNA
+        freq_list = [float(val) for val in freq_str.strip().split(',')]
+        return freq_list
+        
     #give 'ON' or 'OFF' to on/off (or 1/0);
     def set_port_power_on_off(self,port_num,on_off_auto="AUTO"):
         
@@ -162,6 +224,22 @@ class PnaController(OrderedDict):
         pow_com = "SOUR:POW"+str(port_num)+":MODE "+str(on_off_auto).upper()
         self.write(pow_com)
         return
+    
+    def get_traces(self):
+        '''
+        @brief get trace name value pairs
+        @return dictionary with <measurement name>/<paramter> pairs
+        '''
+        ret_str = self.query(self.command_dict.get('CALC:PAR:CAT:EXT?')())
+        #remove quotes
+        ret_str = re.sub('["\n ]+','',ret_str)
+        name_val_pairs = re.findall('[^,]+,[^,]+',ret_str)
+        #assume each pair is a list of 2 values with a comma in betewen
+        ret_dict = {}
+        for nvp in name_val_pairs:
+            key,val = nvp.split(',')
+            ret_dict[key] = val
+        return ret_dict
         
         
     #set source n on vna to cw with frequency freq
@@ -341,6 +419,19 @@ class PnaController(OrderedDict):
 pnaController = PnaController    
 
         
+if __name__=='__main__':
+    visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
+    mypna = PnaController(visa_address)
+    #mypna.get_params()
+    comd = mypna.command_dict
+    mypna.connect()
+    mypna.set_continuous_trigger('ON')
+    mypna.set_freq_sweep(40e9,40e9,num_pts=1)
+    ports = [1,3]
+    param_list = [i*10+j for i in ports for j in ports]
+    param_list = [11]
+    #mypna.setup_s_param_measurement(param_list)
+    dd = mypna.get_all_trace_data()
         
 
         

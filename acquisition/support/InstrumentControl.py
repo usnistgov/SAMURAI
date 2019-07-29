@@ -71,18 +71,21 @@ class InstrumentCommandDict(OrderedDict):
         return instrument_command.get_command_template().format(*format_args).strip()
         
         
-    def call_alias(self,name):
+    def get(self,key,*args):
         '''
-        @brief call an aliased command
-        @param[in] name - name of alias to call
+        @brief get a command from a key or an alias. This syntax is the same as dict.get()
+        @param[in] key - key to get the command of
+        @param[in/OPT] default - adefault argument can also be passed in if the key is not found
         @note this also allows nested aliases (e.g. alias1->alias2->command)
         @return InstrumentCommand class of the command
         '''
         #see if the value is an alias
-        if name in self['aliases'].keys():
-            return self.call_alias(self['aliases'][name])
-        else: #othweise its a command (hopefully)
-            return self.commands[name]
+        if key in self.aliases.keys():
+            return self.get(self.aliases[key])
+        elif key in self.commands.keys(): #othweise its a command (hopefully)
+            return self.commands[key]
+        else: #otherwise lets pass it to OrderedDict get() method
+            return super().get(key,*args)
             
     
     def find_command(self,search_str,case_sensitive=False):
@@ -173,6 +176,9 @@ class SCPICommandDict(InstrumentCommandDict):
         '''
         com_name = self._get_default_command_name(instrument_command)
         alias_name = re.sub('[a-z]+','',com_name)
+        for ig in instrument_command.options['ignore_regex_list']+[' *, *']:
+            alias_name = re.sub(ig,'',alias_name)
+        alias_name = alias_name.strip() #remove traling whitespace
         if not alias_name==com_name:
             super().add_command(instrument_command,alias_name)
             
@@ -214,7 +220,7 @@ class InstrumentCommand(OrderedDict):
         '''
         arg_dict = {
                 'description':None,
-                'default':None, #default value if optional
+                'default':'', #default value if not provided
                 'arg_string':arg_name
                 }
         arg_dict.update(other_options)
@@ -238,10 +244,10 @@ class InstrumentCommand(OrderedDict):
         format_args = tuple(arg_dict.values())
         return self.command_template.format(*format_args)
     
-    def get_command_template(self,ignore_regex=None):
+    def get_command_template(self,ignore_regex_list=None):
         '''
         @brief generate a template to use for command formatting
-        @param[in/OPT] ignore_regex - regex of things to remove (e.g non-required args)
+        @param[in/OPT] ignore_regex_list - list of regex of things to remove (e.g non-required args)
         '''
         template = self['command_raw']
         #first lets remove our required arguments
@@ -252,9 +258,10 @@ class InstrumentCommand(OrderedDict):
         for j,arg_dict in enumerate(self['arguments']['optional'].values()):
             a_name = arg_dict['arg_string']
             template=template.replace(a_name,'{%d}' %(j+self.num_required_args))
-        if ignore_regex is not None:
-            template = re.sub(ignore_regex,'',template)
-        return template
+        if ignore_regex_list is not None:
+            for igreg in ignore_regex_list:
+                template = re.sub(igreg,'',template)
+        return template.strip()
     
     @property
     def command_template(self):
@@ -327,7 +334,9 @@ class SCPICommand(InstrumentCommand):
         @param[in/OPT] argument_regex - regular expression to extract arguments
         '''
         self.options = {}
-        self.options['ignore_regex'] = '\[.*?\]' #regex string for things we can ignore when getting our template
+        #in this we ignore optoinal things and either or type args ([:CW], | BWID)
+        #these are ignored when we get the template and make our default aliases
+        self.options['ignore_regex_list'] = ['\[.*?\]','\|.*?($|(?={))'] 
         
         #initialize the superclass
         super().__init__(command_raw,'SCPI',**arg_options)
@@ -343,7 +352,7 @@ class SCPICommand(InstrumentCommand):
             default = ''
             if arg_string not in com_split[0]:
                 opt_flg = False #if after the space its false
-                default = None
+                default = ''
             self.add_arg(arg_name,opt_flg,default=default,arg_string=arg_string)
     
     def __call__(self,*args,**kwargs):
@@ -351,11 +360,13 @@ class SCPICommand(InstrumentCommand):
         if args and args[0] is '?':
             #then remove the space
             call_str = re.sub(' +\?','?',call_str)
+        #remove any trailing commas
+        call_str = re.sub(' *, *$','',call_str)
         return call_str
     
     @property    
     def command_template(self):
-        return self.get_command_template(ignore_regex=self.options['ignore_regex'])
+        return self.get_command_template(ignore_regex_list=self.options['ignore_regex_list'])
     
 
 
@@ -373,7 +384,8 @@ if __name__=='__main__':
     #test loading
     load_path = r'Q:\public\Quimby\Students\Alec\Useful_Code\command_generation\PNAX_communication_dictionary.json'
     mycom = SCPICommandDict(load_path)
-    print(mycom.call_alias('SENS:FREQ:CENT')('?'))
+    #print(mycom.call_alias('SENS:BAND')('?'))
+    print(mycom.call_alias('SOUR:POW')('?'))
 
         
         
