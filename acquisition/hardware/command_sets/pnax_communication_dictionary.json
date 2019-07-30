@@ -1,5 +1,16 @@
 {
     "aliases": {
+		"if_bandwidth":"SENS:BAND",
+        "freq_start" :"SENS:FREQ:STAR",
+        "freq_stop"  :"SENS:FREQ:STOP",
+        "freq_span"  :"SENS:FREQ:SPAN",
+        "freq_cent"  :"SENS:FREQ:CENT",
+        "num_pts"    :"SENS:SWE:POIN",
+        "dwell_time" :"SENS:SWE:DWEL",
+        "sweep_delay_time":"SENS:SWE:DWEL:SDEL",
+        "power"      :"SOUR:POW",
+        "sweep_type" :"SENS:SWE:TYPE",
+        "sweep_time" :"SENS:SWE:TIME"
         "AFR:FIXT:BLIM": "AFR:FIXTure:BLIMited[:STATe]",
         "AFR:FIXT:CDUT": "AFR:FIXTure:CDUT[:STATe]",
         "AFR:FIXT:CLEN": "AFR:FIXTure:CLENgth[:STATe]",

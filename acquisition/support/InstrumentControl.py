@@ -32,11 +32,12 @@ class Instrument(OrderedDict):
         self['command_dictionary_path'] = command_dict_path #save for writing out
         self.command_dict = InstrumentCommandDict(command_dict_path)
           
-    def connect(self):
+    def connect(self,address):
         '''
         @brief template for instrumnet connection. calls self.connection.connect()
         '''
-        self.connection.connect()
+        self['connection_address'] = address
+        self.connection.connect(address)
         
     def disconnect(self):
         '''
