@@ -199,6 +199,9 @@ class PnaController(SCPIInstrument):
                 snp.S[s_key].raw = dd['data']
         snp.write(out_path)
         return snp
+    
+    def measure(self,out_path,port_mapping=None):
+        return self.measure_s_params(out_path,port_mapping)
       
     def get_freq_list(self):
         '''
