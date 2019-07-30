@@ -598,12 +598,33 @@ class MalformedSnpError(SnpError):
     '''
     def __init__(self,err_msg):
         super().__init__(err_msg)
+        
+def map_keys(key_list,mapping_dict):
+    '''
+    @brief change a set of keys (e.g. [11,31,13,33]) based on a mapping dict
+    @param[in] key_list - list of keys for S/WnpParams (e.g. [11,31,13,33])
+    @param[in] mapping_dict - how to map ports (e.g. {3:2,1:4})
+    '''
+    new_key_list = []
+    for key in key_list:
+        new_key = int(0)
+        trans_key = int(key)
+        i = 1
+        while(trans_key>=1):
+            cur_val = int(trans_key%10)
+            new_val = mapping_dict.get(cur_val,cur_val)
+            new_key+=new_val*i
+            trans_key = int(trans_key)/int(10)
+            i*=10
+        new_key_list.append(new_key)
+    return new_key_list
     
 
 if __name__=='__main__':
 
-    snp_test = True
+    snp_test = False
     wnp_test = False
+    key_test = True
     
     #geyt the current file directory
     import os 
@@ -636,6 +657,13 @@ if __name__=='__main__':
         os.remove('test2.s2p_binary')
         os.remove('test22.s2p')
         os.remove('test3.s2p')
+        
+    if key_test:
+        keys = [11,31,13,33]
+        mapping = {3:2}
+        print(keys)
+        new_keys = map_keys(keys,mapping)
+        print(new_keys)
         
 
         
