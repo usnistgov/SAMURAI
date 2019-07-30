@@ -97,7 +97,7 @@ class PnaController(SCPIInstrument):
         
             
         #set our frequencies in hz
-    def set_freq_sweep(self,start_freq,stop_freq,freq_step=-1,num_pts=-1,chan=1):
+    def set_freq_sweep(self,start_freq,stop_freq,freq_step=-1,num_pts=-1):
          
         if(freq_step==-1 & num_pts==-1):
             print("Please specify either frequency step or number of points")
@@ -106,18 +106,11 @@ class PnaController(SCPIInstrument):
         if(freq_step!=-1): #calculate points from step
             num_pts = int((start_freq-stop_freq)/freq_step)+1
             
-        
-        #format strings
-        start_str = "SENS%d:FREQ:STAR %e" % (chan,start_freq)
-        stop_str  = "SENS%d:FREQ:STOP %e" % (chan,stop_freq)
-        pts_str   = "SENS%d:SWE:POIN %d" % (chan,num_pts)
-        type_str  = "SENS:FOM:RANG:SWE:TYPE LIN"
-        
         #now write
-        self.write(start_str)
-        self.write(stop_str)
-        self.write(pts_str)
-        self.write(type_str)
+        self.write('freq_start',start_freq)
+        self.write('freq_stop',stop_freq)
+        self.write('num_pts',num_pts)
+        self.write('sweep_type','LIN')
         
     def setup_s_param_measurement(self,parameter_list):
         '''
@@ -126,9 +119,9 @@ class PnaController(SCPIInstrument):
         @note help from http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm
         '''
         #first reset the vna
-        self.write(self.command_dict.get('SYST:FPR')())
+        self.write('SYST:FPR')
         #now turn on window 1
-        self.write(self.command_dict.get('DISP:WIND')('ON'))
+        self.write('DISP:WIND','ON')
         #delete all other measurements
         #self.write(self.command_dict.get('CALC:PAR:DEL:ALL')())
         #define our measurements
@@ -136,24 +129,32 @@ class PnaController(SCPIInstrument):
         meas_types = ["S{}".format(int(pc)) for pc in parameter_list]
         #and add the measurements
         for i,mn in enumerate(meas_names):
-            self.write(self.command_dict.get('CALC:PAR:EXT')(mn,meas_types[i]))
+            self.write('CALC:PAR:EXT',mn,meas_types[i])
         #and add them to the window
         for i,mn in enumerate(meas_names):
-            self.write(self.command_dict.get('DISP:WIND:TRAC:FEED')(mn,tnum=i+1))
+            self.write('DISP:WIND:TRAC:FEED',mn,tnum=i+1)
     
     def set_continuous_trigger(self,on_off):
         '''
         @brief set continuous trigger on or off
         '''
-        self.write(self.command_dict.get('INIT:CONT')(on_off))
+        self.write('INIT:CONT',on_off)
         if on_off.upper() is 'OFF':
-            self.write(self.command_dict.get('SENS:SWE:MODE')('SING'))
+            mode = 'SING'
+        else:
+            mode = 'CONT'
+        self.write('SENS:SWE:MODE',mode)
         
-    def trigger(self):
+    def trigger(self,timeout=300000):
         '''
         @brief trigger the vna when in manual mode. This will also wait for the sweep to complete
+        @param[in] timeout - timeout of visa. The OPC? command hangs until the sweep is finished in single mode
+            This default to 5 minutes. reset the timeout when were done
         '''
-        self.write(self.command_dict.get('INIT:IMM')())
+        timeout_temp = self.connection.timeout
+        self.connection.timeout = timeout
+        self.write('INIT:IMM')
+        self.connection.timeout = timeout_temp
         
     
     def get_all_trace_data(self):
@@ -166,8 +167,8 @@ class PnaController(SCPIInstrument):
         trace_dict = self.get_traces()
         data_dict = {}
         for key,val in trace_dict.items():
-            self.write(self.command_dict.get('CALC:PAR:SEL')("'{}'".format(key))) #select the trace
-            data_str = self.query(self.command_dict.get('CALC:DATA?')('sdata'))
+            self.write('CALC:PAR:SEL',"'{}'".format(key)) #select the trace
+            data_str = self.query('CALC:DATA?','sdata')
             data = np.array(data_str.split(','),dtype='float64') #data as floating point
             data_cplx = data[::2]+data[1::2]*1j #change to complex
             data_dict[key] = {'parameter':val,'data':data_cplx}
@@ -180,7 +181,8 @@ class PnaController(SCPIInstrument):
         @param[in/OPT] port_mapping - optional dictionary of port mappings (e.g {3:2})
         '''
         #trigger the vna assume continuous trigger is off (self.set_continuous_trigger('off'))
-        self.trigger
+        self.set_continuous_trigger('OFF')
+        self.trigger()
         #first lets get the data of the current traces
         freqs,data_dict = self.get_all_trace_data()
         #import snp editor
@@ -223,7 +225,7 @@ class PnaController(SCPIInstrument):
         @brief get trace name value pairs
         @return dictionary with <measurement name>/<paramter> pairs
         '''
-        ret_str = self.query(self.command_dict.get('CALC:PAR:CAT:EXT?')())
+        ret_str = self.query('CALC:PAR:CAT:EXT?')
         #remove quotes
         ret_str = re.sub('["\n ]+','',ret_str)
         name_val_pairs = re.findall('[^,]+,[^,]+',ret_str)
@@ -417,21 +419,20 @@ if __name__=='__main__':
     #mypna.get_params()
     comd = mypna.command_dict
     mypna.query('info')
-    mypna.write('if_bandwidth',100)
     '''
-    mypna.set_continuous_trigger('ON')
+    #mypna.set_continuous_trigger('ON')
     #ports = [1,3]
     #param_list = [i*10+j for i in ports for j in ports]
     param_list = [11,31,13,33]
-    mypna.setup_s_param_measurement(param_list)
+    #mypna.setup_s_param_measurement(param_list)
     mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-    mypna.write(mypna.command_dict.get('SENS:BAND')(100))
-    mypna.set_continuous_trigger('off')
+    mypna.write('if_bandwidth',100)
+    #mypna.set_continuous_trigger('off')
     mypna.get_params()
     print(mypna)
-    #mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+    mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
     #dd = mypna.get_all_trace_data()
-    '''        
+    '''   
 
         
             

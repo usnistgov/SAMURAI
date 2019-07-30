@@ -180,7 +180,7 @@ class SCPIInstrument(Instrument):
         @brief additional code for instrument query
         @note this will automatically add a ? if not arguments are provided
         '''
-        if not args and not kwargs: #if they are both empty
+        if not args and not kwargs and '?' not in msg: #if they are both empty and we dont already have a ? (some commands do)
             args = ('?',)
         return super().query(msg,*args,cast=cast,**kwargs)
     
