@@ -14,17 +14,91 @@ class Instrument(OrderedDict):
     '''
     @brief class for instrument control abstraction
     '''
-    def __init__(self,command_dict):
+    def __init__(self,command_dict_path):
         '''
         @brief constructor
-        @param[in] command_dict - dictionary or json file of all the commands
+        @param[in] command_dict -json file of all the commands if none don't load
         '''    
-        self.connection = None #abstraction for any type of connection
+        #abstraction for any type of connection (e.g. visa object)
+        # to use default read/write/query should have a read/write/query method
+        self.connection = None
+        self.load_command_dict(command_dict_path)
+
+    def load_command_dict(self,command_dict_path):
+        '''
+        @brief load a command dictionary from a json file path
+        @param[in] command_dict_path - path to the json file
+        '''
+        self['command_dictionary_path'] = command_dict_path #save for writing out
+        self.command_dict = InstrumentCommandDict(command_dict_path)
+          
+    def connect(self,address):
+        '''
+        @brief template for instrumnet connection. calls self.connection.connect()
+        '''
+        self['connection_address'] = address
+        self.connection.connect(address)
         
-        if type(command_dict)==str:
-            self.command_dict = InstrumentCommandDict(command_dict)
-        else:
-            self.command_dict = command_dict #otherwise its just an object
+    def disconnect(self):
+        '''
+        @brief template for instrument disconnect. calls self.connection.disconnect()
+        '''
+        self.connection.disconnect()
+            
+    def read(self):
+        '''
+        @brief template for an instrument read. calls self.connection.read()
+        '''
+        rv = self.connection.read()
+        rv = self.cast_return_value(rv)
+        return rv
+    
+    def write(self,msg):
+        '''
+        @brief template for instrument write. calls self.connection.write()
+        '''
+        self.connection.write(msg)
+    
+    def query(self,msg):
+        '''
+        @brief template for a instrument query. calls self.connection.query()
+        '''
+        rv = self.connection.query(msg)
+        rv = self.cast_return_value(rv)
+        return rv
+    
+    def cast_return_value(value_str):
+        '''
+        @brief try and cast a return value. return float or string depending
+            on what works.
+        @param[in] value_str - value string to cast
+        '''
+        try:
+            rv = float(value_str)
+            return rv
+        except ValueError:
+            return value_str.strip() #remove trailing whitespace
+                
+class SCPIInstrument(Instrument):
+    '''
+    @brief class for scpi instrument control
+    '''
+    def __init__(self,command_dict_path):
+        '''
+        @brief constructor
+        @param[in] command_dict -json file of all the commands
+        '''
+        super().__init__(None)
+    
+    #override from superclass
+    def load_command_dict(self,command_dict_path):
+        '''
+        @brief load a command dictionary from a json file path
+        @param[in] command_dict_path - path to the json file
+        '''
+        self['command_dictionary_path'] = command_dict_path #save for writing out
+        self.command_dict = SCPICommandDict(command_dict_path)
+    
 
 class InstrumentCommandDict(OrderedDict):
     '''
