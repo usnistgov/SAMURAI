@@ -158,7 +158,7 @@ class InstrumentCommandDict(OrderedDict):
         @brief try and check for alias calls on getattr
         '''
         try:
-            self.call_alias(attr)
+            self.get(attr)
         except:
             pass
         return getattr(self,attr)
@@ -207,21 +207,23 @@ class InstrumentCommand(OrderedDict):
         self.update({'description':None})
         self.update({'arguments':{'required':OrderedDict(),'optional':OrderedDict()}}) #no initial arguments
         
-    def add_arg(self,arg_name,optional_flg,description='',**other_options):
+    def add_arg(self,arg_name,optional_flg,return_type=None,description='',**other_options):
         '''
         @brief add argument to this command
         @param[in] arg_name - the name of the argument. This should be the whole string (e.g. <cnum> NOT cnum)
             This is important because these names will be searched when creating the template
         @param[in] optional_flg - True if the arg is optional
         @param[in/OPT] description - brief description of the argument
+        @param[in/OPT] return_type - value to be returned (str,int,float,etc)
         @param[in/OPT] other_options - anything else to add to the argument
             arg_string - if this is specified, this value instead of arg_name
                     will be stripped from our command when getting our template
         '''
         arg_dict = {
                 'description':None,
-                'default':'', #default value if not provided
-                'arg_string':arg_name
+                'default'    :'', #default value if not provided
+                'return_type': return_type,
+                'arg_string' :arg_name
                 }
         arg_dict.update(other_options)
         if not optional_flg:
