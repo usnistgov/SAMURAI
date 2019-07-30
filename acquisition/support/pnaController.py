@@ -110,7 +110,7 @@ class PnaController(OrderedDict):
             self[k] = read_val
         
         #close our visa connection
-        self.disconnect()
+        #self.disconnect()
         
         #calculate values
         self['freq_step'] = np.divide(self['freq_span'],float(self['num_pts']-1))
@@ -159,11 +159,11 @@ class PnaController(OrderedDict):
         @note help from http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm
         '''
         #first reset the vna
-        #self.write(self.command_dict.get('SYST:FPR')())
+        self.write(self.command_dict.get('SYST:FPR')())
         #now turn on window 1
-        #self.write(self.command_dict.get('DISP:WIND')('ON'))
+        self.write(self.command_dict.get('DISP:WIND')('ON'))
         #delete all other measurements
-        self.write(self.command_dict.get('CALC:PAR:DEL:ALL')())
+        #self.write(self.command_dict.get('CALC:PAR:DEL:ALL')())
         #define our measurements
         meas_names = ["'S_{}'".format(int(pc)) for pc in parameter_list]
         meas_types = ["S{}".format(int(pc)) for pc in parameter_list]
@@ -179,12 +179,14 @@ class PnaController(OrderedDict):
         @brief set continuous trigger on or off
         '''
         self.write(self.command_dict.get('INIT:CONT')(on_off))
+        if on_off.upper() is 'OFF':
+            self.write(self.command_dict.get('SENS:SWE:MODE')('SING'))
         
     def trigger(self):
         '''
         @brief trigger the vna when in manual mode. This will also wait for the sweep to complete
         '''
-        self.write(self.command_dict('INIT:IMM')())
+        self.write(self.command_dict.get('INIT:IMM')())
         
     
     def get_all_trace_data(self):
@@ -205,24 +207,31 @@ class PnaController(OrderedDict):
             data_dict[key] = {'parameter':val,'data':data_cplx}
         return freq_list,data_dict
     
-    def measure_s_params(self,out_path):
+    def measure_s_params(self,out_path,port_mapping=None):
         '''
         @brief measure s parameters of current traces and write out to out_path
+        @param[in] out_path - path to write out data to 
+        @param[in/OPT] port_mapping - optional dictionary of port mappings (e.g {3:2})
         '''
+        #trigger the vna assume continuous trigger is off (self.set_continuous_trigger('off'))
+        self.trigger
         #first lets get the data of the current traces
         freqs,data_dict = self.get_all_trace_data()
         #import snp editor
-        from samurai.analysis.support.snpEditor import SnpEditor
+        from samurai.analysis.support.snpEditor import SnpEditor,map_keys
         #now lets get the number of ports from the out_path
-        num_ports = float(re.findall('(?<=s)\d+(?=p)',out_path)[0])
+        num_ports = int(re.findall('(?<=s)\d+(?=p)',out_path)[0])
         #now lets create our Snp Object
         snp = SnpEditor([num_ports,freqs])
-        for d in data_dict:
-            if d['parameter'][0].upper()=='S': #then its an s param measurement
-                s_key = float(d['parameter'][1:])
-                snp.S[s_key].raw = d['data']
+        for dd in data_dict.values():
+            if dd['parameter'][0].upper()=='S': #then its an s param measurement
+                s_key = int(dd['parameter'][1:])
+                #map ports if specified
+                s_key = map_keys([s_key],port_mapping)[0]
+                snp.S[s_key].raw = dd['data']
         snp.write(out_path)
-        
+        return snp
+      
     def get_freq_list(self):
         '''
         @brief get a list of the frequencies from the vna
@@ -444,12 +453,17 @@ if __name__=='__main__':
     comd = mypna.command_dict
     mypna.connect()
     mypna.set_continuous_trigger('ON')
-    mypna.set_freq_sweep(40e9,40e9,num_pts=1)
-    ports = [1,3]
-    param_list = [i*10+j for i in ports for j in ports]
-    param_list = [11]
-    #mypna.setup_s_param_measurement(param_list)
-    dd = mypna.get_all_trace_data()
+    #ports = [1,3]
+    #param_list = [i*10+j for i in ports for j in ports]
+    param_list = [11,31,13,33]
+    mypna.setup_s_param_measurement(param_list)
+    mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
+    mypna.write(mypna.command_dict.get('SENS:BAND')(100))
+    mypna.set_continuous_trigger('off')
+    mypna.get_params()
+    print(mypna)
+    #mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+    #dd = mypna.get_all_trace_data()
         
 
         
