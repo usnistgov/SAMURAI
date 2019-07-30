@@ -1,5 +1,6 @@
 {
     "aliases": {
+		"info":"*IDN?",
 		"if_bandwidth":"SENS:BAND",
         "freq_start" :"SENS:FREQ:STAR",
         "freq_stop"  :"SENS:FREQ:STOP",
@@ -10,7 +11,7 @@
         "sweep_delay_time":"SENS:SWE:DWEL:SDEL",
         "power"      :"SOUR:POW",
         "sweep_type" :"SENS:SWE:TYPE",
-        "sweep_time" :"SENS:SWE:TIME"
+        "sweep_time" :"SENS:SWE:TIME",
         "AFR:FIXT:BLIM": "AFR:FIXTure:BLIMited[:STATe]",
         "AFR:FIXT:CDUT": "AFR:FIXTure:CDUT[:STATe]",
         "AFR:FIXT:CLEN": "AFR:FIXTure:CLENgth[:STATe]",
@@ -1446,6 +1447,15 @@
         "TRIG:STAT:READ?": "TRIGger:STATus:READy?"
     },
     "commands": {
+		"*IDN?":{
+			"type":"SCPI",
+			"command_raw": "*IDN?",
+			"description": null,
+			"arguements": {
+				"required": {},
+				"optional": {}
+			}
+		},
         "AFR:FIXTure:BLIMited[:STATe]": {
             "type": "SCPI",
             "command_raw": "AFR:FIXTure:BLIMited[:STATe]  <bool>",

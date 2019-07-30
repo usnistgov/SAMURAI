@@ -36,6 +36,10 @@ class PnaController(SCPIInstrument):
         
         self.update({'info':'NO INFO READ'})
         
+        self.setting_params = ['info','if_bandwidth','freq_start','freq_stop',
+                               'freq_span','freq_cent','num_pts','dwell_time',
+                               'sweep_delay_time','power','sweep_type','sweep_time'] #these values will be read when self.get_settings is read
+        
         self.is_connected = False
         
         self.vrm = visa.ResourceManager()
@@ -57,12 +61,13 @@ class PnaController(SCPIInstrument):
             #if it worked were connected;
             self.is_connected = True
             
-    def write(self,msg):
+    def write(self,msg,*args,**kwargs):
         '''
         @brief write a message to the PNA
+        @param[in/OPT] *args,**kwargs - args for when commands from command_dict are used
         '''
         super().write('*WAI')
-        super().write(msg)
+        super().write(msg,*args,**kwargs)
         self.query('*OPC?',False)        
         #time.sleep(0.10);
     
@@ -75,20 +80,7 @@ class PnaController(SCPIInstrument):
         
     def get_params(self):
         
-        print("Getting params")
-        self['info'] = self.connection.query('*IDN?')
-        #now get all of our values
-        for k,v in self.setting_alias_dict.items():
-            command = self.command_dict.get(v)('?')
-            print(command)
-            read_val = self.connection.query(command)
-            #read_val = 'test'
-            try: #try to convert to float
-                read_val = float(read_val)
-            except ValueError: #otherwise its fine as a string
-                pass
-            self[k] = read_val
-        
+        self.get_settings()
         #calculate values
         self['freq_step'] = np.divide(self['freq_span'],float(self['num_pts']-1))
         
@@ -424,6 +416,8 @@ if __name__=='__main__':
     mypna = PnaController(visa_address)
     #mypna.get_params()
     comd = mypna.command_dict
+    mypna.query('info')
+    mypna.write('if_bandwidth',100)
     '''
     mypna.set_continuous_trigger('ON')
     #ports = [1,3]

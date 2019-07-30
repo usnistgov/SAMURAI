@@ -75,7 +75,7 @@ class Instrument(OrderedDict):
         '''
         @brief internal function abstracting connection.read() function
         '''
-        self.connection.read()
+        return self.connection.read()
     
     def write(self,msg,*args,**kwargs):
         '''
@@ -86,11 +86,12 @@ class Instrument(OrderedDict):
         msg = self.get_command_from_dict(msg,*args,**kwargs)
         self._write(msg)
     
-    def _write(self):
+    def _write(self,msg):
         '''
         @brief internal function abstracting connection.write() function
         '''
-        self.connection.write()
+        print(msg)
+        self.connection.write(msg)
     
     def query(self,msg,*args,cast=True,**kwargs):
         '''
@@ -106,13 +107,14 @@ class Instrument(OrderedDict):
             rv = self.cast_return_value(rv)
         return rv
     
-    def _query(self):
+    def _query(self,msg):
         '''
         @brief internal function abstracting connection.query() function
         '''
-        self.connection.query()
+        print(msg)
+        return self.connection.query(msg)
         
-    def get_command_from_dict(command,*args,**kwargs):
+    def get_command_from_dict(self,command,*args,**kwargs):
         '''
         @brief search our dictionary for the command. If it isnt there, return the command
         @param[in] command - command to search the dictionary for
@@ -125,7 +127,7 @@ class Instrument(OrderedDict):
             com = com(*args,**kwargs)
         return com
     
-    def cast_return_value(value_str):
+    def cast_return_value(self,value_str):
         '''
         @brief try and cast a return value. return float or string depending
             on what works.
@@ -145,7 +147,7 @@ class Instrument(OrderedDict):
         @param[in/OPT] **kwargs - keyword args to pass to each of the commands
         '''
         for key in self.setting_params:
-            self[key] = self.query(self.command_dict.get(key)(*args,**kwargs))
+            self[key] = self.query(key)
         
     def __del__(self):
         '''
@@ -162,7 +164,7 @@ class SCPIInstrument(Instrument):
         @brief constructor
         @param[in] command_dict -json file of all the commands
         '''
-        super().__init__(None)
+        super().__init__(command_dict_path)
     
     #override from superclass
     def load_command_dict(self,command_dict_path):
@@ -172,6 +174,15 @@ class SCPIInstrument(Instrument):
         '''
         self['command_dictionary_path'] = command_dict_path #save for writing out
         self.command_dict = SCPICommandDict(command_dict_path)
+        
+    def query(self,msg,*args,cast=True,**kwargs):
+        '''
+        @brief additional code for instrument query
+        @note this will automatically add a ? if not arguments are provided
+        '''
+        if not args and not kwargs: #if they are both empty
+            args = ('?',)
+        return super().query(msg,*args,cast=cast,**kwargs)
     
 
 class InstrumentCommandDict(OrderedDict):
@@ -387,9 +398,12 @@ class InstrumentCommand(OrderedDict):
         arg_dict = self.arg_dict
         arg_keys = list(arg_dict.keys()) #ordered keys
         for i,a in enumerate(args):
-            arg_dict[arg_keys[i]] = a #set in order
+            if len(arg_keys)>i:
+                if arg_keys[i] in arg_dict:
+                    arg_dict[arg_keys[i]] = a #set in order
         for k,v in kwargs.items():
-            arg_dict[k] = v #keyword values
+            if k in arg_dict:
+                arg_dict[k] = v #keyword values
         #now lets get our arguments in order
         format_args = tuple(arg_dict.values())
         return self.command_template.format(*format_args)
@@ -530,13 +544,12 @@ if __name__=='__main__':
         scom = SCPICommand(c)
         com_dict.add_command(scom)
     '''
-    
     #test loading
-    load_path = r'Q:\public\Quimby\Students\Alec\Useful_Code\command_generation\PNAX_communication_dictionary.json'
-    mycom = SCPICommandDict(load_path)
+    #load_path = r'Q:\public\Quimby\Students\Alec\Useful_Code\command_generation\PNAX_communication_dictionary.json'
+    #mycom = SCPICommandDict(load_path)
     #print(mycom.call_alias('SENS:BAND')('?'))
-    print(mycom.call_alias('SOUR:POW')('?'))
-
+    #print(mycom.call_alias('SOUR:POW')('?'))
+    pass
         
         
     
