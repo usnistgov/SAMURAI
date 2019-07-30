@@ -14,7 +14,7 @@ import re
 from itertools import chain
 from collections import OrderedDict
 
-from samurai.acquisition.support.InstrumentControl import SCPICommandDict
+from samurai.acquisition.support.InstrumentControl import SCPICommandDict, SCPIInstrument
 
 #>>> import visa
 #>>> rm = visa.ResourceManager()
@@ -28,46 +28,30 @@ script_path = os.path.dirname(os.path.realpath(__file__))
 command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_communication_dictionary.json') 
 
 
-class PnaController(OrderedDict):
+class PnaController(SCPIInstrument):
     
-    def __init__(self,visa_address):
-        self.visa_addr = visa_address
+    def __init__(self,visa_address=None,command_dict_path=command_set_path):
         
-        self.command_dict = SCPICommandDict(command_set_path)
+        super().__init__(command_dict_path)
         
-        #init our pna info 
-        self.setting_alias_dict = OrderedDict({
-                'ifbw'       :'SENS:BAND',
-                'freq_start' :'SENS:FREQ:STAR',
-                'freq_stop'  :'SENS:FREQ:STOP',
-                'freq_span'  :'SENS:FREQ:SPAN',
-                'freq_cent'  :'SENS:FREQ:CENT',
-                'num_pts'    :'SENS:SWE:POIN',
-                'dwell_time' :'SENS:SWE:DWEL',
-                'sdelay_time':'SENS:SWE:DWEL:SDEL',
-                'power'      :'SOUR:POW',
-                'sweep_type' :'SENS:SWE:TYPE',
-                'sweep_time' :'SENS:SWE:TIME'
-                })
-        super().__init__()
         self.update({'info':'NO INFO READ'})
         
         self.is_connected = False
         
         self.vrm = visa.ResourceManager()
         
-        self.connect()
-        
-    def __del__(self):
-        if(self.is_connected):
-            self.disconnect()
-        
-    def connect(self):
+        if visa_address is not None:
+            self.connect(visa_address)
+     
+    #overrides superclass
+    def _connect(self,address):
+        '''
+        @brief this is the disconnect that is used in self.connect() defined in superclass
+        '''
         if(not self.is_connected):
             try:
-                self.pna = self.vrm.open_resource(self.visa_addr)
-                self['info'] = self.pna.query('*IDN?')
-                self.pna.timeout = 10000 #timeout wasnt working at 3 or 10
+                self.connection = self.vrm.open_resource(address)
+                self.connection.timeout = 10000 #timeout wasnt working at 3 or 10
             except:
                 raise IOError("Unable to connect to PNA")
             #if it worked were connected;
@@ -77,40 +61,33 @@ class PnaController(OrderedDict):
         '''
         @brief write a message to the PNA
         '''
-        self.pna.write('*WAI')
-        self.pna.write(msg)
-        self.pna.query('*OPC?')        
+        super().write('*WAI')
+        super().write(msg)
+        self.query('*OPC?',False)        
         #time.sleep(0.10);
-        
-    def query(self,msg):
-        #self.pna.write('*OPC?')
-        print('QUERY: {}'.format(msg))
-        return self.pna.query(msg)
     
-    def disconnect(self):
-        self.pna.close()
+    def _disconnect(self):
+        '''
+        @brief this is the disconnect that is used in self.disconnect() defined in superclass
+        '''
+        self.connection.close()
         self.is_connected = False
         
     def get_params(self):
         
-        #connect to pna
-        self.connect()
         print("Getting params")
-        self['info'] = self.pna.query('*IDN?')
+        self['info'] = self.connection.query('*IDN?')
         #now get all of our values
         for k,v in self.setting_alias_dict.items():
             command = self.command_dict.get(v)('?')
             print(command)
-            read_val = self.pna.query(command)
+            read_val = self.connection.query(command)
             #read_val = 'test'
             try: #try to convert to float
                 read_val = float(read_val)
             except ValueError: #otherwise its fine as a string
                 pass
             self[k] = read_val
-        
-        #close our visa connection
-        #self.disconnect()
         
         #calculate values
         self['freq_step'] = np.divide(self['freq_span'],float(self['num_pts']-1))
@@ -137,8 +114,6 @@ class PnaController(OrderedDict):
         if(freq_step!=-1): #calculate points from step
             num_pts = int((start_freq-stop_freq)/freq_step)+1
             
-        #connect
-        self.connect()
         
         #format strings
         start_str = "SENS%d:FREQ:STAR %e" % (chan,start_freq)
@@ -194,7 +169,6 @@ class PnaController(OrderedDict):
         @brief get data from all traces on a single channel
         @return [frequency_list, {trace_name:{'parameter':param,'data':[values]}]
         '''
-        self.connect();
         #self.write('FORM:DATA REAL,64'); #set the data format
         freq_list = self.get_freq_list()
         trace_dict = self.get_traces()
@@ -279,9 +253,7 @@ class PnaController(OrderedDict):
         #turn on frequency offset mode
         fom_on_com = "SENS:FOM ON"
         self.write(fom_on_com)
-        
-        #connect to the reader if not already done
-        self.connect()
+
         
         #set our command for writing the source to CW
         #range2 = Source;
@@ -340,9 +312,9 @@ class PnaController(OrderedDict):
         #data = ''.join(dat_str);
         com = 'SENS:SEGM:LIST SSTOP,'+str(num_pts)+','
         
-        self.pna.write('FORM:BORD NORM')
+        self.connection.write('FORM:BORD NORM')
         dat_out = list(chain(*seg_table)) #flatten list of tuples
-        self.pna.write_binary_values(com,dat_out,datatype='d')
+        self.connection.write_binary_values(com,dat_out,datatype='d')
         #self.write(com);
         
         
@@ -436,9 +408,9 @@ class PnaController(OrderedDict):
             #print(stop_com)
             #print(pts_com);
             
-            self.pna.write(on_off_com)
-            self.pna.write(start_com)
-            self.pna.write(stop_com)
+            self.connection.write(on_off_com)
+            self.connection.write(start_com)
+            self.connection.write(stop_com)
             #self.write(pts_com); #dont change points. this can cause further issues
          
 
@@ -447,11 +419,12 @@ pnaController = PnaController
 
         
 if __name__=='__main__':
+    
     visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
     mypna = PnaController(visa_address)
     #mypna.get_params()
     comd = mypna.command_dict
-    mypna.connect()
+    '''
     mypna.set_continuous_trigger('ON')
     #ports = [1,3]
     #param_list = [i*10+j for i in ports for j in ports]
@@ -464,7 +437,7 @@ if __name__=='__main__':
     print(mypna)
     #mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
     #dd = mypna.get_all_trace_data()
-        
+    '''        
 
         
             

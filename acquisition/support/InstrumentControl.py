@@ -23,6 +23,8 @@ class Instrument(OrderedDict):
         # to use default read/write/query should have a read/write/query method
         self.connection = None
         self.load_command_dict(command_dict_path)
+        
+        self.setting_params = ['info'] #list of settings to read from vna
 
     def load_command_dict(self,command_dict_path):
         '''
@@ -37,35 +39,91 @@ class Instrument(OrderedDict):
         @brief template for instrumnet connection. calls self.connection.connect()
         '''
         self['connection_address'] = address
+        self._connect(address)
+        
+    def _connect(self,address):
+        '''
+        @brief internal function to connect to device. This prevents from requiring
+            the connection to have self.connection.connect() to run self.connect()
+        '''
         self.connection.connect(address)
         
     def disconnect(self):
         '''
         @brief template for instrument disconnect. calls self.connection.disconnect()
         '''
-        self.connection.disconnect()
+        self._disconnect()
+        
+    def _disconnect(self,address):
+        '''
+        @brief internal function to connect to device. This prevents from requiring
+            the connection to have self.connection.connect() to run self.connect()
+        '''
+        self.connection.disconnect(address)
             
-    def read(self):
+    def read(self,cast=True):
         '''
         @brief template for an instrument read. calls self.connection.read()
+        @param[in/OPT] cast - whether or not to try and cast the data
         '''
-        rv = self.connection.read()
-        rv = self.cast_return_value(rv)
+        rv = self._read()
+        if cast:
+            rv = self.cast_return_value(rv)
         return rv
     
-    def write(self,msg):
+    def _read(self):
+        '''
+        @brief internal function abstracting connection.read() function
+        '''
+        self.connection.read()
+    
+    def write(self,msg,*args,**kwargs):
         '''
         @brief template for instrument write. calls self.connection.write()
+        @param[in] *args - arguments to be passed to command if its in self.command_dict
+        @param[in] **kwargs - keyword args passed to commands in command_dict
         '''
-        self.connection.write(msg)
+        msg = self.get_command_from_dict(msg,*args,**kwargs)
+        self._write(msg)
     
-    def query(self,msg):
+    def _write(self):
+        '''
+        @brief internal function abstracting connection.write() function
+        '''
+        self.connection.write()
+    
+    def query(self,msg,*args,cast=True,**kwargs):
         '''
         @brief template for a instrument query. calls self.connection.query()
+        @param[in] msg - message to send
+        @param[in/OPT] cast - whether or not to try and cast the data
+        @param[in] *args - arguments to be passed to command if its in self.command_dict
+        @param[in] **kwargs - keyword args passed to commands in command_dict
         '''
-        rv = self.connection.query(msg)
-        rv = self.cast_return_value(rv)
+        msg = self.get_command_from_dict(msg,*args,**kwargs)
+        rv = self._query(msg)
+        if cast:
+            rv = self.cast_return_value(rv)
         return rv
+    
+    def _query(self):
+        '''
+        @brief internal function abstracting connection.query() function
+        '''
+        self.connection.query()
+        
+    def get_command_from_dict(command,*args,**kwargs):
+        '''
+        @brief search our dictionary for the command. If it isnt there, return the command
+        @param[in] command - command to search the dictionary for
+        @param[in] *args - arguments to pass to command if found
+        @param[in] **kwargs -kwargs to pass to command if found
+        @return command string
+        '''
+        com = self.command_dict.get(command,command)
+        if type(com) is not str:
+            com = com(*args,**kwargs)
+        return com
     
     def cast_return_value(value_str):
         '''
@@ -78,6 +136,22 @@ class Instrument(OrderedDict):
             return rv
         except ValueError:
             return value_str.strip() #remove trailing whitespace
+        
+    def get_settings(self,*args,**kwargs):
+        '''
+        @brief get our settings from the device. These values will be pulled from
+            self.setting_params
+        @param[in/OPT] *args - arguments to pass to each of the commands
+        @param[in/OPT] **kwargs - keyword args to pass to each of the commands
+        '''
+        for key in self.setting_params:
+            self[key] = self.query(self.command_dict.get(key)(*args,**kwargs))
+        
+    def __del__(self):
+        '''
+        @brief try to disconnect when the object is deleted
+        '''
+        self.disconnect()
                 
 class SCPIInstrument(Instrument):
     '''
