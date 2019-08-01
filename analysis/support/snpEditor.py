@@ -42,7 +42,6 @@ class WnpEditor:
             read_header - True/False whether or not to read in header from text files (faster if false, default to true)
             waves - list of what waves we are measuring for self.waves dictionary (default ['A','B'] for s params should be ['S'])
             no_load - if True, do not immediatly load the file (default False)
-            freq_units - frequency multiplier in Hz (e.g. GHz is 1e9). if None try to get from header. Otherwise assume GHz
         '''
         self.options = {}
         self.options['header'] = None #this will be set later
@@ -52,7 +51,6 @@ class WnpEditor:
         self.options['plotter'] = None
         self.options['plot_options'] = {}
         self.options['no_load'] = False
-        self.options['freq_units'] = None #passed to load function to override header units
         for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
             self.options[key] = val 
         #init plotter if not providied
@@ -576,10 +574,15 @@ class WnpParam:
             if the exact frequency is not found, the closest will be provided
         @param[in] freq - frequency (in Hz) to get the value of
         '''
-        fm = np.abs(freq-self.freq_list*1e9)
+        fm = np.abs(freq-self.freq_list)
         return self.raw[np.argmin(fm)]
         
-    def calculate_time_domain(self):
+    def calculate_time_domain_data(self):
+        '''
+        @brief calculate the time domain data
+        @todo. Verify the lack of ifftshift here is correct for phases...
+        @return [time domain values,ifft complex values]
+        '''
         ifft_vals = np.fft.ifft(self.raw)
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])

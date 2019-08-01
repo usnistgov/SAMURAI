@@ -270,6 +270,7 @@ class CalculatedSyntheticAperture:
             self.mp.view([170,20])
             return fig
         '''  
+        
         if(options['plot_program'].lower()=='plotly'): 
             #and plot
             plotly_surf = [go.Surface(z = Y, x = X, y = Z,surfacecolor=plot_data,
