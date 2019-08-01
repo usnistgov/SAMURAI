@@ -252,6 +252,7 @@ class CalculatedSyntheticAperture:
         #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
         #Y = plot_data*np.sin(np.deg2rad(self.elevation))
         [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type,translation=options['translation'],rotation=options['rotation'])
+        X = -X #this is dependent on the robot reference frame. required for V2 reference frame
         db_range = caxis_max-caxis_min
         '''
         if(options['plot_program'].lower()=='matlab'):
