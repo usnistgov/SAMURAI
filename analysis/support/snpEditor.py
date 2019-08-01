@@ -214,11 +214,13 @@ class WnpEditor:
         self.options['num_ports'] = num_ports #set the number of ports
         #now set our keys
         self._gen_dict_keys()
-        self.set_header(DEFAULT_HEADER) #set the default header
+        if self.options['header'] is None: #allow override
+            self.set_header(DEFAULT_HEADER) #set the default header
         #and pack the port data with 0s
+        freqs = np.array(freqs)*self._get_freq_mult()
         for k in self.wave_dict_keys:
             for wave in self.waves.keys():
-                self.waves[wave][k] = WnpParam(np.array(freqs),np.zeros(len(freqs)),plotter=self.options['plotter'])
+                self.waves[wave][k] = WnpParam(freqs,np.zeros(len(freqs)),plotter=self.options['plotter'])
         self.round_freq_lists()
         
    def write(self,out_file,ftype='default',delimiter=' ',freq_units=None):
