@@ -30,7 +30,7 @@ command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_commu
 
 class PnaController(SCPIInstrument):
     
-    def __init__(self,visa_address=None,command_dict_path=command_set_path):
+    def __init__(self,visa_address=None,command_dict_path=command_set_path,**other_info):
         
         super().__init__(command_dict_path)
         
@@ -202,15 +202,23 @@ class PnaController(SCPIInstrument):
         return snp
     
     def measure(self,out_path,port_mapping=None):
-        return self.measure_s_params(out_path,port_mapping)
-      
+        '''
+        @brief alias used to fit into SAMURAI_System with PNAGrabber code
+        '''
+        out_path = clean_file_name(out_path)
+        self.measure_s_params(out_path,port_mapping)
+        return 0,out_path #args match pnagrabber return
+        
     def get_freq_list(self):
         '''
         @brief get a list of the frequencies from the vna
         '''
         freq_str = self.query('SENS:X?') #newer CALC:X? command doesnt work on typical VNA
-        freq_list = [float(val) for val in freq_str.strip().split(',')]
-        return freq_list
+        if type(freq_str) is str: #ensure we didnt already convert (single frequency)
+            freq_list = [float(val) for val in freq_str.strip().split(',')]
+        elif type(freq_str) is float:
+            freq_list = [freq_str]
+        return np.array(freq_list)
         
     #give 'ON' or 'OFF' to on/off (or 1/0);
     def set_port_power_on_off(self,port_num,on_off_auto="AUTO"):
@@ -415,6 +423,16 @@ class PnaController(SCPIInstrument):
 #alias the class name to hold python standards (while also being backward compatable)
 pnaController = PnaController    
 
+def clean_file_name(fname):
+    '''
+    @brief make sure the file name doesnt exist. If it does add an ending so it doesnt overwrite
+    '''
+    fname_orig = fname
+    i=1
+    while os.path.exists(fname):
+        fname = '_{}'.format(i).join(os.path.splitext(fname_orig))
+        i+=1
+    return fname
         
 if __name__=='__main__':
     
@@ -423,20 +441,25 @@ if __name__=='__main__':
     #mypna.get_params()
     comd = mypna.command_dict
     mypna.query('info')
-    '''
+    
+    mypna.get_params()
+    #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
+
+    #mypna.set_settings()
+    
     #mypna.set_continuous_trigger('ON')
     #ports = [1,3]
     #param_list = [i*10+j for i in ports for j in ports]
     param_list = [11,31,13,33]
     #mypna.setup_s_param_measurement(param_list)
     mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-    mypna.write('if_bandwidth',100)
+    mypna.write('if_bandwidth',1000)
     #mypna.set_continuous_trigger('off')
     mypna.get_params()
     print(mypna)
     mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
     #dd = mypna.get_all_trace_data()
-    '''   
+     
 
         
             
