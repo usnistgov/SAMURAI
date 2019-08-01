@@ -148,6 +148,17 @@ class Instrument(OrderedDict):
         '''
         for key in self.setting_params:
             self[key] = self.query(key)
+            
+    def set_from_dict(self,com_dict):
+        '''
+        @brief run commands from a dictionary
+        @param[in] com_dict - command dict in format {command1:(*args1),command2:(*args2),...}
+        '''
+        for key,val in com_dict.items():
+            if val is None:
+                val = ()
+            com_args = tuple(val) #in case we have a list
+            self.write(key,**com_args)
         
     def __del__(self):
         '''

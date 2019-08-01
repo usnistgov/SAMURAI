@@ -131,6 +131,9 @@ class SAMURAI_System():
                 OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
                     A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
                     For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+            external_meas_obj - class to use as a different measurement than pnagrabber (e.g. PnaController) just needs a .measure method
+            external_meas_obj_init_args - arguments for the external class __init__() method
+            external_meas_obj_meas_args - arguments for the external class .measure() method
         @return sweep time
         '''
         if not self.is_connected:
@@ -144,8 +147,9 @@ class SAMURAI_System():
         defaults['metafile_header_values'] = {}
         defaults['external_position_measurements'] = None
         defaults['comment_character'] = '#'
-        defaults['external_measure_obj'] = None #object for measurement besides pnagrabber
-        defaults['external_measure_obj_args'] = () #tuple of args for __init__ of external_measure_obj
+        defaults['external_meas_obj'] = None #object for measurement besides pnagrabber
+        defaults['external_meas_obj_init_args'] = () #tuple of args for __init__ of external_measure_obj
+        defaults['external_meas_obj_meas_args'] = () #tuple of args for __init__ of external_measure_obj
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -155,10 +159,10 @@ class SAMURAI_System():
         if run_vna:
         #open PNAGrabber instance
             #pnag_out_path = os.path.join(os.path.split(options['output_directory'])[0],'unnamed.'+options['output_file_type'])
-            if options['external_measure_obj'] is None:
+            if options['external_meas_obj'] is None:
                 pna_measure = pnag.pnaGrabber(pnagrabber_template_path=options['template_path'])
             else:
-                pna_measure = options['external_measure_obj'](*options['external_meas_args'])
+                pna_measure = options['external_meas_obj'](*options['external_meas_obj_init_args'])
             
         mf = smf.metaFile(csv_path,self.options['vna_visa_address'],root_dir=data_out_dir)
         mf.init(**options['metafile_header_values'])
@@ -204,7 +208,7 @@ class SAMURAI_System():
                 #get the positoin from the positoiner
                 posn_vals = self.rx_positioner.get_position()
                 if(run_vna):
-                    [pnaTime,newPath] = pna_measure.measure(newPath)
+                    [pnaTime,newPath] = pna_measure.measure(newPath,*options['external_meas_obj_meas_args'])
                 else:
                     pnaTime = -3.14159
                     newPath = 'VNA NOT USED'
