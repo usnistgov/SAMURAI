@@ -83,6 +83,12 @@ class PnaGrabber:
         #return runtime and new filename if changed
         return te-ts,newPath
     
+    def measure(self,newPath,clean=-1):
+        '''
+        @brief alias of run
+        '''
+        return self.run(newPath,clean=-1)
+    
     #get list of enabled measurements from template path
     def get_meas_list(self):
         '''

@@ -8,9 +8,13 @@ Created on Fri May 11 13:23:47 2018
 import pyvisa as visa
 import numpy as np
 import time
+import re
 
 #chain for changing list of tuples into 1d list
 from itertools import chain
+from collections import OrderedDict
+
+from samurai.acquisition.support.InstrumentControl import SCPICommandDict, SCPIInstrument
 
 #>>> import visa
 #>>> rm = visa.ResourceManager()
@@ -19,113 +23,81 @@ from itertools import chain
 #>>> inst = rm.open_resource('GPIB0::12::INSTR')
 #>>> print(inst.query("*IDN?"))
 
-class pnaController():
+import os
+script_path = os.path.dirname(os.path.realpath(__file__))
+command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_communication_dictionary.json') 
+
+
+class PnaController(SCPIInstrument):
     
-    #default set to address when taking initial samurai measurements
-    #def __init__(self,visa_address='USB0::0x0957::0x0118::SG49151009::0::INSTR'):
-    def __init__(self,visa_address):#='TCPIP0::10.0.0.2::inst0::INSTR')
-        #damirs vna is USB0::0x0957::0x0118::SG49151009::0::INSTR
-        #dylans vna USB0::0x0957::0x0118::US49150144::INSTR
-        self.visa_addr = visa_address
+    def __init__(self,visa_address=None,command_dict_path=command_set_path,**other_info):
         
-        self.settings = {}
-        #init our pna info 
-        self.settings['info']        = -1
-        self.settings['ifbw']        = -1.
-        self.settings['freq_start']  = -1.
-        self.settings['freq_stop']   = -1.
-        self.settings['freq_step']   = -1.
-        self.settings['freq_span']   = -1.
-        self.settings['freq_cent']   = -1.
-        self.settings['num_pts']     =  0 
-        self.settings['dwell_time']  = -1.
-        self.settings['delay_time']  = -1.
-        self.settings['power']       = -1e32
-        self.settings['sweep_type']  = 'NO READ'
-        self.settings['sweep_time']  = 0
+        super().__init__(command_dict_path)
         
-        self.settings['info']        = 'NO INFO'
+        self.update({'info':'NO INFO READ'})
+        
+        self.setting_params = ['info','if_bandwidth','freq_start','freq_stop',
+                               'freq_span','freq_cent','num_pts','dwell_time',
+                               'sweep_delay_time','power','sweep_type','sweep_time'] #these values will be read when self.get_settings is read
         
         self.is_connected = False
         
         self.vrm = visa.ResourceManager()
         
-        self.connect()
-        
-    def __del__(self):
-        if(self.is_connected):
-            self.disconnect()
-        
-    def connect(self):
+        if visa_address is not None:
+            self.connect(visa_address)
+     
+    #overrides superclass
+    def _connect(self,address):
+        '''
+        @brief this is the disconnect that is used in self.connect() defined in superclass
+        '''
         if(not self.is_connected):
             try:
-                self.pna = self.vrm.open_resource(self.visa_addr)
-                self.settings['info'] = self.pna.query('*IDN?')
-                self.pna.timeout = 60000 #timeout wasnt working at 3 or 10
+                self.connection = self.vrm.open_resource(address)
+                self.connection.timeout = 10000 #timeout wasnt working at 3 or 10
             except:
                 raise IOError("Unable to connect to PNA")
             #if it worked were connected;
             self.is_connected = True
             
-    def write(self,msg):
-        
-        #not my favorite way to do this but prevents timeouts when writing 100 values to segment table for source
-        #i wish there was a :LIST command for segment source like there is for segment recievers
-        #seems to work though regardless
-        #ready = False
-        self.pna.write('*WAI')
-       # while(not ready):
-       #     try:
-       #         self.pna.query('*OPC?');
-       #         ready = True;
-       #     except:
-       #         ready = False;
-            
-       # try:
-       #     self.pna.query('*OPC?');
-       # except:
-       #     print('Query Timed out when sending '+msg)
-        #self.pna.write('*WAI')
-        self.pna.write(msg)
-        self.pna.query('*OPC?')        
+    def write(self,msg,*args,**kwargs):
+        '''
+        @brief write a message to the PNA
+        @param[in/OPT] *args,**kwargs - args for when commands from command_dict are used
+        '''
+        super().write('*WAI')
+        super().write(msg,*args,**kwargs)
+        self.query('*OPC?',False)        
         #time.sleep(0.10);
-        
-    def query(self,msg):
-        #self.pna.write('*OPC?')
-        return self.pna.query(msg)
     
-    def disconnect(self):
-        self.pna.close()
+    def _disconnect(self):
+        '''
+        @brief this is the disconnect that is used in self.disconnect() defined in superclass
+        '''
+        self.connection.close()
         self.is_connected = False
         
-    def getParams(self):
+    def get_params(self):
         
-        #connect to pna
-        self.connect()
-        
-        #now get all of our values
-        self.settings['info']        = self.pna.query('*IDN?')
-        self.settings['ifbw']        = float(self.pna.query('SENS:BAND?'))
-        self.settings['freq_start']  = float(self.pna.query('SENS:FREQ:STAR?'))
-        self.settings['freq_stop']   = float(self.pna.query('SENS:FREQ:STOP?'))
-        self.settings['num_pts']     = int  (self.pna.query('SENS:SWE:POIN?'))
-        #gives timeout error self.freq_step   = float(pna.query('SENS:FREQ:CENT:STEP:SIZE?'));
-        self.settings['freq_span']   = float(self.pna.query('SENS:FREQ:SPAN?'))
-        self.settings['freq_cent']   = float(self.pna.query('SENS:FREQ:CENT?'))
-        self.settings['dwell_time']  = float(self.pna.query('SENS:SWE:DWEL?'))
-        self.settings['sdelay_time'] = float(self.pna.query('SENS:SWE:DWEL:SDEL?'))
-        self.settings['power']       = float(self.pna.query('SOUR:POW?'))
-        self.settings['sweep_type']  = self.pna.query('SENS:SWE:TYPE?')
-        self.settings['sweep_time']  = float(self.pna.query('SENS:SWE:TIME?'))
-        
-        #close our visa connection
-        self.disconnect()
-        
+        self.get_settings()
         #calculate values
-        self.settings['freq_step'] = self.freq_span/float(self.num_pts-1)
+        self['freq_step'] = np.divide(self['freq_span'],float(self['num_pts']-1))
+        
+    def set(self,command,*args,**kwargs):
+        '''
+        @brief set a value from self.setting_alias_dict or try command_dict
+        @param[in] command - can be an alias from setting_alias_dict, or command_dict
+        @param[in] *args - arguments for the commands
+        @param[in] **kwargs - keyword arguments for the command
+        '''
+        com = self.setting_alias_dict.get(command,None)
+        if com is None: #was not in the setting alias dict
+            com = self.command_dict.get(com) #assume its in the command_dict
+        
             
         #set our frequencies in hz
-    def set_freq_sweep(self,start_freq,stop_freq,freq_step=-1,num_pts=-1,chan=1):
+    def set_freq_sweep(self,start_freq,stop_freq,freq_step=-1,num_pts=-1):
          
         if(freq_step==-1 & num_pts==-1):
             print("Please specify either frequency step or number of points")
@@ -134,49 +106,120 @@ class pnaController():
         if(freq_step!=-1): #calculate points from step
             num_pts = int((start_freq-stop_freq)/freq_step)+1
             
-        #connect
-        self.connect()
-        
-        #format strings
-        start_str = "SENS%d:FREQ:STAR %e" % (chan,start_freq)
-        stop_str  = "SENS%d:FREQ:STOP %e" % (chan,stop_freq)
-        pts_str   = "SENS%d:SWE:POIN %d" % (chan,num_pts)
-        type_str  = "SENS:FOM:RANG:SWE:TYPE LIN"
-        
         #now write
-        self.write(start_str)
-        self.write(stop_str)
-        self.write(pts_str)
-        self.write(type_str)
+        self.write('freq_start',start_freq)
+        self.write('freq_stop',stop_freq)
+        self.write('num_pts',num_pts)
+        self.write('sweep_type','LIN')
         
-        #close connection
-        #self.disconnect();
-        
-        
-    def set_start_freq(self,start_freq,chan=0):
-        self.connect()
-        self.write("SENS%d:FREQ:STAR %e" % (chan,start_freq))
-        #self.disconnect();
-        
-    def get_start_freq(self):
-        return float(self.pna.query('SENS:FREQ:STAR?'))
+    def setup_s_param_measurement(self,parameter_list):
+        '''
+        @brief setup n port s parameter measurement
+        @param[in] parameter_list - which parameters to measure (e.g. [11,21,22,21])
+        @note help from http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm
+        '''
+        #first reset the vna
+        self.write('SYST:FPR')
+        #now turn on window 1
+        self.write('DISP:WIND','ON')
+        #delete all other measurements
+        #self.write(self.command_dict.get('CALC:PAR:DEL:ALL')())
+        #define our measurements
+        meas_names = ["'S_{}'".format(int(pc)) for pc in parameter_list]
+        meas_types = ["S{}".format(int(pc)) for pc in parameter_list]
+        #and add the measurements
+        for i,mn in enumerate(meas_names):
+            self.write('CALC:PAR:EXT',mn,meas_types[i])
+        #and add them to the window
+        for i,mn in enumerate(meas_names):
+            self.write('DISP:WIND:TRAC:FEED',mn,tnum=i+1)
     
-    
-    def set_num_pts(self,num_pts):
-        pts_str   = "SENS:SWE:POIN %d" % num_pts
-        self.write(pts_str)
+    def set_continuous_trigger(self,on_off):
+        '''
+        @brief set continuous trigger on or off
+        '''
+        self.write('INIT:CONT',on_off)
+        if on_off.upper() is 'OFF':
+            mode = 'SING'
+        else:
+            mode = 'CONT'
+        self.write('SENS:SWE:MODE',mode)
         
-    def get_num_pts(self):
-        self.connect()
-        rv = int(self.pna.query('SENS:SWE:POIN?'))
-        #self.disconnect();
-        return rv
+    def trigger(self,timeout=300000):
+        '''
+        @brief trigger the vna when in manual mode. This will also wait for the sweep to complete
+        @param[in] timeout - timeout of visa. The OPC? command hangs until the sweep is finished in single mode
+            This default to 5 minutes. reset the timeout when were done
+        '''
+        timeout_temp = self.connection.timeout
+        self.connection.timeout = timeout
+        self.write('INIT:IMM')
+        self.connection.timeout = timeout_temp
+        
     
-  #  def get_s_param_data():
-  #      self.connect();
-  #      self.write('FORM:DATA REAL,64'); #set the data format
-  #      dat_str = self.query(')
+    def get_all_trace_data(self):
+        '''
+        @brief get data from all traces on a single channel
+        @return [frequency_list, {trace_name:{'parameter':param,'data':[values]}]
+        '''
+        #self.write('FORM:DATA REAL,64'); #set the data format
+        freq_list = self.get_freq_list()
+        trace_dict = self.get_traces()
+        data_dict = {}
+        for key,val in trace_dict.items():
+            self.write('CALC:PAR:SEL',"'{}'".format(key)) #select the trace
+            data_str = self.query('CALC:DATA?','sdata')
+            data = np.array(data_str.split(','),dtype='float64') #data as floating point
+            data_cplx = data[::2]+data[1::2]*1j #change to complex
+            data_dict[key] = {'parameter':val,'data':data_cplx}
+        return freq_list,data_dict
     
+    def measure_s_params(self,out_path,port_mapping=None):
+        '''
+        @brief measure s parameters of current traces and write out to out_path
+        @param[in] out_path - path to write out data to 
+        @param[in/OPT] port_mapping - optional dictionary of port mappings (e.g {3:2})
+        '''
+        #trigger the vna assume continuous trigger is off (self.set_continuous_trigger('off'))
+        self.set_continuous_trigger('OFF')
+        self.trigger()
+        #first lets get the data of the current traces
+        freqs,data_dict = self.get_all_trace_data()
+        #import snp editor
+        from samurai.analysis.support.snpEditor import SnpEditor,map_keys
+        #now lets get the number of ports from the out_path
+        num_ports = int(re.findall('(?<=s)\d+(?=p)',out_path)[0])
+        #now lets create our Snp Object
+        freqs = freqs/1e9 #change to GHz
+        snp = SnpEditor([num_ports,freqs],header='GHz S RI 50')
+        for dd in data_dict.values():
+            if dd['parameter'][0].upper()=='S': #then its an s param measurement
+                s_key = int(dd['parameter'][1:])
+                #map ports if specified
+                s_key = map_keys([s_key],port_mapping)[0]
+                snp.S[s_key].raw = dd['data']
+        snp.write(out_path)
+        return snp
+    
+    def measure(self,out_path,port_mapping=None):
+        '''
+        @brief alias used to fit into SAMURAI_System with PNAGrabber code
+        '''
+        out_path = clean_file_name(out_path)
+        self.measure_s_params(out_path,port_mapping)
+        return 0,out_path #args match pnagrabber return
+        
+    def get_freq_list(self):
+        '''
+        @brief get a list of the frequencies from the vna
+        '''
+        freq_str = self.query('SENS:X?') #newer CALC:X? command doesnt work on typical VNA
+        if type(freq_str) is str: #ensure we didnt already convert (single frequency)
+            freq_list = [float(val) for val in freq_str.strip().split(',')]
+        elif type(freq_str) is float:
+            freq_list = [freq_str]
+        return np.array(freq_list)
+        
     #give 'ON' or 'OFF' to on/off (or 1/0);
     def set_port_power_on_off(self,port_num,on_off_auto="AUTO"):
         
@@ -188,6 +231,22 @@ class pnaController():
         pow_com = "SOUR:POW"+str(port_num)+":MODE "+str(on_off_auto).upper()
         self.write(pow_com)
         return
+    
+    def get_traces(self):
+        '''
+        @brief get trace name value pairs
+        @return dictionary with <measurement name>/<paramter> pairs
+        '''
+        ret_str = self.query('CALC:PAR:CAT:EXT?')
+        #remove quotes
+        ret_str = re.sub('["\n ]+','',ret_str)
+        name_val_pairs = re.findall('[^,]+,[^,]+',ret_str)
+        #assume each pair is a list of 2 values with a comma in betewen
+        ret_dict = {}
+        for nvp in name_val_pairs:
+            key,val = nvp.split(',')
+            ret_dict[key] = val
+        return ret_dict
         
         
     #set source n on vna to cw with frequency freq
@@ -200,9 +259,7 @@ class pnaController():
         #turn on frequency offset mode
         fom_on_com = "SENS:FOM ON"
         self.write(fom_on_com)
-        
-        #connect to the reader if not already done
-        self.connect()
+
         
         #set our command for writing the source to CW
         #range2 = Source;
@@ -261,9 +318,9 @@ class pnaController():
         #data = ''.join(dat_str);
         com = 'SENS:SEGM:LIST SSTOP,'+str(num_pts)+','
         
-        self.pna.write('FORM:BORD NORM')
+        self.connection.write('FORM:BORD NORM')
         dat_out = list(chain(*seg_table)) #flatten list of tuples
-        self.pna.write_binary_values(com,dat_out,datatype='d')
+        self.connection.write_binary_values(com,dat_out,datatype='d')
         #self.write(com);
         
         
@@ -357,26 +414,52 @@ class pnaController():
             #print(stop_com)
             #print(pts_com);
             
-            self.pna.write(on_off_com)
-            self.pna.write(start_com)
-            self.pna.write(stop_com)
+            self.connection.write(on_off_com)
+            self.connection.write(start_com)
+            self.connection.write(stop_com)
             #self.write(pts_com); #dont change points. this can cause further issues
          
-    def __getattr___(self,attr):
-        '''
-        @brief this should make us backward compatable with previous setup
-            If an attribute doesnt exist, check the settings dictionary
-        '''
-        try:
-            return self.settings[attr]
-        except KeyError:
-            raise AttributeError("{} is not an attribute or in self.settings['{}']".format(attr))
-    
+
 #alias the class name to hold python standards (while also being backward compatable)
-PnaController = pnaController    
+pnaController = PnaController    
+
+def clean_file_name(fname):
+    '''
+    @brief make sure the file name doesnt exist. If it does add an ending so it doesnt overwrite
+    '''
+    fname_orig = fname
+    i=1
+    while os.path.exists(fname):
+        fname = '_{}'.format(i).join(os.path.splitext(fname_orig))
+        i+=1
+    return fname
         
-        
-        
+if __name__=='__main__':
+    
+    visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
+    mypna = PnaController(visa_address)
+    #mypna.get_params()
+    comd = mypna.command_dict
+    mypna.query('info')
+    
+    mypna.get_params()
+    #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
+
+    #mypna.set_settings()
+    
+    #mypna.set_continuous_trigger('ON')
+    #ports = [1,3]
+    #param_list = [i*10+j for i in ports for j in ports]
+    param_list = [11,31,13,33]
+    #mypna.setup_s_param_measurement(param_list)
+    mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
+    mypna.write('if_bandwidth',1000)
+    #mypna.set_continuous_trigger('off')
+    mypna.get_params()
+    print(mypna)
+    mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+    #dd = mypna.get_all_trace_data()
+     
 
         
             

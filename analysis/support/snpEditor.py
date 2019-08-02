@@ -15,6 +15,14 @@ from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 
 from samurai.analysis.support.generic import deprecated
 
+DEFAULT_HEADER = 'GHz S RI 50'
+DEFAULT_COMMENTS = []
+HEADER_FREQ_REGEX = '[KMGT]*[Hh][Zz]' #regex to get GHz, Hz, THz, KHz, MHz
+
+
+FREQ_MULT_DICT = {'HZ':1,'KHZ':1e3,'MHZ':1e6,'GHZ':1e9,'THZ':1e12}
+INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse of frequency multiplier dictionary
+
 class WnpEditor:
    '''
    @brief init arbitrary port wave parameter class
@@ -36,8 +44,8 @@ class WnpEditor:
             no_load - if True, do not immediatly load the file (default False)
         '''
         self.options = {}
-        self.options['header'] = []
-        self.options['comments'] = []
+        self.options['header'] = None #this will be set later
+        self.options['comments'] = DEFAULT_COMMENTS
         self.options['read_header'] = True
         self.options['waves'] = ['A','B'] #waves to store. default to wave parameter
         self.options['plotter'] = None
@@ -69,19 +77,20 @@ class WnpEditor:
        keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
        self.wave_dict_keys = keys
             
-   def load(self,input_file,ftype='auto',read_header=True):
+   def load(self,input_file,**kwargs):
         '''
         @brief load a wave parameter file and parse into the class
         @param[in] input_file - path of file to load
-        @param[in/OPT] ftype  - type of file we are loading (e.g. 'text' or 'binary')
-        @param[in] read_header - whether or not to read the header and comments in text files. It is faster to not read the header/comments
+        @param[in/OPT] - **kwargs - keyword arguements as follows:
+                ftype  - type of file we are loading (e.g. 'text' or 'binary')
+                read_header - whether or not to read the header and comments in text files. It is faster to not read the header/comments
         '''
-        #check if were loading a .meas file first and update input accordingly
-        if(input_file.split('.')[-1]=='meas'):
-            input_file = get_unperturbed_meas(input_file)
-            
-       #if we default grab from end of file path
-        if(ftype=='auto'):
+        options = {}
+        for k,v in kwargs.items():
+            options[k] = v
+        #if we default grab from end of file path
+        ftype = options.get('ftype',None)
+        if ftype is None:
             if(input_file.split('_')[-1]=='binary'):
                 ftype='binary'
             else:
@@ -96,52 +105,103 @@ class WnpEditor:
         #if we have a binary file (e.g. *.w2p_binary)
         if(ftype=='binary'):
             #first read the header
-            self.options['header'].append('GHz S RI 50')
-            self.options['comments'].append('data read from binary file')
-            [num_rows,num_cols] = np.fromfile(input_file,dtype=np.uint32,count=2) 
-            raw_data = np.fromfile(input_file,dtype=np.float64) #read raw data
-            raw_data = raw_data[1:] #remove header
-            raw_data = raw_data.reshape((num_rows,num_cols)) #match the text output
-            
+            raw_data = self._load_binary(input_file,**kwargs)  
         #if we have a text file (e.g. *.w2p)
         elif(ftype=='text'):
-            #first read in comments
-            if(read_header): #flag for reading header for speed
-                with open(input_file,'r') as fp: 
-                    for line in fp:
-                        if(line.strip()[0]=='#'):
-                            self.options['header'].append(line.strip()[1:])
-                        elif(line.strip()[0]=='!'):
-                            self.options['comments'].append(line.strip()[1:])
-                        else: #else its data
-                            pass     
-            else: #dont read comments
-                self.options['header'].append('GHz S RI 50')
-                self.options['comments'].append('Header and comments NOT read from file')
-            #now read in data from the file with many possible delimiters in cases
-            #of badly formated files
-            with open(input_file) as fp:
-                regex_str = r'[ ,|\t]+'
-                rc = re.compile(regex_str)
-                raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!'])                  
-                num_rows = np.size(raw_data,0)
-                num_cols = np.size(raw_data,1) #get the number of columns
-                
+            raw_data = self._load_text(input_file,**kwargs)
+
+        num_cols = np.size(raw_data,1) #get the number of columns     
         #now split the data (text and binary input should be formatted the same here)
         #first check if our file is named correctly
         num_ports_from_file = int(round(np.sqrt((num_cols-1)/(len(self.waves)*2)))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
         if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
             raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
         
-        #file is good if we make it here so continue to unpacking
-        freqs = raw_data[:,0] #extract our frequencies
+        if self.options['header'] is None: #if we dont have a header here, set the default
+            self.set_header(DEFAULT_HEADER)
         
-        #now get the data for each port. This assumes that the keys are in the same order as the file info (which they should be)
+        #file is good if we make it here so continue to unpacking
+        freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
+        
+        #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
         for ki,k in enumerate(self.wave_dict_keys):
             for wi,w in enumerate(self.waves):
                 idx = ki*len(self.waves)*2+(1+2*wi)
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
                 self.waves[w][k] = WnpParam(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+        self.round_freq_lists() #round when we load (remove numerical rounding error)
+    
+   def _load_text(self,file_path,**kwargs):
+       '''
+       @brief internal function to load text snp/wnp file
+       @param[in] file_path - path of text file to load
+       @param[in/OPT] **kwargs - keyword args as follows:
+           read_header - whether or not to read the header and comments in text files. 
+                           It is faster to not read the header/comments
+       '''
+       
+       #first read in comments
+       if(kwargs.get('read_header',None)): #flag for reading header for speed
+            with open(file_path,'r') as fp: 
+                for line in fp:
+                    if(line.strip()[0]=='#'):
+                        self.set_header(line) #try and set it. If its not valid it wont be set
+                    elif(line.strip()[0]=='!'):
+                        self.options['comments'].append(line.strip()[1:])
+                    else: #else its data
+                        pass     
+       else: #dont read comments
+            self.options['comments'].append('Header and comments NOT read from file')
+        #now read in data from the file with many possible delimiters in cases
+        #of badly formated files
+       with open(file_path) as fp:
+            regex_str = r'[ ,|\t]+'
+            rc = re.compile(regex_str)
+            raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
+            if raw_data.ndim==1: #case if we have 1 data point only
+                raw_data = np.reshape(raw_data,(1,-1))
+       return raw_data
+       
+   def _load_binary(self,file_path,**kwargs):
+       '''
+       @brief internal function to load binary snp/wnp file
+       @param[in] file_path - path of binary file to load
+       @param[in/OPT] **kwargs - keyword args as follows:
+           None yet!
+       '''
+       [num_rows,num_cols] = np.fromfile(file_path,dtype=np.uint32,count=2) 
+       raw_data = np.fromfile(file_path,dtype=np.float64) #read raw data
+       raw_data = raw_data[1:] #remove header
+       raw_data = raw_data.reshape((num_rows,num_cols)) #match the text output
+       self.options['comments'] = ['Data read from binary file']
+       return raw_data
+   
+   def set_header(self,header_str):
+       '''
+       @brief set our header string with some checks.
+       @param[in] header_str - string of our header 
+       '''
+       header_str = re.sub('#','',header_str)
+       freq_mult = self._get_freq_mult(header_str)
+       if freq_mult is None:  #make sure we have a frequency in here
+           return 
+       self.options['header'] = header_str #set if we pass the checks
+    
+   def _get_freq_mult(self,header_str=None):
+       '''
+       @brief return a value of a frequency multiplier from a header (or string unit)
+       @param[in/OPT] header_str - header to get multiplier from if none use self.options['header']
+       @return a multiplier to get from the current units to Hz or None if no match is found
+       '''
+       if header_str is None:
+           header_str = self.options['header']
+       unit_strs = re.findall(HEADER_FREQ_REGEX,header_str)
+       if unit_strs:
+           mult = FREQ_MULT_DICT.get(unit_strs[0].upper(),None) #assume 1 match if any
+       else:
+           mult = None
+       return mult
+       
     
    def load_empty(self,num_ports,freqs):
         '''
@@ -152,13 +212,16 @@ class WnpEditor:
         self.options['num_ports'] = num_ports #set the number of ports
         #now set our keys
         self._gen_dict_keys()
-        
+        if self.options['header'] is None: #allow override
+            self.set_header(DEFAULT_HEADER) #set the default header
         #and pack the port data with 0s
+        freqs = np.array(freqs)*self._get_freq_mult()
         for k in self.wave_dict_keys:
             for wave in self.waves.keys():
-                self.waves[wave][k] = WnpParam(np.array(freqs),np.zeros(len(freqs)),plotter=self.options['plotter'])
-       
-   def write(self,out_file,ftype='default',delimiter=' '):
+                self.waves[wave][k] = WnpParam(freqs,np.zeros(len(freqs)),plotter=self.options['plotter'])
+        self.round_freq_lists()
+        
+   def write(self,out_file,ftype='default',delimiter=' ',freq_units=None):
         '''
         @brief write out data to wave parameter file (e.g. '.w2p')
         @param[in] out_file - path of file name to write to
@@ -177,11 +240,14 @@ class WnpEditor:
         #make sure the frequency lists are equal before writing; just in case somthing went wrong
         self._verify_freq_lists()
         
+        #get our frequency multiplier
+        freq_mult = self._get_freq_mult()
+        
         #pack into correct data list
         #assume all parameters are same length
         if(ftype=='binary'):
             num_rows = len(self.w1[11].freq_list)
-            temp_list = [self.w1[11].freq_list]
+            temp_list = [self.w1[11].freq_list/freq_mult]
             for k in self.wave_dict_keys:
                 for w in self.waves:
                     temp_list += [self.waves[w][k].raw.real,self.waves[w][k].raw.imag]
@@ -200,14 +266,11 @@ class WnpEditor:
                     self.options['comments'] = [self.options['comments']]
                 for i in range(len(self.options['comments'])):
                     fp.write('!%s\n' %(self.options['comments'][i]))
-                #write our header
-                if type(self.options['header']) is not list: #assume if its not a list ts a string
-                    self.options['header'] = [self.options['header']]
-                for i in range(len(self.options['header'])):
-                    fp.write('#%s\n' %(self.options['header'][i]))
+                #write our header (should just be a single string)
+                fp.write('#%s\n' %(self.options['header']))
                 #now write data
                 for i in range(len(self.w1[11].raw)):
-                    line_vals = [self.w1[11].freq_list[i]]
+                    line_vals = [self.w1[11].freq_list[i]/freq_mult]
                     for k in self.wave_dict_keys:
                         for w in self.waves.values():
                             line_vals += [w[k].raw[i].real,w[k].raw[i].imag]
@@ -376,7 +439,7 @@ class WnpEditor:
        for k in self.wave_dict_keys:
         if(int(k/10)==port): #see if its our port
             for wk in self.waves.keys():
-                self.waves[wk][k].freq_list += np.round(LO_freq/1e9)
+                self.waves[wk][k].freq_list += np.round(LO_freq)
                 #now round the frequencies to nearest Hz
                 self.waves[wk][k].round_freq_list()
 
@@ -459,8 +522,8 @@ class WnpParam:
         '''
         @brief remove all frequencies and their corresponding values outside a given window
         '''
-        lo_val = np.round(lo_freq/1e9,decimals=9)
-        hi_val = np.round(hi_freq/1e9,decimals=9)
+        lo_val = np.round(lo_freq)
+        hi_val = np.round(hi_freq)
         #data is in ghz in files
         del_idx = np.where(np.logical_or(self.freq_list<lo_val,self.freq_list>hi_val))
         if(np.size(del_idx)==np.size(self.freq_list)):
@@ -476,8 +539,8 @@ class WnpParam:
         '''
         @brief remove all frequencies and their corresponding values inside a given window
         '''
-        lo_val = np.round(lo_freq/1e9,decimals=9)
-        hi_val = np.round(hi_freq/1e9,decimals=9)
+        lo_val = np.round(lo_freq)
+        hi_val = np.round(hi_freq)
         #data is in ghz in files
         del_idx = np.where(np.logical_or(self.freq_list>lo_val,self.freq_list<hi_val))
         if(np.size(del_idx)==np.size(self.freq_list)):
@@ -492,10 +555,10 @@ class WnpParam:
     #useful for writing out 
     def round_freq_list(self):
         '''
-        @brief round frequency list to nearest hz assuming values are in GHz
+        @brief round frequency list to nearest hz assuming values are in Hz
         '''
         #assume frequency values are in GHz and we round to Hz
-        self.freq_list=np.round(self.freq_list,decimals=9)
+        self.freq_list=np.round(self.freq_list,decimals=0)
     
     #put new values into the class
     def update(self,freq_list,raw_list):
@@ -513,10 +576,15 @@ class WnpParam:
             if the exact frequency is not found, the closest will be provided
         @param[in] freq - frequency (in Hz) to get the value of
         '''
-        fm = np.abs(freq-self.freq_list*1e9)
+        fm = np.abs(freq-self.freq_list)
         return self.raw[np.argmin(fm)]
         
-    def calculate_time_domain(self):
+    def calculate_time_domain_data(self):
+        '''
+        @brief calculate the time domain data
+        @todo. Verify the lack of ifftshift here is correct for phases...
+        @return [time domain values,ifft complex values]
+        '''
         ifft_vals = np.fft.ifft(self.raw)
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])
@@ -598,12 +666,33 @@ class MalformedSnpError(SnpError):
     '''
     def __init__(self,err_msg):
         super().__init__(err_msg)
+        
+def map_keys(key_list,mapping_dict):
+    '''
+    @brief change a set of keys (e.g. [11,31,13,33]) based on a mapping dict
+    @param[in] key_list - list of keys for S/WnpParams (e.g. [11,31,13,33])
+    @param[in] mapping_dict - how to map ports (e.g. {3:2,1:4})
+    '''
+    new_key_list = []
+    for key in key_list:
+        new_key = int(0)
+        trans_key = int(key)
+        i = 1
+        while(trans_key>=1):
+            cur_val = int(trans_key%10)
+            new_val = mapping_dict.get(cur_val,cur_val)
+            new_key+=new_val*i
+            trans_key = int(trans_key)/int(10)
+            i*=10
+        new_key_list.append(new_key)
+    return new_key_list
     
 
 if __name__=='__main__':
 
     snp_test = True
-    wnp_test = False
+    wnp_test = True
+    key_test = False
     
     #geyt the current file directory
     import os 
@@ -618,12 +707,14 @@ if __name__=='__main__':
         wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
         wnp_text = WnpEditor(wnp_text_path)
         wnp_bin  = WnpEditor(wnp_bin_path)
+        print(wnp_bin==wnp_text)
     if snp_test:
         print("Loading *.snp files")
         snp_text_path = os.path.join(dir_path,'test.s2p')
         snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
         snp_text = SnpEditor(snp_text_path)
         snp_bin  = SnpEditor(snp_bin_path)
+        print(snp_bin==snp_text)
         snp_text.write('test2.s2p')
         snp_text.write('test2.s2p_binary')
         snp_text2 = SnpEditor('test2.s2p_binary')
@@ -636,6 +727,13 @@ if __name__=='__main__':
         os.remove('test2.s2p_binary')
         os.remove('test22.s2p')
         os.remove('test3.s2p')
+        
+    if key_test:
+        keys = [11,31,13,33]
+        mapping = {3:2}
+        print(keys)
+        new_keys = map_keys(keys,mapping)
+        print(new_keys)
         
 
         

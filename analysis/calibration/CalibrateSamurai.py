@@ -76,8 +76,8 @@ class CalibrateSamurai:
   
     #calibrate in post processor and save in output directory
     def populate_post_proc_and_calibrate(self):
-        #ensure our metafile is updated to the current folder
-        self.mfc.set_wdir()
+        #ensure our metafile is updated to the current folder it is in
+        self.mfc.wdir = os.path.dirname(self.metaFile)
         #get our list of values from the old folder both with and without absolute path
         fnames_abs = self.mfc.get_filename_list(True)
         #open our post proc object and rename to our new directory

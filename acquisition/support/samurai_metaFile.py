@@ -139,9 +139,10 @@ class metaFile(OrderedDict):
         '''
         try:
             pnaCont = pnaController.pnaController(pna_addr)
-            pnaCont.getParams() #update the parameters
-            self['vna_info'].update(pnaCont.settings) #write to metafile
-        except:
+            pnaCont.get_params() #update the parameters
+            self['vna_info'].update(pnaCont) #write to metafile
+        except Exception as e:
+            raise e
             print("Unable to get parameters from VNA")
             
     #init function to be called after all values set by user

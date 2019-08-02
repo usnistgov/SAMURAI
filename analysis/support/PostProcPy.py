@@ -10,16 +10,18 @@ import os
 
 from xml.dom.minidom import parse, parseString
 
+default_exe_path = 'C:/Users/ajw5/Source/Repos/MUF/PostProcessor/bin/Debug/PostProcessor.exe'
+
 class PostProcPy:
     
-    def __init__(self,menuPath='na',exePath='na'):
+    def __init__(self,menu_path=None,exe_path=None):
         self.written=0
-        self.uncertMenu = menuPath
-        if(menuPath!='na'):
-            self.load(menuPath)
-        if(exePath=='na'):
+        self.uncert_menu = menu_path
+        if menu_path is not None:
+            self.load(menu_path)
+        if exe_path is None:
             #print("Default Executable Path being used")
-            self.exePath = 'C:/Users/ajw5/Source/Repos/MUF/PostProcessor/bin/Debug/PostProcessor.exe' #default path 
+            self.exe_path = default_exe_path #default path 
             
     #load in our menu as dom file and some things from it       
     def load(self,menuPath):
@@ -88,14 +90,25 @@ class PostProcPy:
         with open(writeName,'w+') as fp:
             self.dom.writexml(fp)
             
-    def run(self):
+    def run(self,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
+        '''
+        @brief run our postprocessor
+        @param[in/OPT] text_function - function that the output from the post 
+            processor will be passed to (in iterated format, default is print())
+            First argument must be expecting a string
+        @param[in/OPT] tf_args_tuple - tuple of arguments to pass to text_function
+        @param[in/OPT] tf_kwargs_dict - dictionary of kwargs to pass to text_function
+        '''
         if(self.menuLoaded!=1):
             print("ERROR: No Menu Loaded")
             return
         else:
             if(self.written==0):
                 self.write()
-        print(subprocess.check_output([self.exePath,'-r',self.menu_path]))
+        command = self.exe_path+' -r '+self.menu_path
+        exe_generator = subprocess_generator(command)
+        for out_line in exe_generator:
+            text_function(out_line,*tf_args_tuple,**tf_kwargs_dict)        
         
     #set or remove flag in xml to convert from w2p to s2p    
     #set_flg should be true to convert to s2p or false to not do anything
@@ -113,7 +126,35 @@ class PostProcPy:
             #probably dont need to set the text but whatever... why not
             my_combo_node.setAttribute('ControlText','Don\'t normalize phase of .wnp fundamentals to zero')
         
+def subprocess_generator(cmd):
+    '''
+    @brief get a generator to get the output from post processor
+     From https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
+    '''
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        stdout_line = stdout_line.strip() #remove trailing whitespaces and newlines
+        if stdout_line=='':
+            continue #dont do anything
+        else:
+            yield stdout_line #otherwise this value we want
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd) 
         
-            
+        
+if __name__=='__main__':
+    #test the subprocess generator main
+    #the menu to test on
+    post_menu_path = r"C:\Users\ajw5\source\repos\MUF\PostProcessor\bin\Debug\test.post"
+    myppp = PostProcPy(post_menu_path)
+    myppp.run()
+    
+    
+    
+    
+    
+        
         
         

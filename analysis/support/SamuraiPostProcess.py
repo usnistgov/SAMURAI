@@ -10,6 +10,7 @@ import numpy as np #import constants
 import scipy.constants as sp_consts #import constants for speed of light
 #import scipy.interpolate as interp
 import six
+import os
 #import json
 
 from samurai.analysis.support.metaFileController import MetaFileController 
@@ -67,7 +68,7 @@ class SamuraiSyntheticApertureAlgorithm:
         if(metafile_path): #if theres a metafile load it
             self.load_metafile(metafile_path,**arg_options)
 
-    def load_metafile(self,metafile_path,freq_mult=1e9,**arg_options):
+    def load_metafile(self,metafile_path,**arg_options):
         '''
         @brief function to load in our metafile and S parameter data from it
         @param[in] metafile_path - path to the metafile to load measurement from
@@ -79,7 +80,7 @@ class SamuraiSyntheticApertureAlgorithm:
         #now get the values we are looking for
         self.all_s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
         self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
-        self.freq_list = self.freq_list*freq_mult
+        self.freq_list = self.freq_list
         self.all_positions = self.metafile.get_positions()
         
     def load_positions_from_file(self,file_path,**arg_options):
