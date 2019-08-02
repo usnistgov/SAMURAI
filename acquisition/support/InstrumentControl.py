@@ -39,8 +39,11 @@ class Instrument(OrderedDict):
         @brief template for instrumnet connection. calls self.connection.connect()
         '''
         self['connection_address'] = address
-        self._connect(address)
-        
+        try:
+            self._connect(address)
+        except OSError:
+            raise InstrumentConnectionError('Cannot Connect to Instrument')
+            
     def _connect(self,address):
         '''
         @brief internal function to connect to device. This prevents from requiring
@@ -543,7 +546,25 @@ class SCPICommand(InstrumentCommand):
     def command_template(self):
         return self.get_command_template(ignore_regex_list=self.options['ignore_regex_list'])
     
+    
+class InstrumentError(Exception):
+    '''
+    @brief generic class for instrument error
+    '''
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        
+class InstrumentConnectionError(InstrumentError):
+    '''
+    @brief error for connections to instruments
+    '''
+    pass
 
+class InstrumentCommandError(InstrumentError):
+    '''
+    @brief error for instrument commands
+    '''
+    pass
 
 if __name__=='__main__':
     '''

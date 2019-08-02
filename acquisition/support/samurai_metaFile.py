@@ -141,9 +141,8 @@ class metaFile(OrderedDict):
             pnaCont = pnaController.pnaController(pna_addr)
             pnaCont.get_params() #update the parameters
             self['vna_info'].update(pnaCont) #write to metafile
-        except Exception as e:
-            raise e
-            print("Unable to get parameters from VNA")
+        except InstrumentConnectionError: #only accespt instrument conection error
+            print("Connection Error. Unable to get parameters from VNA.")
             
     #init function to be called after all values set by user
     #This will call init JSON and other files to build template.
