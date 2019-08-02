@@ -27,7 +27,7 @@ class BlueTestChamber:
         
      def init_linear_slides(self,com_port):
           '''
-          @Initializes the vertical and linear slides
+          @brief Initializes the vertical and linear slides
           @param[in] com_port - COM# that communicates to the Velmex Controller
           '''
           #com_port = 'COM4'
@@ -38,7 +38,7 @@ class BlueTestChamber:
      
      def hslide_move_to_dist(self,distance):
          '''
-         @Moves the horziontal BiSlide to specified distance in cm
+         @brief Moves the horziontal BiSlide to specified distance in cm
          @param[in] distance - distance in mm from zero the slide will move to
          '''
          limit = 303
@@ -49,7 +49,7 @@ class BlueTestChamber:
          
      def vslide_move_to_dist(self,distance):
          '''
-         @Moves the horziontal BiSlide to specified distance in cm
+         @brief Moves the horziontal BiSlide to specified distance in cm
          @param[in] distance - distance in mm from zero the slide will move to
          '''
          limit = 309
@@ -61,7 +61,7 @@ class BlueTestChamber:
          
      def run_chamber_command(self,command):
         '''
-        @Function that changes directory temporarily, runs the chamber_control_server.exe commands, and then switches back
+        @brief Function that changes directory temporarily, runs the chamber_control_server.exe commands, and then switches back
         @param[in] command - string that corresponds to the specific commands available for use in chamber_control_Server.exe
         '''
         old_dir = os.getcwd()
@@ -78,7 +78,7 @@ class BlueTestChamber:
      
      def initialize(self):
          '''
-         @Re-Inititalizes the BlueTest chamber and the Linear Slides
+         @brief Re-Inititalizes the BlueTest chamber and the Linear Slides
          '''
          self.run_chamber_command('init')
          self.init_linear_slides(self.com_port)
