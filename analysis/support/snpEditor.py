@@ -611,7 +611,7 @@ class WnpParam:
         @brief property for phase in radians
         @return list of phase data in radians
         '''
-        return np.phase(self.raw)
+        return np.angle(self.raw)
 
     @property
     def phase_d(self):
@@ -619,7 +619,7 @@ class WnpParam:
         @brief property for phase in degrees
         @return list of phase data in degrees
         '''
-        return np.phase(self.raw)*180/np.pi
+        return np.angle(self.raw)*180/np.pi
     
     def __getitem__(self,idx):
         return self.raw[idx]
@@ -667,6 +667,27 @@ class MalformedSnpError(SnpError):
     def __init__(self,err_msg):
         super().__init__(err_msg)
         
+def swap_ports(*args,**kwargs):
+    '''
+    @brief swap port n between just 2 2 port files (for now)
+    @param[in] *args - the SnpEditor objects to swap
+    '''
+    #load in the data
+    s1 = args[0]
+    s2 = args[1]
+    freqs = s1.freq_list
+    #assume frequency lists are equal
+    if np.all(freqs != s2.freq_list):
+        raise SnpError('Frequency lists do not match')
+    so1 = SnpEditor([2,freqs])
+    so2 = SnpEditor([2,freqs])
+    so1.S[11] = s1.S[11]; so1.S[22] = s2.S[22]
+    so2.S[11] = s2.S[11]; so2.S[22] = s1.S[22]
+    return so1,so2
+    
+    
+
+        
 def map_keys(key_list,mapping_dict):
     '''
     @brief change a set of keys (e.g. [11,31,13,33]) based on a mapping dict
@@ -693,6 +714,7 @@ if __name__=='__main__':
     snp_test = True
     wnp_test = True
     key_test = False
+    swap_test = True
     
     #geyt the current file directory
     import os 
@@ -734,6 +756,16 @@ if __name__=='__main__':
         print(keys)
         new_keys = map_keys(keys,mapping)
         print(new_keys)
+        
+    if swap_test:
+        f1 = os.path.join(dir_path,'test.s2p')
+        f2 = os.path.join(dir_path,'test.s2p_binary')
+        s1 = SnpEditor(f1)
+        s2 = SnpEditor(f2)
+        so1,so2 = swap_ports(s1,s2)
+        print(so1 == s1)
+        print(so2 == s2)
+        
         
 
         
