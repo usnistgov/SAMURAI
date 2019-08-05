@@ -546,7 +546,8 @@ class MecaReturnMessage:
     
 #exception could be made one for each but easier to just do one
 class MecaError(Exception):
-    def __init__(self,err_msg):
+    def __init__(self,err_msg,*args,**kwargs):
+        super().__init__(*args,**kwargs)
         self.err_msg = err_msg
     def __str__(self):
         return repr(self.err_msg) 
