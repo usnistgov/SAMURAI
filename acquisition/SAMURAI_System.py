@@ -11,7 +11,6 @@ from samurai.acquisition.support.Meca500  import Meca500       #our posisioner
 import samurai.acquisition.support.samurai_support  as ss      #some other functions
 import samurai.acquisition.support.samurai_optitrack as samurai_optitrack  #import optitrack tracking
 
-#this is a test change for robs branch
 import six
 import json
 
