@@ -38,15 +38,18 @@ class CalibrateSamurai:
 ##load in our metadata file
 #with open(metaPath,'r') as jsonFile:
 #    jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
-    def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path='',post_proc_template_override=None):
+    def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path='',post_proc_template_override=None,**kwargs):
         '''
         @brief initialize the class
         @param[in] metaFile - path to metafile of measurement to calibrate
         @param[in] out_dir  - output directory to place the calibrated measurements
         @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
+        @param[in/OPT] kwargs - keyword arguments for the class options. these are also forwarded to PostProcPy
         '''
         #options dictionaruy
         self.options = {}
+        for k,v in kwargs.items():
+            self.options[k] = v #set input options
 
         self.mfc = mfc(metaFile)
         self.metaFile = metaFile
@@ -82,7 +85,7 @@ class CalibrateSamurai:
         fnames_abs = self.mfc.get_filename_list(True)
         #open our post proc object and rename to our new directory
         print(self.post_proc_template)
-        self.ppc = pppy(self.post_proc_template)
+        self.ppc = pppy(self.post_proc_template,**self.options)
         out_name = os.path.split(self.post_proc_template)[1] #get the file name
         #now rename
         self.ppc.rename(os.path.join(self.out_dir,out_name))
