@@ -5,8 +5,6 @@ import os
 import json
 import numpy as np
 from datetime import datetime as dt
-import samurai.acquisition.support.pnaController as pnaController
-#import pnaController as pnaController
 import six
 import getpass
 
@@ -136,7 +134,9 @@ class metaFile(OrderedDict):
         '''
         @brief get parameters from the VNA if we can
         @param[in] pna_addr - visa address of vna
-        '''
+        '''     
+        import samurai.acquisition.support.pnaController as pnaController
+        from samurai.acquisition.support.InstrumentControl import InstrumentConnectionError
         try:
             pnaCont = pnaController.pnaController(pna_addr)
             pnaCont.get_params() #update the parameters
