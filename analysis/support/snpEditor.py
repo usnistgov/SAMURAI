@@ -16,6 +16,7 @@ from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 from samurai.analysis.support.generic import deprecated
 
 DEFAULT_HEADER = 'GHz S RI 50'
+DEFAULT_EMPTY_HEADER = 'Hz S RI 50'
 DEFAULT_COMMENTS = []
 HEADER_FREQ_REGEX = '[KMGT]*[Hh][Zz]' #regex to get GHz, Hz, THz, KHz, MHz
 
@@ -213,7 +214,7 @@ class WnpEditor:
         #now set our keys
         self._gen_dict_keys()
         if self.options['header'] is None: #allow override
-            self.set_header(DEFAULT_HEADER) #set the default header
+            self.set_header(DEFAULT_EMPTY_HEADER) #set the default header
         #and pack the port data with 0s
         freqs = np.array(freqs)*self._get_freq_mult()
         for k in self.wave_dict_keys:
@@ -684,7 +685,6 @@ def swap_ports(*args,**kwargs):
     so1.S[11] = s1.S[11]; so1.S[22] = s2.S[22]
     so2.S[11] = s2.S[11]; so2.S[22] = s1.S[22]
     return so1,so2
-    
     
 
         
