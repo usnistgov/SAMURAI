@@ -104,7 +104,8 @@ class PnaController(SCPIInstrument):
             return
             
         if(freq_step!=-1): #calculate points from step
-            num_pts = int((start_freq-stop_freq)/freq_step)+1
+            num_pts = int((stop_freq-start_freq)/freq_step)+1
+            freq_start = num_pts*freq_step+start_freq #use correct start but adjusted stop frequency
             
         #now write
         self.write('freq_start',start_freq)
