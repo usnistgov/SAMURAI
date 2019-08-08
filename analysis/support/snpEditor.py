@@ -61,7 +61,7 @@ class WnpEditor:
         self.waves = dict()
         for w in self.options['waves']:
             self.waves[w] = dict()
-        self.wave_dict_keys = [] #keys for our measurement dictionary
+        self._ports = [] #start with no ports
         #now load the file
         if not self.options['no_load']:
             if(type(input_file)==str):
@@ -72,11 +72,27 @@ class WnpEditor:
    def _gen_dict_keys(self):
        '''
        @brief function to generate the dictionary keys for each wave in self.waves
+       @note dict keys are now generated from port list
        @note this should be redefined in inheriting classes
        @note the keys are placed in self.wave_dict_keys
+       @return list of keys for the current ports
        '''
-       keys = [i*10+j for i in range(1,self.options['num_ports']+1) for j in range(1,self.options['num_ports']+1)]
-       self.wave_dict_keys = keys
+       keys = np.array([i*10+j for i in np.sort(self._ports) for j in np.sort(self._ports)])
+       return keys
+   
+   @property
+   def wave_dict_keys(self):
+       '''
+       @brief getter for wave_dict_keys after we switched to storing ports not keys (easier to add and remove)
+       '''
+       return self._gen_dict_keys()
+   
+   @property
+   def num_ports(self):
+       '''
+       @brief quickly get number of ports. Got tired of typing this
+       '''
+       return len(self._ports)
             
    def load(self,input_file,**kwargs):
         '''
@@ -99,7 +115,8 @@ class WnpEditor:
                 
         #get the number of ports from the file extension
         file_ext = os.path.splitext(input_file)[-1]
-        self.options['num_ports'] = int(''.join(re.findall(r'\d',file_ext)))
+        num_ports_from_filename = int(''.join(re.findall(r'\d',file_ext)))
+        self._set_num_ports(num_ports_from_filename) #set the ports from the filename
         #now set our keys
         self._gen_dict_keys()
         
@@ -115,7 +132,7 @@ class WnpEditor:
         #now split the data (text and binary input should be formatted the same here)
         #first check if our file is named correctly
         num_ports_from_file = int(round(np.sqrt((num_cols-1)/(len(self.waves)*2)))) #int(round(np.sqrt((num_cols-1)/2))) for snp file wnp has a and b
-        if(num_ports_from_file!=self.options['num_ports']): #just make sure file matches extension
+        if(num_ports_from_file!=num_ports_from_filename): #just make sure file matches extension
             raise MalformedSnpError("Number of ports from extension does not match amount of data in file")
         
         if self.options['header'] is None: #if we dont have a header here, set the default
@@ -210,7 +227,7 @@ class WnpEditor:
         @param[in] num_ports - number of ports for the class
         @param[in] num_measurements - number of measurements per parameter (i.e. number of frequencies)
         '''
-        self.options['num_ports'] = num_ports #set the number of ports
+        self._set_num_ports(num_ports) #set the number of ports
         #now set our keys
         self._gen_dict_keys()
         if self.options['header'] is None: #allow override
@@ -222,6 +239,14 @@ class WnpEditor:
                 self.waves[wave][k] = WnpParam(freqs,np.zeros(len(freqs)),plotter=self.options['plotter'])
         self.round_freq_lists()
         
+   def _set_num_ports(self,num_ports):
+       '''
+       @brief set our ports provided a set number of ports. This will overwrite self._ports
+       @param[in] num_ports - number of ports
+       '''
+       self._ports = np.arange(1,num_ports+1)
+       
+       
    def write(self,out_file,ftype='default',delimiter=' ',freq_units=None):
         '''
         @brief write out data to wave parameter file (e.g. '.w2p')
@@ -320,26 +345,35 @@ class WnpEditor:
    def delete_port(self,port_num): 
        '''
        @brief delete a port from the class
-       @param[in] port_num - the number of the port to delete (must be less than self.options['num_ports'])
+       @param[in] port_num - the number of the port to delete (must be less than self.num_ports)
            This will start at 1 not 0 indexing
-       @todo finish this when needed
+       @todo MAKE THIS WORK
        '''
-       num_ports = self.options['num_ports']
-       if port_num > num_ports:
-           raise Exception("Cant remove port {} when there are only {} ports!".format(port_num,num_ports))
-       num_ports -= 1
-       self.options['num_ports'] = num_ports #decrement our number of ports
-       #now get the keys for the port to remove
+       if port_num not in self._ports:
+           raise Exception("Port {} does not exist in this instance.".format(port_num))
+       cur_ports = np.array(self._ports)
+       orig_wdk = self.wave_dict_keys
+       self._ports = cur_ports[cur_ports!=port_num] #remove the port number
+       del_keys = orig_wdk[np.in1d(orig_wdk,self.wave_dict_keys,invert=True)] #get the added keys
        removed_waves = {}
        for wk in self.waves.keys():
-           removed_waves[wk] = []
-       dict_keys = self.wave_dict_keys.copy() #local copy
-       for k in dict_keys:
-           if str(port_num) in str(k): #if it has the digit matching the port
-               for wk in self.waves.keys():
-                   removed_waves[wk].append(self.waves[wk].pop(k))
-                   self.wave_dict_keys.remove(k)
-       return removed_waves
+           removed_waves[wk] = {}
+           for k in del_keys:
+               removed_waves[wk].update({k:self.waves[wk].pop(k)})
+   
+   def add_port(self,port_num):
+       '''
+       @brief add an empty port to the class
+       @param[in] port_num - which port to add. Exception if it already exists
+       '''
+       orig_wdk = self.wave_dict_keys #original wave dict keys
+       self._ports = np.sort(np.append(self._ports,[port_num])) #add the new port number
+       new_keys = self.wave_dict_keys[np.in1d(self.wave_dict_keys,orig_wdk,invert=True)] #get the added keys
+       freqs = self.freq_list
+       for k in new_keys:
+           for wk in self.waves.keys():
+               self.waves[wk][k] = WnpParam(freqs,np.zeros(len(freqs)),plotter=self.options['plotter']) #add empty params
+
             
    def __getitem__(self,key):
         '''
@@ -361,9 +395,9 @@ class WnpEditor:
        @return list of equality for each port for A and B [num_ports_eq,[A,A,A,A],[B,B,B,B]]
            if the number of ports arent equal just return [num_ports_eq,num_ports_self,num_ports_other]
        '''
-       num_ports_eq = self.options['num_ports']==other.options['num_ports']
+       num_ports_eq = self.num_ports==other.num_ports
        if(not num_ports_eq): #dont check more if number of ports arent equal
-           return [num_ports_eq,self.options['num_ports'],other.options['num_ports']]
+           return [num_ports_eq,self.num_ports,other.num_ports]
        out_lists = {}
        for w in self.waves.keys():
            out_lists[w] = []
@@ -461,19 +495,23 @@ class SnpEditor(WnpEditor):
             options[k] = v
         super().__init__(input_file,**options)
 
-    def _gen_dict_keys(self):
+    def _gen_dict_keys(self,ports=None):
        '''
        @brief function to generate the dictionary keys for each wave in self.waves
+       @param[in/OPT] ports - list of ports to make keys for. Defaults to range(1,num_ports+1) ports (e.g. [1,2] for num_ports=2)
+       @note we will also sort the ports from lowest to highest
        @note this should be redefined in inheriting classes
        @note the keys are placed in self.wave_dict_keys
        '''
        #adding the additional self.options['waves']==['s'] here allows us to
        #extend this class and still use the wnp functionalily simply by
        #changing our 'waves' option to ['A','B']
-       if self.options['num_ports']==2 and self.options['waves']==['S']:
-           self.wave_dict_keys = [11,21,12,22] #because s2p files wanted to be special
+       if (self.num_ports==2 and self.options['waves']==['S']):
+           #because s2p files wanted to be special we have to reorder (e.g. [11,21,12,22]) 
+           wdk = super()._gen_dict_keys()
+           return  np.array([wdk[0],wdk[2],wdk[1],wdk[3]])
        else:
-           super()._gen_dict_keys() #otherwise use the generic
+           return super()._gen_dict_keys() #otherwise use the generic
  
 
 #acutally is the same as snpParam
@@ -715,6 +753,7 @@ if __name__=='__main__':
     wnp_test = True
     key_test = False
     swap_test = True
+    add_remove_test = True
     
     #geyt the current file directory
     import os 
@@ -765,6 +804,16 @@ if __name__=='__main__':
         so1,so2 = swap_ports(s1,s2)
         print(so1 == s1)
         print(so2 == s2)
+        
+    if add_remove_test:
+        f1 = os.path.join(dir_path,'test.s2p')
+        f2 = os.path.join(dir_path,'test.s2p_binary')
+        s1 = SnpEditor(f1)
+        s2 = SnpEditor(f2)
+        s1.add_port(3)
+        print(s1.S)
+        rw = s1.delete_port(2)
+        print(s1.S)
         
         
 
