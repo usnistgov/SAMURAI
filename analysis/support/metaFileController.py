@@ -150,6 +150,36 @@ class MetaFileController(OrderedDict):
             elif(self['metafile_version']<3): #we are currently on v2
                 pass
             
+    def add_measurement(self,filename,**kwargs):
+        '''
+        @brief add a measurement to the measurements list
+        @param[in] filename - path to the file to add
+        @param[in/OPT] **kwargs - keyword arguements as follows
+            ID - id of the measurement
+            units - units for the positions
+            position - position of the SA
+            position_key - how to use the positions
+            notes - notes on the measurement
+            timestamp - time of measurement
+            calibration_file - file used to calibrate
+            calibrated - flag on whether we are calibrated
+        '''
+        self['total_measurements']+=1 #add a measurement
+        
+        meas = {}
+        meas['ID'] = None
+        meas['units'] = None
+        meas['position'] = None
+        meas['position_key'] = None
+        meas['notes'] = None
+        meas['timestamp'] = str(datetime.fromtimestamp(os.path.getmtime(filename))) #file modified time
+        meas['calibrated'] = False
+        meas['calibration_file'] = None
+        for k,v in kwargs.items():
+            meas[k] = v
+        meas['filename'] = filename
+        self['measurements'].append(meas)
+        return meas
     
     ###########################################################################
     ### Position operations

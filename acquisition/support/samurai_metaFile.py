@@ -56,7 +56,8 @@ class metaFile(OrderedDict):
         self['antennas']           = []
         
         #get our vna information if possible
-        self.get_vna_params(pna_addr=pna_addr)
+        if pna_addr is not None:
+            self.get_vna_params(pna_addr=pna_addr)
 
         #this is an example. should allow user to add in antenna
         antenna1 = OrderedDict()
@@ -78,7 +79,10 @@ class metaFile(OrderedDict):
         self.add_antenna(antenna1)
         self.add_antenna(antenna2)
 
-        self['measurements'] = [] #empty for now
+        self['total_measurements']     = 0
+        self['completed_measurements'] = 0
+        self['measurements']           = [] #now add the measurement data
+        
         #write any input options
         for key,value in six.iteritems(arg_options):
             if(key=='working_directory'): #get abspath if rootdir
@@ -200,9 +204,6 @@ class metaFile(OrderedDict):
             
         #now loop through json file to add measurements
         self.jsonData = jhd  #add the header data
-        self.jsonData['total_measurements']     = 0
-        self.jsonData['completed_measurements'] = 0
-        self.jsonData['measurements']           = [] #now add the measurement data
 
         with open(self.csvPath,'r') as csvfile:
             for line in csvfile:
