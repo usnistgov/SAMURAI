@@ -20,9 +20,13 @@ class MUFModuleController(ET._ElementTree):
         @brief default constructor
         @param[in] menu_path - path to menu to load
         @param[in/OPT] kwargs - keyword args as follows:
-            None yet!
+            exe_path - executable path of the module for running
         '''
         super().__init__()
+        self.options = {}
+        self.options['exe_path'] = None
+        for k,v in kwargs.items():
+            self.options[k] = v
         if menu_path is not None:
             self.load(menu_path)
         else:
@@ -33,7 +37,8 @@ class MUFModuleController(ET._ElementTree):
         @brief load a menu
         @param[in] menu_path - path to the menu to laod
         '''
-        self.parse(menu_path)
+        parser = ET.XMLParser(remove_blank_text=True)
+        self.parse(menu_path,parser)
     
     def write(self,out_path,*args,**kwargs):
         '''
@@ -41,7 +46,64 @@ class MUFModuleController(ET._ElementTree):
         @param[in] out_path - path to write to
         @param[in/OPT] *args,**kwargs - args to pass to ET._ElementTree.write()
         '''
-        super().write(out_path,*args,**kwargs)
+        #defaults
+        kwargs_2 = {}
+        kwargs_2['xml_declaration'] = True
+        kwargs_2['pretty_print'] = True
+        for k,v in kwargs.items():
+            kwargs_2[k] = v
+        super().write(out_path,*args,**kwargs_2)
+        
+    def run(self,out_path,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
+        '''
+        @brief run our module.This will also save to output_path
+        @param[in] out_path - path to write the menu to before running (and to run from)
+        @param[in/OPT] text_function - function that the output from the post 
+            processor will be passed to (in iterated format, default is print())
+            First argument must be expecting a string
+        @param[in/OPT] tf_args_tuple - tuple of arguments to pass to text_function
+        @param[in/OPT] tf_kwargs_dict - dictionary of kwargs to pass to text_function
+        '''
+        self.write(out_path)
+        command = self.options['exe_path']+' -r '+self.menu_path
+        exe_generator = subprocess_generator(command)
+        for out_line in exe_generator:
+            text_function(out_line,*tf_args_tuple,**tf_kwargs_dict)
+        
+    def add_item(self,parent_element,item):
+        '''
+        @brief add an item(Subelement) to a parent. this also changes Count and Index of the parent and item
+        @param[in] parent_element - parent element to add item to (e.g. self.controls.find('BeforeCalibration'))
+        @param[in] item - item (element) to add to the parente element
+        '''
+        if parent_element is None:
+            raise Exception('Invalid parent_element')
+        num_children = len(parent_element.getchildren())
+        #now set the index of the item. We start at 0
+        item.attrib['Index'] = str(num_children)
+        #now lets add to the element
+        parent_element.append(item)
+        #now lets set the count
+        parent_element.attrib['Count'] = str(num_children+1)
+        
+    def create_item(self,item_name,subitem_text_list):
+        '''
+        @brief create an item from a name and list of subitems in MUF format
+        @param[in] item_name - name of item (Text attribute of item)
+        @param[in] subitem_text_list - list of Text attribute of Subitems
+        '''
+        item = ET.Element('Item',attrib={"Index":"-1","Text":item_name})
+        for i,sub in enumerate(subitem_text_list):
+            ET.SubElement(item,'SubItem',attrib={"Index":str(i),"Text":str(sub)})
+        item.attrib['Count'] = str(len(item.getchildren()))
+        return item
+    
+    def _get_name_from_path(self,path):
+        '''
+        @brief extract a default name from a path of a file
+        @param[in] path - path to the file
+        '''
+        return os.path.splitext(os.path.split(path)[-1])[0]
     
     @property
     def controls(self):
@@ -138,8 +200,24 @@ class MUFModelKit(OrderedDict):
             except KeyError:
                 raise e
         
-            
-            
+import subprocess      
+def subprocess_generator(cmd):
+    '''
+    @brief get a generator to get the output from post processor
+     From https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
+    '''
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        stdout_line = stdout_line.strip() #remove trailing whitespaces and newlines
+        if stdout_line=='':
+            continue #dont do anything
+        else:
+            yield stdout_line #otherwise this value we want
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd) 
+        
             
 if __name__=='__main__':
     
@@ -165,6 +243,7 @@ if __name__=='__main__':
     mmk.add_model('offset_short',wr28_offsetShort_model)
     mmk.add_model('offset_thru',wr28_offsetThru_model)
     mmk.add_model('thru',wr28_thru_model)
+    mmk.add_model('gthru',wr28_thru_model)
     op = os.path.join(r'C:\SAMURAI\git\samurai\analysis\support\MUF\templates','WR28.mmk')
     mmk.write(op)
     
