@@ -21,16 +21,19 @@ class MUFModuleController(ET._ElementTree):
         @param[in] menu_path - path to menu to load
         @param[in/OPT] kwargs - keyword args as follows:
             exe_path - executable path of the module for running
+            except_no_menu - throw an exception if no menu provided
         '''
         super().__init__()
         self.options = {}
         self.options['exe_path'] = None
+        self.options['except_no_menu'] = True
         for k,v in kwargs.items():
             self.options[k] = v
         if menu_path is not None:
             self.load(menu_path)
         else:
-            raise Exception('No menu path provided') #implement default menu here
+            if self.options['except_no_menu']:
+                raise Exception('No menu path provided') #implement default menu here
     
     def load(self,menu_path):
         '''
@@ -53,6 +56,19 @@ class MUFModuleController(ET._ElementTree):
         for k,v in kwargs.items():
             kwargs_2[k] = v
         super().write(out_path,*args,**kwargs_2)
+        
+    def tostring(self,*args,**kwargs):
+        '''
+        @brief print to string
+        @param[in] *args,**kwargs - all passed to ET.tostring() method
+        '''
+        #defaults
+        kwargs_2 = {}
+        kwargs_2['xml_declaration'] = True
+        kwargs_2['pretty_print'] = True
+        for k,v in kwargs.items():
+            kwargs_2[k] = v
+        return ET.tostring(self,*args,**kwargs_2)
         
     def run(self,out_path,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
         '''

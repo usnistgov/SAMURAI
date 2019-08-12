@@ -5,8 +5,9 @@ Created on Mon Jun 24 16:02:04 2019
 @author: ajw5
 """
 
-from samurai.analysis.support.snpEditor import SnpEditor,SnpError
-from samurai.analysis.support.snpEditor import WnpParam
+from samurai.analysis.support.snpEditor import TouchstoneEditor,TouchstoneError
+from samurai.analysis.support.snpEditor import TouchstoneParam
+from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController
 from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
 
 #from xml.dom.minidom import parse, parseString
@@ -16,7 +17,7 @@ from lxml import etree as ET
 import os
 import re
 
-class MUFResult(SnpEditor):
+class MUFResult(MUFModuleController):
     '''
     @brief a class to deal with MUF results (and easily get uncertainties, monte_carlos, and whatnot)
         self is the nominal value. Other values will be contained to generate uncerts
@@ -28,15 +29,17 @@ class MUFResult(SnpEditor):
         >>> mymeas = MUFResult(meas_path) #initialize the class
         >>> mymeas.calculate_monte_carlo_statistics() 
     '''
-
+        
     def __init__(self,meas_path,**arg_options):
         '''
         @brief load up and initialize the *.meas file
         @param[in] meas_path - path to the *.meas file to load. 
-            This can be passed as None if self.create_meas() is going to be run
+            This can be passed as None if self.create_meas() is going to be run.
+            if a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
+            file will be created with the loaded measurement as the nominal result
         @param[in/OPT] arg_options - keyword arguments as follows:
             None yet!
-            all arguments also passed to SnpEditor constructor
+            all arguments also passed to MUFModuleController constructor
         '''
         self.options = {}
         self.options = {}
@@ -48,33 +51,16 @@ class MUFResult(SnpEditor):
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #make sure were getting a .meas, if not get the correct data
+        menu_path = meas_path
         if meas_path is not None:
             _,ext = os.path.splitext(meas_path) #get our extension
-            if '.meas' not in ext:
-                nom_path = meas_path
-            else:        
-                self.load_xml(meas_path)
-                nom_path = self.nominal_value_path
-                #lets set the correct options for w/s params
-                _,ext = os.path.splitext(nom_path)
-            #use re to get wp or sp (remove all numbers and '_binary')
-            rc = re.compile('\d+|_binary')
-            ext_cut = rc.sub('',ext)
-            if ext_cut == '.sp':
-                self.param_type = 's'
-                waves = ['S']
-                arg_options['waves'] = waves
-            elif ext_cut == '.wp':
-                self.param_type = 'w'
-                waves = ['A','B']
-                arg_options['waves'] = waves
-            else:
-                raise SnpError("Nominal file extension not recognized")
-            super().__init__(nom_path,**self.options) #init wave params or s params
-        
-        #otherwise lets create a new MUFResult
-        else:
-            pass #just make sure to run MUFResult.create_meas on the instance in this case
+            if '.meas' not in ext: #if its not a *.meas create our skeleton
+                self._create_meas()
+                self._add_nominal_path(meas_path)
+                menu_path = None
+
+        super().__init__(menu_path,except_no_menu=False,**arg_options)  
+        self._load_nominal() #load our nominal value
         
         #uncertainty statistics
         self.monte_carlo = None
@@ -163,11 +149,41 @@ class MUFResult(SnpEditor):
         return nom_name
     
     @property
-    def nominal(self):
+    def _xml_nominal(self):
         '''
-        @brief alias to access the nominal data by an attribute name
+        @brief link to nominal xml path value
         '''
-        return self
+        return res.controls.find('MeasSParams')
+    
+    @property
+    def _xml_monte_carlo(self):
+        '''
+        @brief link to monte_carlo xml path value
+        '''
+        return res.controls.find('MonteCarloPerturbedSParams')
+    
+    @property
+    def _xml_perturbed(self):
+        '''
+        @brief link to monte_carlo xml path value
+        '''
+        return res.controls.find('PerturbedSParams')
+    
+    @property
+    def _xml_root(self):
+        '''
+        @brief link to root xml node
+        '''
+        return self.getroot()
+    
+    def __getattr__(self,attr):
+        '''
+        @brief pass any nonexistant attribute attempts to our nominal value class
+        '''
+        try:
+            return getattr(self.nominal,attr)
+        except:
+            raise AttributeError('{} not in self or self.nominal'.format(attr))
     
     ##########################################################################
     ### parts to create a new *.meas file from a *.snp or *.wnp
@@ -193,28 +209,26 @@ class MUFResult(SnpEditor):
         @brief create a skeleton (main nodes) for a *.meas file
         This includes everything except the menustripheader
         '''
-        #the element tree
-        self._etree = ET.ElementTree()
         #root node
-        self._root = ET.Element('CorrectedMeasurement')
-        self._root.set('FileName','./')
-        self._root.set('UserName',getpass.getuser())
-        self._root.set('CreationTime',str(datetime.datetime.now()))
-        self._etree._setroot(self._root)
+        root_elem = ET.Element('CorrectedMeasurement')
+        root_elem.set('FileName','./')
+        root_elem.set('UserName',getpass.getuser())
+        root_elem.set('CreationTime',str(datetime.datetime.now()))
+        self._setroot(root_elem)
         #create controls element
-        self._controls = ET.SubElement(self._root,'Controls')  
+        self._controls = ET.SubElement(self._xml_root,'Controls')  
         #now create our nominal
-        self._xml_nominal = ET.SubElement(self._controls,'MeasSParams')
+        ET.SubElement(self._controls,'MeasSParams')
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
         #and monte carlo
-        self._xml_monte_carlo = ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
+        ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
         self._xml_monte_carlo.set('FullName',"Me_SplitContainer2__GroupBox3_Panel2_MonteCarloPerturbedSParams")
         self._xml_monte_carlo.set('Count',str(0))
         #and monte carlo
-        self._xml_perturbed = ET.SubElement(self._controls,'PerturbedSParams')
+        ET.SubElement(self._controls,'PerturbedSParams')
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
         self._xml_perturbed.set('Count',str(0))
@@ -261,21 +275,33 @@ class MUFResult(SnpEditor):
     ### extra io functions
     ##########################################################################
     
-                
+    def _load_data(self,meas_path):
+        '''
+        @brief load some data and return a loaded touchstoneEditor object
+        '''
+        return TouchstoneEditor(meas_path)
+    
+    def _load_nominal(self):
+        '''
+        @brief load the nominal path value into self.nominal
+        '''
+        nom_data = self._load_data(self.nominal_value_path)
+        self.nominal = nom_data
+    
     def load_xml(self,meas_path):
         '''
         @brief  parse our file into a dom struct
         @param[in] meas_path - path to *.meas file
         @note this also extracts the following etree elements
-            _root - root of the tree
+            _xml_root - root of the tree
             _controls - *.meas 'Controls' element
             _nominal  - *.meas 'Controls->MeasSParams' element
             _monte_carlo - *.meas 'Controls->MonteCarloPerturbedSParams' element
         '''
         self._xml_file_path = meas_path
         self._etree = ET.parse(meas_path)
-        self._root = self._etree.getroot()
-        self._controls = self._root.find('Controls') #*.meas controls
+        self._xml_root = self._etree.getroot()
+        self._controls = self._xml_root.find('Controls') #*.meas controls
         self._xml_nominal  = self._controls.find('MeasSParams')
         self._xml_monte_carlo = self._controls.find('MonteCarloPerturbedSParams')
         self._xml_perturbed = self._controls.find('PerturbedSParams')
@@ -286,6 +312,14 @@ class MUFResult(SnpEditor):
         @param[in] out_path - path to writ ethe file out to 
         '''
         self._etree.write(out_path,pretty_print=True)
+        
+    def write(self,out_path,all_data=True):
+        '''
+        @brief write out all information on the MUF Statistic. This will create a copy
+            of the nominal value and all statistics snp/wnp files
+        @param[in] out_path - path to write xml file to. 
+            all other data will be stored in a similar structure to the MUF in here
+        '''
   
         
 import scipy.stats as st
@@ -384,6 +418,11 @@ class MUFStatistic:
         for path in self.file_paths:
             snp_list.append(SnpEditor(path))
         return snp_list
+    
+    def load_stat_files(self):
+        '''
+        @brief load our statistics files to self.stat_files. These will be WnpEditor types
+        '''
     
     def _calculate_estimate(self,data_dict):
         '''
@@ -493,11 +532,13 @@ class MUFStatistic:
         return self.estimate.freq_list
 
 if __name__=='__main__':
-    '''
+    
     from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
     meas_path = 'test.meas'
-    res = MUFResult(meas_path,plot_options={'plot_order':['matplotlib']})
-    #res.S[11].plot()
+    res = MUFResult(meas_path)
+    '''
+    res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
+    res.S[11].plot()
     print("Calculating Statistics")
     res.calculate_statistics()
     sp = res.options['plotter']
@@ -506,11 +547,11 @@ if __name__=='__main__':
     sp.figure()
     res.perturbed.plot(11)
     sp.legend()
-    #stats_path = 
     '''
+    
     #res_m = MUFResult('test.meas')
     #res_s = MUFResult('test.s2p')
-    res_w = MUFResult('test.w2p')
+    #res_w = MUFResult('test.w2p')
         
     
     
