@@ -31,7 +31,6 @@ class TouchstoneEditor(object):
                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                measurement with n ports and frequencies [f1,f2,...] 
    '''
-   
    def __new__(cls,input_file,*args,**kwargs):
        '''
        @brief instantiator to return correct class (e.g. WnpEditor or SnpEditor)
@@ -46,8 +45,6 @@ class TouchstoneEditor(object):
            out_cls = cls
        instance = super().__new__(out_cls)
        return instance
-       
-       
 
    def __init__(self,input_file,**arg_options):
         '''
@@ -293,10 +290,9 @@ class TouchstoneEditor(object):
                 ftype='binary'
             else:
                 ftype='text'
-       
+      
         #round frequencies to nearest Hz
-        self.round_freq_lists()
-        
+        self.round_freq_lists() 
         #make sure the frequency lists are equal before writing; just in case somthing went wrong
         self._verify_freq_lists()
         

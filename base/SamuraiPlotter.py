@@ -232,7 +232,7 @@ class SamuraiPlotter:
         @brief initialize the matlab plotter (dont open if already open)
         '''
         if not self.matlab:
-            from samurai.analysis.support.MatlabPlotter import MatlabPlotter
+            from samurai.base.SamuraiMatlab import MatlabPlotter
             self.matlab = MatlabPlotter(engine=self.options['matlab_engine'],**self.options)
             
     def _init_matplotlib(self):
