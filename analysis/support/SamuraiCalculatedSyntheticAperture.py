@@ -11,11 +11,11 @@ import scipy.interpolate as interp
 import six
 import json
 
-from samurai.analysis.support.generic import incomplete,deprecated,verified
-from samurai.analysis.support.generic import round_arb
-from samurai.analysis.support.snpEditor import SnpEditor
-from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
-from samurai.analysis.support.metaFileController import MetaFileController
+from samurai.base.generic import incomplete,deprecated,verified
+from samurai.base.generic import round_arb
+from samurai.base.TouchstoneEditor import SnpEditor
+from samurai.base.SamuraiPlotter import SamuraiPlotter
+from samurai.analysis.support.MetaFileController import MetaFileController
 from samurai.acquisition.support.samurai_optitrack import rotate_3d
 
 import plotly.graph_objs as go

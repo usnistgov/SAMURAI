@@ -5,10 +5,10 @@ Created on Mon Jun 24 16:02:04 2019
 @author: ajw5
 """
 
-from samurai.analysis.support.snpEditor import TouchstoneEditor,TouchstoneError
-from samurai.analysis.support.snpEditor import TouchstoneParam
+from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError
+from samurai.base.TouchstoneEditor import TouchstoneParam
 from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController
-from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
+from samurai.base.SamuraiPlotter import SamuraiPlotter
 
 import shutil
 

@@ -15,10 +15,10 @@ from shutil import copyfile,copy
 import numpy as np
 from datetime import datetime #for timestamps
 
-from samurai.analysis.support.snpEditor import SnpEditor as snp
+from samurai.base.TouchstoneEditor import TouchstoneEditor
 from samurai.analysis.support.MUFResult import MUFResult
-from samurai.analysis.support.generic import deprecated, ProgressCounter
-from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
+from samurai.base.generic import deprecated, ProgressCounter
+from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.support.samurai_optitrack import MotiveInterface
 from samurai.acquisition.support.samurai_metaFile import metaFile
@@ -109,7 +109,7 @@ class MetaFileController(SamuraiDict):
             if options['data_type']=='perturbed':
                 muf_res = MUFResult(fname,no_load=True)
                 fname = muf_res.get_perturbed_path(options['data_meas_num'])
-            snpData.append(snp(fname,read_header=read_header))
+            snpData.append(TouchstoneEditor(fname,read_header=read_header))
             numLoadedMeas+=1
             #print(numLoadedMeas)
             if verbose: pc.update()

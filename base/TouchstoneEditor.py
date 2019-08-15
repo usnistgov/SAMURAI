@@ -13,7 +13,7 @@ from xml.dom.minidom import parse
 
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 
-from samurai.analysis.support.generic import deprecated
+from samurai.base.generic import deprecated
 
 DEFAULT_HEADER = 'GHz S RI 50'
 DEFAULT_EMPTY_HEADER = 'Hz S RI 50'

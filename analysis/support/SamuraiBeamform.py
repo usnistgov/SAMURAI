@@ -10,7 +10,7 @@ from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vecto
 from samurai.analysis.support.SamuraiPostProcess import vector_mult_complex,vector_div_complex
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import Antenna
-from samurai.analysis.support.generic import ValueCounter
+from samurai.base.generic import ValueCounter
 import numpy as np #import constants
 
 import six #backward compatability
@@ -198,11 +198,12 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 ###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    testa = False #synthetic and real data tests (commented out)
+    testa = True #synthetic and real data tests (commented out)
     testb = False #data from usc 5-27-2019 (s2p padp output)
     testc = False
     testd = False
-    teste = True #plot markers with beamformed data
+    teste = False #plot markers with beamformed data
+    testf = False
     #test case for simple beamforming
     if(testa):
         '''
