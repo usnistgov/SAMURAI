@@ -103,7 +103,7 @@ class CalibrateSamurai:
         self.ppc.run()
         print("Calibration Complete. Updating MetaFile and Moving Data...")
         #update metafile and move data
-        self.update_metafile_and_move()      
+        return self.update_metafile_and_move()      
         
     def update_metafile_and_move(self):
         
@@ -117,6 +117,7 @@ class CalibrateSamurai:
         #now rewrite a new metafile in new folder
         #self.mfc.set_wdir(self.out_dir)
         #self.mfc.write()
+        return new_mf_path
 
     def _update_metafile(self,filename_list,subdir):
         '''

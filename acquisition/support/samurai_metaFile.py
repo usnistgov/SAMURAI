@@ -139,10 +139,10 @@ class metaFile(OrderedDict):
         @brief get parameters from the VNA if we can
         @param[in] pna_addr - visa address of vna
         '''     
-        import samurai.acquisition.support.pnaController as pnaController
-        from samurai.acquisition.support.InstrumentControl import InstrumentConnectionError
+        from samurai.acquisition.instrument_control.PnaController import PnaController
+        from samurai.acquisition.instrument_control.InstrumentControl import InstrumentConnectionError
         try:
-            pnaCont = pnaController.pnaController(pna_addr)
+            pnaCont = PnaController(pna_addr)
             pnaCont.get_params() #update the parameters
             self['vna_info'].update(pnaCont) #write to metafile
         except InstrumentConnectionError: #only accespt instrument conection error

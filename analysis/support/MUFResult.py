@@ -5,9 +5,12 @@ Created on Mon Jun 24 16:02:04 2019
 @author: ajw5
 """
 
-from samurai.analysis.support.snpEditor import SnpEditor,SnpError
-from samurai.analysis.support.snpEditor import WnpParam
+from samurai.analysis.support.snpEditor import TouchstoneEditor,TouchstoneError
+from samurai.analysis.support.snpEditor import TouchstoneParam
+from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController
 from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
+
+import shutil
 
 #from xml.dom.minidom import parse, parseString
 import numpy as np
@@ -16,7 +19,7 @@ from lxml import etree as ET
 import os
 import re
 
-class MUFResult(SnpEditor):
+class MUFResult(MUFModuleController):
     '''
     @brief a class to deal with MUF results (and easily get uncertainties, monte_carlos, and whatnot)
         self is the nominal value. Other values will be contained to generate uncerts
@@ -28,16 +31,22 @@ class MUFResult(SnpEditor):
         >>> mymeas = MUFResult(meas_path) #initialize the class
         >>> mymeas.calculate_monte_carlo_statistics() 
     '''
-
+        
     def __init__(self,meas_path,**arg_options):
         '''
         @brief load up and initialize the *.meas file
         @param[in] meas_path - path to the *.meas file to load. 
-            This can be passed as None if self.create_meas() is going to be run
+            This can be passed as None if self.create_meas() is going to be run.
+            if a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
+            file will be created with the loaded measurement as the nominal result
         @param[in/OPT] arg_options - keyword arguments as follows:
             None yet!
-            all arguments also passed to SnpEditor constructor
+            all arguments also passed to MUFModuleController constructor
         '''
+        #uncertainty statistics
+        self.monte_carlo = None
+        self.perturbed = None
+        self.nominal = None
         self.options = {}
         self.options = {}
         self.options['ci_percentage'] = 95
@@ -48,37 +57,19 @@ class MUFResult(SnpEditor):
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #make sure were getting a .meas, if not get the correct data
-        if meas_path is not None:
-            _,ext = os.path.splitext(meas_path) #get our extension
-            if '.meas' not in ext:
-                nom_path = meas_path
-            else:        
-                self.load_xml(meas_path)
-                nom_path = self.nominal_value_path
-                #lets set the correct options for w/s params
-                _,ext = os.path.splitext(nom_path)
-            #use re to get wp or sp (remove all numbers and '_binary')
-            rc = re.compile('\d+|_binary')
-            ext_cut = rc.sub('',ext)
-            if ext_cut == '.sp':
-                self.param_type = 's'
-                waves = ['S']
-                arg_options['waves'] = waves
-            elif ext_cut == '.wp':
-                self.param_type = 'w'
-                waves = ['A','B']
-                arg_options['waves'] = waves
-            else:
-                raise SnpError("Nominal file extension not recognized")
-            super().__init__(nom_path,**self.options) #init wave params or s params
+        menu_path = meas_path
+
+        super().__init__(None,except_no_menu=False,**arg_options)
+        self.load(menu_path,**arg_options)
         
-        #otherwise lets create a new MUFResult
-        else:
-            pass #just make sure to run MUFResult.create_meas on the instance in this case
-        
-        #uncertainty statistics
-        self.monte_carlo = None
-        self.perturbed = None
+    def init_statistics(self,**arg_options):
+        '''
+        @brief intialize (create the classes) for our MUF statistics
+        '''
+        mc_paths = self.get_monte_carlo_path_list()
+        self.monte_carlo = MUFStatistic(mc_paths,**arg_options)
+        pt_paths = self.get_perturbed_path_list()
+        self.perturbed = MUFStatistic(pt_paths,**arg_options)
         
     def calculate_statistics(self,**arg_options):
         '''
@@ -91,16 +82,12 @@ class MUFResult(SnpEditor):
         '''
         @brief calculate monte carlo statistics
         '''
-        mc_paths = self.get_monte_carlo_path_list()
-        self.monte_carlo = MUFStatistic(mc_paths,**arg_options)
         self.monte_carlo.calculate_statistics()
         
     def calculate_perturbed_statistics(self,**arg_options):
         '''
         @brief calculate perturbed data statistics
         '''
-        pt_paths = self.get_perturbed_path_list()
-        self.perturbed = MUFStatistic(pt_paths,**arg_options)
         self.perturbed.calculate_statistics()
         
     def get_monte_carlo_path_list(self):
@@ -109,23 +96,7 @@ class MUFResult(SnpEditor):
         @return list of paths to monte carlo data
         '''
         mc_el_list = self._xml_monte_carlo.findall('Item')
-        path_list = [subitems[1].get('Text') for subitems in mc_el_list]
-        return path_list
-    
-    def get_monte_carlo_path(self,meas_num=None):
-        '''
-        @brief get a specific set of monte carlo paths
-        @param[in] meas_num - which measurement or measurements to get (default to all)
-        @return a list of paths (if meas_num is a list) or a single path if only 1 measurement defined
-        '''
-        mc_el_list = self._xml_monte_carlo.findall('Item')
-        if meas_num is None: #we get all of them
-            meas_num = range(len(mc_el_list))
-        if not hasattr(meas_num,'__iter__'):
-            meas_num = [meas_num] #make sure we have a iterable list
-        path_list = [mc_el_list[i][1].get('Text') for i in meas_num]
-        if len(path_list)==1:
-            path_list = path_list[0] #return not a list if just 1 value
+        path_list = [items[1].get('Text') for items in mc_el_list]
         return path_list
     
     def get_perturbed_path_list(self):
@@ -134,23 +105,7 @@ class MUFResult(SnpEditor):
         @return list of paths to perturbed data
         '''
         pert_list = self._xml_perturbed.findall('Item')
-        path_list = [subitems[1].get('Text') for subitems in pert_list]
-        return path_list
-    
-    def get_perturbed_path(self,meas_num=None):
-        '''
-        @brief get a specific set of monte carlo paths
-        @param[in] meas_num - which measurement or measurements to get (default to all)
-        @return a list of paths (if meas_num is a list) or a single path if only 1 measurement defined
-        '''
-        pert_el_list = self._xml_perturbed.findall('Item')
-        if not meas_num: #we get all of them
-            meas_num = range(len(pert_el_list))
-        if not hasattr(meas_num,'__iter__'):
-            meas_num = [meas_num] #make sure we have a iterable list
-        path_list = [pert_el_list[i][1].get('Text') for i in meas_num]
-        if len(path_list)==1:
-            path_list = path_list[0] #return not a list if just 1 value
+        path_list = [items[1].get('Text') for items in pert_list]
         return path_list
         
     @property
@@ -163,11 +118,66 @@ class MUFResult(SnpEditor):
         return nom_name
     
     @property
-    def nominal(self):
+    def _xml_nominal(self):
         '''
-        @brief alias to access the nominal data by an attribute name
+        @brief link to nominal xml path value
         '''
-        return self
+        return self.controls.find('MeasSParams')
+    
+    @property
+    def _xml_monte_carlo(self):
+        '''
+        @brief link to monte_carlo xml path value
+        '''
+        return self.controls.find('MonteCarloPerturbedSParams')
+    
+    @property
+    def _xml_perturbed(self):
+        '''
+        @brief link to monte_carlo xml path value
+        '''
+        return self.controls.find('PerturbedSParams')
+    
+    @property
+    def _xml_root(self):
+        '''
+        @brief link to root xml node
+        '''
+        return self.getroot()
+    
+    def __getattr__(self,attr):
+        '''
+        @brief pass any nonexistant attribute attempts to our nominal value class
+        '''
+        try:
+            return getattr(self.nominal,attr)
+        except:
+            raise AttributeError('{} not in self or self.nominal'.format(attr))
+            
+    ##########################################################################
+    ### Data editing functions. This will only operate on loaded data
+    ##########################################################################
+    def run_touchstone_function(self,funct_name,*args,**kwargs):
+        '''
+        @brief run a function on all loaded touchstone files
+        @param[in] funct_name - the name of the method to run. Should be in TouchstoneEditor
+        @param[in/OPT] *args,**kwargs - arguments to pass to function
+        @return list of names for what the data was operated on
+        '''
+        out_list = [] 
+        if self.nominal is not None:
+            funct = getattr(self.nominal,funct_name)
+            funct(*args,**kwargs)
+            out_list.append('nominal')
+        stats_list = ['monte_carlo','perturbed']
+        for stat_name in stats_list:
+            stat = getattr(self,stat_name)
+            if stat.data is not None:
+                out_list.append(stat_name)
+                for d in stat.data:
+                    funct = getattr(d,funct_name)
+                    funct(*args,**kwargs)
+        return out_list
     
     ##########################################################################
     ### parts to create a new *.meas file from a *.snp or *.wnp
@@ -193,100 +203,241 @@ class MUFResult(SnpEditor):
         @brief create a skeleton (main nodes) for a *.meas file
         This includes everything except the menustripheader
         '''
-        #the element tree
-        self._etree = ET.ElementTree()
         #root node
-        self._root = ET.Element('CorrectedMeasurement')
-        self._root.set('FileName','./')
-        self._root.set('UserName',getpass.getuser())
-        self._root.set('CreationTime',str(datetime.datetime.now()))
-        self._etree._setroot(self._root)
+        root_elem = ET.Element('CorrectedMeasurement')
+        root_elem.set('FileName','./')
+        root_elem.set('UserName',getpass.getuser())
+        root_elem.set('CreationTime',str(datetime.datetime.now()))
+        self._setroot(root_elem)
         #create controls element
-        self._controls = ET.SubElement(self._root,'Controls')  
+        self._controls = ET.SubElement(self._xml_root,'Controls')  
         #now create our nominal
-        self._xml_nominal = ET.SubElement(self._controls,'MeasSParams')
+        ET.SubElement(self._controls,'MeasSParams')
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
         #and monte carlo
-        self._xml_monte_carlo = ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
+        ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
         self._xml_monte_carlo.set('FullName',"Me_SplitContainer2__GroupBox3_Panel2_MonteCarloPerturbedSParams")
         self._xml_monte_carlo.set('Count',str(0))
         #and monte carlo
-        self._xml_perturbed = ET.SubElement(self._controls,'PerturbedSParams')
+        ET.SubElement(self._controls,'PerturbedSParams')
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
         self._xml_perturbed.set('Count',str(0))
         
-    def _add_nominal_path(self,nom_path):
+    def set_nominal_path(self,nom_path):
         '''
         @brief add a nominal path to the xml *.meas file
         @param[in] nom_path - nominal path
         '''
-        self._add_meas_item_list([nom_path],self._xml_nominal)
+        self._set_paths(self._xml_nominal,[nom_path])
+        
+    def set_monte_carlo_paths(self,mc_path_list):
+        '''
+        @brief overwrite our monte carlo paths
+        '''
+        self._set_paths(self._xml_monte_carlo,mc_path_list)
+        
+    def set_perturbed_paths(self,pt_path_list):
+        '''
+        @brief overwrite perturbed paths
+        '''
+        self._set_paths(self._xml_perturbed,pt_path_list)
+        
+    def _set_paths(self,parent_element,path_list,subelem_idx=1):
+        '''
+        @brief function to set all paths from a list. This assumes the path is in subelement 1 (index from 0)
+        '''
+        for i,child in enumerate(list(parent_element)):
+            list(child)[subelem_idx].attrib['Text'] = path_list[i]
       
-    def _add_meas_item_list(self,path_list,parent_element):
+    def _add_meas_item_list(self,parent_element,path_list):
         '''
         @brief add a measurement list from items and place it in a parent element (e.g self._xml_monte_carlo)
         '''
+        item_list = []
         for i,path in enumerate(path_list):
-            item = self._create_meas_item(path,i)
-            parent_element.append(item)
-        parent_element.set('Count',str(len(path_list)))
-    
-    def _create_meas_item(self,path,index,name=None):
+            item_list.append(self._create_meas_item(path))
+        self.add_items(parent_element,item_list)
+        
+    def _create_meas_item(self,path,name=None):
         '''
         @brief create an element for an item (a measurement in a .meas file)
         @param[in] path - path to the measurement
-        @param[in] index - index of the item in the set
         @param[in/OPT] name - name of the item. If none use the name of the file
         '''
         if name is None:
-            name = os.path.splitext(os.path.split(path)[-1])[0] #get the file name
-        item = ET.Element('Item')
-        item.set('Index',str(index))
-        item.set('Text',name)
-        #now add our subitems
+            name = self._get_name_from_path(path)
         subitem_text = [name,path]
-        for i,t in enumerate(subitem_text):
-            si = ET.SubElement(item,'SubItem')
-            si.set('Text',t)
-            si.set('Index',str(i))
-        #now set the number of subitems
-        item.set('Count',str(len(item)))
-        return item
-    
+        return self.create_item(name,subitem_text)
+        
     ##########################################################################
     ### extra io functions
     ##########################################################################
     
-                
-    def load_xml(self,meas_path):
+    
+    
+    def _load_data(self,meas_path):
+        '''
+        @brief load some data and return a loaded touchstoneEditor object
+        '''
+        return TouchstoneEditor(meas_path)
+    
+    def _load_nominal(self):
+        '''
+        @brief load the nominal path value into self.nominal
+        '''
+        nom_data = self._load_data(self.nominal_value_path)
+        self.nominal = nom_data
+        
+    def _load_statistics(self):
+        '''
+        @brief load in all of the data for all of our statistics
+        '''
+        self.monte_carlo.load_data()
+        self.perturbed.load_data()
+    
+    def _load_xml(self,meas_path):
         '''
         @brief  parse our file into a dom struct
         @param[in] meas_path - path to *.meas file
-        @note this also extracts the following etree elements
-            _root - root of the tree
-            _controls - *.meas 'Controls' element
-            _nominal  - *.meas 'Controls->MeasSParams' element
-            _monte_carlo - *.meas 'Controls->MonteCarloPerturbedSParams' element
         '''
-        self._xml_file_path = meas_path
-        self._etree = ET.parse(meas_path)
-        self._root = self._etree.getroot()
-        self._controls = self._root.find('Controls') #*.meas controls
-        self._xml_nominal  = self._controls.find('MeasSParams')
-        self._xml_monte_carlo = self._controls.find('MonteCarloPerturbedSParams')
-        self._xml_perturbed = self._controls.find('PerturbedSParams')
+        super().load(meas_path)
         
-    def write_xml(self,out_path):
+    def load(self,meas_path,**kwargs):
         '''
-        @brief write out our current xml file
+        @brief load our meas file and its corresponding data
+        @param[in] meas_path - path to *.meas file to load in
+        @param[in/OPT] kwargs - keyword arguments as follows:
+            load_nominal - load our nominal value file in a subfolder of meas_path (default True)
+            load_stats - load our statistics to a subfolder of meas_path (default False)
+        '''
+        options = {}
+        options['load_nominal'] = True
+        options['load_stats'] = False
+        for k,v in kwargs.items():
+            options[k] = v
+        #make a *.meas if a wnp or snp file was provided
+        if meas_path is not None:
+            _,ext = os.path.splitext(meas_path) #get our extension
+            if '.meas' not in ext: #if its not a *.meas create our skeleton
+                self._create_meas()
+                self.set_nominal_path(meas_path)
+                menu_path = None
+            else:
+                self._load_xml(meas_path)
+        else:
+            raise Exception('Please Provide a *.meas path or a snp/wnp path')
+        #load our nominal and statistics if specified
+        if options['load_nominal']:
+            self._load_nominal()
+        if options['load_stats']:
+            self.init_statistics()
+            self._load_statistics()
+            
+    def _write_xml(self,out_path):
+        '''
+        @brief write out our current xml file and corresponding measurements
         @param[in] out_path - path to writ ethe file out to 
         '''
-        self._etree.write(out_path,pretty_print=True)
-  
+        super().write(out_path)
+        
+    def _write_nominal(self,out_dir,out_name='nominal'):
+        '''
+        @brief write out our nominal data
+        @param[in] out_dir - directory to write out to
+        @param[in/OPT] out_name - name to write out (default 'nominal')
+        '''
+        out_file = os.path.join(out_dir,out_name)
+        if self.nominal is None: #then copy the file
+            fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
+            nom_path = self.nominal_value_path
+            fname+=os.path.splitext(nom_path)[-1]
+            fname = shutil.copy(nom_path,fname)
+        else:
+            fname = self.nominal.write(out_file)
+        fname = os.path.abspath(fname)
+        self.set_nominal_path(fname)
+            
+        
+    def _write_statistic(self,stat_class,format_out_path):
+        '''
+        @brief write out our statistics data
+        @param[in] stat_class - instance of MUFStatistic to write
+        @param[in] out_dir - directory to write out to
+        @param[in] format_out_path - formattable output path (e.g. path/to/dir/mc_{}.snp)
+        @return list of written file paths (absolute paths)
+        '''
+        out_list = []
+        if stat_class.data is None: #then copy
+            files =  stat_class.file_paths
+            for i,file in enumerate(files):
+                fname = os.path.splitext(format_out_path.format(i))[0]
+                fname+=os.path.splitext(file)[-1]
+                fname_out = shutil.copy(file,fname)
+                fname_out = os.path.abspath(fname_out)
+                out_list.append(fname_out) #add to our list
+        else:
+            for i,dat in enumerate(stat_class.data): #loop through all of our data
+                fname = os.path.splitext(format_out_path.format(i))[0]
+                fname_out = dat.write(fname)
+                fname_out = os.path.abspath(fname_out)
+                out_list.append(fname_out)
+        return out_list
+    
+    def _write_statistics(self,out_dir):
+        '''
+        @brief write out monte carlo and perturbed data
+        '''
+        mc_dir = os.path.join(out_dir,'MonteCarlo')
+        if not os.path.exists(mc_dir):
+            os.makedirs(mc_dir)
+        mc_paths = self._write_statistic(self.monte_carlo,os.path.join(mc_dir,'monte_carlo_{}'))
+        self.set_monte_carlo_paths(mc_paths)
+        pt_dir = os.path.join(out_dir,'Perturbed')
+        if not os.path.exists(pt_dir):
+            os.makedirs(pt_dir)
+        pt_paths = self._write_statistic(self.perturbed,os.path.join(mc_dir,'monte_carlo_{}'))
+        self.set_perturbed_paths(pt_paths)
+        
+    def _write_data(self,out_dir,**kwargs):
+        '''
+        @brief write out supporting data for the *.meas file (e.g. nominal/monte_carlo/perturbed *.snp files)
+        @param[in] out_dir - what directory to write the data out to
+        @param[in/OPT] kwargs - keyword arguments as follows:
+            write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
+            write_stats - write out our statistics to a subfolder of meas_path (default True)
+        @note if the data is not loaded in we will simply copy the files
+        '''
+        options = {}
+        options['write_nominal'] = True
+        options['write_stats'] = True
+        for k,v in kwargs.items():
+            options[k] = v
+        #load our nominal and statistics if specified
+        if options['write_nominal']:
+            self._write_nominal(out_dir)
+        if options['write_stats']:
+            self._write_statistics(out_dir)
+        
+    def write(self,out_path,**kwargs):
+        '''
+        @brief write out all information on the MUF Statistic. This will create a copy
+            of the nominal value and all statistics snp/wnp files
+        @param[in] out_path - path to write xml file to. 
+            all other data will be stored in a similar structure to the MUF in here
+        @param[in/OPT] kwargs - keyword arguments as follows:
+            write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
+            write_stats - write out our statistics to a subfolder of meas_path (default True)
+        '''
+        out_dir = os.path.splitext(out_path)[0]
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+        #write out the data first so we update the paths
+        self._write_data(out_dir,**kwargs)
+        self._write_xml(out_path)
         
 import scipy.stats as st
 class MUFStatistic:
@@ -317,13 +468,18 @@ class MUFStatistic:
         #properties
         self.confidence_interval = {}
         self.standard_uncertainty = {}
+        self.data = None
             
     def calculate_statistics(self):
         '''
-        @brief calculate and store all statistics
+        @brief calculate and store all statistics. If self.data has been loaded use that
+            Otherwise just momentarily load the data
         '''
         if len(self.file_paths) > 2: #make sure we have enough to make a statistic
-            snp_list = self._load_stat_files_to_list()
+            if self.data is None:
+                snp_list = self._load_stat_files_to_list()
+            else:
+                snp_list = self.data
             data_dict = self._extract_data_dict(snp_list)
             #estimate
             self.estimate = self._calculate_estimate(data_dict)
@@ -380,10 +536,25 @@ class MUFStatistic:
         @brief load the files in self.file_paths to a WnpEditor list
         @return list of SnpEditor objects for the files in stat_paths
         '''
-        snp_list = []
+        tnp_list = []
         for path in self.file_paths:
-            snp_list.append(SnpEditor(path))
-        return snp_list
+            tnp_list.append(TouchstoneEditor(path))
+        return tnp_list
+    
+    def load_data(self):
+        '''
+        @brief load our statistics files to self.stat_files. These will be WnpEditor types
+        '''
+        self.data = self._load_stat_files_to_list()
+        
+    def write_data(self,format_out_path):
+        '''
+        @brief write the data to a provided output path with a formattable string for numbering
+        @param[in] format_out_path - formattable output path (e.g. path/to/data/monte_carlo_{}.snp/wnp)
+        '''
+        for i,d in enumerate(self.data):
+            d.write(format_out_path.format(i))
+            
     
     def _calculate_estimate(self,data_dict):
         '''
@@ -493,11 +664,19 @@ class MUFStatistic:
         return self.estimate.freq_list
 
 if __name__=='__main__':
-    '''
+    
     from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
     meas_path = 'test.meas'
-    res = MUFResult(meas_path,plot_options={'plot_order':['matplotlib']})
-    #res.S[11].plot()
+    #res = MUFResult(meas_path,load_stats=True)
+    res2 = MUFResult(meas_path)
+    res3 = MUFResult('test.s2p')
+    #os.chdir('test/write_test')
+    #res.write('test/write_test/test.meas')
+    res2.write('test/write_test/test2.meas')
+    res3.write('test/write_test/test3.meas')
+    '''
+    res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
+    res.S[11].plot()
     print("Calculating Statistics")
     res.calculate_statistics()
     sp = res.options['plotter']
@@ -506,11 +685,11 @@ if __name__=='__main__':
     sp.figure()
     res.perturbed.plot(11)
     sp.legend()
-    #stats_path = 
     '''
+    
     #res_m = MUFResult('test.meas')
     #res_s = MUFResult('test.s2p')
-    res_w = MUFResult('test.w2p')
+    #res_w = MUFResult('test.w2p')
         
     
     
