@@ -153,6 +153,16 @@ class MUFResult(MUFModuleController):
             return getattr(self.nominal,attr)
         except:
             raise AttributeError('{} not in self or self.nominal'.format(attr))
+            
+    ##########################################################################
+    ### Data editing functions. This will only operate on loaded data
+    ##########################################################################
+    def run_touchstone_function(funct_name,*args,**kwargs):
+        '''
+        @brief run a function on all loaded touchstone files
+        @param[in] funct_name - the name of the method to run. Should be in TouchstoneEditor
+        @param[in/OPT] *args,**kwargs - arguments to pass to function
+        '''
     
     ##########################################################################
     ### parts to create a new *.meas file from a *.snp or *.wnp

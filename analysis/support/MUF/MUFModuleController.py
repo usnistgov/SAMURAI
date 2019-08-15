@@ -7,7 +7,6 @@ Created on Thu Aug  8 10:12:48 2019
 
 from lxml import etree as ET
 import os
-import json
 from samurai.base.SamuraiXML import SamuraiXML
 
 test_vnauncert_xml = r"./templates/template.vnauncert"
