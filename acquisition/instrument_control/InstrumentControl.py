@@ -7,10 +7,10 @@ Created on Thu Jul 25 10:31:36 2019
 
 
 import re
-from collections import OrderedDict
+from samurai.base.SamuraiDict import SamuraiDict
 import json
 
-class Instrument(OrderedDict):
+class Instrument(SamuraiDict):
     '''
     @brief class for instrument control abstraction
     '''
@@ -199,7 +199,7 @@ class SCPIInstrument(Instrument):
         return super().query(msg,*args,cast=cast,**kwargs)
     
 
-class InstrumentCommandDict(OrderedDict):
+class InstrumentCommandDict(SamuraiDict):
     '''
     @brief class to store instrument commands
     '''
@@ -362,7 +362,7 @@ class SCPICommandDict(InstrumentCommandDict):
             com.update(v)
             self.commands[k] = com
 
-class InstrumentCommand(OrderedDict):
+class InstrumentCommand(SamuraiDict):
     '''
     @brief class that defines an instrument command.
         Can be SCPI, or not... can be anything
@@ -463,8 +463,8 @@ class InstrumentCommand(OrderedDict):
         '''
         @brief return a list of argument names as keys with default params
         '''
-        req_dict = OrderedDict((k,v['default']) for k,v in self['arguments']['required'].items())
-        opt_dict = OrderedDict((k,v['default']) for k,v in self['arguments']['optional'].items())
+        req_dict = SamuraiDict((k,v['default']) for k,v in self['arguments']['required'].items())
+        opt_dict = SamuraiDict((k,v['default']) for k,v in self['arguments']['optional'].items())
         arg_dict = req_dict
         arg_dict.update(opt_dict)
         return arg_dict
