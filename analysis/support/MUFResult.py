@@ -157,12 +157,27 @@ class MUFResult(MUFModuleController):
     ##########################################################################
     ### Data editing functions. This will only operate on loaded data
     ##########################################################################
-    def run_touchstone_function(funct_name,*args,**kwargs):
+    def run_touchstone_function(self,funct_name,*args,**kwargs):
         '''
         @brief run a function on all loaded touchstone files
         @param[in] funct_name - the name of the method to run. Should be in TouchstoneEditor
         @param[in/OPT] *args,**kwargs - arguments to pass to function
+        @return list of names for what the data was operated on
         '''
+        out_list = [] 
+        if self.nominal is not None:
+            funct = getattr(self.nominal,funct_name)
+            funct(*args,**kwargs)
+            out_list.append('nominal')
+        stats_list = ['monte_carlo','perturbed']
+        for stat_name in stats_list:
+            stat = getattr(self,stat_name)
+            if stat.data is not None:
+                out_list.append(stat_name)
+                for d in stat.data:
+                    funct = getattr(d,funct_name)
+                    funct(*args,**kwargs)
+        return out_list
     
     ##########################################################################
     ### parts to create a new *.meas file from a *.snp or *.wnp
