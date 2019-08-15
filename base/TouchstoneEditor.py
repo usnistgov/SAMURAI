@@ -61,6 +61,7 @@ class TouchstoneEditor(object):
             read_header - True/False whether or not to read in header from text files (faster if false, default to true)
             waves - list of what waves we are measuring for self.waves dictionary (default ['A','B'] for s params should be ['S'])
             no_load - if True, do not immediatly load the file (default False)
+            default_extension - default output file extension (e.g. snp,wnp)
         '''
         self.options = {}
         self.options['header'] = None #this will be set later
@@ -70,6 +71,7 @@ class TouchstoneEditor(object):
         self.options['plotter'] = None
         self.options['plot_options'] = {}
         self.options['no_load'] = False
+        self.options['default_extension'] = 'tnp' #default
         for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
             self.options[key] = val 
         #init plotter if not providied
@@ -270,15 +272,24 @@ class TouchstoneEditor(object):
        self._ports = np.arange(1,num_ports+1)
        
        
-   def write(self,out_file,ftype='default',delimiter=' ',freq_units=None):
+   def write(self,out_file,ftype='default',delimiter=' ',**kwargs):
         '''
-        @brief write out data to wave parameter file (e.g. '.w2p')
-        @param[in] out_file - path of file name to write to
+        @brief write out data to touchstone (e.g. *.snp,*.wnp,*.tnp)
+        @param[in] out_file - path of file name to write to. if *.[wts]np is the extension
+            (e.g *.snp) the n will be replaced with the correct number of ports
         @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)
         @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')
+        @param[in/OPT] **kwargs - keyword arguments as follows
+            fix_extension - whether or not to fix the extension provided by out_file (default True)
+                This ensures the output file extension is correct
         '''
+        options = {}
+        options['fix_extension'] = True
+        for k,v in kwargs.items():
+            options[k] = v
+        
         if(ftype=='default'):
-            if(out_file.split('_')[-1]=='binary'):
+            if(re.findall('binary',os.path.splitext(out_file)[-1])):
                 ftype='binary'
             else:
                 ftype='text'
@@ -288,6 +299,17 @@ class TouchstoneEditor(object):
         
         #make sure the frequency lists are equal before writing; just in case somthing went wrong
         self._verify_freq_lists()
+        
+        #clean the output filename
+        fname,ext = os.path.splitext(out_file)
+        if options['fix_extension']:
+            if ext == '': # no extension provided
+                ext = '.ext' #this will be replaced
+            if ftype=='binary': #add binary if needed
+                ext += '_binary'
+            ext = re.sub('(?<=\.).*?((?=_binary)|$)',self.options['default_extension'],ext)
+        ext = re.sub('(?<=[wst])n(?=p)',str(self.num_ports),ext) #replace if snp
+        out_file = fname+ext
         
         #get our frequency multiplier
         freq_mult = self._get_freq_mult()
@@ -318,8 +340,8 @@ class TouchstoneEditor(object):
                 #write our header (should just be a single string)
                 fp.write('#%s\n' %(self.options['header']))
                 #now write data
-                for i in range(len(self.w1[11].raw)):
-                    line_vals = [self.w1[11].freq_list[i]/freq_mult]
+                for i in range(len(self.w1[self.wave_dict_keys[0]].raw)):
+                    line_vals = [self.w1[self.wave_dict_keys[0]].freq_list[i]/freq_mult]
                     for k in self.wave_dict_keys:
                         for w in self.waves.values():
                             line_vals += [w[k].raw[i].real,w[k].raw[i].imag]
@@ -328,6 +350,7 @@ class TouchstoneEditor(object):
                 
         else:
             print('Write Type not implemented')
+        return out_file
             
    def plot(self,keys='all',waves='all',data_type='mag_db'):
        '''
@@ -486,7 +509,7 @@ class TouchstoneEditor(object):
        '''
        return self.w1[self.wave_dict_keys[0]].freq_list
     
-   def _call_wnp_param_funct(self,fname,*args):
+   def _call_param_funct(self,fname,*args):
        '''
        @brief call a function from wnp param on all waves and all parameters
        '''
@@ -499,25 +522,25 @@ class TouchstoneEditor(object):
        '''
        @brief sort each of our parameters by frequency
        '''
-       self._call_wnp_param_funct('sort')
+       self._call_param_funct('sort')
        
    def crop(self,lo_freq=0,hi_freq=1e60):
        '''
        @brief remove values outside a window
        '''
-       self._call_wnp_param_funct('crop',lo_freq,hi_freq)
+       self._call_param_funct('crop',lo_freq,hi_freq)
        
    def cut(self,lo_freq=0,hi_freq=1e60):
        '''
        @brief remove values inside a window
        '''
-       self._call_wnp_param_funct('cut',lo_freq,hi_freq)
+       self._call_param_funct('cut',lo_freq,hi_freq)
            
    def round_freq_lists(self):
        '''
        @brief round frequencies to nearest hz (assuming they are in GHz)
        '''
-       self._call_wnp_param_funct('round_freq_list')
+       self._call_param_funct('round_freq_list')
            
    #always assume mixing up negative will mix down
    #frequency in Ghz. 
@@ -547,6 +570,7 @@ class WnpEditor(TouchstoneEditor):
         '''
         options = {}
         options['waves'] = ['A','B'] #do s parameters
+        options['default_extension'] = 'wnp'
         for k,v in arg_options.items():
             options[k] = v
         self.param_class = WnpParam
@@ -565,6 +589,7 @@ class SnpEditor(TouchstoneEditor):
         '''
         options = {}
         options['waves'] = ['S'] #do s parameters
+        options['default_extension'] = 'snp'
         for k,v in arg_options.items():
             options[k] = v
         self.param_class = SnpParam
