@@ -14,7 +14,7 @@ import six
 import numpy as np
 from itertools import chain
 
-class MatlabPlotter:
+class SamuraiMatlab:
     '''
     @brief class for plotting figures using matlab engine
         This class will start a matlab engine when initiated and close it when
@@ -140,24 +140,7 @@ class MatlabPlotter:
         @param[in] mynparray - a numpy array of any number of dimensions
         @return mlarray.double
         '''
-        return matlab.double(mynparray.tolist())
-    
-    def is_figure(self,obj):
-        '''
-        @brief test whether an object is a figure
-        @param[in] obj - the object to test
-        @return true if is a figure, false otherwise
-        '''
-        return self.eng.get(obj,'type')=='figure'
-    
-    def is_axes(self,obj):
-        '''
-        @brief test whether an object is an axis
-        @param[in] obj - the object to test
-        @return true if is an axis, false otherwise
-        '''
-        return self.eng.get(obj,'type')=='axes'
-    
+        return matlab.double(mynparray.tolist())    
         
     def __getattr__(self,name):
         '''
@@ -183,6 +166,33 @@ class MatlabPlotter:
     
     def __del__(self):
         self.engine.quit()
+       
+        
+class MatlabPlotter(SamuraiMatlab):
+    '''
+    @brief SamuraiMatlab class with some additional functions for plotting
+    '''
+    def __init__(self,*args,**kwargs):
+        '''
+        @brief init the class. all variables passed to super().__init__()
+        '''
+        super().__init__(*args,**kwargs)
+        
+    def is_figure(self,obj):
+        '''
+        @brief test whether an object is a figure
+        @param[in] obj - the object to test
+        @return true if is a figure, false otherwise
+        '''
+        return self.eng.get(obj,'type')=='figure'
+    
+    def is_axes(self,obj):
+        '''
+        @brief test whether an object is an axis
+        @param[in] obj - the object to test
+        @return true if is an axis, false otherwise
+        '''
+        return self.eng.get(obj,'type')=='axes'
     
 if __name__=='__main__':
     #try:
