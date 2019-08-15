@@ -36,14 +36,22 @@ class TouchstoneEditor(object):
        @brief instantiator to return correct class (e.g. WnpEditor or SnpEditor)
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data
        '''
-       _,ext = os.path.splitext(input_file)
-       if re.findall('w[\d]+p',ext):
-           out_cls = WnpEditor
-       elif re.findall('s[\d]+p',ext):
-           out_cls = SnpEditor
-       else:
-           out_cls = cls
+       if type(input_file) is str: #this could be a list for an empty object
+           _,ext = os.path.splitext(input_file)
+           if re.findall('meas',ext):
+               input_file = get_unperturbed_meas(input_file)
+               _,ext = os.path.splitext(input_file)
+           if re.findall('w[\d]+p',ext):
+               out_cls = WnpEditor
+           elif re.findall('s[\d]+p',ext):
+               out_cls = SnpEditor
+           else:
+               out_cls = cls
+       else: #if its a list, return whatever it was instantiated as
+           out_cls = cls 
        instance = super().__new__(out_cls)
+       if out_cls != cls: #run the init if it hasn't yet
+           instance.__init__(input_file,*args,**kwargs)
        return instance
 
    def __init__(self,input_file,**arg_options):
@@ -74,9 +82,7 @@ class TouchstoneEditor(object):
         #init plotter if not providied
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
-            
-        if os.path.splitext(input_file)[-1] == '.meas':
-            input_file = get_unperturbed_meas(input_file)
+        
         #initialize dictionary of waves
         if self.param_class is None: #default to this
             self.param_class = TouchstoneParam #parameter class
@@ -298,9 +304,8 @@ class TouchstoneEditor(object):
         
         #clean the output filename
         fname,ext = os.path.splitext(out_file)
-        if options['fix_extension']:
-            if ext == '': # no extension provided
-                ext = '.ext' #this will be replaced
+        if options['fix_extension']: #just replace the extension with the correct one
+            ext = '.ext' #this will be replaced
             if ftype=='binary': #add binary if needed
                 ext += '_binary'
             ext = re.sub('(?<=\.).*?((?=_binary)|$)',self.options['default_extension'],ext)
@@ -823,7 +828,9 @@ def swap_ports(*args,**kwargs):
     so1 = SnpEditor([2,freqs])
     so2 = SnpEditor([2,freqs])
     so1.S[11] = s1.S[11]; so1.S[22] = s2.S[22]
+    so1.S[21] = s1.S[21]; so1.S[12] = s2.S[12]
     so2.S[11] = s2.S[11]; so2.S[22] = s1.S[22]
+    so2.S[21] = s2.S[21]; so2.S[12] = s1.S[12]
     return so1,so2
     
 
@@ -851,16 +858,18 @@ def map_keys(key_list,mapping_dict):
 
 if __name__=='__main__':
 
-    snp_test = False
-    wnp_test = False
-    key_test = False
-    swap_test = False
-    add_remove_test = False
+    snp_test = True
+    wnp_test = True
+    key_test = True
+    swap_test = True
+    add_remove_test = True
     new_method_test = True
+    empty_object_test = True
     
     #geyt the current file directory
     import os 
     dir_path = os.path.dirname(os.path.realpath(__file__))
+    dir_path = os.path.join(dir_path,'../analysis/support')
 
     if wnp_test:
         print("Loading *.wnp files")
@@ -902,8 +911,8 @@ if __name__=='__main__':
     if swap_test:
         f1 = os.path.join(dir_path,'test.s2p')
         f2 = os.path.join(dir_path,'test.s2p_binary')
-        s1 = SnpEditor(f1)
-        s2 = SnpEditor(f2)
+        s1 = TouchstoneEditor(f1)
+        s2 = TouchstoneEditor(f2)
         so1,so2 = swap_ports(s1,s2)
         print(so1 == s1)
         print(so2 == s2)
@@ -938,6 +947,11 @@ if __name__=='__main__':
         
         print(s1.__class__)
         print(s2.__class__)
+        
+    if empty_object_test:
+        import numpy as np
+        freq_list = np.linspace(26.5e9,40e9,1351)
+        s = SnpEditor([2,freq_list])
         
 
         
