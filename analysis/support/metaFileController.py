@@ -24,7 +24,10 @@ from samurai.acquisition.support.samurai_optitrack import MotiveInterface
 from samurai.acquisition.support.samurai_metaFile import metaFile
 
 class MetaFileController(SamuraiDict):
-    
+    '''
+    @brief class to control metafile to get and change values
+    @todo combine this with samurai_metaFile acquisition code
+    '''
 
     def __init__(self,metafile_path,**arg_options):
         '''

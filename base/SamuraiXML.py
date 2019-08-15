@@ -51,5 +51,8 @@ class SamuraiXML(ET._ElementTree):
         for k,v in kwargs.items():
             kwargs_out[k] = v
         return ET.tostring(self,*args,**kwargs_out)
+    
+    def __str__(self):
+        return self.tostring()
         
         

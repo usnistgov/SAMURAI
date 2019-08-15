@@ -11,7 +11,7 @@ import re
 import six
 from xml.dom.minidom import parse 
 
-from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
+from samurai.base.SamuraiPlotter import SamuraiPlotter
 
 from samurai.analysis.support.generic import deprecated
 
