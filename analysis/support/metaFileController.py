@@ -8,7 +8,7 @@ This assumes our data has been calibrated with the MUF and DUTs are within that 
 @author: ajw5
 """
 
-from collections import OrderedDict
+from samurai.base.SamuraiDict import SamuraiDict
 import json
 import os
 from shutil import copyfile,copy
@@ -23,7 +23,7 @@ from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert
 from samurai.acquisition.support.samurai_optitrack import MotiveInterface
 from samurai.acquisition.support.samurai_metaFile import metaFile
 
-class MetaFileController(OrderedDict):
+class MetaFileController(SamuraiDict):
     
 
     def __init__(self,metafile_path,**arg_options):
@@ -34,13 +34,13 @@ class MetaFileController(OrderedDict):
             OrderedDict will be created from samurai_metaFile acquisition code
             with a blank measurements list
         '''
-        OrderedDict.__init__(self) #initialize ordereddict
+        super().__init__(self) #initialize ordereddict
         if metafile_path is not None:
             self.load(metafile_path)
         else:
             self.metafile = None
             self.wdir = os.path.abspath('./') #get the current path
-            self.update(OrderedDict(metaFile(None,None)))
+            self.update(SamuraiDict(metaFile(None,None)))
             
         self.plotter = SamuraiPlotter()
         
@@ -60,17 +60,12 @@ class MetaFileController(OrderedDict):
         @brief load a json metafile
         @param[in] metafile_path - path to the metafile to load
         '''        
-        if not os.path.exists(metafile_path):
-            raise FileNotFoundError("File '{}' not found".format(os.path.abspath(metafile_path)))
-        else:
+        super().load(metafile_path)
             #here we assume the working directory is the location of our metafile
-            [wdir,metafile]= os.path.split(metafile_path)
-            self.metafile = metafile
-            self.wdir     = wdir
-            with open(metafile_path,'r') as jsonFile:
-                #self = json.load(jsonFile, object_pairs_hook=OrderedDict)
-                self.update(json.load(jsonFile, object_pairs_hook=OrderedDict))
-            self.update_format() #update if the format is bad
+        [wdir,metafile]= os.path.split(metafile_path)
+        self.metafile = metafile
+        self.wdir = wdir
+        self.update_format() #update if the format is bad
                 
     def write(self,outPath=None):
         '''
@@ -79,11 +74,9 @@ class MetaFileController(OrderedDict):
         @return the path to the written file
         '''
         self.saved = 1
-        if not outPath:
+        if outPath is None:
             outPath = os.path.join(self.wdir,self.metafile)
-        with open(outPath,'w+') as jsonFile:
-            json.dump(self,jsonFile,indent=4) 
-        return outPath
+        super().write(outPath)
             
     def load_data(self,verbose=False,read_header=True,**arg_options):
         '''

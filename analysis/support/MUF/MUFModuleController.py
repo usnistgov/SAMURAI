@@ -6,12 +6,14 @@ Created on Thu Aug  8 10:12:48 2019
 """
 
 from lxml import etree as ET
+import os
 import json
+from samurai.base.SamuraiXML import SamuraiXML
 
 test_vnauncert_xml = r"./templates/template.vnauncert"
 test_postproc_xml = r"../../calibration/templates/cal_template.post"
 
-class MUFModuleController(ET._ElementTree):
+class MUFModuleController(SamuraiXML):
     '''
     @brief base class for MUF module controllers
     '''
@@ -34,41 +36,6 @@ class MUFModuleController(ET._ElementTree):
         else:
             if self.options['except_no_menu']:
                 raise Exception('No menu path provided') #implement default menu here
-    
-    def load(self,menu_path):
-        '''
-        @brief load a menu
-        @param[in] menu_path - path to the menu to laod
-        '''
-        parser = ET.XMLParser(remove_blank_text=True)
-        self.parse(menu_path,parser)
-    
-    def write(self,out_path,*args,**kwargs):
-        '''
-        @brief write out the menu
-        @param[in] out_path - path to write to
-        @param[in/OPT] *args,**kwargs - args to pass to ET._ElementTree.write()
-        '''
-        #defaults
-        kwargs_2 = {}
-        kwargs_2['xml_declaration'] = True
-        kwargs_2['pretty_print'] = True
-        for k,v in kwargs.items():
-            kwargs_2[k] = v
-        super().write(out_path,*args,**kwargs_2)
-        
-    def tostring(self,*args,**kwargs):
-        '''
-        @brief print to string
-        @param[in] *args,**kwargs - all passed to ET.tostring() method
-        '''
-        #defaults
-        kwargs_2 = {}
-        kwargs_2['xml_declaration'] = True
-        kwargs_2['pretty_print'] = True
-        for k,v in kwargs.items():
-            kwargs_2[k] = v
-        return ET.tostring(self,*args,**kwargs_2)
         
     def run(self,out_path,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
         '''
@@ -92,15 +59,28 @@ class MUFModuleController(ET._ElementTree):
         @param[in] parent_element - parent element to add item to (e.g. self.controls.find('BeforeCalibration'))
         @param[in] item - item (element) to add to the parente element
         '''
+        self.add_items(parent_element,[item])
+        
+    def add_items(self,parent_element,item_list):
+        '''
+        @brief add items(Subelements) to a parent. this also changes Count and Index of the parent and item
+        @param[in] parent_element - parent element to add item to (e.g. self.controls.find('BeforeCalibration'))
+        @param[in] item - item (element) to add to the parente element
+        '''
         if parent_element is None:
             raise Exception('Invalid parent_element')
-        num_children = len(parent_element.getchildren())
-        #now set the index of the item. We start at 0
-        item.attrib['Index'] = str(num_children)
-        #now lets add to the element
-        parent_element.append(item)
-        #now lets set the count
-        parent_element.attrib['Count'] = str(num_children+1)
+        cur_num_children = len(parent_element.getchildren()) #get the current number of children
+        for i,item in enumerate(item_list):
+            item.attrib['Index'] = str(cur_num_children+i)
+            parent_element.append(item)
+        parent_element.attrib['Count'] = str(len(parent_element.getchildren())) #update the count
+        
+    def clear_items(self,parent_element):
+        '''
+        @brief remove all subelements from a parent element
+        '''
+        for child in list(parent_element.getchildren()):
+            parent_element.remove(child)
         
     def create_item(self,item_name,subitem_text_list):
         '''
@@ -151,9 +131,9 @@ class MUFModuleController(ET._ElementTree):
         return self.find('MenuStripComboBoxes')
 
 
-from collections import OrderedDict
+from samurai.base.SamuraiDict import SamuraiDict
 
-class MUFModelKit(OrderedDict):
+class MUFModelKit(SamuraiDict):
     '''
     @brief class to store information on a set of MUF models
     '''
@@ -172,23 +152,7 @@ class MUFModelKit(OrderedDict):
             except:
                 raise KeyError("Please specify 'type' as a keyword argument when creating an empty kit")
         else:
-            self.load_kit(model_kit_path)
-            
-    def load_kit(self,model_kit_path):
-        '''
-        @brief load a kit from a file
-        '''
-        with open(model_kit_path,'r') as jp:
-            jdata = json.load(jp, object_pairs_hook=OrderedDict)
-        self.update(jdata) #update from the loaded values
-        
-    def write(self,out_path):
-        '''
-        @brief write the kit to a file
-        @param[in] out_path - path to write to
-        '''
-        with open(out_path,'w+') as op:
-            json.dump(self,op,indent=4)
+            self.load(model_kit_path)
     
     def add_model(self,name,path):
         '''
