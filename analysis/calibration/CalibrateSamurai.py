@@ -19,7 +19,7 @@ import os
 from samurai.analysis.support.metaFileController import metaFileController as mfc
 #from samurai.analysis.support.metaFileController import update_wdir
 from samurai.analysis.support.PostProcPy import PostProcPy as pppy
-from samurai.analysis.support.generic import deprecated
+from samurai.base.generic import deprecated
 from samurai.analysis.support.metaFileController import copy_touchstone_from_muf
 
 #from collections import OrderedDict

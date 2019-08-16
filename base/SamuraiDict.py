@@ -44,6 +44,15 @@ class SamuraiDict(OrderedDict):
             json.dump(self,json_file,indent=4) 
         return fpath
     
+def set_from_key_list(value,set_dict,key_list,**kwargs):
+    '''
+    @brief set a value from a list of dictionary keys
+    @param[in] value - value to set at final value
+    @param[in] set_dict -dictionary to set final value of
+    @param[in] key_list - list of keys to traverse to set the dictionary value
+    '''
+    for key in key_list:
+            
     
 if __name__=='__main__':
     myd = SamuraiDict({'test1':'test2'})
