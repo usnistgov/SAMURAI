@@ -7,6 +7,7 @@ Created on Mon May 20 15:04:22 2019
 
 import numpy as np
 from samurai.base.SamuraiMatlab import SamuraiMatlab
+from samurai.base.SamuraiDict import SamuraiDict,update_nested_dict
 
 class SamuraiPlotter:
     '''
@@ -170,7 +171,7 @@ class SamuraiPlotEngine:
     def __init__(self):
         self.options = {}
         self.options['engine'] = None
-        self._translation_dict = {}
+        self._translation_dict = SamuraiDict()
         self._set_translation_dict() #init translation_dict
         
     def _set_translation_dict(self):
@@ -223,9 +224,12 @@ class SamuraiPlotEngine:
         @note this can also translate to functions
         '''
         #now get a list of the functions specified and remove from kwargs
-        arg_dict = {v:kwargs.pop(k,None) for k,v in self._translation_dict.items()} #translate values in our translation dict
-        arg_dict = {k:v for k,v in arg_dict.items() if v is not None} #remove none values (not provided)   
-        return arg_dict         
+        arg_dict = SamuraiDict()
+        for k,v in self._translation_dict.items():
+            val = kwargs.pop(k,None)
+            if val is not None:
+                arg_dict[v] = val 
+        return dict(arg_dict)         
     
     def _run_arg_functions_on_object(self,obj,**kwargs):
         '''
@@ -364,7 +368,7 @@ class PlotlyPlotter(SamuraiPlotEngine):
         X = args[0]
         Y = args[1]
         Z = args[2]
-        funct_keys = ['xlim','ylim','zlim','xlabel','ylabel','zlabel','view','shading','title','colorbar']
+        funct_keys = ['colorbar']
         funct_dict = {k:kwargs.pop(k,None) for k in funct_keys} #get our function dictionary
         funct_dict = {k:v for k,v in funct_dict.items() if v is not None} #remove none values (not provided)
         
@@ -377,42 +381,28 @@ class PlotlyPlotter(SamuraiPlotEngine):
             cb = dict(tickvals=xt,ticktext=xtl)
         else: cb=None
             
-        plotly_surf = [self.engine.Surface(x=X, y=Y, z=Z,surfacecolor=plot_data,colorbar=cb,**kwargs)]
-        scene = dict(
-                xaxis = dict(title=funct_dict.get('xlabel',None)),
-                yaxis = dict(title=funct_dict.get('ylabel',None)),
-                zaxis = dict(title=funct_dict.get('zlabel',None))
-            )
-        scene.update(kwargs)
+        plotly_surf = [self.engine.Surface(x=X, y=Y, z=Z,surfacecolor=plot_data,colorbar=cb)]
         layout = self.engine.Layout(
-            title=funct_dict.get('title',None),
-            scene=scene,
+            scene=None,
             autosize=True,
-            **kwargs
         )
-            
-        fig = self.engine.Figure(data=plotly_surf,layout=layout)
-        fig = self.engine.FigureWidget(fig)
+        fig_dict = dict({'data':plotly_surf,'layout':layout})
+        kwarg_trans = self._translate_arguments(**kwargs)
+        update_nested_dict(fig_dict,kwarg_trans,overwrite_values=True)
+        fig = self.engine.Figure(fig_dict)
+        #fig = self.engine.FigureWidget(fig)
         self.show(fig)
         return fig
-    '''
-    def _translate_arguments(self,**kwargs):
+    
+    def _set_translation_dict(self):
         '''
-        @brief translate arguments dictionary based on our translation_dictionary
-        @param[in] kwargs - name/param arguements to translate
-        @note this is custom for plotly becaues it uses dictionaries. All values are unpacked
+        @brief set the dictionary for parameter translation
         '''
-        arg_dict = {}
-        for old_key,new_key in self._translation_dict.items():
-            trans_val = kwargs.pop(old_key,None):
-                if type(new_key) is dict:#assume 1 key in dictionary to be compliant
-                    if len(new_key.keys())>1:
-                        raise Exception('Only single key dictionaries allowed for translation')
-                    
-        arg_dict = {v:kwargs.pop(k,None) for k,v in self._translation_dict.items()} #translate values in our translation dict
-        arg_dict = {k:v for k,v in arg_dict.items() if v is not None} #remove none values (not provided)   
-        return arg_dict 
-'''
+        for d in ['x','y','z']:
+            lab_name = '{}axis'.format(d)
+            self._translation_dict.update({'{}lim'.format(d):['layout','scene',lab_name,'range']}) #limits
+            self._translation_dict.update({'{}label'.format(d):['layout','scene',lab_name,'title']}) #labels 
+        self._translation_dict.update({'displayname':['layout','title']})
     
     def show(self,fig,*args,**kwargs):
         '''
@@ -506,7 +496,8 @@ if __name__=='__main__':
         sp = SamuraiPlotter('plotly')
         [X,Y] = np.mgrid[1:10:0.5,1:20]
         Z = np.sin(X)+np.cos(Y)
-        sp.surf(X,Y,Z,xlim=[0,20],zlabel='X',shading='interp')
+        fig = sp.surf(X,Y,Z,xlim=[0,20],zlabel='\lambda',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
+        #args = sp._translate_arguments(zlabel='X',shading='interp')
         #sp._surf_plotly(X,Y,Z,xlim=[0,20],zlabel='X',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
         #sp._surf_matlab(X,Y,Z,xlim=[0.,20.],zlabel='X',shading='interp',colorbar=('XTick',[-1.,1.],'XTickLabel',['A','B']))
     if plot_test:
