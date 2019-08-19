@@ -252,7 +252,8 @@ if __name__=='__main__':
         #pos[:,2] = np.append(Z.flatten(),Z.flatten())
         mysp.all_positions = pos;
         #mysp.freq_list = [26.5e9,30e9,40e9]
-        freqs = [26.5e9,27e9,28e9,29e9,30e9,31e9,33e9,35e9,40e9]
+        #freqs = [26.5e9,27e9,28e9,29e9,30e9,31e9,33e9,35e9,40e9]
+        freqs = [30e9]
         mysp.freq_list = freqs
         #mysp.freq_list= np.arange(27,41)*1e9
         #mysp.add_plane_wave(0,0,-90)
