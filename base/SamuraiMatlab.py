@@ -167,32 +167,6 @@ class SamuraiMatlab:
     def __del__(self):
         self.engine.quit()
        
-        
-class MatlabPlotter(SamuraiMatlab):
-    '''
-    @brief SamuraiMatlab class with some additional functions for plotting
-    '''
-    def __init__(self,*args,**kwargs):
-        '''
-        @brief init the class. all variables passed to super().__init__()
-        '''
-        super().__init__(*args,**kwargs)
-        
-    def is_figure(self,obj):
-        '''
-        @brief test whether an object is a figure
-        @param[in] obj - the object to test
-        @return true if is a figure, false otherwise
-        '''
-        return self.eng.get(obj,'type')=='figure'
-    
-    def is_axes(self,obj):
-        '''
-        @brief test whether an object is an axis
-        @param[in] obj - the object to test
-        @return true if is an axis, false otherwise
-        '''
-        return self.eng.get(obj,'type')=='axes'
     
 if __name__=='__main__':
     #try:
