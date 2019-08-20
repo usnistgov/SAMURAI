@@ -34,16 +34,19 @@ def mufPathFindR(inPath, refPoint, level = 0):
         print("Error: file: {0} not found".format(inPath))
         sys.exit(0)
     fName = os.path.basename(inPath)
-    relPath = refPoint
+    # Recursively find the subdirectories
+    # This could be better if we included the updated path in the recursion
+    subdir = ''
+    tempPath = inPath
     for i in range(level):
-        #relPath = os.path.join(os.path.basename(os.path.dirname(inPath)), relPath)
-        subdir = os.path.basename(os.path.dirname(inPath))
-        #print("subdir: {0}".format(subdir))
-        relPath = os.path.join(relPath, subdir)
-        #print("relPath: {0}".format(relPath))
+        tempPath = os.path.dirname(tempPath)
+        subdir = os.path.join(os.path.basename(tempPath), subdir)
 
 
-    constructPath = os.path.join(refPoint, os.path.join(relPath, fName))
+    #print("refPoint: {0}".format(refPoint))
+    #print("subdir: {0}".format(subdir))
+    #print("fName: {0}".format(fName))
+    constructPath = os.path.join(refPoint, os.path.join(subdir, fName))
     #print("path: {0}".format(constructPath))
     if os.path.exists(constructPath):
         return constructPath
@@ -98,11 +101,10 @@ class MUFResult(MUFModuleController):
         '''
         @brief intialize (create the classes) for our MUF statistics
         '''
-        mc_paths = self.get_monte_carlo_path_list()
-        self.monte_carlo = MUFStatistic(mc_paths,**arg_options)
-        pt_paths = self.get_perturbed_path_list()
-        self.perturbed = MUFStatistic(pt_paths,**arg_options)
-        
+        # Get the paths
+        self.mc_paths = self.get_monte_carlo_path_list()
+        self.pt_paths = self.get_perturbed_path_list()
+
     def calculate_statistics(self,**arg_options):
         '''
         @brief calculate statistics for monte carlo and perturbed data
@@ -325,10 +327,14 @@ class MUFResult(MUFModuleController):
         nom_data = self._load_data(self.nominal_value_path)
         self.nominal = nom_data
         
-    def _load_statistics(self):
+    def _load_statistics(self, **arg_options):
         '''
         @brief load in all of the data for all of our statistics
         '''
+        # Initialize the statistic datatype
+        self.monte_carlo = MUFStatistic(self.mc_paths,**arg_options)
+        self.perturbed = MUFStatistic(self.pt_paths,**arg_options)
+        
         self.monte_carlo.load_data()
         self.perturbed.load_data()
     
@@ -365,8 +371,10 @@ class MUFResult(MUFModuleController):
         #load our nominal and statistics if specified
         if options['load_nominal']:
             self._load_nominal()
+
+        self.init_statistics()
+
         if options['load_stats']:
-            self.init_statistics()
             self._load_statistics()
             
     def _write_xml(self,out_path):

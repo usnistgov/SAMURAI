@@ -136,7 +136,10 @@ class TouchstoneEditor(object):
         #init plotter if not providied
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
-        
+       
+        #initialize placeholder for data
+        self.raw_data = None
+
         #initialize dictionary of waves
         if self.param_class is None: #default to this
             self.param_class = TouchstoneParam #parameter class
@@ -209,6 +212,8 @@ class TouchstoneEditor(object):
         #if we have a text file (e.g. *.w2p)
         elif(ftype=='text'):
             raw_data = self._load_text(input_file,**kwargs)
+
+        self.raw_data = raw_data
 
         num_cols = np.size(raw_data,1) #get the number of columns     
         #now split the data (text and binary input should be formatted the same here)
