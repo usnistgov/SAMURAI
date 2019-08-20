@@ -254,12 +254,12 @@ class TouchstoneEditor(object):
             self.options['comments'].append('Header and comments NOT read from file')
        #now read in data from the file with many possible delimiters in cases
        #of badly formated files
-       with MultilineFileParser(file_path) as fp:
-            regex_str = r'[ ,|\t]+'
-            rc = re.compile(regex_str)
-            raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
-            if raw_data.ndim==1: #case if we have 1 data point only
-                raw_data = np.reshape(raw_data,(1,-1))
+       fp = MultilineFileParser(file_path)
+       regex_str = r'[ ,|\t]+'
+       rc = re.compile(regex_str)
+       raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
+       if raw_data.ndim==1: #case if we have 1 data point only
+           raw_data = np.reshape(raw_data,(1,-1))
        return raw_data
        
    def _load_binary(self,file_path,**kwargs):

@@ -29,7 +29,7 @@ def mufPathFind(inPath, refPoint):
 
 # Recursive
 def mufPathFindR(inPath, refPoint, level = 0):
-    print("Level {0}".format(level))
+    #print("Level {0}".format(level))
     if level > 3 or level < 0:
         print("Error: file: {0} not found".format(inPath))
         sys.exit(0)
@@ -38,24 +38,17 @@ def mufPathFindR(inPath, refPoint, level = 0):
     for i in range(level):
         #relPath = os.path.join(os.path.basename(os.path.dirname(inPath)), relPath)
         subdir = os.path.basename(os.path.dirname(inPath))
-        print("subdir: {0}".format(subdir))
+        #print("subdir: {0}".format(subdir))
         relPath = os.path.join(relPath, subdir)
-        print("relPath: {0}".format(relPath))
+        #print("relPath: {0}".format(relPath))
 
 
     constructPath = os.path.join(refPoint, os.path.join(relPath, fName))
-    print("path: {0}".format(constructPath))
+    #print("path: {0}".format(constructPath))
     if os.path.exists(constructPath):
         return constructPath
     else:
         return mufPathFindR(inPath, refPoint, level = level+1)
-
-
-fileS4p = "/cfs2w/67_ctl/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/7-8-2019/cal/cal_pre-post_vnauncert_Results/Solutions/Solution_0.s4p"
-measFile = "/home/bfj/data/samurai/7-8-2019/cal/cal_pre-post_vnauncert_Results/Solution.meas"
-refPoint = os.path.dirname(measFile)
-cPath = mufPathFind(fileS4p, refPoint)
-print("cPath = {0}".format(cPath))
 
 class MUFResult(MUFModuleController):
     '''
@@ -704,15 +697,15 @@ class MUFStatistic:
 
 if __name__=='__main__':
     
-    #meas_path = "/home/bfj/data/samurai/7-8-2019/cal/cal_pre-post_vnauncert_Results/Solution.meas"
-    meas_path = 'test.meas'
+    meas_path = "/home/bfj/data/samurai/7-8-2019/cal/cal_pre-post_vnauncert_Results/Solution.meas"
+    #meas_path = 'test.meas'
     #res = MUFResult(meas_path,load_stats=True)
     res2 = MUFResult(meas_path)
-    res3 = MUFResult('test.s2p')
+    #res3 = MUFResult('test.s2p')
     #os.chdir('test/write_test')
     #res.write('test/write_test/test.meas')
-    res2.write('test/write_test/test2.meas')
-    res3.write('test/write_test/test3.meas')
+    #res2.write('test/write_test/test2.meas')
+    #res3.write('test/write_test/test3.meas')
     '''
     res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
     res.S[11].plot()
