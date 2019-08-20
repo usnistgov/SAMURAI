@@ -18,6 +18,44 @@ import numpy as np
 from lxml import etree as ET
 import os
 import re
+import sys
+
+def mufPathVerify(inPath):
+    return sys.path.exists(inPath)
+
+def mufPathFind(inPath, refPoint):
+    inPath = inPath.replace('\\\\', '/').replace('\\', '/')
+    return mufPathFindR(inPath, refPoint)
+
+# Recursive
+def mufPathFindR(inPath, refPoint, level = 0):
+    print("Level {0}".format(level))
+    if level > 3 or level < 0:
+        print("Error: file: {0} not found".format(inPath))
+        sys.exit(0)
+    fName = os.path.basename(inPath)
+    relPath = refPoint
+    for i in range(level):
+        #relPath = os.path.join(os.path.basename(os.path.dirname(inPath)), relPath)
+        subdir = os.path.basename(os.path.dirname(inPath))
+        print("subdir: {0}".format(subdir))
+        relPath = os.path.join(relPath, subdir)
+        print("relPath: {0}".format(relPath))
+
+
+    constructPath = os.path.join(refPoint, os.path.join(relPath, fName))
+    print("path: {0}".format(constructPath))
+    if os.path.exists(constructPath):
+        return constructPath
+    else:
+        return mufPathFindR(inPath, refPoint, level = level+1)
+
+
+fileS4p = "/cfs2w/67_ctl/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Synthetic_Aperture/7-8-2019/cal/cal_pre-post_vnauncert_Results/Solutions/Solution_0.s4p"
+measFile = "/home/bfj/data/samurai/7-8-2019/cal/cal_pre-post_vnauncert_Results/Solution.meas"
+refPoint = os.path.dirname(measFile)
+cPath = mufPathFind(fileS4p, refPoint)
+print("cPath = {0}".format(cPath))
 
 class MUFResult(MUFModuleController):
     '''
@@ -57,10 +95,11 @@ class MUFResult(MUFModuleController):
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #make sure were getting a .meas, if not get the correct data
-        menu_path = meas_path
+        self.meas_path = meas_path
+        self.meas_path_dirname = os.path.dirname(self.meas_path)
 
         super().__init__(None,except_no_menu=False,**arg_options)
-        self.load(menu_path,**arg_options)
+        self.load(**arg_options)
         
     def init_statistics(self,**arg_options):
         '''
@@ -96,7 +135,7 @@ class MUFResult(MUFModuleController):
         @return list of paths to monte carlo data
         '''
         mc_el_list = self._xml_monte_carlo.findall('Item')
-        path_list = [items[1].get('Text') for items in mc_el_list]
+        path_list = [mufPathFind(items[1].get('Text'), self.meas_path_dirname) for items in mc_el_list]
         return path_list
     
     def get_perturbed_path_list(self):
@@ -105,7 +144,7 @@ class MUFResult(MUFModuleController):
         @return list of paths to perturbed data
         '''
         pert_list = self._xml_perturbed.findall('Item')
-        path_list = [items[1].get('Text') for items in pert_list]
+        path_list = [mufPathFind(items[1].get('Text'), self.meas_path_dirname) for items in pert_list]
         return path_list
         
     @property
@@ -115,6 +154,7 @@ class MUFResult(MUFModuleController):
         @return the path to the *.meas nominal value
         '''
         nom_name = self._xml_nominal[0][1].get('Text')
+        nom_name = mufPathFind(os.path.abspath(nom_name), self.meas_path_dirname)
         return nom_name
     
     @property
@@ -299,14 +339,14 @@ class MUFResult(MUFModuleController):
         self.monte_carlo.load_data()
         self.perturbed.load_data()
     
-    def _load_xml(self,meas_path):
+    def _load_xml(self):
         '''
         @brief  parse our file into a dom struct
         @param[in] meas_path - path to *.meas file
         '''
-        super().load(meas_path)
+        super().load(self.meas_path)
         
-    def load(self,meas_path,**kwargs):
+    def load(self,**kwargs):
         '''
         @brief load our meas file and its corresponding data
         @param[in] meas_path - path to *.meas file to load in
@@ -320,14 +360,13 @@ class MUFResult(MUFModuleController):
         for k,v in kwargs.items():
             options[k] = v
         #make a *.meas if a wnp or snp file was provided
-        if meas_path is not None:
-            _,ext = os.path.splitext(meas_path) #get our extension
+        if self.meas_path is not None and os.path.exists(self.meas_path):
+            _,ext = os.path.splitext(self.meas_path) #get our extension
             if '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
-                self.set_nominal_path(meas_path)
-                menu_path = None
+                self.set_nominal_path(self.meas_path)
             else:
-                self._load_xml(meas_path)
+                self._load_xml()
         else:
             raise Exception('Please Provide a *.meas path or a snp/wnp path')
         #load our nominal and statistics if specified
@@ -665,7 +704,7 @@ class MUFStatistic:
 
 if __name__=='__main__':
     
-    from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
+    #meas_path = "/home/bfj/data/samurai/7-8-2019/cal/cal_pre-post_vnauncert_Results/Solution.meas"
     meas_path = 'test.meas'
     #res = MUFResult(meas_path,load_stats=True)
     res2 = MUFResult(meas_path)

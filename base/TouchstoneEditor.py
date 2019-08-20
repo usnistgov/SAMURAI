@@ -24,6 +24,60 @@ HEADER_FREQ_REGEX = '[KMGT]*[Hh][Zz]' #regex to get GHz, Hz, THz, KHz, MHz
 FREQ_MULT_DICT = {'HZ':1,'KHZ':1e3,'MHZ':1e6,'GHZ':1e9,'THZ':1e12}
 INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse of frequency multiplier dictionary
 
+class MultilineFileParser(object):
+    commentList = ['#', '!']
+    def __init__(self, dataFile):
+        self.dataFile = dataFile
+
+        # Comments at the beginning of the file only
+        self.pastComments = False
+
+        self.fid = open(self.dataFile, 'r')
+
+        self.cachedLine = None
+
+    def is_comment(self, char):
+        return char in self.commentList
+
+    def readline(self):
+        if self.cachedLine is None:
+            return self.fid.readline()
+        else:
+            cLine = self.cachedLine
+            self.cachedLine = None
+            return cLine
+
+    def get_multiline(self):
+        dataStr = self.readline().strip('\n')
+
+        if not self.pastComments:
+            while (self.is_comment(dataStr[0])):
+                dataStr = self.readline().strip('\n')
+            self.pastComments = True
+
+        numCols = len(dataStr.split())
+        # Read a new line
+        rLine = self.readline().strip('\n')
+
+        while (not len(rLine.split()) == numCols) and not rLine == '':
+            dataStr += ' ' + rLine
+            rLine = self.readline().strip('\n')
+
+        # We always read too many lines
+        self.cachedLine = rLine
+
+        return dataStr
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        data = self.get_multiline()
+        if not data == '':
+            return data
+        else:
+            raise StopIteration()
+
 class TouchstoneEditor(object):
    '''
    @brief init arbitrary port touchstone class. This covers wave and S params
@@ -176,7 +230,7 @@ class TouchstoneEditor(object):
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
                 self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
         self.round_freq_lists() #round when we load (remove numerical rounding error)
-    
+
    def _load_text(self,file_path,**kwargs):
        '''
        @brief internal function to load text snp/wnp file
@@ -198,9 +252,9 @@ class TouchstoneEditor(object):
                         pass     
        else: #dont read comments
             self.options['comments'].append('Header and comments NOT read from file')
-        #now read in data from the file with many possible delimiters in cases
-        #of badly formated files
-       with open(file_path) as fp:
+       #now read in data from the file with many possible delimiters in cases
+       #of badly formated files
+       with MultilineFileParser(file_path) as fp:
             regex_str = r'[ ,|\t]+'
             rc = re.compile(regex_str)
             raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
