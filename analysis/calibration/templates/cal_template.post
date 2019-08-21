@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<PostProcessor FileName="C:\SAMURAI\git\samurai\analysis\calibration\templates\cal_template.post" CreationTime="7/17/2019 4:35:51 PM" AssemblyVersion="1.4.28.28069" UserName="ajw5">
+<PostProcessor FileName="C:\SAMURAI\git\samurai\analysis\calibration\templates\cal_template.post" CreationTime="8/9/2019 3:25:43 PM" AssemblyVersion="1.4.30.23016" UserName="ajw5">
   <MenuStripItems>
     <MatLabToolStripMenuItem Enabled="True" Checked="False" />
     <SelectResultsDirectory Enabled="True" Checked="False" />
     <SavemeasFilesInSubdirectories Enabled="True" Checked="False" />
     <Binary Enabled="True" Checked="True" />
-    <SupressSensitivityAnalysis Enabled="True" Checked="False" />
+    <SupressSensitivityAnalysis Enabled="True" Checked="True" />
     <DoNotRecalculateExistingResultsToolStripMenuItem Enabled="True" Checked="False" />
     <FrequenciesToolStripMenuItem Enabled="True" Checked="False" />
     <SetTimesToolStripMenuItem Enabled="True" Checked="False" />
@@ -19,7 +19,7 @@
   </MenuStripItems>
   <MenuStripTextBoxes>
     <ResultsDirectory Enabled="True" Text="" />
-    <NumberMonteCarloSimulations Enabled="True" Text="100" />
+    <NumberMonteCarloSimulations Enabled="True" Text="0" />
     <ExperimentName Enabled="True" Text="" />
     <GaussianLimit Enabled="True" Text="3.0" />
     <StartFrequency Enabled="True" Text="1" />

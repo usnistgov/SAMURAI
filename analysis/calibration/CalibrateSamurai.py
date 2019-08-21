@@ -16,11 +16,11 @@ Before running
 import os
 
 #from samurai.analysis.support.snpEditor import s2pEditor as s2p
-from samurai.analysis.support.metaFileController import metaFileController as mfc
+from samurai.analysis.support.MetaFileController import MetaFileController as mfc
 #from samurai.analysis.support.metaFileController import update_wdir
 from samurai.analysis.support.PostProcPy import PostProcPy as pppy
-from samurai.analysis.support.generic import deprecated
-from samurai.analysis.support.metaFileController import copy_touchstone_from_muf
+from samurai.base.generic import deprecated
+from samurai.analysis.support.MetaFileController import copy_touchstone_from_muf
 
 #from collections import OrderedDict
 #import json
@@ -38,15 +38,18 @@ class CalibrateSamurai:
 ##load in our metadata file
 #with open(metaPath,'r') as jsonFile:
 #    jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
-    def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path='',post_proc_template_override=None):
+    def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path='',post_proc_template_override=None,**kwargs):
         '''
         @brief initialize the class
         @param[in] metaFile - path to metafile of measurement to calibrate
         @param[in] out_dir  - output directory to place the calibrated measurements
         @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
+        @param[in/OPT] kwargs - keyword arguments for the class options. these are also forwarded to PostProcPy
         '''
         #options dictionaruy
         self.options = {}
+        for k,v in kwargs.items():
+            self.options[k] = v #set input options
 
         self.mfc = mfc(metaFile)
         self.metaFile = metaFile
@@ -82,7 +85,7 @@ class CalibrateSamurai:
         fnames_abs = self.mfc.get_filename_list(True)
         #open our post proc object and rename to our new directory
         print(self.post_proc_template)
-        self.ppc = pppy(self.post_proc_template)
+        self.ppc = pppy(self.post_proc_template,**self.options)
         out_name = os.path.split(self.post_proc_template)[1] #get the file name
         #now rename
         self.ppc.rename(os.path.join(self.out_dir,out_name))
@@ -100,7 +103,7 @@ class CalibrateSamurai:
         self.ppc.run()
         print("Calibration Complete. Updating MetaFile and Moving Data...")
         #update metafile and move data
-        self.update_metafile_and_move()      
+        return self.update_metafile_and_move()      
         
     def update_metafile_and_move(self):
         
@@ -114,6 +117,7 @@ class CalibrateSamurai:
         #now rewrite a new metafile in new folder
         #self.mfc.set_wdir(self.out_dir)
         #self.mfc.write()
+        return new_mf_path
 
     def _update_metafile(self,filename_list,subdir):
         '''

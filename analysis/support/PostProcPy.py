@@ -10,18 +10,19 @@ import os
 
 from xml.dom.minidom import parse, parseString
 
-default_exe_path = 'C:/Users/ajw5/Source/Repos/MUF/PostProcessor/bin/Debug/PostProcessor.exe'
+#default_exe_path = 'C:/Users/ajw5/Source/Repos/MUF/PostProcessor/bin/Debug/PostProcessor.exe'
+default_exe_path = r"C:\Program Files (x86)\NIST\Uncertainty Framework\PostProcessor.exe"
 
 class PostProcPy:
     
-    def __init__(self,menu_path=None,exe_path=None):
+    def __init__(self,menu_path=None,exe_path=None,**kwargs):
         self.written=0
         self.uncert_menu = menu_path
         if menu_path is not None:
             self.load(menu_path)
         if exe_path is None:
             #print("Default Executable Path being used")
-            self.exe_path = default_exe_path #default path 
+            self.exe_path = kwargs.get('post_proc_path',default_exe_path) #default path 
             
     #load in our menu as dom file and some things from it       
     def load(self,menuPath):
