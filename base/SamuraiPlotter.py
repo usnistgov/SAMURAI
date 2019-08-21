@@ -13,7 +13,7 @@ class SamuraiPlotter:
     '''
     @brief a class to abstract plotting between matplolib, matlab, and plotly, (and potentially others)
     '''
-    def __init__(self,plot_program,*args,**arg_options):
+    def __init__(self,plot_program=None,*args,**arg_options):
         '''
         @brief initializer for plotting class
         @param[in/OPT] plot_program - What program to use to plot 
@@ -26,7 +26,7 @@ class SamuraiPlotter:
             matlab_engine - can pass an already running matlab engine if matlab 
                 is being used
         '''
-        self.plot_program = plot_program
+        self.set_plot_program(plot_program)
         
         #some options
         self.options = {}
@@ -51,6 +51,14 @@ class SamuraiPlotter:
         funct = getattr(self._get_plot_program_object(),plot_funct_name) 
         rv = funct(*args,**kwargs)
         return rv
+    
+    def set_plot_program(self,plot_program):
+        '''
+        @brief change the plot program in use
+        @param[in] plot_program - what program to plot with
+        '''
+        self.plot_program = plot_program
+        
 
     ###########################################################################
     ####### Surface Plots
@@ -114,6 +122,8 @@ class SamuraiPlotter:
         @brief initialize the current device whos name is in self.plot_program
         @param[in/OPT] *args,**kwargs - all input arguements passed to initializer
         '''
+        if self.plot_program is None:
+            raise Exception("No plot program defined")
         #first check if its already initialized
         cur_plotter = self.options['plot_program_dict'].get(self.plot_program,None)
         if cur_plotter is not None: #already initialized

@@ -270,8 +270,17 @@ class CalculatedSyntheticAperture:
             self.mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
             self.mp.view([170,20])
             return fig
-        '''  
+        '''
         
+        plot_arg_dict = {}
+        plot_arg_dict.update({'xlabel':'X','ylabel':'Z','zlabel':'Y'})
+        plot_arg_dict.update({'xlim':[-db_range,db_range],'ylim':[0,db_range*2],'zlim':[-db_range,db_range]})
+        plot_arg_dict.update({'shading':'interp'})
+        plot_arg_dict.update({'colorbar':('XTick',[0,db_range/2,db_range],'XTickLabel',[str(caxis_min),str(caxis_min+db_range/2),str(caxis_max)])})
+        #plot_arg_dict.update({'colorbar':('XTick',[caxis_min,caxis_max],'XTickLabel',[str(caxis_min),str(caxis_max)])})
+        rv = self.plotter.surf(X,Z,Y,plot_data,**plot_arg_dict)
+        return rv
+        '''
         if(options['plot_program'].lower()=='plotly'): 
             #and plot
             plotly_surf = [go.Surface(z = Y, x = X, y = Z,surfacecolor=plot_data,
@@ -301,6 +310,7 @@ class CalculatedSyntheticAperture:
         else:
             raise Exception("Program %s not recognized" %(options['plot_program']))
        
+       '''
         
     def plot_scatter_3d(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
