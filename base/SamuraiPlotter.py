@@ -37,7 +37,8 @@ class SamuraiPlotter:
         for key,val in arg_options.items():
             self.options[key] = val
         #also intialize the plotter and pass the arguments to the init
-        self._init_plot_program()
+        if self.plot_program is not None:
+            self._init_plot_program()
         
     def _run_plot_function(self,plot_funct_name,*args,**kwargs):
         '''
