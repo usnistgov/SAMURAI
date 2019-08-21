@@ -79,7 +79,7 @@ class MetaFileController(SamuraiDict):
         self.saved = 1
         if outPath is None:
             outPath = os.path.join(self.wdir,self.metafile)
-        super().write(outPath)
+        return super().write(outPath)
             
     def load_data(self,verbose=False,read_header=True,**arg_options):
         '''
@@ -657,7 +657,9 @@ def split_metafile(metafile_path,meas_split,label='split'):
     mymfc = metaFileController(metafile_path)
     mymfc_header = mymfc.get_header_dict()
     mymfc_mf_name = mymfc.get_metafile_name_no_extension()
+    mf_wdir = mymfc.wdir
     num_splits = np.size(meas_split,0)
+    out_names = []
     for i in range(num_splits):
         # Open blank metafile, then add header and our measurements
         split_mfc = metaFileController(metafile_path,suppress_empty_warning=1) 
@@ -670,8 +672,10 @@ def split_metafile(metafile_path,meas_split,label='split'):
         # Now we can change the name and write out.
         mf_name   = mymfc_mf_name+'_'+label+'_'+str(i)+'.json'
         split_mfc.rename(mf_name)
-        split_mfc.set_wdir()
-        split_mfc.write()
+        split_mfc.set_wdir(mf_wdir)
+        out_name = split_mfc.write()
+        out_names.append(out_name)
+    return out_names
         
 # Evenly split into N apertures
 def evenly_split_metafile(metafile_path,num_splits,label='split'):
@@ -696,7 +700,7 @@ def evenly_split_metafile(metafile_path,num_splits,label='split'):
             print("ERROR: Split boundaries are not an integer. Please ensure that the number of measurements are evenly divisible by the 'num_splits'.[%f,%f]" %(start,stop))
             return -1
     meas_split = [range(int(start),int(stop)) for start,stop in meas_split_boundaries]
-    split_metafile(metafile_path,meas_split)
+    return split_metafile(metafile_path,meas_split)
 
 
 #from shutil import copyfile
