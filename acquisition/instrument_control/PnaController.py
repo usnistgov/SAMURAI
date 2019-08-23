@@ -207,7 +207,7 @@ class PnaController(SCPIInstrument):
         else: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            data = self.query_binary('CALC:DATA? SDATA',datatype='d',is_big_endian=True)
+            data = self.connection.query_binary_values('CALC:DATA? SDATA',datatype='d',is_big_endian=True)
             self.write('FORM',orig_form) #change to original form
             data = np.array(data)
         data_cplx = data[::2]+data[1::2]*1j #change to comple
@@ -255,7 +255,7 @@ class PnaController(SCPIInstrument):
         if binary_xfer: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            freq_list = self.query_binary('SENS:X?',datatype='d',is_big_endian=True)
+            freq_list = self.connection.query_binary_values('SENS:X?',datatype='d',is_big_endian=True)
             self.write('FORM',orig_form) #change to original form
         else: #othwerise ascii
             orig_form = self.query('FORM') #get the original format to return to later
@@ -501,8 +501,8 @@ def clean_file_name(fname):
         
 if __name__=='__main__':
     
-    basic_test = False
-    segment_test = True
+    basic_test = True
+    segment_test = False
     if basic_test:
         visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
         mypna = PnaController(visa_address)
@@ -511,14 +511,26 @@ if __name__=='__main__':
         mypna.query('info')
         
         mypna.get_params()
+        #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
+    
+        #mypna.set_settings()
+        
+        #mypna.set_continuous_trigger('ON')
+        #ports = [1,3]
+        #param_list = [i*10+j for i in ports for j in ports]
         param_list = [11,31,13,33]
         mypna.setup_s_param_measurement(param_list)
         mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-        mypna.write('if_bandwidth',1000)
-        #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
+        mypna.write('if_bandwidth',100000)
+        #mypna.set_continuous_trigger('off')
         mypna.get_params()
         print(mypna)
-        mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+        
+        # 2.16 s ± 45.3 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) for ascii
+        # 1.48 s ± 34.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) for binary xfer (about 2x more accurate)
+        # ~30 seconds with pnagrabber
+        mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2},binary_xfer=True)
+        #dd = mypna.get_all_trace_data()
         
     if segment_test:
         visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
