@@ -6,7 +6,6 @@ Created on Mon May 20 15:04:22 2019
 """
 
 import numpy as np
-from samurai.base.SamuraiMatlab import SamuraiMatlab
 from samurai.base.SamuraiDict import SamuraiDict,update_nested_dict
 
 class SamuraiPlotter:
