@@ -258,7 +258,7 @@ class InstrumentCommandDict(SamuraiDict):
             return self.get(self.aliases[key])
         elif key in self.commands.keys(): #othweise its a command (hopefully)
             return self.commands[key]
-        else: #otherwise lets pass it to OrderedDict get() method
+        else: #otherwise lets pass it to SamuraiDict get() method
             return super().get(key,*args)
             
     
@@ -303,7 +303,6 @@ class InstrumentCommandDict(SamuraiDict):
         @param[in] load_path - path to file to load
         '''        
         with open(load_path,'r') as json_file:
-            #self = json.load(jsonFile, object_pairs_hook=OrderedDict)
             self.update(json.load(json_file, object_pairs_hook=SamuraiDict))
         #now make a command
         for k,v in self.commands.items():
@@ -379,7 +378,7 @@ class InstrumentCommand(SamuraiDict):
         #self.update({'command_template':'Not yet Compiled'}) #template to place params into
         self.update({'command_raw':command_raw}) #raw command
         self.update({'description':None})
-        self.update({'arguments':{'required':OrderedDict(),'optional':OrderedDict()}}) #no initial arguments
+        self.update({'arguments':{'required':SamuraiDict(),'optional':SamuraiDict()}}) #no initial arguments
         
     def add_arg(self,arg_name,optional_flg,return_type=None,description='',**other_options):
         '''
