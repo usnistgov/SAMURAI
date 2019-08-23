@@ -8,6 +8,7 @@ Created on Thu Jul 25 10:31:36 2019
 
 import re
 from samurai.base.SamuraiDict import SamuraiDict
+from collections import OrderedDict #for json loading
 import json
 
 class Instrument(SamuraiDict):
@@ -303,7 +304,7 @@ class InstrumentCommandDict(SamuraiDict):
         '''        
         with open(load_path,'r') as json_file:
             #self = json.load(jsonFile, object_pairs_hook=OrderedDict)
-            self.update(json.load(json_file, object_pairs_hook=OrderedDict))
+            self.update(json.load(json_file, object_pairs_hook=SamuraiDict))
         #now make a command
         for k,v in self.commands.items():
             com =  InstrumentCommand('','')
