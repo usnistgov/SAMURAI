@@ -289,9 +289,13 @@ class PnaController(SCPIInstrument):
         com = "SENS:FOM:RANG%d:COUP %s" % (rng_num,on_off.upper())
         self.write(com) 
         
-    #freq ranges are going to be a list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
-    #these values cannot overlap else the vna will not set them correctly
-    def set_seg_list(self,seg_table,arb = True,couple = True):
+    def set_segment_sweep(self,seg_table,arb = True,couple = True):
+        '''
+        @brief setup a segment sweep on the vna bysetting the segment list
+        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
+        @param[in/OPT] arb - arbitrary segment sweep allowed (default True)
+        @param[in/OPT] couple - whether or not to couple the sources (default True)
+        '''
         
         prev_form = self.query('FORM?')
         #change to 64 bit real
@@ -452,13 +456,15 @@ if __name__=='__main__':
     #ports = [1,3]
     #param_list = [i*10+j for i in ports for j in ports]
     param_list = [11,31,13,33]
-    #mypna.setup_s_param_measurement(param_list)
-    mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-    mypna.write('if_bandwidth',1000)
+    mypna.setup_s_param_measurement(param_list)
+    #mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
+    mypna.write('if_bandwidth',100)
     #mypna.set_continuous_trigger('off')
+    seg_list = [(1,501,27e9,28e9,1000),(1,501,30e9,31e9,1000)]
+    mypna.set_segment_sweep(seg_list)
     mypna.get_params()
     print(mypna)
-    mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+    #mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
     #dd = mypna.get_all_trace_data()
      
 
