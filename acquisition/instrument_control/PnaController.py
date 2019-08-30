@@ -31,7 +31,10 @@ command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_commu
 class PnaController(SCPIInstrument):
     
     def __init__(self,visa_address=None,command_dict_path=command_set_path,**other_info):
-        
+        '''
+		@brief constructor for our class 
+		@param[in/OPT] visa_address - pna visa address to connect to. If not provided do not connect
+		'''
         super().__init__(command_dict_path)
         
         self.update({'info':'NO INFO READ'})

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<PostProcessor FileName="C:\SAMURAI\git\samurai\analysis\calibration\templates\cal_template.post" CreationTime="8/9/2019 3:25:43 PM" AssemblyVersion="1.4.30.23016" UserName="ajw5">
+<PostProcessor FileName="C:\SAMURAI\git\samurai\analysis\calibration\templates\cal_template.post" CreationTime="8/30/2019 8:59:56 AM" AssemblyVersion="1.4.30.23016" UserName="ajw5">
   <MenuStripItems>
     <MatLabToolStripMenuItem Enabled="True" Checked="False" />
     <SelectResultsDirectory Enabled="True" Checked="False" />
@@ -19,7 +19,7 @@
   </MenuStripItems>
   <MenuStripTextBoxes>
     <ResultsDirectory Enabled="True" Text="" />
-    <NumberMonteCarloSimulations Enabled="True" Text="0" />
+    <NumberMonteCarloSimulations Enabled="True" Text="100" />
     <ExperimentName Enabled="True" Text="" />
     <GaussianLimit Enabled="True" Text="3.0" />
     <StartFrequency Enabled="True" Text="1" />

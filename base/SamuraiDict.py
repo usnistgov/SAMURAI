@@ -22,7 +22,25 @@ class SamuraiDict(OrderedDict):
         @param[in] *args - arguments to pass to OrderedDict
         @param[in] **kwargs - keyword arguments to pass to OrderedDict
         '''
+        self._alias_dict_key = '__aliases__'
+        self[self._alias_dict_key] = {}
+        self._alias_dict = self[self._alias_dict_key]
         super().__init__(*args,**kwargs)
+        
+    def add_alias(self,key,alias):
+        '''
+        @brief add an alias to a key in the dictionary. Aliases are always from
+            the base level of the dicitionary, but they can be a list of keys
+            to work with nested dictionaries.
+        @param[in] key - key to make an alias to
+        @param[in/OPT] alias - alias for the key
+        @note the dictionary is written, these aliases will be under __alias__ key
+        '''
+        #first check if we have our alias dictionary already
+        val = self.get(key,None) # make sure the value exists
+        if val is None:
+            raise KeyError("Alias must link to existing key ({} not a key)".format(key))
+        self[self.alias_dict_key][alias] = key #add key to dictionary
         
     def load(self,fpath,**kwargs):
         '''
@@ -42,6 +60,9 @@ class SamuraiDict(OrderedDict):
         @param[in/OPT] kwargs - keyword args will be passed to json.dump()
         @return path that was written to 
         '''
+        #remove __alias__ before writing if not used
+        if not self._alias_dict: #then its empty so pop it
+            self.pop(self._alias_dict_key)
         with open(fpath,'w+') as json_file:
             json.dump(self,json_file,indent=4) 
         return fpath
@@ -70,6 +91,19 @@ class SamuraiDict(OrderedDict):
         @note solution from https://stackoverflow.com/questions/14692690/access-nested-dictionary-items-via-a-list-of-keys
         ''' 
         return reduce(operator.getitem,key_list,self)
+    
+    def get(self,key,default=None):
+        '''
+        @brief override the default get to allow nested dict keys
+        @param[in] key - key to get
+        @param[in] default - value to return if key doesnt exist
+        @note utilizes __getitem__ to try and access the key
+        '''
+        try:
+            rv = self[key] #use getitem
+        except KeyError: #if its an error return our default
+            rv = default
+        return rv
     
     def __getitem__(self,*args,**kwargs):
         '''
@@ -119,6 +153,7 @@ if __name__=='__main__':
     
     update_nested_dict(myd,myd2)
     print(myd)
+    myd.write('test/test.json')
     
     
     
