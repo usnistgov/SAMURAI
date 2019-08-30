@@ -23,8 +23,7 @@ class SamuraiDict(OrderedDict):
         @param[in] **kwargs - keyword arguments to pass to OrderedDict
         '''
         self._alias_dict_key = '__aliases__'
-        self[self._alias_dict_key] = {}
-        self._alias_dict = self[self._alias_dict_key]
+        self._alias_dict = None
         super().__init__(*args,**kwargs)
         
     def add_alias(self,alias,key):
@@ -37,6 +36,10 @@ class SamuraiDict(OrderedDict):
         @note the dictionary is written, these aliases will be under __alias__ key
         '''
         #first check if we have our alias dictionary already
+        if self._alias_dict is None: #init if it hasnt been
+            self[self._alias_dict_key] = {}
+            self._alias_dict = self[self._alias_dict_key]
+            self.move_to_end(self._alias_dict_key,False)
         val = self.get(key,None) # make sure the value exists
         if val is None:
             raise KeyError("Alias must link to existing key ({} not a key)".format(key))
@@ -116,11 +119,14 @@ class SamuraiDict(OrderedDict):
             try: #first try to get the value from the dict
                 return super().__getitem__(item)
             except KeyError as ke: #otherwise check our aliases
-                if item in self._alias_dict.keys(): #if its an alias try and get that
-                    new_item = self._alias_dict[item]
-                    return self.__getitem__(new_item) #try and get the new item
-                else: #if it isnt a key just raise the error
-                    raise ke
+                if self._alias_dict is not None:
+                    if item in self._alias_dict.keys(): #if its an alias try and get that
+                        new_item = self._alias_dict[item]
+                        return self.__getitem__(new_item) #try and get the new item
+                    else: #if it isnt a key just raise the error
+                        raise ke
+                else:
+                    raise ke #also raise the error if the alias dict doesnt exist
       
     def __setitem__(self,*args,**kwargs):
         '''
