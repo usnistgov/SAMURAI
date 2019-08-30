@@ -27,20 +27,20 @@ class SamuraiDict(OrderedDict):
         self._alias_dict = self[self._alias_dict_key]
         super().__init__(*args,**kwargs)
         
-    def add_alias(self,key,alias):
+    def add_alias(self,alias,key):
         '''
         @brief add an alias to a key in the dictionary. Aliases are always from
             the base level of the dicitionary, but they can be a list of keys
             to work with nested dictionaries.
+        @param[in] alias - alias for the key
         @param[in] key - key to make an alias to
-        @param[in/OPT] alias - alias for the key
         @note the dictionary is written, these aliases will be under __alias__ key
         '''
         #first check if we have our alias dictionary already
         val = self.get(key,None) # make sure the value exists
         if val is None:
             raise KeyError("Alias must link to existing key ({} not a key)".format(key))
-        self[self.alias_dict_key][alias] = key #add key to dictionary
+        self._alias_dict[alias] = key #add key to dictionary
         
     def load(self,fpath,**kwargs):
         '''
@@ -113,7 +113,14 @@ class SamuraiDict(OrderedDict):
         if type(item) is list or type(item) is tuple: #if its a list or tuple, get from path
             return self.get_from_path(item)
         else:
-            return super().__getitem__(item)
+            try: #first try to get the value from the dict
+                return super().__getitem__(item)
+            except KeyError as ke: #otherwise check our aliases
+                if item in self._alias_dict.keys(): #if its an alias try and get that
+                    new_item = self._alias_dict[item]
+                    return self.__getitem__(new_item) #try and get the new item
+                else: #if it isnt a key just raise the error
+                    raise ke
       
     def __setitem__(self,*args,**kwargs):
         '''
@@ -152,6 +159,8 @@ if __name__=='__main__':
     myd2 = SamuraiDict({3:{'test1':{"test2":54},'test':{6:123}}})
     
     update_nested_dict(myd,myd2)
+
+    #myd.add_alias('myalias',[3,'test',6])
     print(myd)
     myd.write('test/test.json')
     
