@@ -25,7 +25,7 @@ from samurai.acquisition.instrument_control.InstrumentControl import SCPICommand
 
 import os
 script_path = os.path.dirname(os.path.realpath(__file__))
-command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_communication_dictionary.json') 
+command_set_path = os.path.join(script_path,'./command_sets/PNAX_communication_dictionary.json') 
 
 
 class PnaController(SCPIInstrument):
@@ -72,7 +72,41 @@ class PnaController(SCPIInstrument):
         super().write('*WAI')
         super().write(msg,*args,**kwargs)
         self.query('*OPC?',False)        
-        #time.sleep(0.10);
+        #time.sleep(0.10);    
+        
+    def _set_default_kwargs(self,**kwargs):
+        '''
+        @brief set default kwargs for communication values if not provided
+        '''
+        def_dict = {
+                'is_big_endian':True,
+                'datatype':'d'
+                }
+        for k,v in def_dict.items():
+            if k not in kwargs.keys():
+                kwargs[k] = v
+        return kwargs
+    
+    def _query_binary(self,msg,*args,**kwargs):
+        '''
+        @brief wrap binary com to adjust default kwargs
+        '''
+        kwargs = self._set_default_kwargs(**kwargs)
+        super()._query_binary(msg,*args,**kwargs)
+        
+    def _read_binary(self,msg,*args,**kwargs):
+        '''
+        @brief wrap binary com to adjust default kwargs
+        '''
+        kwargs = self._set_default_kwargs(**kwargs)
+        super()._read_binary(msg,*args,**kwargs)
+        
+    def _write_binary(self,msg,*args,**kwargs):
+        '''
+        @brief wrap binary com to adjust default kwargs
+        '''
+        kwargs = self._set_default_kwargs(**kwargs)
+        super()._write_binary(msg,*args,**kwargs)
     
     def _disconnect(self):
         '''
@@ -191,7 +225,7 @@ class PnaController(SCPIInstrument):
         else: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            data = self.connection.query_binary_values('CALC:DATA? SDATA',datatype='d',is_big_endian=True)
+            data = self.query('CALC:DATA? SDATA',binary_xfer=True)
             self.write('FORM',orig_form) #change to original form
             data = np.array(data)
         data_cplx = data[::2]+data[1::2]*1j #change to comple
@@ -239,7 +273,7 @@ class PnaController(SCPIInstrument):
         if binary_xfer: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            freq_list = self.connection.query_binary_values('SENS:X?',datatype='d',is_big_endian=True)
+            freq_list = self.query('SENS:X?',binary_xfer=True)
             self.write('FORM',orig_form) #change to original form
         else: #othwerise ascii
             orig_form = self.query('FORM') #get the original format to return to later
@@ -339,24 +373,21 @@ class PnaController(SCPIInstrument):
         #set arbitrary if we want
         if(arb):
             self.set_arb_seg('ON')
+            self.write('SENS:SEGM:BWID:CONT','ON')
         
         #set the recievers here
         num_pts = len(seg_table)
-        #for i in range(num_pts):
-        #    dat_str.append(',%e,%e,%e,%e' % (tuple(np.round(seg_table[i]))))
+
         
         #data = ''.join(dat_str);
         com = 'SENS:SEGM:LIST SSTOP,'+str(num_pts)+','
         
         self.connection.write('FORM:BORD NORM')
         dat_out = list(chain(*seg_table)) #flatten list of tuples
-        self.connection.write_binary_values(com,dat_out,datatype='d')
-        #self.write(com);
-        
-        
-        self.write('FORM %s' %(prev_form))
-
-        
+        orig_form = self.query('FORM')
+        self.write('FORM','REAL,64')
+        self.write(com,dat_out,binary_xfer=True)
+        self.write('FORM',orig_form)        
         
     #enable/disable arbitrary segmented sweep
     def set_arb_seg(self,on_off="ON"):
@@ -463,8 +494,8 @@ def clean_file_name(fname):
         
 if __name__=='__main__':
     
-    basic_test = True
-    segment_test = False
+    basic_test = False
+    segment_test = True
     if basic_test:
         visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
         mypna = PnaController(visa_address)
@@ -473,22 +504,27 @@ if __name__=='__main__':
         mypna.query('info')
         
         mypna.get_params()
+        param_list = [11,31,13,33]
+        mypna.setup_s_param_measurement(param_list)
+        mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
+        mypna.write('if_bandwidth',1000)
         #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
-    
-    #mypna.set_continuous_trigger('ON')
-    #ports = [1,3]
-    #param_list = [i*10+j for i in ports for j in ports]
-    param_list = [11,31,13,33]
-    mypna.setup_s_param_measurement(param_list)
-    #mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-    mypna.write('if_bandwidth',100)
-    #mypna.set_continuous_trigger('off')
-    seg_list = [(1,501,27e9,28e9,1000),(1,501,30e9,31e9,1000)]
-    mypna.set_segment_sweep(seg_list)
-    mypna.get_params()
-    print(mypna)
-    #mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
-    #dd = mypna.get_all_trace_data()
+        mypna.get_params()
+        print(mypna)
+        mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+        
+    if segment_test:
+        visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
+        mypna = PnaController(visa_address)
+        param_list = [11,31,13,33]
+        mypna.setup_s_param_measurement(param_list)
+        
+        seg_list = [(1,501,27e9,28e9),(1,501,30e9,31e9)]
+        mypna.set_segment_sweep(seg_list)
+        mypna.set_continuous_trigger('ON')
+        mypna.get_params()
+        print(mypna)
+        #mys = mypna.measure_s_params('./test/test_seg.s2p',port_mapping={3:2})
      
 
         
