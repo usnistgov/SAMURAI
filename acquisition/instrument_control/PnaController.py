@@ -207,7 +207,7 @@ class PnaController(SCPIInstrument):
         else: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            data = self.query('CALC:DATA? SDATA',binary_xfer=True,datatype='d',is_big_endian=True)
+            data = self.query_binary('CALC:DATA? SDATA',datatype='d',is_big_endian=True)
             self.write('FORM',orig_form) #change to original form
             data = np.array(data)
         data_cplx = data[::2]+data[1::2]*1j #change to comple
@@ -255,7 +255,7 @@ class PnaController(SCPIInstrument):
         if binary_xfer: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            freq_list = self.query('SENS:X?',binary_xfer=True,datatype='d',is_big_endian=True)
+            freq_list = self.query_binary('SENS:X?',datatype='d',is_big_endian=True)
             self.write('FORM',orig_form) #change to original form
         else: #othwerise ascii
             orig_form = self.query('FORM') #get the original format to return to later
@@ -358,8 +358,7 @@ class PnaController(SCPIInstrument):
             self.write('SENS:SEGM:BWID:CONT','ON')
         
         #set the recievers here
-        num_pts = len(seg_table)
-
+        self.set_segment_table(seg_table)
         
     def set_segment_table(self,seg_table):
         '''
@@ -372,8 +371,30 @@ class PnaController(SCPIInstrument):
         dat_out = list(chain(*seg_table)) #flatten list of tuples
         orig_form = self.query('FORM')
         self.write('FORM','REAL,64')
-        self.write(com,dat_out,binary_xfer=True,datatype='d',is_big_endian=True)
-        self.write('FORM',orig_form)        
+        self.write_binary(com,dat_out,datatype='d',is_big_endian=True)
+        self.write('FORM',orig_form)  
+        
+    def get_segment_table(self):
+        '''
+        @brief get the segment table from the vna
+        @return list of dicts describing the segments as [{table0},...]
+        '''
+        #initial stuff
+        num_segs = self.query('SENS:SEGM:COUN?')
+        val_list = ['on/off','num_pts','freq_start','freq_stop','if_bandwidth','dwell_time'] #for unpacking to dict
+        #now get the data
+        com = 'SENS:SEGM:LIST? SSTOP'
+        self.write('FORM:BORD NORM')
+        orig_form = self.query('FORM')
+        self.write('FORM','REAL,64')
+        rv = self.query_binary(com,datatype='d',is_big_endian=True)
+        self.write('FORM',orig_form)
+        #now split the values
+        out_dict_list = []
+        split_list = np.split(np.array(rv),num_segs)
+        for sl in split_list:
+            out_dict_list.append({k:sl[i] for i,k in enumerate(val_list)})
+        return out_dict_list
         
     #enable/disable arbitrary segmented sweep
     def set_arb_seg(self,on_off="ON"):
@@ -505,8 +526,10 @@ if __name__=='__main__':
         param_list = [11,31,13,33]
         mypna.setup_s_param_measurement(param_list)
         
-        seg_list = [(1,501,27e9,28e9),(1,501,30e9,31e9)]
-        mypna.set_segment_sweep(seg_list)
+        #seg_table = [(1,1351,26.5e9,40e9,500),(1,501,30e9,31e9,1000)]
+        #seg_table = [(1,1351,26.5e9,40e9,500),(1,7501,27.5e9,27.95e9,1000),(1,5001,39e9,39.3e9,1000)]
+        seg_table = [(1,7501,27.5e9,27.95e9,5000),(1,5001,39e9,39.3e9,5000)]
+        mypna.set_segment_sweep(seg_table)
         mypna.set_continuous_trigger('ON')
         mypna.get_params()
         print(mypna)
