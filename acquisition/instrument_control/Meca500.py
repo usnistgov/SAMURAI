@@ -28,7 +28,7 @@ import numpy as np
 import time
 import os
 
-from samurai.analysis.support.generic import deprecated
+from samurai.base.generic import deprecated
 
 class Meca500:
     

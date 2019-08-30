@@ -10,7 +10,7 @@ import sys
 #include our support libs
 samurai_support_libs_dir = "./"
 sys.path.append(samurai_support_libs_dir)
-import samurai.acquisition.support.pnaController    as pnaCont    #for getting and setting settings on pna
+import samurai.acquisition.instrument_control.PnaController    as pnaCont    #for getting and setting settings on pna
 import numpy as np
 
 vna_visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'

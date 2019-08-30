@@ -31,7 +31,10 @@ command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_commu
 class PnaController(SCPIInstrument):
     
     def __init__(self,visa_address=None,command_dict_path=command_set_path,**other_info):
-        
+        '''
+		@brief constructor for our class 
+		@param[in/OPT] visa_address - pna visa address to connect to. If not provided do not connect
+		'''
         super().__init__(command_dict_path)
         
         self.update({'info':'NO INFO READ'})
@@ -314,9 +317,13 @@ class PnaController(SCPIInstrument):
         
         self.write('SENS:FOM:RANG:COUP',on_off.upper(),n=rng_num) 
         
-    #freq ranges are going to be a list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
-    #these values cannot overlap else the vna will not set them correctly
-    def set_seg_list(self,seg_table,arb = True,couple = True):
+    def set_segment_sweep(self,seg_table,arb = True,couple = True):
+        '''
+        @brief setup a segment sweep on the vna bysetting the segment list
+        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
+        @param[in/OPT] arb - arbitrary segment sweep allowed (default True)
+        @param[in/OPT] couple - whether or not to couple the sources (default True)
+        '''
         
         prev_form = self.query('FORM?')
         #change to 64 bit real
@@ -468,30 +475,20 @@ if __name__=='__main__':
         mypna.get_params()
         #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
     
-        #mypna.set_settings()
-        
-        #mypna.set_continuous_trigger('ON')
-        #ports = [1,3]
-        #param_list = [i*10+j for i in ports for j in ports]
-        param_list = [11,31,13,33]
-        mypna.setup_s_param_measurement(param_list)
-        mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-        mypna.write('if_bandwidth',100000)
-        #mypna.set_continuous_trigger('off')
-        mypna.get_params()
-        print(mypna)
-        
-        # 2.16 s ± 45.3 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) for ascii
-        # 1.48 s ± 34.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) for binary xfer (about 2x more accurate)
-        # ~30 seconds with pnagrabber
-        mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2},binary_xfer=True)
-        #dd = mypna.get_all_trace_data()
-        
-    if segment_test:
-        visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
-        mypna = PnaController(visa_address)
-        #mypna.get_params()
-        #comd = mypna.command_dict
+    #mypna.set_continuous_trigger('ON')
+    #ports = [1,3]
+    #param_list = [i*10+j for i in ports for j in ports]
+    param_list = [11,31,13,33]
+    mypna.setup_s_param_measurement(param_list)
+    #mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
+    mypna.write('if_bandwidth',100)
+    #mypna.set_continuous_trigger('off')
+    seg_list = [(1,501,27e9,28e9,1000),(1,501,30e9,31e9,1000)]
+    mypna.set_segment_sweep(seg_list)
+    mypna.get_params()
+    print(mypna)
+    #mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+    #dd = mypna.get_all_trace_data()
      
 
         

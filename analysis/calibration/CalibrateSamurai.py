@@ -18,7 +18,7 @@ import os
 #from samurai.analysis.support.snpEditor import s2pEditor as s2p
 from samurai.analysis.support.MetaFileController import MetaFileController as mfc
 #from samurai.analysis.support.metaFileController import update_wdir
-from samurai.analysis.support.PostProcPy import PostProcPy as pppy
+from samurai.analysis.support.PostProcPy.MUF import PostProcPy as pppy
 from samurai.base.generic import deprecated
 from samurai.analysis.support.MetaFileController import copy_touchstone_from_muf
 
