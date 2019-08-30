@@ -1451,7 +1451,7 @@
 			"type":"SCPI",
 			"command_raw": "*IDN?",
 			"description": null,
-			"arguements": {
+			"arguments": {
 				"required": {},
 				"optional": {}
 			}
