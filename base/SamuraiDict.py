@@ -22,7 +22,25 @@ class SamuraiDict(OrderedDict):
         @param[in] *args - arguments to pass to OrderedDict
         @param[in] **kwargs - keyword arguments to pass to OrderedDict
         '''
+        self._alias_dict_key = '__aliases__'
+        self[self._alias_dict_key] = {}
+        self._alias_dict = self[self._alias_dict_key]
         super().__init__(*args,**kwargs)
+        
+    def add_alias(self,alias,key):
+        '''
+        @brief add an alias to a key in the dictionary. Aliases are always from
+            the base level of the dicitionary, but they can be a list of keys
+            to work with nested dictionaries.
+        @param[in] alias - alias for the key
+        @param[in] key - key to make an alias to
+        @note the dictionary is written, these aliases will be under __alias__ key
+        '''
+        #first check if we have our alias dictionary already
+        val = self.get(key,None) # make sure the value exists
+        if val is None:
+            raise KeyError("Alias must link to existing key ({} not a key)".format(key))
+        self._alias_dict[alias] = key #add key to dictionary
         
     def load(self,fpath,**kwargs):
         '''
@@ -42,6 +60,9 @@ class SamuraiDict(OrderedDict):
         @param[in/OPT] kwargs - keyword args will be passed to json.dump()
         @return path that was written to 
         '''
+        #remove __alias__ before writing if not used
+        if not self._alias_dict: #then its empty so pop it
+            self.pop(self._alias_dict_key)
         with open(fpath,'w+') as json_file:
             json.dump(self,json_file,indent=4) 
         return fpath
@@ -71,6 +92,19 @@ class SamuraiDict(OrderedDict):
         ''' 
         return reduce(operator.getitem,key_list,self)
     
+    def get(self,key,default=None):
+        '''
+        @brief override the default get to allow nested dict keys
+        @param[in] key - key to get
+        @param[in] default - value to return if key doesnt exist
+        @note utilizes __getitem__ to try and access the key
+        '''
+        try:
+            rv = self[key] #use getitem
+        except KeyError: #if its an error return our default
+            rv = default
+        return rv
+    
     def __getitem__(self,*args,**kwargs):
         '''
         @brief allow getting item from a list of keys (e.g. dict[[1,2,3]] or dict[1,2,3]) for nested dict
@@ -79,7 +113,14 @@ class SamuraiDict(OrderedDict):
         if type(item) is list or type(item) is tuple: #if its a list or tuple, get from path
             return self.get_from_path(item)
         else:
-            return super().__getitem__(item)
+            try: #first try to get the value from the dict
+                return super().__getitem__(item)
+            except KeyError as ke: #otherwise check our aliases
+                if item in self._alias_dict.keys(): #if its an alias try and get that
+                    new_item = self._alias_dict[item]
+                    return self.__getitem__(new_item) #try and get the new item
+                else: #if it isnt a key just raise the error
+                    raise ke
       
     def __setitem__(self,*args,**kwargs):
         '''
@@ -118,7 +159,10 @@ if __name__=='__main__':
     myd2 = SamuraiDict({3:{'test1':{"test2":54},'test':{6:123}}})
     
     update_nested_dict(myd,myd2)
+
+    #myd.add_alias('myalias',[3,'test',6])
     print(myd)
+    myd.write('test/test.json')
     
     
     
