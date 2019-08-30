@@ -14,7 +14,7 @@ import re
 from itertools import chain
 from collections import OrderedDict
 
-from samurai.acquisition.support.InstrumentControl import SCPICommandDict, SCPIInstrument
+from samurai.acquisition.instrument_control.InstrumentControl import SCPICommandDict, SCPIInstrument
 
 #>>> import visa
 #>>> rm = visa.ResourceManager()
