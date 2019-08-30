@@ -73,40 +73,6 @@ class PnaController(SCPIInstrument):
         super().write(msg,*args,**kwargs)
         self.query('*OPC?',False)        
         #time.sleep(0.10);    
-        
-    def _set_default_kwargs(self,**kwargs):
-        '''
-        @brief set default kwargs for communication values if not provided
-        '''
-        def_dict = {
-                'is_big_endian':True,
-                'datatype':'d'
-                }
-        for k,v in def_dict.items():
-            if k not in kwargs.keys():
-                kwargs[k] = v
-        return kwargs
-    
-    def _query_binary(self,msg,*args,**kwargs):
-        '''
-        @brief wrap binary com to adjust default kwargs
-        '''
-        kwargs = self._set_default_kwargs(**kwargs)
-        super()._query_binary(msg,*args,**kwargs)
-        
-    def _read_binary(self,msg,*args,**kwargs):
-        '''
-        @brief wrap binary com to adjust default kwargs
-        '''
-        kwargs = self._set_default_kwargs(**kwargs)
-        super()._read_binary(msg,*args,**kwargs)
-        
-    def _write_binary(self,msg,*args,**kwargs):
-        '''
-        @brief wrap binary com to adjust default kwargs
-        '''
-        kwargs = self._set_default_kwargs(**kwargs)
-        super()._write_binary(msg,*args,**kwargs)
     
     def _disconnect(self):
         '''
@@ -225,7 +191,7 @@ class PnaController(SCPIInstrument):
         else: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            data = self.query('CALC:DATA? SDATA',binary_xfer=True)
+            data = self.query('CALC:DATA? SDATA',binary_xfer=True,datatype='d',is_big_endian=True)
             self.write('FORM',orig_form) #change to original form
             data = np.array(data)
         data_cplx = data[::2]+data[1::2]*1j #change to comple
@@ -273,7 +239,7 @@ class PnaController(SCPIInstrument):
         if binary_xfer: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            freq_list = self.query('SENS:X?',binary_xfer=True)
+            freq_list = self.query('SENS:X?',binary_xfer=True,datatype='d',is_big_endian=True)
             self.write('FORM',orig_form) #change to original form
         else: #othwerise ascii
             orig_form = self.query('FORM') #get the original format to return to later
@@ -386,7 +352,7 @@ class PnaController(SCPIInstrument):
         dat_out = list(chain(*seg_table)) #flatten list of tuples
         orig_form = self.query('FORM')
         self.write('FORM','REAL,64')
-        self.write(com,dat_out,binary_xfer=True)
+        self.write(com,dat_out,binary_xfer=True,datatype='d',is_big_endian=True)
         self.write('FORM',orig_form)        
         
     #enable/disable arbitrary segmented sweep
