@@ -73,6 +73,40 @@ class PnaController(SCPIInstrument):
         super().write(msg,*args,**kwargs)
         self.query('*OPC?',False)        
         #time.sleep(0.10);    
+        
+    def _set_default_kwargs(self,**kwargs):
+        '''
+        @brief set default kwargs for communication values if not provided
+        '''
+        def_dict = {
+                'is_big_endian':True,
+                'datatype':'d'
+                }
+        for k,v in def_dict.items():
+            if k not in kwargs.keys():
+                kwargs[k] = v
+        return kwargs
+    
+    def _query_binary(self,msg,*args,**kwargs):
+        '''
+        @brief wrap binary com to adjust default kwargs
+        '''
+        kwargs = self._set_default_kwargs(**kwargs)
+        super()._query_binary(msg,*args,**kwargs)
+        
+    def _read_binary(self,msg,*args,**kwargs):
+        '''
+        @brief wrap binary com to adjust default kwargs
+        '''
+        kwargs = self._set_default_kwargs(**kwargs)
+        super()._read_binary(msg,*args,**kwargs)
+        
+    def _write_binary(self,msg,*args,**kwargs):
+        '''
+        @brief wrap binary com to adjust default kwargs
+        '''
+        kwargs = self._set_default_kwargs(**kwargs)
+        super()._write_binary(msg,*args,**kwargs)
     
     def _disconnect(self):
         '''
@@ -207,7 +241,7 @@ class PnaController(SCPIInstrument):
         else: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            data = self.connection.query_binary_values('CALC:DATA? SDATA',datatype='d',is_big_endian=True)
+            data = self.query('CALC:DATA? SDATA',binary_xfer=True)
             self.write('FORM',orig_form) #change to original form
             data = np.array(data)
         data_cplx = data[::2]+data[1::2]*1j #change to comple
@@ -255,7 +289,7 @@ class PnaController(SCPIInstrument):
         if binary_xfer: #binary transfer
             orig_form = self.query('FORM')
             self.write('FORM','REAL,64')
-            freq_list = self.connection.query_binary_values('SENS:X?',datatype='d',is_big_endian=True)
+            freq_list = self.query('SENS:X?',binary_xfer=True)
             self.write('FORM',orig_form) #change to original form
         else: #othwerise ascii
             orig_form = self.query('FORM') #get the original format to return to later
@@ -358,7 +392,8 @@ class PnaController(SCPIInstrument):
             self.write('SENS:SEGM:BWID:CONT','ON')
         
         #set the recievers here
-        self.set_segment_table(seg_table)
+        num_pts = len(seg_table)
+
         
     def set_segment_table(self,seg_table):
         '''
@@ -371,30 +406,8 @@ class PnaController(SCPIInstrument):
         dat_out = list(chain(*seg_table)) #flatten list of tuples
         orig_form = self.query('FORM')
         self.write('FORM','REAL,64')
-        self.write_binary(com,dat_out,datatype='d',is_big_endian=True)
-        self.write('FORM',orig_form)  
-        
-    def get_segment_table(self):
-        '''
-        @brief get the segment table from the vna
-        @return list of dicts describing the segments as [{table0},...]
-        '''
-        #initial stuff
-        num_segs = self.query('SENS:SEGM:COUN?')
-        val_list = ['on/off','num_pts','freq_start','freq_stop','if_bandwidth','dwell_time'] #for unpacking to dict
-        #now get the data
-        com = 'SENS:SEGM:LIST? SSTOP'
-        self.write('FORM:BORD NORM')
-        orig_form = self.query('FORM')
-        self.write('FORM','REAL,64')
-        rv = self.query_binary(com,datatype='d',is_big_endian=True)
-        self.write('FORM',orig_form)
-        #now split the values
-        out_dict_list = []
-        split_list = np.split(np.array(rv),num_segs)
-        for sl in split_list:
-            out_dict_list.append({k:sl[i] for i,k in enumerate(val_list)})
-        return out_dict_list
+        self.write(com,dat_out,binary_xfer=True)
+        self.write('FORM',orig_form)        
         
     #enable/disable arbitrary segmented sweep
     def set_arb_seg(self,on_off="ON"):
@@ -501,8 +514,8 @@ def clean_file_name(fname):
         
 if __name__=='__main__':
     
-    basic_test = True
-    segment_test = False
+    basic_test = False
+    segment_test = True
     if basic_test:
         visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
         mypna = PnaController(visa_address)
@@ -511,26 +524,14 @@ if __name__=='__main__':
         mypna.query('info')
         
         mypna.get_params()
-        #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
-    
-        #mypna.set_settings()
-        
-        #mypna.set_continuous_trigger('ON')
-        #ports = [1,3]
-        #param_list = [i*10+j for i in ports for j in ports]
         param_list = [11,31,13,33]
         mypna.setup_s_param_measurement(param_list)
         mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-        mypna.write('if_bandwidth',100000)
-        #mypna.set_continuous_trigger('off')
+        mypna.write('if_bandwidth',1000)
+        #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
         mypna.get_params()
         print(mypna)
-        
-        # 2.16 s ± 45.3 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) for ascii
-        # 1.48 s ± 34.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each) for binary xfer (about 2x more accurate)
-        # ~30 seconds with pnagrabber
-        mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2},binary_xfer=True)
-        #dd = mypna.get_all_trace_data()
+        mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
         
     if segment_test:
         visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
@@ -538,10 +539,8 @@ if __name__=='__main__':
         param_list = [11,31,13,33]
         mypna.setup_s_param_measurement(param_list)
         
-        #seg_table = [(1,1351,26.5e9,40e9,500),(1,501,30e9,31e9,1000)]
-        #seg_table = [(1,1351,26.5e9,40e9,500),(1,7501,27.5e9,27.95e9,1000),(1,5001,39e9,39.3e9,1000)]
-        seg_table = [(1,7501,27.5e9,27.95e9,5000),(1,5001,39e9,39.3e9,5000)]
-        mypna.set_segment_sweep(seg_table)
+        seg_list = [(1,501,27e9,28e9),(1,501,30e9,31e9)]
+        mypna.set_segment_sweep(seg_list)
         mypna.set_continuous_trigger('ON')
         mypna.get_params()
         print(mypna)
