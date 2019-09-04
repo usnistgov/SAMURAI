@@ -8,8 +8,8 @@ Created on Thu Jul 25 10:31:36 2019
 
 import re
 from samurai.base.SamuraiDict import SamuraiDict
-from collections import OrderedDict #for json loading
 import json
+import numpy as np
 
 class Instrument(SamuraiDict):
     '''
@@ -65,14 +65,23 @@ class Instrument(SamuraiDict):
         '''
         self.connection.disconnect(address)
             
-    def read(self,cast=True):
+    def read(self,cast=True,**kwargs):
         '''
-        @brief template for an instrument read. calls self.connection.read()
+        @brief template for an instrument read. calls self._read()
+        @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._read_binary)
         @param[in/OPT] cast - whether or not to try and cast the data
+        @param[in/OPT] kwargs - keyword args to pass to _read_binary
         '''
         rv = self._read()
         if cast:
             rv = self.cast_return_value(rv)
+        return rv
+    
+    def read_binary(self,*args,**kwargs):
+        '''
+        @brief template for reading binary values
+        '''
+        rv = self._read_binary(**kwargs)
         return rv
     
     def _read(self):
@@ -81,26 +90,48 @@ class Instrument(SamuraiDict):
         '''
         return self.connection.read()
     
+    
+    def _read_binary(self,*args,**kwargs):
+        '''
+        @brief internal function for abstracting connection.read_binary()
+        '''
+        return self.connection.read_binary_values(*args,**kwargs)
+    
     def write(self,msg,*args,**kwargs):
         '''
-        @brief template for instrument write. calls self.connection.write()
+        @brief template for instrument write. calls self._write()
         @param[in] *args - arguments to be passed to command if its in self.command_dict
         @param[in] **kwargs - keyword args passed to commands in command_dict
         '''
         msg = self.get_command_from_dict(msg,*args,**kwargs)
         self._write(msg)
+            
+    def write_binary(self,msg,*args,**kwargs):
+        '''
+        @brief template for writing binary data
+        '''
+        msg = self.get_command_from_dict(msg,*args,**kwargs)
+        self._write_binary(msg,*args,**kwargs)
     
-    def _write(self,msg):
+    def _write(self,msg,**kwargs):
         '''
         @brief internal function abstracting connection.write() function
         '''
         print(msg)
         self.connection.write(msg)
+        
+    def _write_binary(self,msg,*args,**kwargs):
+        '''
+        @brief internal function for abstracting connection.write_binary()
+        '''
+        print(msg)
+        return self.connection.write_binary_values(msg,*args,**kwargs) #consistent with visa
     
     def query(self,msg,*args,cast=True,**kwargs):
         '''
-        @brief template for a instrument query. calls self.connection.query()
+        @brief template for a instrument query. calls self._query()
         @param[in] msg - message to send
+        @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._query_binary)
         @param[in/OPT] cast - whether or not to try and cast the data
         @param[in] *args - arguments to be passed to command if its in self.command_dict
         @param[in] **kwargs - keyword args passed to commands in command_dict
@@ -111,12 +142,26 @@ class Instrument(SamuraiDict):
             rv = self.cast_return_value(rv)
         return rv
     
+    def query_binary(self,msg,*args,**kwargs):
+        '''
+        @brief template for querying binary data
+        '''
+        msg = self.get_command_from_dict(msg,*args,**kwargs)
+        rv = self._query_binary(msg,*args,**kwargs)
+        return rv
+    
     def _query(self,msg):
         '''
         @brief internal function abstracting connection.query() function
         '''
         print(msg)
         return self.connection.query(msg)
+    
+    def _query_binary(self,msg,*args,**kwargs):
+        '''
+        @brief internal function for abstracting connection.write_binary()
+        '''
+        return self.connection.query_binary_values(msg,*args,**kwargs) #consistent with visa
         
     def get_command_from_dict(self,command,*args,**kwargs):
         '''
@@ -138,8 +183,12 @@ class Instrument(SamuraiDict):
         @param[in] value_str - value string to cast
         '''
         try:
-            rv = float(value_str)
-            return rv
+            try:
+                rv = float(value_str) #try to make a float
+                return rv
+            except ValueError:
+                rv = np.array(value_str,dtype=np.float)
+                return rv
         except ValueError:
             return value_str.strip() #remove trailing whitespace
         
@@ -227,11 +276,12 @@ class InstrumentCommandDict(SamuraiDict):
         if alias is not None:
             self.add_alias(com_name,alias)
             
-    def add_alias(self,command_name,alias):
-        '''
-        @brief add an alias to a command
-        '''
-        self.aliases.update({alias:command_name})
+    #this has been added to SamuraiDict
+    #def add_alias(self,command_name,alias):
+    #    '''
+    #    @brief add an alias to a command
+    #    '''
+    #    self.aliases.update({alias:command_name})
         
     def _get_default_command_name(self,instrument_command):
         '''
@@ -258,7 +308,7 @@ class InstrumentCommandDict(SamuraiDict):
             return self.get(self.aliases[key])
         elif key in self.commands.keys(): #othweise its a command (hopefully)
             return self.commands[key]
-        else: #otherwise lets pass it to OrderedDict get() method
+        else: #otherwise lets pass it to SamuraiDict get() method
             return super().get(key,*args)
             
     
@@ -289,13 +339,6 @@ class InstrumentCommandDict(SamuraiDict):
             if re.findall(search_str,c_comp): #see if the expression is there
                 ali_found_list.append(c)
         return {'commands':com_found_list,'aliases':ali_found_list}
-    
-    def write(self,out_path):
-        '''
-        @brief write our file out in json format
-        '''
-        with open(out_path,'w+') as json_file:
-            json.dump(self,json_file,indent=4) 
             
     def load(self,load_path):
         '''
@@ -379,7 +422,7 @@ class InstrumentCommand(SamuraiDict):
         #self.update({'command_template':'Not yet Compiled'}) #template to place params into
         self.update({'command_raw':command_raw}) #raw command
         self.update({'description':None})
-        self.update({'arguments':{'required':OrderedDict(),'optional':OrderedDict()}}) #no initial arguments
+        self.update({'arguments':{'required':SamuraiDict(),'optional':SamuraiDict()}}) #no initial arguments
         
     def add_arg(self,arg_name,optional_flg,return_type=None,description='',**other_options):
         '''
