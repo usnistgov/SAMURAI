@@ -133,6 +133,12 @@ class TouchstoneEditor(object):
         options = {}
         for k,v in kwargs.items():
             options[k] = v
+        
+        #if its a *.meas file get the nominal solution
+        ext = os.path.splitext(input_file)[-1]
+        if ext == '.meas': 
+            input_file = get_unperturbed_meas(input_file)
+        
         #if we default grab from end of file path
         ftype = options.get('ftype',None)
         if ftype is None:
