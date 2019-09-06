@@ -63,9 +63,6 @@ class SamuraiDict(OrderedDict):
         @param[in/OPT] kwargs - keyword args will be passed to json.dump()
         @return path that was written to 
         '''
-        #remove __alias__ before writing if not used
-        if not self._alias_dict: #then its empty so pop it
-            self.pop(self._alias_dict_key)
         with open(fpath,'w+') as json_file:
             json.dump(self,json_file,indent=4) 
         return fpath
