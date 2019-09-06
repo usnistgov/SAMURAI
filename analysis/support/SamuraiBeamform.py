@@ -10,7 +10,7 @@ from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vecto
 from samurai.analysis.support.SamuraiPostProcess import vector_mult_complex,vector_div_complex
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import Antenna
-from samurai.analysis.support.generic import ValueCounter
+from samurai.base.generic import ValueCounter
 import numpy as np #import constants
 
 import six #backward compatability
@@ -198,11 +198,12 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 ###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    testa = False #synthetic and real data tests (commented out)
+    testa = True #synthetic and real data tests (commented out)
     testb = False #data from usc 5-27-2019 (s2p padp output)
     testc = False
     testd = False
-    teste = True #plot markers with beamformed data
+    teste = False #plot markers with beamformed data
+    testf = False
     #test case for simple beamforming
     if(testa):
         '''
@@ -251,7 +252,8 @@ if __name__=='__main__':
         #pos[:,2] = np.append(Z.flatten(),Z.flatten())
         mysp.all_positions = pos;
         #mysp.freq_list = [26.5e9,30e9,40e9]
-        freqs = [26.5e9,27e9,28e9,29e9,30e9,31e9,33e9,35e9,40e9]
+        #freqs = [26.5e9,27e9,28e9,29e9,30e9,31e9,33e9,35e9,40e9]
+        freqs = [40e9]
         mysp.freq_list = freqs
         #mysp.freq_list= np.arange(27,41)*1e9
         #mysp.add_plane_wave(0,0,-90)
@@ -295,6 +297,9 @@ if __name__=='__main__':
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),'all',verbose=True)
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[26.5e9,40e9],verbose=True)
         mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,5),np.arange(-90,90,5),[40e9],verbose=True)
+        mycsa.plotter.set_plot_program('matlab')
+        fig = mycsa.plot_3d()
+        #mycsa.plotter.write(fig,'test.html')
         #import cProfile
         #cProfile.run("mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),freqs,verbose=True)")
         #mycsa,ant_vals = mysp.beamforming_farfield_azel(np.arange(-90,90,1),[0,1],'all',verbose=True)

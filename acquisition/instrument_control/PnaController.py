@@ -25,13 +25,16 @@ from samurai.acquisition.instrument_control.InstrumentControl import SCPICommand
 
 import os
 script_path = os.path.dirname(os.path.realpath(__file__))
-command_set_path = os.path.join(script_path,'../hardware/command_sets/PNAX_communication_dictionary.json') 
+command_set_path = os.path.join(script_path,'./command_sets/PNAX_communication_dictionary.json') 
 
 
 class PnaController(SCPIInstrument):
     
     def __init__(self,visa_address=None,command_dict_path=command_set_path,**other_info):
-        
+        '''
+		@brief constructor for our class 
+		@param[in/OPT] visa_address - pna visa address to connect to. If not provided do not connect
+		'''
         super().__init__(command_dict_path)
         
         self.update({'info':'NO INFO READ'})
@@ -69,7 +72,7 @@ class PnaController(SCPIInstrument):
         super().write('*WAI')
         super().write(msg,*args,**kwargs)
         self.query('*OPC?',False)        
-        #time.sleep(0.10);
+        #time.sleep(0.10);    
     
     def _disconnect(self):
         '''
@@ -83,6 +86,8 @@ class PnaController(SCPIInstrument):
         self.get_settings()
         #calculate values
         self['freq_step'] = np.divide(self['freq_span'],float(self['num_pts']-1))
+        if self['sweep_type'] == 'SEGM': #we have a segment sweep so get the segment table
+            self['segment_table'] = self.get_segment_table()
         
     def set(self,command,*args,**kwargs):
         '''
@@ -158,24 +163,43 @@ class PnaController(SCPIInstrument):
         self.connection.timeout = timeout_temp
         
     
-    def get_all_trace_data(self):
+    def get_all_trace_data(self,binary_xfer=True):
         '''
         @brief get data from all traces on a single channel
         @return [frequency_list, {trace_name:{'parameter':param,'data':[values]}]
         '''
         #self.write('FORM:DATA REAL,64'); #set the data format
-        freq_list = self.get_freq_list()
+        freq_list = self.get_freq_list(binary_xfer=binary_xfer)
         trace_dict = self.get_traces()
         data_dict = {}
         for key,val in trace_dict.items():
-            self.write('CALC:PAR:SEL',"'{}'".format(key)) #select the trace
-            data_str = self.query('CALC:DATA?','sdata')
-            data = np.array(data_str.split(','),dtype='float64') #data as floating point
-            data_cplx = data[::2]+data[1::2]*1j #change to complex
+            data_cplx = self.get_trace_data(key,binary_xfer=binary_xfer)
             data_dict[key] = {'parameter':val,'data':data_cplx}
         return freq_list,data_dict
     
-    def measure_s_params(self,out_path,port_mapping=None):
+    def get_trace_data(self,trace_name,binary_xfer=True):
+        '''
+        @brief get the complex data from a single trace
+        @param[in] trace_name - name of trace to get the data from
+        @return complex data from the trace in a numpy array
+        '''
+        self.write('CALC:PAR:SEL',"'{}'".format(trace_name)) #select the trace
+        if not binary_xfer: #ascii transfer
+            orig_form = self.query('FORM') #get the original format to return to later
+            self.write('FORM','ASC')
+            data_str = self.query('CALC:DATA?','sdata')
+            self.write('FORM',orig_form) #change to original form
+            data = np.array(data_str.split(','),dtype='float64') #data as floating point
+        else: #binary transfer
+            orig_form = self.query('FORM')
+            self.write('FORM','REAL,64')
+            data = self.query_binary('CALC:DATA? SDATA',datatype='d',is_big_endian=True)
+            self.write('FORM',orig_form) #change to original form
+            data = np.array(data)
+        data_cplx = data[::2]+data[1::2]*1j #change to comple
+        return data_cplx
+    
+    def measure_s_params(self,out_path,port_mapping=None,binary_xfer=True):
         '''
         @brief measure s parameters of current traces and write out to out_path
         @param[in] out_path - path to write out data to 
@@ -185,9 +209,9 @@ class PnaController(SCPIInstrument):
         self.set_continuous_trigger('OFF')
         self.trigger()
         #first lets get the data of the current traces
-        freqs,data_dict = self.get_all_trace_data()
+        freqs,data_dict = self.get_all_trace_data(binary_xfer=binary_xfer)
         #import snp editor
-        from samurai.analysis.support.snpEditor import SnpEditor,map_keys
+        from samurai.base.TouchstoneEditor import SnpEditor,map_keys
         #now lets get the number of ports from the out_path
         num_ports = int(re.findall('(?<=s)\d+(?=p)',out_path)[0])
         #now lets create our Snp Object
@@ -210,15 +234,24 @@ class PnaController(SCPIInstrument):
         self.measure_s_params(out_path,port_mapping)
         return 0,out_path #args match pnagrabber return
         
-    def get_freq_list(self):
+    def get_freq_list(self,binary_xfer=True):
         '''
         @brief get a list of the frequencies from the vna
         '''
-        freq_str = self.query('SENS:X?') #newer CALC:X? command doesnt work on typical VNA
-        if type(freq_str) is str: #ensure we didnt already convert (single frequency)
-            freq_list = [float(val) for val in freq_str.strip().split(',')]
-        elif type(freq_str) is float:
-            freq_list = [freq_str]
+        if binary_xfer: #binary transfer
+            orig_form = self.query('FORM')
+            self.write('FORM','REAL,64')
+            freq_list = self.query_binary('SENS:X?',datatype='d',is_big_endian=True)
+            self.write('FORM',orig_form) #change to original form
+        else: #othwerise ascii
+            orig_form = self.query('FORM') #get the original format to return to later
+            self.write('FORM','ASC')
+            freq_str = self.query('SENS:X?') #newer CALC:X? command doesnt work on typical VNA
+            self.write('FORM',orig_form) #change to original form
+            if type(freq_str) is str: #ensure we didnt already convert (single frequency)
+                freq_list = np.array(freq_str.split(','),dtype='float64') #data as floating point
+            elif type(freq_str) is float:
+                freq_list = [freq_str]
         return np.array(freq_list)
         
     #give 'ON' or 'OFF' to on/off (or 1/0);
@@ -258,10 +291,8 @@ class PnaController(SCPIInstrument):
             return -1
             
         #turn on frequency offset mode
-        fom_on_com = "SENS:FOM ON"
-        self.write(fom_on_com)
+        self.write('SENS:FOM','ON')
 
-        
         #set our command for writing the source to CW
         #range2 = Source;
         #range4 = Source2;
@@ -286,12 +317,15 @@ class PnaController(SCPIInstrument):
         
         rng_num = src_num*2 #change to range number
         
-        com = "SENS:FOM:RANG%d:COUP %s" % (rng_num,on_off.upper())
-        self.write(com) 
+        self.write('SENS:FOM:RANG:COUP',on_off.upper(),n=rng_num) 
         
-    #freq ranges are going to be a list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
-    #these values cannot overlap else the vna will not set them correctly
-    def set_seg_list(self,seg_table,arb = True,couple = True):
+    def set_segment_sweep(self,seg_table,arb = True,couple = True):
+        '''
+        @brief setup a segment sweep on the vna bysetting the segment list
+        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
+        @param[in/OPT] arb - arbitrary segment sweep allowed (default True)
+        @param[in/OPT] couple - whether or not to couple the sources (default True)
+        '''
         
         prev_form = self.query('FORM?')
         #change to 64 bit real
@@ -300,34 +334,53 @@ class PnaController(SCPIInstrument):
             #couple sources else pna gets mad
             self.set_source_coupling(1,'ON')
             self.set_source_coupling(2,'ON')
-        
-        #dat_str = [];
-        
+
         #change to segmented sweep
-        com = 'SENS:SWE:TYPE SEGM'
-        self.write(com)
+        self.write('sweep_type','SEGM')
         
         #set arbitrary if we want
         if(arb):
             self.set_arb_seg('ON')
+            self.write('SENS:SEGM:BWID:CONT','ON')
         
         #set the recievers here
+        self.set_segment_table(seg_table)
+        
+    def set_segment_table(self,seg_table):
+        '''
+        @brief set the segment table on the vna
+        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
+        '''
         num_pts = len(seg_table)
-        #for i in range(num_pts):
-        #    dat_str.append(',%e,%e,%e,%e' % (tuple(np.round(seg_table[i]))))
-        
-        #data = ''.join(dat_str);
         com = 'SENS:SEGM:LIST SSTOP,'+str(num_pts)+','
-        
         self.connection.write('FORM:BORD NORM')
         dat_out = list(chain(*seg_table)) #flatten list of tuples
-        self.connection.write_binary_values(com,dat_out,datatype='d')
-        #self.write(com);
+        orig_form = self.query('FORM')
+        self.write('FORM','REAL,64')
+        self.write_binary(com,dat_out,datatype='d',is_big_endian=True)
+        self.write('FORM',orig_form)  
         
-        
-        self.write('FORM %s' %(prev_form))
-
-        
+    def get_segment_table(self):
+        '''
+        @brief get the segment table from the vna
+        @return list of dicts describing the segments as [{table0},...]
+        '''
+        #initial stuff
+        num_segs = self.query('SENS:SEGM:COUN?')
+        val_list = ['on/off','num_pts','freq_start','freq_stop','if_bandwidth','dwell_time'] #for unpacking to dict
+        #now get the data
+        com = 'SENS:SEGM:LIST? SSTOP'
+        self.write('FORM:BORD NORM')
+        orig_form = self.query('FORM')
+        self.write('FORM','REAL,64')
+        rv = self.query_binary(com,datatype='d',is_big_endian=True)
+        self.write('FORM',orig_form)
+        #now split the values
+        out_dict_list = []
+        split_list = np.split(np.array(rv),num_segs)
+        for sl in split_list:
+            out_dict_list.append({k:sl[i] for i,k in enumerate(val_list)})
+        return out_dict_list
         
     #enable/disable arbitrary segmented sweep
     def set_arb_seg(self,on_off="ON"):
@@ -369,12 +422,9 @@ class PnaController(SCPIInstrument):
         
         
     def set_seg_source_list_iterating(self,src_num,seg_table):
-        
-        #check if were in segment mode
-        #this is being dumb so its commented out
-       # if(self.query('SENS:SWE:TYPE?').strip()!='SEGM'):
-       #     print('ERROR: Please change sweep type to segmented');
-       #     return -1;
+        '''
+        @TODO FIGURE OUT WHAT THIS CODE IS FOR!!!
+        '''
         
         #turn on frequency offset mode
         fom_on_com = "SENS:FOM ON"
@@ -437,29 +487,39 @@ def clean_file_name(fname):
         
 if __name__=='__main__':
     
-    visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
-    mypna = PnaController(visa_address)
-    #mypna.get_params()
-    comd = mypna.command_dict
-    mypna.query('info')
-    
-    mypna.get_params()
-    #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
-
-    #mypna.set_settings()
-    
-    #mypna.set_continuous_trigger('ON')
-    #ports = [1,3]
-    #param_list = [i*10+j for i in ports for j in ports]
-    param_list = [11,31,13,33]
-    #mypna.setup_s_param_measurement(param_list)
-    mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-    mypna.write('if_bandwidth',1000)
-    #mypna.set_continuous_trigger('off')
-    mypna.get_params()
-    print(mypna)
-    mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
-    #dd = mypna.get_all_trace_data()
+    basic_test = False
+    segment_test = True
+    if basic_test:
+        visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
+        mypna = PnaController(visa_address)
+        #mypna.get_params()
+        comd = mypna.command_dict
+        mypna.query('info')
+        
+        mypna.get_params()
+        param_list = [11,31,13,33]
+        mypna.setup_s_param_measurement(param_list)
+        mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
+        mypna.write('if_bandwidth',1000)
+        #mypna.set_freq_sweep(40e9,40e9,num_pts=1)
+        mypna.get_params()
+        print(mypna)
+        mys = mypna.measure_s_params('./test/testing.s2p',port_mapping={3:2})
+        
+    if segment_test:
+        visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
+        mypna = PnaController(visa_address)
+        param_list = [11,31,13,33]
+        mypna.setup_s_param_measurement(param_list)
+        
+        #seg_table = [(1,1351,26.5e9,40e9,500),(1,501,30e9,31e9,1000)]
+        #seg_table = [(1,1351,26.5e9,40e9,500),(1,7501,27.5e9,27.95e9,1000),(1,5001,39e9,39.3e9,1000)]
+        seg_table = [(1,7501,27.5e9,27.95e9,5000),(1,5001,39e9,39.3e9,5000)]
+        mypna.set_segment_sweep(seg_table)
+        mypna.set_continuous_trigger('ON')
+        mypna.get_params()
+        print(mypna)
+        #mys = mypna.measure_s_params('./test/test_seg.s2p',port_mapping={3:2})
      
 
         
