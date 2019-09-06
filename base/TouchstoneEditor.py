@@ -27,13 +27,14 @@ INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse o
 class TouchstoneEditor(object):
    '''
    @brief init arbitrary port touchstone class. This covers wave and S params
-   @param[in] input_file - path of file to load in. 
-               A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-               measurement with n ports and frequencies [f1,f2,...] 
+   
    '''
    def __new__(cls,input_file,*args,**kwargs):
        '''
        @brief instantiator to return correct class (e.g. WnpEditor or SnpEditor)
+       @param[in] input_file - path of file to load in. 
+               A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
+               measurement with n ports and frequencies [f1,f2,...] 
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data
        '''
        if type(input_file) is str: #this could be a list for an empty object
@@ -45,6 +46,8 @@ class TouchstoneEditor(object):
                out_cls = WnpEditor
            elif re.findall('s[\d]+p',ext):
                out_cls = SnpEditor
+           elif re.findall('waveform',ext):
+               out_cls = WaveformEditor
            else:
                out_cls = cls
        else: #if its a list, return whatever it was instantiated as
@@ -149,7 +152,10 @@ class TouchstoneEditor(object):
                 
         #get the number of ports from the file extension
         file_ext = os.path.splitext(input_file)[-1]
-        num_ports_from_filename = int(''.join(re.findall(r'\d',file_ext)))
+        num_ports_from_filename_str = ''.join(re.findall(r'\d',file_ext))
+        if num_ports_from_filename_str == '': #if not specified assume 1
+            num_ports_from_filename_str = '1' 
+        num_ports_from_filename = int(num_ports_from_filename_str)
         self._set_num_ports(num_ports_from_filename) #set the ports from the filename
         #now set our keys
         self._gen_dict_keys()
@@ -173,15 +179,22 @@ class TouchstoneEditor(object):
             self.set_header(DEFAULT_HEADER)
         
         #file is good if we make it here so continue to unpacking
-        freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
+        self._extract_data(raw_data)
+        
+        
+   def _extract_data(self,raw_data):
+       '''
+       @brief class to extract data from raw data. This can be overriden for special cases
+       '''
+       freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
         
         #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
-        for ki,k in enumerate(self.wave_dict_keys):
-            for wi,w in enumerate(self.waves):
-                idx = ki*len(self.waves)*2+(1+2*wi)
-                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
-                self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
-        self.round_freq_lists() #round when we load (remove numerical rounding error)
+       for ki,k in enumerate(self.wave_dict_keys):
+           for wi,w in enumerate(self.waves):
+               idx = ki*len(self.waves)*2+(1+2*wi)
+               data = raw_data[:,idx]+raw_data[:,idx+1]*1j
+               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+       self.round_freq_lists() #round when we load (remove numerical rounding error)
     
    def _load_text(self,file_path,**kwargs):
        '''
@@ -619,7 +632,29 @@ class SnpEditor(TouchstoneEditor):
            return  np.array([wdk[0],wdk[2],wdk[1],wdk[3]])
        else:
            return super()._gen_dict_keys() #otherwise use the generic
- 
+       
+class WaveformEditor(SnpEditor):
+    '''
+    @brief class to read *.waveform classes that the MUF puts out
+    '''        
+    def _gen_dict_keys(self):
+        return [21] #always only have a single key for waveform
+    
+    def _extract_data(self,raw_data):
+       '''
+       @brief class to extract data from raw data. This can be overriden for special cases
+       @note this is overriden here because we are just reading real data, not imaginary
+       '''
+       freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
+        
+        #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
+       for ki,k in enumerate(self.wave_dict_keys):
+           for wi,w in enumerate(self.waves):
+               idx = ki*len(self.waves)*2+(1+2*wi)
+               data = raw_data[:,idx]
+               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+       self.round_freq_lists() #round when we load (remove numerical rounding error)
+
 
 #acutally is the same as snpParam
 class TouchstoneParam:

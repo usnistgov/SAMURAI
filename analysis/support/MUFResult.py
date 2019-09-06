@@ -5,7 +5,7 @@ Created on Mon Jun 24 16:02:04 2019
 @author: ajw5
 """
 
-from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError
+from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
 from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController
 from samurai.base.SamuraiPlotter import SamuraiPlotter
@@ -43,12 +43,11 @@ class MUFResult(MUFModuleController):
             None yet!
             all arguments also passed to MUFModuleController constructor
         '''
+        super().__init__(None,except_no_menu=False,**arg_options)
         #uncertainty statistics
         self.monte_carlo = None
         self.perturbed = None
         self.nominal = None
-        self.options = {}
-        self.options = {}
         self.options['ci_percentage'] = 95
         self.options['plotter'] = None
         self.options['plot_options'] = {}
@@ -59,7 +58,6 @@ class MUFResult(MUFModuleController):
         #make sure were getting a .meas, if not get the correct data
         menu_path = meas_path
 
-        super().__init__(None,except_no_menu=False,**arg_options)
         self.load(menu_path,**arg_options)
         
     def init_statistics(self,**arg_options):
@@ -75,6 +73,8 @@ class MUFResult(MUFModuleController):
         '''
         @brief calculate statistics for monte carlo and perturbed data
         '''
+        if self.monte_carlo is None or self.perturbed is None:
+            self.init_statistics()
         self.calculate_monte_carlo_statistics(**arg_options,plotter=self.options['plotter'])
         self.calculate_perturbed_statistics(**arg_options,plotter=self.options['plotter'])
         
@@ -477,10 +477,10 @@ class MUFStatistic:
         '''
         if len(self.file_paths) > 2: #make sure we have enough to make a statistic
             if self.data is None:
-                snp_list = self._load_stat_files_to_list()
+                tnp_list = self._load_stat_files_to_list()
             else:
-                snp_list = self.data
-            data_dict = self._extract_data_dict(snp_list)
+                tnp_list = self.data
+            data_dict = self._extract_data_dict(tnp_list)
             #estimate
             self.estimate = self._calculate_estimate(data_dict)
             #confidence interval
@@ -496,7 +496,7 @@ class MUFStatistic:
         '''
         @brief return statistics for a given key value 
         @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
-        @return estimate,ci_+,ci_-,std_+,std_- (WnpParams)
+        @return aestimate,ci_+,ci_-,std_+,std_- (WnpParams)
         '''
         est = self.estimate.S[key]
         cip = self.confidence_interval['+'].S[key]
@@ -504,6 +504,19 @@ class MUFStatistic:
         stp = self.standard_uncertainty['+'].S[key]
         stm = self.standard_uncertainty['-'].S[key]
         return est,cip,cim,stp,stm
+    
+    def get_statistics_dict(self,key):
+        '''
+        @brief return statistics for a given key in a dictionary format
+        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
+        @return dictionary with descriptive keys matched to the values
+        '''
+        est,cip,cim,stp,stm = self.get_statistics(key)
+        rd = {'estimate':est}
+        rd.update({'+ {} conf. int.'.format(self.options['ci_percentage']):cip})
+        rd.update({'- {} conf. int.'.format(self.options['ci_percentage']):cim})
+        rd.update({'+ std. uncert.':stp,'- std. uncert.':stm})
+        return rd
     
     def get_statistics_from_frequency(self,key,freq):
         '''
@@ -534,7 +547,7 @@ class MUFStatistic:
     def _load_stat_files_to_list(self):
         '''
         @brief load the files in self.file_paths to a WnpEditor list
-        @return list of SnpEditor objects for the files in stat_paths
+        @return list of TouchstoneEditor like objects for the files in stat_paths
         '''
         tnp_list = []
         for path in self.file_paths:
@@ -560,19 +573,21 @@ class MUFStatistic:
         '''
         @brief calculate the estimate from the input values (mean of the values)
         @param[in] data_dict - dictionary of data and frequencies for imported snp files
+        @param[in/OPT] editor_type
         @return WnpEditor object with the estimate (mean) of the stats_path values
         '''
         #create a blank snp file to fill
         num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
         freq_list = data_dict['freq_list']
-        snp_out = SnpEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in snp_out.wave_dict_keys:
+        MyEditor = data_dict['editor_type'] #get the type of editor
+        tnp_out = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
+        for k in tnp_out.wave_dict_keys:
             data = data_dict[k] #get the data
             m,p = self._complex2magphase(data)
             m_mean = m.mean(0); p_mean = p.mean(0)
             data_mean = self._magphase2complex(m_mean,p_mean)
-            snp_out.S[k].update(freq_list,data_mean)
-        return snp_out
+            tnp_out.S[k].update(freq_list,data_mean)
+        return tnp_out
             
     
     def _calculate_confidence_interval(self,data_dict):
@@ -585,14 +600,15 @@ class MUFStatistic:
         #create a blank snp file to fill
         num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
         freq_list = data_dict['freq_list']
-        snp_out_p = SnpEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        snp_out_m = SnpEditor([num_ports,freq_list],plotter=self.options['plotter'])
+        MyEditor = data_dict['editor_type']
+        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
+        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
         #find percentage and index like in the MUF
         percentage = 0.5*(1-self.options['ci_percentage']/100)
-        lo_index = int(percentage*data_dict[11].shape[0])
+        lo_index = int(percentage*data_dict[data_dict['first_key']].shape[0])
         if lo_index<=0: lo_index=1
-        hi_index = data_dict[11].shape[0]-lo_index
-        for k in snp_out_p.wave_dict_keys:
+        hi_index = data_dict[data_dict['first_key']].shape[0]-lo_index
+        for k in tnp_out_p.wave_dict_keys:
             data = data_dict[k] #get the data
             #done in the same way as the MUF
             m,p = self._complex2magphase(data)
@@ -601,9 +617,9 @@ class MUFStatistic:
             p_hi = p[hi_index,:]; p_lo = p[lo_index]
             hi_complex = self._magphase2complex(m_hi,p_hi)
             lo_complex = self._magphase2complex(m_lo,p_lo)
-            snp_out_p.S[k].update(freq_list,hi_complex)
-            snp_out_m.S[k].update(freq_list,lo_complex)
-        return snp_out_p,snp_out_m
+            tnp_out_p.S[k].update(freq_list,hi_complex)
+            tnp_out_m.S[k].update(freq_list,lo_complex)
+        return tnp_out_p,tnp_out_m
     
     def _calculate_standard_uncertainty(self,data_dict):
         '''
@@ -614,9 +630,10 @@ class MUFStatistic:
         #create a blank snp file to fill
         num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
         freq_list = data_dict['freq_list']
-        snp_out_p = SnpEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        snp_out_m = SnpEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in snp_out_p.wave_dict_keys:
+        MyEditor = data_dict['editor_type']
+        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
+        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
+        for k in tnp_out_p.wave_dict_keys:
             data = data_dict[k] #get the data
             m,p = self._complex2magphase(data)
             m_mean = m.mean(0); p_mean = p.mean(0)
@@ -625,21 +642,23 @@ class MUFStatistic:
             p_plus = p_mean+p_std; p_minus = p_mean-p_std
             data_plus   = self._magphase2complex(m_plus ,p_plus )
             data_minus  = self._magphase2complex(m_minus,p_minus)
-            snp_out_p.S[k].update(freq_list,data_plus)
-            snp_out_m.S[k].update(freq_list,data_minus)
-        return snp_out_p,snp_out_m
+            tnp_out_p.S[k].update(freq_list,data_plus)
+            tnp_out_m.S[k].update(freq_list,data_minus)
+        return tnp_out_p,tnp_out_m
     
     
-    def _extract_data_dict(self,snp_list):
+    def _extract_data_dict(self,tnp_list):
         '''
         @brief extract data from our snp_list into a dictionary with snp_list[0].wave_dict_key keys
                 and values of (n,m) 2D numpy arrays where n is len(snp_list) and m is len(snp_list[0].freq_list)
         @return a dictionary as described in the brief
         '''
         data_dict = {}
-        data_dict['freq_list'] = snp_list[0].freq_list
-        for k in snp_list[0].wave_dict_keys:
-            data_dict[k] = np.array([snp.S[k].raw for snp in snp_list])
+        data_dict['freq_list'] = tnp_list[0].freq_list
+        data_dict['editor_type'] = type(tnp_list[0]) #assume all of same type
+        data_dict['first_key'] = tnp_list[0].wave_dict_keys[0]
+        for k in tnp_list[0].wave_dict_keys:
+            data_dict[k] = np.array([tnp.S[k].raw for tnp in tnp_list])
         return data_dict
     
     def _complex2magphase(self,data):
@@ -664,16 +683,17 @@ class MUFStatistic:
         return self.estimate.freq_list
 
 if __name__=='__main__':
-    
-    from samurai.analysis.support.SamuraiPlotter import SamuraiPlotter
-    meas_path = 'test.meas'
+    from samurai.base.SamuraiPlotter import SamuraiPlotter
+    meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
+    meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
     #res = MUFResult(meas_path,load_stats=True)
     res2 = MUFResult(meas_path)
-    res3 = MUFResult('test.s2p')
+    res2.calculate_statistics()
+    #res3 = MUFResult('test.s2p')
     #os.chdir('test/write_test')
     #res.write('test/write_test/test.meas')
-    res2.write('test/write_test/test2.meas')
-    res3.write('test/write_test/test3.meas')
+    #res2.write('test/write_test/test2.meas')
+    #res3.write('test/write_test/test3.meas')
     '''
     res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
     res.S[11].plot()
