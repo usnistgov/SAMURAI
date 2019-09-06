@@ -448,6 +448,9 @@ class MatlabPlotter(SamuraiPlotEngine):
             self.options[k] = v
         if self.engine is None: #do this so we dont start up the engine to early
             self.engine = SamuraiMatlab(**self.options)
+
+    def help(self,*args,**kwargs):
+        print(self.engine.help(*args,**kwargs))
         
     def surf(self,*args,**kwargs): 
         '''
@@ -503,10 +506,10 @@ if __name__=='__main__':
     plot_test = False
     translate_test = False
     if surf_test:
-        sp = SamuraiPlotter('plotly')
+        sp = SamuraiPlotter('matlab')
         [X,Y] = np.mgrid[1:10:0.5,1:20]
         Z = np.sin(X)+np.cos(Y)
-        fig = sp.surf(X,Y,Z,xlim=[0,20],zlabel='\lambda',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
+        fig = sp.surf(X,Y,Z,xlim=[0,20],zlabel='\lambda',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',[5,7]))
         #args = sp._translate_arguments(zlabel='X',shading='interp')
         #sp._surf_plotly(X,Y,Z,xlim=[0,20],zlabel='X',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
         #sp._surf_matlab(X,Y,Z,xlim=[0.,20.],zlabel='X',shading='interp',colorbar=('XTick',[-1.,1.],'XTickLabel',['A','B']))
