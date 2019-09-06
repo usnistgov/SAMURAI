@@ -37,29 +37,22 @@ class TouchstoneEditor(object):
        @param[in] input_file - path of file to load in. 
                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                measurement with n ports and frequencies [f1,f2,...] 
-       @param[in/OPT] **kwargs - keyword arguments. most passed to init but the following:
-           override_extension_check - prevent the class from being changed due to extension
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data
        '''
        override_extension_check = kwargs.pop('override_extension_check',None)
        if not override_extension_check: #we can override this new set for certain cases
            if isinstance(input_file,str): #this could be a list for an empty object
                _,ext = os.path.splitext(input_file)
-               if re.findall('meas',ext):
-                   input_file = get_unperturbed_meas(input_file)
-                   _,ext = os.path.splitext(input_file)
-               if re.findall('w[\d]+p',ext):
-                   out_cls = WnpEditor
-               elif re.findall('s[\d]+p',ext):
-                   out_cls = SnpEditor
-               elif re.findall('waveform',ext):
-                   out_cls = WaveformEditor
-               else:
-                   out_cls = cls
-           else: #if its a list, return whatever it was instantiated as
-               out_cls = cls 
-       else: #if we override return whatever it is defined as
-           out_cls = cls
+           if re.findall('w[\d]+p',ext):
+               out_cls = WnpEditor
+           elif re.findall('s[\d]+p',ext):
+               out_cls = SnpEditor
+           elif re.findall('waveform',ext):
+               out_cls = WaveformEditor
+           else:
+               out_cls = cls
+       else: #if its a list, return whatever it was instantiated as
+           out_cls = cls 
        instance = super().__new__(out_cls)
        if out_cls != cls: #run the init if it hasn't yet
            instance.__init__(input_file,*args,**kwargs)
@@ -214,7 +207,7 @@ class TouchstoneEditor(object):
            for wi,w in enumerate(self.waves):
                idx = ki*len(self.waves)*2+(1+2*wi)
                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
-               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
     
    def _load_text(self,file_path,**kwargs):
@@ -785,7 +778,7 @@ class SnpEditor(TouchstoneEditor):
 class WaveformEditor(SnpEditor):
     '''
     @brief class to read *.waveform classes that the MUF puts out
-    '''
+    '''        
     def _gen_dict_keys(self):
         return [21] #always only have a single key for waveform
     
@@ -801,7 +794,7 @@ class WaveformEditor(SnpEditor):
            for wi,w in enumerate(self.waves):
                idx = ki*len(self.waves)*2+(1+2*wi)
                data = raw_data[:,idx]
-               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
 
 
