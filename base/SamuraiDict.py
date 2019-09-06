@@ -54,7 +54,7 @@ class SamuraiDict(OrderedDict):
         if not os.path.exists(fpath):
             raise FileNotFoundError("File '{}' not found".format(os.path.abspath(fpath)))
         with open(fpath,'r') as jsonFile:
-            self.update(json.load(jsonFile, object_pairs_hook=OrderedDict,**kwargs))
+            self.update(json.load(jsonFile, object_pairs_hook=SamuraiDict,object_hook=SamuraiJSONDecoder,**kwargs))
             
     def write(self,fpath,**kwargs):
         '''
@@ -64,7 +64,7 @@ class SamuraiDict(OrderedDict):
         @return path that was written to 
         '''
         with open(fpath,'w+') as json_file:
-            json.dump(self,json_file,indent=4) 
+            json.dump(self,json_file,indent=4,cls=SamuraiJSONEncoder) 
         return fpath
     
     def set_from_path(self,key_list,value,**kwargs):
@@ -154,7 +154,29 @@ def update_nested_dict(dict_update,dict_to_add,overwrite_values=False,**kwargs):
         else: #if it doesnt exist, just add it
             dict_update[k] = v #set the value in dict 1
             print(dict_update[k])
-            
+
+class SamuraiJSONEncoder(json.JSONEncoder):
+    '''
+    @brief custom json encoder for specific samurai types
+    '''
+    custom_encoding_method = '_encode_json_' #this method should be written to provide a custom encoding
+    def default(self,obj):
+        if hasattr(obj,custom_encoding_method)
+            cust_enc_meth = getattr(obj,custom_encoding_method)
+            return cust_encoding_meth()
+        else:
+            return super().default(self,obj)
+
+def SamuraiJSONDecoder(obj):
+    '''
+    @brief allow defining custom decoders in a function
+    '''
+    custom_decoding_method = '_decode_json_'
+    if hasattr(obj,custom_decoding_method):
+        cust_dec_meth = getattr(obj,custom_decoding_method)
+        return cust_dec_meth()
+    else:
+        return obj
             
     
 if __name__=='__main__':
