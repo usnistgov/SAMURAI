@@ -100,7 +100,7 @@ class CalculatedSyntheticAperture:
         for key,val in six.iteritems(arg_options):
             self.options[key] = val
     
-    def plot_azel(self,plot_type='mag_db',out_name='test',**arg_options):
+    def plot_azel(self,plot_type='mag_db',**arg_options):
         '''
         @brief plot calculated data in azimuth elevation
         @param[in] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
@@ -116,47 +116,15 @@ class CalculatedSyntheticAperture:
             
         plot_data = self.get_data(plot_type,mean_flg=True)
         
-        
-        '''
-        if(options['plot_program'].lower()=='matlab'):
-            self.init_matlab_plotter()
-            fig = self.mp.figure()
-            self.mp.surf(self.azimuth,self.elevation,plot_data)
-            self.mp.view([0,90])
-            self.mp.xlabel('Azimuth')
-            self.mp.ylabel('Elevation')
-            self.mp.zlabel(plot_type)
-        '''  
-        if(options['plot_program'].lower()=='plotly'):
-            plotly_surf = [go.Surface(z = plot_data, x = self.azimuth, y = self.elevation)]
-            layout = go.Layout(
-                title='UV Beamformed Plot',
-                scene = dict(
-                    xaxis = dict(title='$\phi$ (Azimuth)'),
-                    yaxis = dict(title='$theta$ (Elevation)'),
-                    zaxis = dict(title='Beamformed value (%s)' %(plot_type))
-                ),
-                autosize=True,
-                margin=dict(
-                    l=65,
-                    r=50,
-                    b=65,
-                    t=90
-                )
-            )
-            fig = go.Figure(data=plotly_surf,layout=layout)
-            ploff.plot(fig,filename=out_name)
-    
-            # Customize the z axis.
-            #ax.set_zlim(-1.01, 1.01)
-            #ax.zaxis.set_major_locator(LinearLocator(10))
-            #ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-            
-            # Add a color bar which maps values to colors.
-            #fig.colorbar(surf, shrink=0.5, aspect=5)
-            return fig
-        else:
-            raise Exception("Program %s not recognized" %(options['plot_program']))
+        plot_arg_dict = {}
+        plot_arg_dict.update({'xlabel':'Azimuth (degrees)','ylabel':'Elevation (degrees)','zlabel':plot_type})
+        #plot_arg_dict.update({'xlim':[-db_range,db_range],'ylim':[0,db_range*2],'zlim':[-db_range,db_range]})
+        plot_arg_dict.update({'shading':'interp'})
+        plot_arg_dict.update({'colorbar':()})
+        for k,v in arg_options.items():
+            plot_arg_dict[k] = v
+        rv = self.plotter.surf(self.azimuth,self.elevation,plot_data,**plot_arg_dict)
+        return rv
     
     def plot_uv(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
@@ -227,7 +195,7 @@ class CalculatedSyntheticAperture:
             raise Exception("Program %s not recognized" %(options['plot_program']))
             
         
-    def plot_3d(self,plot_type='mag_db',out_name='aperture_results_3d.html',**arg_options):
+    def plot_3d(self,plot_type='mag_db',**arg_options):
         '''
         @brief plot calculated data in 3d space (radiation pattern)
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
@@ -244,13 +212,6 @@ class CalculatedSyntheticAperture:
         for key,val in six.iteritems(arg_options):
             options[key] = val
             
-        #plot_data = self.get_data(plot_type,mean_flg=True)
-        #[plot_data,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,plot_type,60)
-        
-        #now get our xyz values
-        #Z = plot_data*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
-        #X = plot_data*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
-        #Y = plot_data*np.sin(np.deg2rad(self.elevation))
         [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type,translation=options['translation'],rotation=options['rotation'])
         X = -X #this is dependent on the robot reference frame. required for V2 reference frame
         db_range = caxis_max-caxis_min
@@ -260,6 +221,8 @@ class CalculatedSyntheticAperture:
         plot_arg_dict.update({'xlim':[-db_range,db_range],'ylim':[0,db_range*2],'zlim':[-db_range,db_range]})
         plot_arg_dict.update({'shading':'interp'})
         plot_arg_dict.update({'colorbar':('XTick',[0,db_range/2,db_range],'XTickLabel',[str(caxis_min),str(caxis_min+db_range/2),str(caxis_max)])})
+        for k,v in arg_options.items():
+            plot_arg_dict[k] = v
         #plot_arg_dict.update({'colorbar':('XTick',[caxis_min,caxis_max],'XTickLabel',[str(caxis_min),str(caxis_max)])})
         rv = self.plotter.surf(X,Z,Y,plot_data,**plot_arg_dict)
         return rv
