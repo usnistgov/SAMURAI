@@ -161,22 +161,35 @@ class SamuraiJSONEncoder(json.JSONEncoder):
     '''
     custom_encoding_method = '_encode_json_' #this method should be written to provide a custom encoding
     def default(self,obj):
-        if hasattr(obj,custom_encoding_method)
-            cust_enc_meth = getattr(obj,custom_encoding_method)
-            return cust_encoding_meth()
+        if hasattr(obj,self.custom_encoding_method): #assume this will then be a class
+            cust_enc_meth = getattr(obj,self.custom_encoding_method)
+            class_name = obj.__class__.__name__ #get the class name
+            return {'__{}__'.format(class_name):cust_enc_meth()}
         else:
             return super().default(self,obj)
 
-def SamuraiJSONDecoder(obj):
+def SamuraiJSONDecoder(o):
     '''
     @brief allow defining custom decoders in a function
+    @note class must have a default constructor (class_()) 
+    @note the class must have a _decode_json_ method
+    @note the class must also be imported into globals()
+    @note if the above notes are not met, standard decoding will be done
     '''
     custom_decoding_method = '_decode_json_'
-    if hasattr(obj,custom_decoding_method):
-        cust_dec_meth = getattr(obj,custom_decoding_method)
-        return cust_dec_meth()
-    else:
-        return obj
+    first_key_name = list(o.keys())[0] #
+    if first_key_name != first_key_name.strip('_'): #then assume its a class
+        class_name = first_key_name.strip('_')
+        globals_ = globals()
+        class_ = globals_.get(class_name)
+        obj = class_() #must have a default constructor
+        if class_ is not None: #check if its a 
+            if hasattr(obj,custom_decoding_method):
+                cust_dec_meth = getattr(obj,custom_decoding_method)
+                obj.cust_dec_meth(o)
+                return obj
+    return o
+        
             
     
 if __name__=='__main__':
