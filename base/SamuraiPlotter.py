@@ -249,7 +249,7 @@ class SamuraiPlotEngine:
         @param[in] obj - object to run functions on
         @param[in] **kwargs - arguemenbt dictionary to find functions from
         '''
-        for k,v in kwargs.items():
+        for k in list(kwargs.keys()):
             if hasattr(obj,k):
                 funct_args = kwargs.pop(k) #get the arguemnts and remove the function
                 funct = getattr(obj,k)
