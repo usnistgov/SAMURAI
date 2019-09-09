@@ -735,7 +735,7 @@ class WnpEditor(TouchstoneEditor):
         options['default_extension'] = 'wnp'
         for k,v in arg_options.items():
             options[k] = v
-        self._param_class = WnpParam
+        self.param_class = WnpParam
         super().__init__(*args,**options)
 
 class SnpEditor(TouchstoneEditor):
@@ -754,7 +754,7 @@ class SnpEditor(TouchstoneEditor):
         options['default_extension'] = 'snp'
         for k,v in arg_options.items():
             options[k] = v
-        self._param_class = SnpParam
+        self.param_class = SnpParam
         super().__init__(*args,**options)
 
     def _gen_dict_keys(self,ports=None):
@@ -778,7 +778,7 @@ class SnpEditor(TouchstoneEditor):
 class WaveformEditor(SnpEditor):
     '''
     @brief class to read *.waveform classes that the MUF puts out
-    '''        
+    '''
     def _gen_dict_keys(self):
         return [21] #always only have a single key for waveform
     
@@ -1327,8 +1327,8 @@ if __name__=='__main__':
     add_remove_test = True
     empty_object_test = True
     
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
-    #unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
+    unittest.TextTestRunner(verbosity=2).run(suite)
     #unittest.main()
         
     if empty_object_test:
