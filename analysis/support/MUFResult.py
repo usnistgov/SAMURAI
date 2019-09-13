@@ -109,8 +109,8 @@ class MUFResult(MUFModuleController):
         '''
         @brief calculate statistics for monte carlo and perturbed data
         '''
-        self.calculate_monte_carlo_statistics(**arg_options,plotter=self.options['plotter'])
-        self.calculate_perturbed_statistics(**arg_options,plotter=self.options['plotter'])
+        self.calculate_monte_carlo_statistics(plotter=self.options['plotter'], **arg_options)
+        self.calculate_perturbed_statistics(plotter=self.options['plotter'], **arg_options)
         
     def calculate_monte_carlo_statistics(self,**arg_options):
         '''
@@ -225,10 +225,17 @@ class MUFResult(MUFModuleController):
         @param[in/OPT] perturbed_path_list - list of perturbed snp paths
         '''
         self._create_meas() #create the skeleton
-        self._add_nominal_path(nom_path) #nominal
-        self._add_meas_item_list(monte_carlo_path_list,self._xml_monte_carlo) #mc
-        self._add_meas_item_list(perturbed_path_list,self._xml_perturbed) #perturbed
+        self._add_nominal_path(nom_path, self._xml_nominal) #nominal
+
+        self.mc_paths = monte_carlo_path_list
+        self._add_meas_item_list(self.mc_paths, self._xml_monte_carlo) #mc
+
+        self.pt_paths = perturbed_path_list
+        self._add_meas_item_list(self.pt_paths,self._xml_perturbed) #perturbed
         self.__init__(nom_path)
+
+        self.monte_carlo = MUFStatistic(self.mc_paths)
+        self.perturbed = MUFStatistic(self.pt_paths)
         
         
     def _create_meas(self):
@@ -288,7 +295,11 @@ class MUFResult(MUFModuleController):
         for i,child in enumerate(list(parent_element)):
             list(child)[subelem_idx].attrib['Text'] = path_list[i]
       
-    def _add_meas_item_list(self,parent_element,path_list):
+    def _add_nominal_path(self, nom_path, parent_element):
+        self.add_items(parent_element,[self._create_meas_item(nom_path)])
+
+
+    def _add_meas_item_list(self,path_list,parent_element):
         '''
         @brief add a measurement list from items and place it in a parent element (e.g self._xml_monte_carlo)
         '''
@@ -359,11 +370,13 @@ class MUFResult(MUFModuleController):
         for k,v in kwargs.items():
             options[k] = v
         #make a *.meas if a wnp or snp file was provided
-        if self.meas_path is not None and os.path.exists(self.meas_path):
+        #if self.meas_path is not None and os.path.exists(self.meas_path):
+        if self.meas_path is not None:
             _,ext = os.path.splitext(self.meas_path) #get our extension
-            if '.meas' not in ext: #if its not a *.meas create our skeleton
+            if not os.path.exists(self.meas_path) or '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
                 self.set_nominal_path(self.meas_path)
+                return
             else:
                 self._load_xml()
         else:
@@ -411,12 +424,12 @@ class MUFResult(MUFModuleController):
         @return list of written file paths (absolute paths)
         '''
         out_list = []
-        if stat_class.data is None: #then copy
+        if not hasattr(stat_class, 'data') or stat_class.data is None: #then copy
             files =  stat_class.file_paths
-            for i,file in enumerate(files):
+            for i,iFile in enumerate(files):
                 fname = os.path.splitext(format_out_path.format(i))[0]
-                fname+=os.path.splitext(file)[-1]
-                fname_out = shutil.copy(file,fname)
+                fname+=os.path.splitext(iFile)[-1]
+                fname_out = shutil.copy(iFile,fname)
                 fname_out = os.path.abspath(fname_out)
                 out_list.append(fname_out) #add to our list
         else:
@@ -434,13 +447,9 @@ class MUFResult(MUFModuleController):
         mc_dir = os.path.join(out_dir,'MonteCarlo')
         if not os.path.exists(mc_dir):
             os.makedirs(mc_dir)
-        mc_paths = self._write_statistic(self.monte_carlo,os.path.join(mc_dir,'monte_carlo_{}'))
-        self.set_monte_carlo_paths(mc_paths)
         pt_dir = os.path.join(out_dir,'Perturbed')
         if not os.path.exists(pt_dir):
             os.makedirs(pt_dir)
-        pt_paths = self._write_statistic(self.perturbed,os.path.join(mc_dir,'monte_carlo_{}'))
-        self.set_perturbed_paths(pt_paths)
         
     def _write_data(self,out_dir,**kwargs):
         '''

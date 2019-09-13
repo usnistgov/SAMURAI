@@ -99,6 +99,8 @@ class TouchstoneEditor(object):
                out_cls = WnpEditor
            elif re.findall('s[\d]+p',ext):
                out_cls = SnpEditor
+           elif re.findall('switch',ext):
+               out_cls = SnpEditor
            else:
                out_cls = cls
        else: #if its a list, return whatever it was instantiated as

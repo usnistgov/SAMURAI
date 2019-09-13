@@ -13,7 +13,7 @@ import six
 import os
 #import json
 
-from samurai.analysis.support.MetaFileController import MetaFileController 
+from samurai.analysis.support.metaFileController import MetaFileController 
 #from samurai.analysis.support.generic import incomplete,deprecated,verified
 #from samurai.analysis.support.generic import round_arb
 #from samurai.analysis.support.snpEditor import SnpEditor
