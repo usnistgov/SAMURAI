@@ -41,7 +41,7 @@ class MetaFileController(SamuraiDict):
         if metafile_path is not None:
             self.load(metafile_path)
         else:
-            self.metafile = None
+            self.metafile = 'metafile.json'
             self.wdir = os.path.abspath('./') #get the current path
             self.update(SamuraiDict(metaFile(None,None)))
             
