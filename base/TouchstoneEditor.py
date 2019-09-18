@@ -7,6 +7,7 @@ edit .snp files (.s2p,.s4p,etc...)
 import os
 import cmath 
 import numpy as np
+import copy
 import re
 import six
 from xml.dom.minidom import parse 
@@ -27,13 +28,14 @@ INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse o
 class TouchstoneEditor(object):
    '''
    @brief init arbitrary port touchstone class. This covers wave and S params
-   @param[in] input_file - path of file to load in. 
-               A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-               measurement with n ports and frequencies [f1,f2,...] 
+   
    '''
-   def __new__(cls,input_file,*args,**kwargs):
+   def __new__(cls,input_file=None,*args,**kwargs):
        '''
        @brief instantiator to return correct class (e.g. WnpEditor or SnpEditor)
+       @param[in] input_file - path of file to load in. 
+               A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
+               measurement with n ports and frequencies [f1,f2,...] 
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data
        '''
        if type(input_file) is str: #this could be a list for an empty object
@@ -45,6 +47,8 @@ class TouchstoneEditor(object):
                out_cls = WnpEditor
            elif re.findall('s[\d]+p',ext):
                out_cls = SnpEditor
+           elif re.findall('waveform',ext):
+               out_cls = WaveformEditor
            else:
                out_cls = cls
        else: #if its a list, return whatever it was instantiated as
@@ -54,12 +58,13 @@ class TouchstoneEditor(object):
            instance.__init__(input_file,*args,**kwargs)
        return instance
 
-   def __init__(self,input_file,**arg_options):
+   def __init__(self,input_file=None,**arg_options):
         '''
         @brief init arbitrary port wave parameter class
         @param[in] input_file - path of file to load in. 
                     A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                     measurement with n ports and frequencies [f1,f2,...] 
+                    If not provided we will have a default class with no ports or anything
         @param[in] arg_options - keywor arguments as follows:
             header - header to write out to the file (text only)
             comments - comments to write to file (text only)
@@ -74,7 +79,7 @@ class TouchstoneEditor(object):
         self.options['read_header'] = True
         self.options['waves'] = ['A','B'] #waves to store. default to wave parameter
         self.options['plotter'] = None
-        self.options['plot_options'] = {}
+        self.options['plot_options'] = {'plot_program':'matplotlib'}
         self.options['no_load'] = False
         self.options['default_extension'] = 'tnp' #default
         for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
@@ -92,10 +97,12 @@ class TouchstoneEditor(object):
         self._ports = [] #start with no ports
         #now load the file
         if not self.options['no_load']:
-            if(type(input_file)==str):
+            if(isinstance(input_file,str)):
                 self.load(input_file,read_header=self.options['read_header'])
-            elif(type(input_file)==tuple or type(input_file)==list):
+            elif(isinstance(input_file,tuple) or isinstance(input_file,list)):
                 self.load_empty(input_file[0],input_file[1])
+            elif input_file is None:
+                pass #dont do anything if we get no input arguments
             
    def _gen_dict_keys(self):
        '''
@@ -133,6 +140,12 @@ class TouchstoneEditor(object):
         options = {}
         for k,v in kwargs.items():
             options[k] = v
+        
+        #if its a *.meas file get the nominal solution
+        ext = os.path.splitext(input_file)[-1]
+        if ext == '.meas': 
+            input_file = get_unperturbed_meas(input_file)
+        
         #if we default grab from end of file path
         ftype = options.get('ftype',None)
         if ftype is None:
@@ -143,7 +156,10 @@ class TouchstoneEditor(object):
                 
         #get the number of ports from the file extension
         file_ext = os.path.splitext(input_file)[-1]
-        num_ports_from_filename = int(''.join(re.findall(r'\d',file_ext)))
+        num_ports_from_filename_str = ''.join(re.findall(r'\d',file_ext))
+        if num_ports_from_filename_str == '': #if not specified assume 1
+            num_ports_from_filename_str = '1' 
+        num_ports_from_filename = int(num_ports_from_filename_str)
         self._set_num_ports(num_ports_from_filename) #set the ports from the filename
         #now set our keys
         self._gen_dict_keys()
@@ -167,15 +183,22 @@ class TouchstoneEditor(object):
             self.set_header(DEFAULT_HEADER)
         
         #file is good if we make it here so continue to unpacking
-        freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
+        self._extract_data(raw_data)
+        
+        
+   def _extract_data(self,raw_data):
+       '''
+       @brief class to extract data from raw data. This can be overriden for special cases
+       '''
+       freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
         
         #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
-        for ki,k in enumerate(self.wave_dict_keys):
-            for wi,w in enumerate(self.waves):
-                idx = ki*len(self.waves)*2+(1+2*wi)
-                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
-                self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
-        self.round_freq_lists() #round when we load (remove numerical rounding error)
+       for ki,k in enumerate(self.wave_dict_keys):
+           for wi,w in enumerate(self.waves):
+               idx = ki*len(self.waves)*2+(1+2*wi)
+               data = raw_data[:,idx]+raw_data[:,idx+1]*1j
+               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+       self.round_freq_lists() #round when we load (remove numerical rounding error)
     
    def _load_text(self,file_path,**kwargs):
        '''
@@ -466,11 +489,10 @@ class TouchstoneEditor(object):
         for w in self.waves.keys():
             out_list.append(self.waves[w][key].raw)
         return out_list
-            
-   def __eq__(self,other):
+    
+   def check_equal(self,other):
        '''
-       @brief override default to check equality of each port. 
-         we will return whther number of ports match, then lists of A matching and B matching
+       @brief function to check equality and give more in depth info that simply ==
        @param[in] other - Wnp Editor to compare to 
        @return list of equality for each port for A and B [num_ports_eq,[A,A,A,A],[B,B,B,B]]
            if the number of ports arent equal just return [num_ports_eq,num_ports_self,num_ports_other]
@@ -485,6 +507,63 @@ class TouchstoneEditor(object):
            for w in self.waves.keys():
                out_lists[w].append(self.waves[w][k]==other.waves[w][k])
        return [num_ports_eq,out_lists] 
+            
+   def __eq__(self,other):
+       '''
+       @brief override default to check equality of each port. 
+         we will return whther number of ports match, then lists of A matching and B matching
+       '''
+       eq_ports,eq_out_vals = self.check_equal(other)
+       tf_list = [eq_ports]
+       for v in eq_out_vals.values():
+           for tf in v:
+               tf_list+=list(tf)
+       return all(tf_list)
+       
+   
+   def __mul__(self,other):
+       '''
+       @brief what happens if we multiply two tnp classes
+       '''
+       return self._perform_arithmetic_operation(other,np.multiply)
+                   
+   def _perform_arithmetic_operation(self,other,funct):
+       '''
+       @brief perform an arithmetic operation on the waves between two touchstone paramters
+           This operation will return a new editor with the new values. It will always contain
+           the same frequencies that existed in the first argument of the operation
+       @param[in] other - other object that will be used to add/subtract/multiply/etc
+       @param[in] funct - function to operate with. This should be able to work on whole numpy arrays
+       '''
+       ret = copy.deepcopy(self)
+       for k in self.waves.keys(): #loop through each key we have
+           for w,v in self.waves[k].items(): #and multiply by the corresponding value
+               if type(other) == type(self): #cant use inherited classes
+                   other_val = self.waves[k].get(w,None)
+                   if other_val is None: #check if it didnt exist
+                       continue #skip to the next iteration
+               else: #we can use inherited classes here
+                   other_val = other
+               new_val = v._perform_arithmetic_operation(other_val,funct)
+               ret.waves[k][w] = new_val
+       return ret    
+
+   def __deepcopy__(self,memo):
+       '''
+       @brief override deep copying of our data
+       '''
+       ret = type(self)(**self.options) #fix issues with SamuraiPlotter class deepcopy
+       for k,v in self.__dict__.items():
+           if k=='options':
+               continue
+           #print(k)
+           try:
+               setattr(ret,k,copy.deepcopy(v,memo))
+           except Exception as e:
+               print("Failure")
+               raise e
+       return ret
+           
    
    def __getattr__(self,attr):
        '''
@@ -502,6 +581,13 @@ class TouchstoneEditor(object):
        @brief shortcut for first wave 
        '''
        return self.waves[list(self.waves.keys())[0]]
+   
+   @property
+   def v1(self):
+       '''
+       @brief shortcut to first value in first wave
+       '''
+       return self.w1[self.wave_dict_keys[0]]
    
    @property
    def freq_list(self):
@@ -562,7 +648,7 @@ class WnpEditor(TouchstoneEditor):
     '''
     @brief class for s parameter file (*.snp)
     '''
-    def __init__(self,input_file,**arg_options):
+    def __init__(self,*args,**arg_options):
         '''
         @brief init arbitrary port s parameter class
         @param[in] input_file - path of file to load in. 
@@ -575,13 +661,13 @@ class WnpEditor(TouchstoneEditor):
         for k,v in arg_options.items():
             options[k] = v
         self.param_class = WnpParam
-        super().__init__(input_file,**options)
+        super().__init__(*args,**options)
 
 class SnpEditor(TouchstoneEditor):
     '''
     @brief class for s parameter file (*.snp)
     '''
-    def __init__(self,input_file,**arg_options):
+    def __init__(self,*args,**arg_options):
         '''
         @brief init arbitrary port s parameter class
         @param[in] input_file - path of file to load in. 
@@ -594,7 +680,7 @@ class SnpEditor(TouchstoneEditor):
         for k,v in arg_options.items():
             options[k] = v
         self.param_class = SnpParam
-        super().__init__(input_file,**options)
+        super().__init__(*args,**options)
 
     def _gen_dict_keys(self,ports=None):
        '''
@@ -613,7 +699,29 @@ class SnpEditor(TouchstoneEditor):
            return  np.array([wdk[0],wdk[2],wdk[1],wdk[3]])
        else:
            return super()._gen_dict_keys() #otherwise use the generic
- 
+       
+class WaveformEditor(SnpEditor):
+    '''
+    @brief class to read *.waveform classes that the MUF puts out
+    '''
+    def _gen_dict_keys(self):
+        return [21] #always only have a single key for waveform
+    
+    def _extract_data(self,raw_data):
+       '''
+       @brief class to extract data from raw data. This can be overriden for special cases
+       @note this is overriden here because we are just reading real data, not imaginary
+       '''
+       freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
+        
+        #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
+       for ki,k in enumerate(self.wave_dict_keys):
+           for wi,w in enumerate(self.waves):
+               idx = ki*len(self.waves)*2+(1+2*wi)
+               data = raw_data[:,idx]
+               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+       self.round_freq_lists() #round when we load (remove numerical rounding error)
+
 
 #acutally is the same as snpParam
 class TouchstoneParam:
@@ -761,8 +869,39 @@ class TouchstoneParam:
         '''
         return np.angle(self.raw)*180/np.pi
     
+    def _perform_arithmetic_operation(self,other,funct):
+        '''
+        @brief run an arithmetic operation on the parameter. if a parameter
+            of the same type is passed, only matching frequencies will be changed.
+            This will return all frequency values from self
+        @param[in] other - other value in the arithmetic operation
+        @param[in] funct - function for arithmentic (i.e. numpy.multiply)
+        '''
+        ret = copy.deepcopy(self)
+        if isinstance(other,type(self)): #if its an instance of the current class
+            match_list_self = np.isin(self.freq_list,other.freq_list) 
+            match_list_other = np.isin(other.freq_list,self.freq_list)
+            ret.raw[match_list_self] = funct(self.raw[match_list_self],other.raw[match_list_other]) #multiply where frequencies match
+        elif np.ndim(other)==0: #then its a scalar value
+            ret.raw = funct(self.raw,other) #just perform the function
+        return ret
+        
+    def __mul__(self,other):
+        '''
+        @brief overload multiply for scalars and other values of the same type
+        @param[in] other - other value to be multiplied
+        '''
+        return self._perform_arithmetic_operation(other,np.multiply)
+    
     def __getitem__(self,idx):
         return self.raw[idx]
+    
+    def __deepcopy__(self,memo):
+        '''
+        @brief override deepcopy. This just creates a new instance with the same raw and freq_list
+        '''
+        rv = type(self)(copy.deepcopy(self.freq_list),copy.deepcopy(self.raw),**self.options) #make an emtpy of this type
+        return rv
     
     def __eq__(self,other):
         '''
@@ -858,68 +997,102 @@ def map_keys(key_list,mapping_dict):
 
 if __name__=='__main__':
 
-    snp_test = True
-    wnp_test = True
-    key_test = True
-    swap_test = True
+    import unittest
+    #geyt the current file directory for the test data
+    import os 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    dir_path = os.path.join(dir_path,'../analysis/support/test')
+    
+    class TestTouchstone(unittest.TestCase):
+        
+        def test_wnp(self):
+            '''
+            @brief test loading of wnp editor
+            '''
+            #print("Loading *.wnp files")
+            wnp_text_path = os.path.join(dir_path,'test.w2p')
+            wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
+            wnp_text = WnpEditor(wnp_text_path)
+            wnp_bin  = WnpEditor(wnp_bin_path)
+            self.assertEqual(wnp_bin,wnp_text)
+            
+        def test_snp(self):
+            '''
+            @brief test loading and writing of snp editor
+            '''
+            #print("Loading *.snp files")
+            snp_text_path = os.path.join(dir_path,'test.s2p')
+            snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
+            snp_text = SnpEditor(snp_text_path)
+            snp_bin  = SnpEditor(snp_bin_path)
+            self.assertEqual(snp_bin,snp_text)
+            snp_text.write('test2.s2p')
+            snp_text.write('test2.s2p_binary')
+            snp_text2 = SnpEditor('test2.s2p_binary')
+            snp_text2.write('test22.s2p')
+            self.assertEqual(snp_text,snp_text2)
+            snp_bin.write('test3.s2p')
+            snp_bin2 = SnpEditor('test3.s2p')
+            self.assertEqual(snp_bin,snp_bin2)
+            os.remove('test2.s2p')
+            os.remove('test2.s2p_binary')
+            os.remove('test22.s2p')
+            os.remove('test3.s2p')
+            
+        def test_key_mapping(self):
+            '''
+            @brief test mapping keys to different ports
+            '''
+            keys = [11,31,13,33]
+            mapping = {3:2}
+            expected_keys = [11,21,12,22]
+            new_keys = map_keys(keys,mapping)
+            self.assertTrue(np.all(np.equal(expected_keys,new_keys)))
+            
+        def test_2_port_swapping(self):
+            '''
+            @brief test using swap_ports to swap 2 port files and swapping
+            @todo improve this to test 2 different data files. THis test only
+                ensures data is not corrupted. It doesnt verify data is actually
+                swapped at all
+            '''
+            f1 = os.path.join(dir_path,'test.s2p')
+            f2 = os.path.join(dir_path,'test.s2p_binary')
+            s1 = TouchstoneEditor(f1)
+            s2 = TouchstoneEditor(f2)
+            so1,so2 = swap_ports(s1,s2) #these files contain the same data
+            self.assertEqual(so1,s1)
+            self.assertEqual(so2,s2)
+            s1c = SnpEditor(f1)
+            s1.swap_ports(1,2)
+            s1.swap_ports(1,2)
+            self.assertEqual(s1,s1c)
+            
+        def test_arithmetic_between_values(self):
+            '''
+            @brief test arithmetic operations
+            @todo add other tests besides just multiply and test multiple ports/waves
+            '''
+             # test arithmetic _mult__,__add__, etc
+            f1 = os.path.join(dir_path,'test.s2p')
+            f2 = os.path.join(dir_path,'test.s2p_binary')
+            s1 = SnpEditor(f1)
+            s2 = SnpEditor(f2)
+            sp1 = s1.S[21]
+            sp2 = s2.S[21]
+            sp3 = sp1*sp2
+            self.assertTrue(np.all(sp3.raw==(sp1.raw*sp2.raw)))
+            s3 = s1*s2
+            self.assertTrue(np.all(s3.S[21].raw==(sp1.raw*sp2.raw)))
+            s4 = s1*complex(5,2)
+            self.assertTrue(np.all(s4.S[21].raw==(sp1.raw*complex(5,2))))
+        
     add_remove_test = True
     new_method_test = True
     empty_object_test = True
     
-    #geyt the current file directory
-    import os 
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    dir_path = os.path.join(dir_path,'../analysis/support')
 
-    if wnp_test:
-        print("Loading *.wnp files")
-        #load_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\4-5-2019\cal\calibration_pre\load.w3p"
-        #load = WnpEditor(load_path)
-        #load.delete_port(2)
-        wnp_text_path = os.path.join(dir_path,'test.w2p')
-        wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
-        wnp_text = WnpEditor(wnp_text_path)
-        wnp_bin  = WnpEditor(wnp_bin_path)
-        print(wnp_bin==wnp_text)
-    if snp_test:
-        print("Loading *.snp files")
-        snp_text_path = os.path.join(dir_path,'test.s2p')
-        snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
-        snp_text = SnpEditor(snp_text_path)
-        snp_bin  = SnpEditor(snp_bin_path)
-        print(snp_bin==snp_text)
-        snp_text.write('test2.s2p')
-        snp_text.write('test2.s2p_binary')
-        snp_text2 = SnpEditor('test2.s2p_binary')
-        snp_text2.write('test22.s2p')
-        print(snp_text==snp_text2)
-        snp_bin.write('test3.s2p')
-        snp_bin2 = SnpEditor('test3.s2p')
-        print(snp_bin==snp_bin2)
-        os.remove('test2.s2p')
-        os.remove('test2.s2p_binary')
-        os.remove('test22.s2p')
-        os.remove('test3.s2p')
-        
-    if key_test:
-        keys = [11,31,13,33]
-        mapping = {3:2}
-        print(keys)
-        new_keys = map_keys(keys,mapping)
-        print(new_keys)
-        
-    if swap_test:
-        f1 = os.path.join(dir_path,'test.s2p')
-        f2 = os.path.join(dir_path,'test.s2p_binary')
-        s1 = TouchstoneEditor(f1)
-        s2 = TouchstoneEditor(f2)
-        so1,so2 = swap_ports(s1,s2)
-        print(so1 == s1)
-        print(so2 == s2)
-        s1c = SnpEditor(f1)
-        s1.swap_ports(1,2)
-        s1.swap_ports(1,2)
-        print(s1==s1c)
+    unittest.main()
         
     if add_remove_test:
         f1 = os.path.join(dir_path,'test.s2p')
@@ -953,7 +1126,6 @@ if __name__=='__main__':
         freq_list = np.linspace(26.5e9,40e9,1351)
         s = SnpEditor([2,freq_list])
         
-
         
         
         
