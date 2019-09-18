@@ -207,7 +207,7 @@ class TouchstoneEditor(object):
            for wi,w in enumerate(self.waves):
                idx = ki*len(self.waves)*2+(1+2*wi)
                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
-               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
     
    def _load_text(self,file_path,**kwargs):
@@ -735,7 +735,7 @@ class WnpEditor(TouchstoneEditor):
         options['default_extension'] = 'wnp'
         for k,v in arg_options.items():
             options[k] = v
-        self.param_class = WnpParam
+        self._param_class = WnpParam
         super().__init__(*args,**options)
 
 class SnpEditor(TouchstoneEditor):
@@ -754,7 +754,7 @@ class SnpEditor(TouchstoneEditor):
         options['default_extension'] = 'snp'
         for k,v in arg_options.items():
             options[k] = v
-        self.param_class = SnpParam
+        self._param_class = SnpParam
         super().__init__(*args,**options)
 
     def _gen_dict_keys(self,ports=None):
@@ -794,7 +794,7 @@ class WaveformEditor(SnpEditor):
            for wi,w in enumerate(self.waves):
                idx = ki*len(self.waves)*2+(1+2*wi)
                data = raw_data[:,idx]
-               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
 
 
