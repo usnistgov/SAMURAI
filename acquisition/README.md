@@ -112,7 +112,7 @@ A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, an
     3. Enter `rtsp://admin:123456@10.0.0.101:554/cam1/mpeg4` and click connect
     4. To take a snapshot click `Video->Take Snapshot`. This will save a snapshot to the users `Pictures` folder from which it can then be renamed and copied
       - The VLC stream has not always been reliable and may freeze. For this reason it is recommended to use the web interface except when taking snapshots of the setup
-- Computer = [10.0.0.1](http://10.0.0.1)
+- Computer = [10.0.0.7](http://10.0.0.7)
   - VISA Address = N/A (local loopback is 127.0.0.1)
   - Setting Network adapter settings for local network:
     1. Go to `Control Panel->Network and Internet->Network Connections`
@@ -123,7 +123,7 @@ A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, an
         - subnet mask = 255.0.0.0
         - Default gateway = DO NOT POPULATE
     5. Then click `OK` and `Close` to close out of the properties menu. You should now be able to access items on the local network.
-
+- Network Switch = [10.0.0.1](http://10.0.0.1)
 # Running the SAMURAI Software
 
 This section covers the steps required to run a SAMURAI measurement
