@@ -38,7 +38,7 @@ class TouchstoneEditor(object):
                measurement with n ports and frequencies [f1,f2,...] 
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data
        '''
-       if type(input_file) is str: #this could be a list for an empty object
+       if isinstance(input_file,str): #this could be a list for an empty object
            _,ext = os.path.splitext(input_file)
            if re.findall('meas',ext):
                input_file = get_unperturbed_meas(input_file)
@@ -89,8 +89,8 @@ class TouchstoneEditor(object):
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         
         #initialize dictionary of waves
-        if self.param_class is None: #default to this
-            self.param_class = TouchstoneParam #parameter class
+        if self._param_class is None: #default to this
+            self._param_class = TouchstoneParam #parameter class
         self.waves = dict()
         for w in self.options['waves']:
             self.waves[w] = dict()
@@ -197,7 +197,7 @@ class TouchstoneEditor(object):
            for wi,w in enumerate(self.waves):
                idx = ki*len(self.waves)*2+(1+2*wi)
                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
-               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
     
    def _load_text(self,file_path,**kwargs):
@@ -287,7 +287,7 @@ class TouchstoneEditor(object):
         freqs = np.array(freqs)*self._get_freq_mult()
         for k in self.wave_dict_keys:
             for wave in self.waves.keys():
-                self.waves[wave][k] = WnpParam(freqs,np.zeros(len(freqs)),plotter=self.options['plotter'])
+                self.waves[wave][k] = self._param_class(freqs,np.zeros(len(freqs)),plotter=self.options['plotter'])
         self.round_freq_lists()
         
    def _set_num_ports(self,num_ports):
@@ -475,7 +475,7 @@ class TouchstoneEditor(object):
        new_keys = self.wave_dict_keys[np.in1d(self.wave_dict_keys,orig_wdk,invert=True)] #get the added keys
        for k in new_keys:
            for wk in self.waves.keys():
-               self.waves[wk][k] = WnpParam(freqs,np.zeros(len(freqs)),plotter=self.options['plotter']) #add empty params
+               self.waves[wk][k] = self._param_class(freqs,np.zeros(len(freqs)),plotter=self.options['plotter']) #add empty params
 
             
    def __getitem__(self,key):
@@ -526,6 +526,30 @@ class TouchstoneEditor(object):
        @brief what happens if we multiply two tnp classes
        '''
        return self._perform_arithmetic_operation(other,np.multiply)
+   
+   def __add__(self,other):
+       '''
+       @brief what happens if we multiply two tnp classes
+       '''
+       return self._perform_arithmetic_operation(other,np.add)
+   
+   def __sub__(self,other):
+       '''
+       @brief what happens if we multiply two tnp classes
+       '''
+       return self._perform_arithmetic_operation(other,np.subtract)
+   
+   def __div__(self,other):
+       '''
+       @brief what happens if we multiply two tnp classes
+       '''
+       return self._perform_arithmetic_operation(other,np.divide)
+   
+   def __len__(self):
+       '''
+       @brief return the length of the paramters. just the length of the first parameter
+       '''
+       return len(self.v1)
                    
    def _perform_arithmetic_operation(self,other,funct):
        '''
@@ -595,6 +619,23 @@ class TouchstoneEditor(object):
        @brief get the frequency list of the first dict key parameter (assume they all match)
        '''
        return self.w1[self.wave_dict_keys[0]].freq_list
+   
+   def average_keys(self,key_list):
+        '''
+        @brief average the keys in key_list and overwrite all keys data with the average data
+        @param[in] key_list - list of keys to average (e.g. [21,12])
+        @return TouchstoneParam or child thereof that has been averaged
+        '''
+        for wk in self.waves.keys(): #do for each wave
+            params_to_avg = [] #params to average
+            for k in key_list:
+                params_to_avg.append(self.waves[wk][k]) #append the parameters
+            avg_param = np.sum(params_to_avg)
+            avg_param.raw.real /= len(params_to_avg) #average complex numbers
+            avg_param.raw.imag /= len(params_to_avg) 
+            for k in key_list: #now set all of the keys. Each key will have a deep copy
+                self.waves[wk][k] = copy.deepcopy(avg_param)
+        return avg_param 
     
    def _call_param_funct(self,fname,*args):
        '''
@@ -660,7 +701,7 @@ class WnpEditor(TouchstoneEditor):
         options['default_extension'] = 'wnp'
         for k,v in arg_options.items():
             options[k] = v
-        self.param_class = WnpParam
+        self._param_class = WnpParam
         super().__init__(*args,**options)
 
 class SnpEditor(TouchstoneEditor):
@@ -679,7 +720,7 @@ class SnpEditor(TouchstoneEditor):
         options['default_extension'] = 'snp'
         for k,v in arg_options.items():
             options[k] = v
-        self.param_class = SnpParam
+        self._param_class = SnpParam
         super().__init__(*args,**options)
 
     def _gen_dict_keys(self,ports=None):
@@ -719,7 +760,7 @@ class WaveformEditor(SnpEditor):
            for wi,w in enumerate(self.waves):
                idx = ki*len(self.waves)*2+(1+2*wi)
                data = raw_data[:,idx]
-               self.waves[w][k] = self.param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
 
 
@@ -869,29 +910,69 @@ class TouchstoneParam:
         '''
         return np.angle(self.raw)*180/np.pi
     
-    def _perform_arithmetic_operation(self,other,funct):
+    def _perform_arithmetic_operation(self,other, funct, return_all_freqs=False):
         '''
         @brief run an arithmetic operation on the parameter. if a parameter
             of the same type is passed, only matching frequencies will be changed.
-            This will return all frequency values from self
+            This will return only overlapping frequencies to avoid confusion
         @param[in] other - other value in the arithmetic operation
         @param[in] funct - function for arithmentic (i.e. numpy.multiply)
+        @param[in/OPT] return_all_freqs - whether or not to return all frequencies
+            or just overlapping ones. Defaults to False so we just return overlapping
+        @return a new copy of self multiplied by other. If other is the same as self
+            Only overlapping frequencies will be returned
         '''
-        ret = copy.deepcopy(self)
         if isinstance(other,type(self)): #if its an instance of the current class
             match_list_self = np.isin(self.freq_list,other.freq_list) 
+            if not np.any(match_list_self):
+                raise TouchstoneArithmeticError("No overlapping frequencies")
             match_list_other = np.isin(other.freq_list,self.freq_list)
-            ret.raw[match_list_self] = funct(self.raw[match_list_self],other.raw[match_list_other]) #multiply where frequencies match
-        elif np.ndim(other)==0: #then its a scalar value
+            ret_raw = funct(self.raw[match_list_self],other.raw[match_list_other]) #multiply where frequencies match
+            if return_all_freqs: #return all of the frequency values in self even if they dont overlap
+                ret = copy.deepcopy(self)
+                ret.raw[match_list_self] = ret_raw
+            else: #only return overlapping frequencies
+                ret_freq = self.freq_list[match_list_self]
+                ret = type(self)(ret_freq,ret_raw,**self.options)
+        else: #otherwise just try to multiply the raw by the input
+            ret = copy.deepcopy(self)
             ret.raw = funct(self.raw,other) #just perform the function
         return ret
         
     def __mul__(self,other):
         '''
         @brief overload multiply for scalars and other values of the same type
+        @note only return frequencies that overlap
         @param[in] other - other value to be multiplied
         '''
-        return self._perform_arithmetic_operation(other,np.multiply)
+        return self._perform_arithmetic_operation(other,np.multiply,False)
+    
+    def __div__(self,other):
+        '''
+        @brief overload multiply for scalars and other values of the same type
+        @note only return frequencies that overlap
+        @param[in] other - other value to be divided
+        '''
+        return self._perform_arithmetic_operation(other,np.add,False)
+    
+    __floordiv__=__div__ # // operator usually returns an int
+    __truediv__=__div__  # / operator 
+    
+    def __add__(self,other):
+        '''
+        @brief overload added for scalars and other values of the same type
+        @note only return frequencies that overlap
+        @param[in] other - other value to be added
+        '''
+        return self._perform_arithmetic_operation(other,np.add,False)
+    
+    def __sub__(self,other):
+        '''
+        @brief overload added for scalars and other values of the same type
+        @note only return frequencies that overlap
+        @param[in] other - other value to be added
+        '''
+        return self._perform_arithmetic_operation(other,np.subtract,False)
     
     def __getitem__(self,idx):
         return self.raw[idx]
@@ -911,6 +992,12 @@ class TouchstoneParam:
         freq_eq = np.equal(self.freq_list,other.freq_list).all()
         data_eq = np.equal(self.raw,other.raw).all()
         return freq_eq,data_eq
+    
+    def __len__(self):
+        '''
+        @brief get the length of self.raw
+        '''
+        return len(self.raw)
     
 class WnpParam(TouchstoneParam):
      
@@ -940,7 +1027,10 @@ class TouchstoneError(Exception):
     def __init__(self,err_msg):
         self.err_msg = err_msg
     def __str__(self):
-        return repr("SnP/WnP ERROR: %s" %(self.err_msg)) 
+        return repr("%s" %(self.err_msg)) 
+    
+class TouchstoneArithmeticError(TouchstoneError):
+    pass
     
 class SnpError(TouchstoneError):
     pass
@@ -977,7 +1067,7 @@ def swap_ports(*args,**kwargs):
 def map_keys(key_list,mapping_dict):
     '''
     @brief change a set of keys (e.g. [11,31,13,33]) based on a mapping dict
-    @param[in] key_list - list of keys for S/WnpParams (e.g. [11,31,13,33])
+    @param[in] key_list - list of keys for TouchstoneParams (e.g. [11,31,13,33])
     @param[in] mapping_dict - how to map ports (e.g. {3:2,1:4})
     '''
     new_key_list = []

@@ -53,6 +53,25 @@ class SamuraiXML(ET._ElementTree):
         return ET.tostring(self,*args,**kwargs_out)
     
     def __str__(self):
-        return self.tostring()
+        return self.tostring().decode()
+    
+class SamuraiXMLElement(ET.ElementBase):
+    '''
+    @brief a samurai element in an elementTree
+    '''
+    def tostring(self,*args,**kwargs):
+        '''
+        @brief print to string
+        @param[in] *args,**kwargs - all passed to ET.tostring() method
+        '''
+        #defaults
+        kwargs_out = {}
+        kwargs_out['pretty_print'] = True
+        for k,v in kwargs.items():
+            kwargs_out[k] = v
+        return ET.tostring(self,*args,**kwargs_out)
+    
+    def __str__(self):
+        return self.tostring().decode()
         
         
