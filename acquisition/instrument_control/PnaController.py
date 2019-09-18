@@ -151,11 +151,11 @@ class PnaController(SCPIInstrument):
             mode = 'CONT'
         self.write('SENS:SWE:MODE',mode)
         
-    def trigger(self,timeout=300000):
+    def trigger(self,timeout=900000):
         '''
         @brief trigger the vna when in manual mode. This will also wait for the sweep to complete
         @param[in] timeout - timeout of visa. The OPC? command hangs until the sweep is finished in single mode
-            This default to 5 minutes. reset the timeout when were done
+            This default to 15 minutes. reset the timeout when were done
         '''
         timeout_temp = self.connection.timeout
         self.connection.timeout = timeout
