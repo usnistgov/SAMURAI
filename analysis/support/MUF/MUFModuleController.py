@@ -142,7 +142,7 @@ class MUFItemList:
             item = MUFItem(item)
         if not isinstance(item,MUFItem): #raise exception if it is the wrong type
             raise TypeError("{} is not a MUFItem or xml element".format(type(item)))
-        item.attrib['Index'] = str(self.count)
+        item._xml_element.attrib['Index'] = str(self.count)
         self._muf_items.append(item) #add the items
         self._xml_element.append(item.xml_element) #append the xml
         self.update_xml_count()
@@ -186,6 +186,12 @@ class MUFItemList:
             kwargs_out[k] = v
         return ET.tostring(self._xml_element,*args,**kwargs_out)
     
+    def __getitem__(self,item_num):
+        '''
+        @brief return a _muf_item value
+        '''
+        return self._muf_items[item_num]
+    
     def __getattr__(self,attr):
         '''
         @brief pass any nonexistant attributes to the xml
@@ -206,6 +212,7 @@ class MUFItem(MUFItemList):
             values is passed, a new item with each value as a subitem will be created
         @param[in/OPT] kwargs - if a new element is being created, kwargs will be passed as attributes
         '''
+        self.data = None #this is a placeholder for data to map to xml items (e.g. TouchstoneEditor)
         if isinstance(xml_element,ET._Element):
             super().__init__(xml_element)
         else:
@@ -229,11 +236,35 @@ class MUFItem(MUFItemList):
         '''
         pass #dont do anything here to load
         
+    def load_data(self,load_funct,subitem_idx=1):
+        '''
+        @brief load the data from the path subitem to self.data
+        @param[in] load_class - function to load the data (can also be a class constructor)
+        @param[in] subitem_idx - which index the path is to load (typically its self[0])
+        '''
+        self.data = load_funct(self[subitem_idx])
+        
     def __getitem__(self,item_num):
         '''
         @brief override [] to return subitem values
         '''
-        return self.getchildren()[item_num].attrib('Text')
+        return self._xml_element.getchildren()[item_num].attrib['Text']
+    
+    def __setitem__(self,item_num,val):
+        '''
+        @brief override [] to set subitem text
+        '''
+        self._xml_element.getchildren()[item_num].attrib['Text'] = val
+    
+    def __getattr__(self,attr):
+        '''
+        @brief override to pass commands to data and not xml
+        '''
+        try:
+            return getattr(self.data,attr)
+        except:
+            raise AttributeError("{} not an attribute of {}".format(attr,type(self)))
+            
     
 def add_muf_xml_item(parent_element,item):
     '''
@@ -351,6 +382,7 @@ if __name__=='__main__':
     
     ml = MUFItemList('test')
     mi = MUFItem([1,'testing123'])
+    ml.add_item(mi)
     
     vumc = MUFModuleController(test_vnauncert_xml)
     vumc.option_items_checkbox
