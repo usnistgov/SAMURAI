@@ -7,7 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
-from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController
+from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 
 import shutil
@@ -64,10 +64,8 @@ class MUFResult(MUFModuleController):
         '''
         @brief intialize (create the classes) for our MUF statistics
         '''
-        mc_paths = self.get_monte_carlo_path_list()
-        self.monte_carlo = MUFStatistic(mc_paths,**arg_options)
-        pt_paths = self.get_perturbed_path_list()
-        self.perturbed = MUFStatistic(pt_paths,**arg_options)
+        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**arg_options)
+        self.perturbed = MUFStatistic(self._xml_perturbed,**arg_options)
         
     def calculate_statistics(self,**arg_options):
         '''
@@ -316,7 +314,7 @@ class MUFResult(MUFModuleController):
         '''
         options = {}
         options['load_nominal'] = True
-        options['load_stats'] = False
+        options['load_stats'] = True
         for k,v in kwargs.items():
             options[k] = v
         #make a *.meas if a wnp or snp file was provided
@@ -439,8 +437,9 @@ class MUFResult(MUFModuleController):
         self._write_data(out_dir,**kwargs)
         self._write_xml(out_path)
         
+        
 import scipy.stats as st
-class MUFStatistic:
+class MUFStatistic(MUFItemList):
     '''
     @brief a class to generically calculate and hold statistics that the MUF does
          This will calculate and store the following statistics:
@@ -449,10 +448,10 @@ class MUFStatistic:
              -nominal estimate (for monte carlos, sensitivity will just be nominal)
         Each of these uncertainties will be stored
     '''
-    def __init__(self,stat_paths,**arg_options):
+    def __init__(self,xml_element,**arg_options):
         '''
         @brief constructor for the class. 
-        @param[in] stat_paths - list of paths to statistics measurements (should be snp or wnp (can be binary))
+        @param[in] xml_element - parent element for MUF statistic xml
         @param[in/OPT] arg_options - keyword arguemnts as follows
                 ci_percentage - confidence interval percentage (default is 95)
         '''
@@ -464,12 +463,75 @@ class MUFStatistic:
             self.options[k] = v
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
-        self.file_paths = stat_paths
         #properties
         self.confidence_interval = {}
         self.standard_uncertainty = {}
         self.data = None
+        
+    ###################################################
+    ### IO Operations
+    ################################################### 
+    def plot(self,key,label=''):
+        '''
+        @brief plot statistics for a given key value 
+        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
+        '''
+        rv_list = []
+        rv_list.append(self.estimate.S[key].plot(DisplayName=label+' estimate'))
+        rv_list.append(self.confidence_interval['+'].S[key].plot(DisplayName=label+' ci+ '+str(self.options['ci_percentage'])+'%'))
+        rv_list.append(self.confidence_interval['-'].S[key].plot(DisplayName=label+' ci- '+str(self.options['ci_percentage'])+'%'))
+        rv_list.append(self.standard_uncertainty['+'].S[key].plot(DisplayName=label+' std uncert +'))
+        rv_list.append(self.standard_uncertainty['-'].S[key].plot(DisplayName=label+' std uncert -'))
+        return rv_list
+        
+    def _load_stat_files_to_list(self):
+        '''
+        @brief load the files in self.file_paths to a WnpEditor list
+        @return list of TouchstoneEditor like objects for the files in stat_paths
+        '''
+        tnp_list = []
+        for path in self.file_paths:
+            tnp_list.append(TouchstoneEditor(path))
+        return tnp_list
+    
+    def _extract_data_dict(self,tnp_list):
+        '''
+        @brief extract data from our snp_list into a dictionary with snp_list[0].wave_dict_key keys
+                and values of (n,m) 2D numpy arrays where n is len(snp_list) and m is len(snp_list[0].freq_list)
+        @return a dictionary as described in the brief
+        '''
+        data_dict = {}
+        data_dict['freq_list'] = tnp_list[0].freq_list
+        data_dict['editor_type'] = type(tnp_list[0]) #assume all of same type
+        data_dict['first_key'] = tnp_list[0].wave_dict_keys[0]
+        for k in tnp_list[0].wave_dict_keys:
+            data_dict[k] = np.array([tnp.S[k].raw for tnp in tnp_list])
+        return data_dict
+    
+    def load_data(self):
+        '''
+        @brief load our statistics files to self.stat_files. These will be WnpEditor types
+        '''
+        self.data = self._load_stat_files_to_list()
+        
+    def write_data(self,format_out_path):
+        '''
+        @brief write the data to a provided output path with a formattable string for numbering
+        @param[in] format_out_path - formattable output path (e.g. path/to/data/monte_carlo_{}.snp/wnp)
+        '''
+        for i,d in enumerate(self.data):
+            d.write(format_out_path.format(i))
             
+    @property
+    def file_paths(self):
+        '''
+        @brief get all of our file paths
+        '''
+        return [mi[1] for mi in self.muf_items]
+
+    ###################################################
+    ### Statistics Operations
+    ###################################################        
     def calculate_statistics(self):
         '''
         @brief calculate and store all statistics. If self.data has been loaded use that
@@ -529,45 +591,7 @@ class MUFStatistic:
         cim = self.confidence_interval['-'].S[key].get_value_from_frequency(freq)
         stp = self.standard_uncertainty['+'].S[key].get_value_from_frequency(freq)
         stm = self.standard_uncertainty['-'].S[key].get_value_from_frequency(freq)
-        return est,cip,cim,stp,stm
-    
-    def plot(self,key,label=''):
-        '''
-        @brief plot statistics for a given key value 
-        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
-        '''
-        rv_list = []
-        rv_list.append(self.estimate.S[key].plot(DisplayName=label+' estimate'))
-        rv_list.append(self.confidence_interval['+'].S[key].plot(DisplayName=label+' ci+ '+str(self.options['ci_percentage'])+'%'))
-        rv_list.append(self.confidence_interval['-'].S[key].plot(DisplayName=label+' ci- '+str(self.options['ci_percentage'])+'%'))
-        rv_list.append(self.standard_uncertainty['+'].S[key].plot(DisplayName=label+' std uncert +'))
-        rv_list.append(self.standard_uncertainty['-'].S[key].plot(DisplayName=label+' std uncert -'))
-        return rv_list
-        
-    def _load_stat_files_to_list(self):
-        '''
-        @brief load the files in self.file_paths to a WnpEditor list
-        @return list of TouchstoneEditor like objects for the files in stat_paths
-        '''
-        tnp_list = []
-        for path in self.file_paths:
-            tnp_list.append(TouchstoneEditor(path))
-        return tnp_list
-    
-    def load_data(self):
-        '''
-        @brief load our statistics files to self.stat_files. These will be WnpEditor types
-        '''
-        self.data = self._load_stat_files_to_list()
-        
-    def write_data(self,format_out_path):
-        '''
-        @brief write the data to a provided output path with a formattable string for numbering
-        @param[in] format_out_path - formattable output path (e.g. path/to/data/monte_carlo_{}.snp/wnp)
-        '''
-        for i,d in enumerate(self.data):
-            d.write(format_out_path.format(i))
-            
+        return est,cip,cim,stp,stm        
     
     def _calculate_estimate(self,data_dict):
         '''
@@ -589,7 +613,6 @@ class MUFStatistic:
             tnp_out.S[k].update(freq_list,data_mean)
         return tnp_out
             
-    
     def _calculate_confidence_interval(self,data_dict):
         '''
         @brief calculate the n% confidence interval where n is self.options['ci_percentage']
@@ -646,34 +669,11 @@ class MUFStatistic:
             tnp_out_m.S[k].update(freq_list,data_minus)
         return tnp_out_p,tnp_out_m
     
-    
-    def _extract_data_dict(self,tnp_list):
-        '''
-        @brief extract data from our snp_list into a dictionary with snp_list[0].wave_dict_key keys
-                and values of (n,m) 2D numpy arrays where n is len(snp_list) and m is len(snp_list[0].freq_list)
-        @return a dictionary as described in the brief
-        '''
-        data_dict = {}
-        data_dict['freq_list'] = tnp_list[0].freq_list
-        data_dict['editor_type'] = type(tnp_list[0]) #assume all of same type
-        data_dict['first_key'] = tnp_list[0].wave_dict_keys[0]
-        for k in tnp_list[0].wave_dict_keys:
-            data_dict[k] = np.array([tnp.S[k].raw for tnp in tnp_list])
-        return data_dict
-    
     def _complex2magphase(self,data):
-        '''
-        @brief take a ndarray and change it to mag phase
-        '''
-        return np.abs(data),np.angle(data)
+        complex2magphase(data)
     
     def _magphase2complex(self,mag,phase):
-        '''
-        @brief turn magnitude phase data into complex data
-        '''
-        real = mag*np.cos(phase)
-        imag = mag*np.sin(phase)
-        return real+1j*imag
+        magphase2complex(mag,phase)
             
     @property
     def freq_list(self):
@@ -682,18 +682,51 @@ class MUFStatistic:
         '''
         return self.estimate.freq_list
 
+###################################################
+### Some useful functions
+###################################################  
+def complex2magphase(data):
+    '''
+    @brief take a ndarray and change it to mag phase
+    '''
+    return np.abs(data),np.angle(data)
+
+def magphase2complex(mag,phase):
+    '''
+    @brief turn magnitude phase data into complex data
+    '''
+    real = mag*np.cos(phase)
+    imag = mag*np.sin(phase)
+    return real+1j*imag
+
+
 if __name__=='__main__':
     from samurai.base.SamuraiPlotter import SamuraiPlotter
     meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
     meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
     #res = MUFResult(meas_path,load_stats=True)
     res2 = MUFResult(meas_path)
-    res2.calculate_statistics()
+    mil = MUFItemList(res2._xml_monte_carlo)
+    #MUFItem(res2._xml_monte_carlo.getchildren()[-1])
+    #res2.calculate_statistics()
+    '''
+    res = MUFResult(None)
+    val = TouchstoneEditor(snppath)
+    res.nominal = val
+    pvals = []
+    res.init_statistics()
+   # res.monte_carlo.data = []
+    for i in range(5):
+        rand_vals = ((np.random.rand(len(val))*2)-1)/10
+        pvals.append(val*rand_vals)
+    res.monte_carlo.add_data(pvals)
+    res.write('test/meas_test.meas',write_nominal=True,write_statistics=True)
     #res3 = MUFResult('test.s2p')
     #os.chdir('test/write_test')
     #res.write('test/write_test/test.meas')
     #res2.write('test/write_test/test2.meas')
     #res3.write('test/write_test/test3.meas')
+    '''
     '''
     res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
     res.S[11].plot()
