@@ -376,12 +376,13 @@ class TouchstoneEditor(object):
             print('Write Type not implemented')
         return out_file
             
-   def plot(self,keys='all',waves='all',data_type='mag_db'):
+   def plot(self,keys='all',waves='all',data_type='mag_db',**arg_options):
        '''
        @brief plot our wave or s parameter data
        @param[in/OPT] key - port of data to plot or list of ports to plot, or 'all'
        @param[in/OPT] waves - list of keys for self.waves to plot (default 'all')
        @param[in/OPT] data_type - type of data to plot (e.g. mag_db,phase,phase_d)
+       @param[in/OPT] arg_options - keywrod args passed to plotter funciton
        '''
        # first our keys for 11,12,21,22,etc...
        if keys=='all': #check for all
@@ -396,10 +397,7 @@ class TouchstoneEditor(object):
        #now plot
        for w in waves:
            for k in keys:
-              data = getattr(self,data_type)
-              freqs = self.waves[w][k].freq_list
-              data = getattr(self.waves[w][k],data_type)
-              rv = self.options['plotter'].plot(freqs,data,xlabel='Freq (GHz)',ylabel=data_type,**arg_options)           
+              self.waves[w][k].plot(data_type,**arg_options)
             
    def _verify_freq_lists(self):
        '''
@@ -781,6 +779,8 @@ class TouchstoneParam:
             plot_options - dictionary of args to pass to SamuraiPlotter (if plotter not specified)
         '''
         self.options = {}
+        self.options['plotter'] = None #this should be provided by the parent
+        self.options['plot_options'] = {}
         for k,v in arg_options.items():
             self.options[k] = v
         self.update(freq_list,raw_list)
@@ -867,6 +867,17 @@ class TouchstoneParam:
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])
         return times,ifft_vals
+    
+    def plot(self,data_type='mag_db',**plot_options):
+        '''
+        @brief plot the data from the parameter given as data_type
+        @param[in] data_type - type of data to plot (e.g. mag,mag_db,phase,phase_d)
+        @param[in/OPT] plot_options - keyword args to pass as options to self.optoins['plotter'].plot()
+        '''
+        if self.options['plotter'] is None:
+            raise Exception("No Plotter Defined")
+        data = getattr(self,data_type)
+        self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (GHz)',ylabel=data_type,**plot_options)     
     
     @property
     def mag_db(self):
