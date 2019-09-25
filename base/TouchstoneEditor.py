@@ -1165,12 +1165,25 @@ if __name__=='__main__':
             self.assertTrue(np.all(s3.S[21].raw==(sp1.raw*sp2.raw)))
             s4 = s1*complex(5,2)
             self.assertTrue(np.all(s4.S[21].raw==(sp1.raw*complex(5,2))))
+            
+        def test_new_class_creation(self):
+            wnp_text_path = os.path.join(dir_path,'test.w2p')
+            wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
+            w1 = TouchstoneEditor(wnp_text_path)
+            w2 = TouchstoneEditor(wnp_bin_path)
+            self.assertEqual(type(w1),WnpEditor)
+            self.assertEqual(type(w2),WnpEditor)
+            snp_text_path = os.path.join(dir_path,'test.s2p')
+            snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
+            s1 = TouchstoneEditor(snp_text_path)
+            s2 = TouchstoneEditor(snp_bin_path)
+            self.assertEqual(type(s1),SnpEditor)
+            self.assertEqual(type(s2),SnpEditor)
+        
         
     add_remove_test = True
-    new_method_test = True
     empty_object_test = True
     
-
     unittest.main()
         
     if add_remove_test:
@@ -1184,21 +1197,6 @@ if __name__=='__main__':
         rw = s1.delete_port(1)
         print(s1.S)
         rw = s1.add_port(1)
-        
-    if new_method_test:
-        wnp_text_path = os.path.join(dir_path,'test.w2p')
-        wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
-        w1 = TouchstoneEditor(wnp_text_path)
-        w2 = TouchstoneEditor(wnp_bin_path)
-        print(w1.__class__)
-        print(w2.__class__)
-        snp_text_path = os.path.join(dir_path,'test.s2p')
-        snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
-        s1 = TouchstoneEditor(snp_text_path)
-        s2 = TouchstoneEditor(snp_bin_path)
-        
-        print(s1.__class__)
-        print(s2.__class__)
         
     if empty_object_test:
         import numpy as np
