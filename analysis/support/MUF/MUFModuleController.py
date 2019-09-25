@@ -122,7 +122,7 @@ class MUFItemList:
         '''
         @brief load children from the current xml tree
         '''
-        children = self.getchildren()
+        children = self._xml_element.getchildren()
         self.add_items(children)
         
     def add_items(self,items):
@@ -191,15 +191,7 @@ class MUFItemList:
         @brief return a _muf_item value
         '''
         return self._muf_items[item_num]
-    
-    def __getattr__(self,attr):
-        '''
-        @brief pass any nonexistant attributes to the xml
-        '''
-        try:
-            return getattr(self._xml_element,attr)
-        except:
-            raise AttributeError("{} not an attribute of {}".format(attr,type(self)))
+                
         
 class MUFItem(MUFItemList):
     '''

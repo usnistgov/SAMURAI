@@ -7,7 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
-from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
+from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 
 import shutil
@@ -50,7 +50,7 @@ class MUFResult(MUFModuleController):
         self.nominal = None
         self.options['ci_percentage'] = 95
         self.options['plotter'] = None
-        self.options['plot_options'] = {}
+        self.options['plot_options'] = {'plot_program':'matplotlib'}
         for k,v in arg_options.items():
             self.options[k] = v
         if self.options['plotter'] is None:
@@ -103,6 +103,17 @@ class MUFResult(MUFModuleController):
         '''
         return self.getroot()
     
+    @property
+    def plotter(self):
+        '''
+        @brief alias for getting plotter
+        '''
+        return self.options['plotter']
+    
+    @plotter.setter
+    def plotter(self,val):
+        self.options['plotter'] = val
+    
     def __getattr__(self,attr):
         '''
         @brief pass any nonexistant attribute attempts to our nominal data class
@@ -119,17 +130,17 @@ class MUFResult(MUFModuleController):
         '''
         @brief intialize (create the classes) for our MUF statistics
         '''
-        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**arg_options)
-        self.perturbed = MUFStatistic(self._xml_perturbed,**arg_options)
+        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options)
+        self.perturbed = MUFStatistic(self._xml_perturbed,**self.options)
         
-    def calculate_statistics(self,**arg_options):
+    def calculate_statistics(self):
         '''
         @brief calculate statistics for monte carlo and perturbed data
         '''
         if self.monte_carlo is None or self.perturbed is None:
             self.init_statistics()
-        self.monte_carlo.calculate_statistics(**arg_options,plotter=self.options['plotter'])
-        self.perturbed.calculate_statistics(**arg_options,plotter=self.options['plotter'])
+        self.monte_carlo.calculate_statistics()
+        self.perturbed.calculate_statistics()
         
     def run_touchstone_function(self,funct_name,*args,**kwargs):
         '''
@@ -182,7 +193,7 @@ class MUFResult(MUFModuleController):
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
-        self.nominal = MUFStatistic(self._xml_nominal)
+        self.nominal = MUFNominalValue(self._xml_nominal)
         #and monte carlo
         ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
@@ -237,13 +248,25 @@ class MUFResult(MUFModuleController):
     ##########################################################################
     ### extra io functions
     ##########################################################################
+    def plot(self,key,stat_list=[]):
+        '''
+        @brief plot data given a specific key for the Touchstone Data
+        @param[in] key - key (e.g. 21) of the Touchstone data to plot
+        @param[in] stat_list - name of statistics to plot (e.g. 'monte_carlo','perturbed')
+        '''
+        fig = self.plotter.figure()
+        self.nominal.plot(key)
+        for stat_str in stat_list:
+            stat = getattr(self,stat_str) #get the statistic object
+            stat.plot(key)
+        return fig
     
     def _load_nominal(self):
         '''
         @brief load the nominal path value into self.nominal
         '''
         if self.nominal is None:
-            self.nominal = MUFStatistic(self._xml_nominal)
+            self.nominal = MUFNominalValue(self._xml_nominal)
         self.nominal.load_data()
         
     def _load_statistics(self):
@@ -391,7 +414,46 @@ class MUFResult(MUFModuleController):
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
         self._write_xml(out_path)
-        
+
+class MUFNominalValue(MUFStatistic):
+    '''
+    @brief class to hold nominal value
+    '''
+    def __init__(self,xml_element,**arg_options):
+        '''
+        @brief constructor
+        @param[in] xml_element - parent element for MUF statistic xml
+        @param[in/OPT] arg_options - keyword arguemnts as follows
+                plotter - SamuraiPlotter object to use
+        '''
+        super().__init__(xml_element,**arg_options)
+        self.options = {}
+        self.options['plotter'] = None
+        self.options['plot_options'] = {}
+        for k,v in arg_options.items():
+            self.options[k] = v
+        if self.options['plotter'] is None:
+            self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
+            
+    def plot(self,key,label='nominal',**arg_options):
+        '''
+        @brief plot our nominal value using the current plotter
+        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
+        @param[in/OPT] label - extra label to add to the measurement
+        @param[in/OPT] **arg_options - options passed to plot
+        '''
+        rv = self._muf_items[0].S[key].plot(DisplayName=label,**arg_options)
+        return rv
+    
+    def __getattr__(self,attr):
+        '''
+        @brief pass any attribute calls to the first MUFItem
+        '''
+        try:
+            return getattr(self._muf_items[0],attr)
+        except:
+            raise AttributeError(attr)
+
         
 class MUFStatistic(MUFItemList):
     '''
@@ -497,13 +559,12 @@ class MUFStatistic(MUFItemList):
     def calculate_statistics(self):
         '''
         @brief calculate and store all statistics. If self.data has been loaded use that
-            Otherwise just momentarily load the data
+            Otherwise load the data
         '''
         if len(self.file_paths) > 2: #make sure we have enough to make a statistic
-            if not self.data:
-                self.load_data
-            else:
-                tnp_list = self.data
+            if not self.data or self.data[0] is None:
+                self.load_data()
+            tnp_list = self.data
             data_dict = self._extract_data_dict(tnp_list)
             #estimate
             self.estimate = self._calculate_estimate(data_dict)
@@ -632,10 +693,10 @@ class MUFStatistic(MUFItemList):
         return tnp_out_p,tnp_out_m
     
     def _complex2magphase(self,data):
-        complex2magphase(data)
+        return complex2magphase(data)
     
     def _magphase2complex(self,mag,phase):
-        magphase2complex(mag,phase)
+        return magphase2complex(mag,phase)
             
     @property
     def freq_list(self):
@@ -680,7 +741,7 @@ if __name__=='__main__':
     #res2.calculate_statistics()
     
     res = MUFResult(None)
-    val = TouchstoneEditor(snppath)
+    val = TouchstoneEditor(meas_path)
     res.nominal.add_item(val)
     pvals = []
     res.init_statistics()
