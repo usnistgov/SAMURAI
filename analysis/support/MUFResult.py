@@ -7,7 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
-from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList
+from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 
 import shutil
@@ -193,19 +193,19 @@ class MUFResult(MUFModuleController):
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
-        self.nominal = MUFNominalValue(self._xml_nominal)
+        self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
         self._xml_monte_carlo.set('FullName',"Me_SplitContainer2__GroupBox3_Panel2_MonteCarloPerturbedSParams")
         self._xml_monte_carlo.set('Count',str(0))
-        self.monte_carlo = MUFStatistic(self._xml_monte_carlo)
+        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'PerturbedSParams')
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
         self._xml_perturbed.set('Count',str(0))
-        self.monte_carlo = MUFStatistic(self._xml_perturbed)
+        self.monte_carlo = MUFStatistic(self._xml_perturbed,**self.options)
         
     def set_nominal_path(self,nom_path):
         '''
@@ -259,6 +259,7 @@ class MUFResult(MUFModuleController):
         for stat_str in stat_list:
             stat = getattr(self,stat_str) #get the statistic object
             stat.plot(key)
+        self.plotter.legend()
         return fig
     
     def _load_nominal(self):
@@ -266,7 +267,7 @@ class MUFResult(MUFModuleController):
         @brief load the nominal path value into self.nominal
         '''
         if self.nominal is None:
-            self.nominal = MUFNominalValue(self._xml_nominal)
+            self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
         self.nominal.load_data()
         
     def _load_statistics(self):
@@ -414,46 +415,6 @@ class MUFResult(MUFModuleController):
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
         self._write_xml(out_path)
-
-class MUFNominalValue(MUFStatistic):
-    '''
-    @brief class to hold nominal value
-    '''
-    def __init__(self,xml_element,**arg_options):
-        '''
-        @brief constructor
-        @param[in] xml_element - parent element for MUF statistic xml
-        @param[in/OPT] arg_options - keyword arguemnts as follows
-                plotter - SamuraiPlotter object to use
-        '''
-        super().__init__(xml_element,**arg_options)
-        self.options = {}
-        self.options['plotter'] = None
-        self.options['plot_options'] = {}
-        for k,v in arg_options.items():
-            self.options[k] = v
-        if self.options['plotter'] is None:
-            self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
-            
-    def plot(self,key,label='nominal',**arg_options):
-        '''
-        @brief plot our nominal value using the current plotter
-        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
-        @param[in/OPT] label - extra label to add to the measurement
-        @param[in/OPT] **arg_options - options passed to plot
-        '''
-        rv = self._muf_items[0].S[key].plot(DisplayName=label,**arg_options)
-        return rv
-    
-    def __getattr__(self,attr):
-        '''
-        @brief pass any attribute calls to the first MUFItem
-        '''
-        try:
-            return getattr(self._muf_items[0],attr)
-        except:
-            raise AttributeError(attr)
-
         
 class MUFStatistic(MUFItemList):
     '''
@@ -704,6 +665,47 @@ class MUFStatistic(MUFItemList):
         @brief get the frequency list from the estimate value
         '''
         return self.estimate.freq_list
+    
+    
+class MUFNominalValue(MUFStatistic):
+    '''
+    @brief class to hold nominal value
+    '''
+    def __init__(self,xml_element,**arg_options):
+        '''
+        @brief constructor
+        @param[in] xml_element - parent element for MUF statistic xml
+        @param[in/OPT] arg_options - keyword arguemnts as follows
+                plotter - SamuraiPlotter object to use
+        '''
+        super().__init__(xml_element,**arg_options)
+        self.options = {}
+        self.options['plotter'] = None
+        self.options['plot_options'] = {}
+        for k,v in arg_options.items():
+            self.options[k] = v
+        if self.options['plotter'] is None:
+            self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
+            
+    def plot(self,key,label='nominal',**arg_options):
+        '''
+        @brief plot our nominal value using the current plotter
+        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
+        @param[in/OPT] label - extra label to add to the measurement
+        @param[in/OPT] **arg_options - options passed to plot
+        '''
+        rv = self._muf_items[0].S[key].plot(DisplayName=label,**arg_options)
+        return rv
+    
+    def __getattr__(self,attr):
+        '''
+        @brief pass any attribute calls to the first MUFItem
+        '''
+        try:
+            return getattr(self._muf_items[0],attr)
+        except:
+            raise AttributeError(attr)
+
 
 ###################################################
 ### Some useful functions
@@ -758,16 +760,16 @@ if __name__=='__main__':
     #res3.write('test/write_test/test3.meas')
     
     
-    res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
-    res.S[21].plot()
-    print("Calculating Statistics")
-    res.calculate_statistics()
-    sp = res.options['plotter']
-    res.monte_carlo.plot(21)
-    sp.legend()
-    sp.figure()
-    res.perturbed.plot(21)
-    sp.legend()
+    #res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
+    #res.S[21].plot()
+    #print("Calculating Statistics")
+    #res.calculate_statistics()
+    #sp = res.options['plotter']
+    #res.monte_carlo.plot(21)
+    #sp.legend()
+    #sp.figure()
+    #res.perturbed.plot(21)
+    #sp.legend()
    
     
     #res_m = MUFResult('test.meas')
