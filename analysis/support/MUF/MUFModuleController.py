@@ -228,13 +228,14 @@ class MUFItem(MUFItemList):
         '''
         pass #dont do anything here to load
         
-    def load_data(self,load_funct,subitem_idx=1):
+    def load_data(self,load_funct,subitem_idx=1,**kwargs):
         '''
         @brief load the data from the path subitem to self.data
         @param[in] load_class - function to load the data (can also be a class constructor)
         @param[in] subitem_idx - which index the path is to load (typically its self[0])
+        @param[in] **kwargs - keyword arguments to pass to load_funct
         '''
-        self.data = load_funct(self[subitem_idx])
+        self.data = load_funct(self[subitem_idx],**kwargs)
         
     def __getitem__(self,item_num):
         '''
