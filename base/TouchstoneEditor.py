@@ -396,8 +396,10 @@ class TouchstoneEditor(object):
        #now plot
        for w in waves:
            for k in keys:
-               self.waves[w][k].plot(data_type)
-           
+              data = getattr(self,data_type)
+              freqs = self.waves[w][k].freq_list
+              data = getattr(self.waves[w][k],data_type)
+              rv = self.options['plotter'].plot(freqs,data,xlabel='Freq (GHz)',ylabel=data_type,**arg_options)           
             
    def _verify_freq_lists(self):
        '''
@@ -779,12 +781,8 @@ class TouchstoneParam:
             plot_options - dictionary of args to pass to SamuraiPlotter (if plotter not specified)
         '''
         self.options = {}
-        self.options['plot_options'] = {'plot_order':['matplotlib']}
-        self.options['plotter'] = None
         for k,v in arg_options.items():
             self.options[k] = v
-        if self.options['plotter'] is None: #start up plotter if not provided
-            self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         self.update(freq_list,raw_list)
         
     def sort(self):
@@ -796,15 +794,6 @@ class TouchstoneParam:
         freq_list,raw = zip(*myzipped)
         self.freq_list = np.array(freq_list)
         self.raw = np.array(raw)
-        
-    def plot(self,data_type='mag_db',**arg_options):
-        '''
-        @brief plot parameter data and return the figure
-        @param[in/OPT] data_type - type of data to plot. 'mag_db','mag','phase','phase_d','raw' possible
-        '''
-        data = getattr(self,data_type)
-        rv = self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (GHz)',ylabel=data_type,**arg_options)
-        return rv
         
     #crop out all frequencies outside a window given by lo and hi frequencies (in Hz)
     def crop(self,lo_freq=0,hi_freq=1e60):
