@@ -411,10 +411,7 @@ class TouchstoneEditor(object):
        #now plot
        for w in waves:
            for k in keys:
-              data = getattr(self,data_type)
-              freqs = self.waves[w][k].freq_list
-              data = getattr(self.waves[w][k],data_type)
-              rv = self.options['plotter'].plot(freqs,data,xlabel='Freq (GHz)',ylabel=data_type,**arg_options)           
+              self.waves[w][k].plot(data_type,**arg_options)
             
    def _verify_freq_lists(self):
        '''
@@ -816,6 +813,8 @@ class TouchstoneParam:
             plot_options - dictionary of args to pass to SamuraiPlotter (if plotter not specified)
         '''
         self.options = {}
+        self.options['plotter'] = None #this should be provided by the parent
+        self.options['plot_options'] = {}
         for k,v in arg_options.items():
             self.options[k] = v
         self.update(freq_list,raw_list)
