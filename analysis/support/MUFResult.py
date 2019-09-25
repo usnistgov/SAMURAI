@@ -255,10 +255,10 @@ class MUFResult(MUFModuleController):
         @param[in] stat_list - name of statistics to plot (e.g. 'monte_carlo','perturbed')
         '''
         fig = self.plotter.figure()
-        self.nominal.plot(key)
         for stat_str in stat_list:
             stat = getattr(self,stat_str) #get the statistic object
             stat.plot(key)
+        self.nominal.plot(key)
         self.plotter.legend()
         return fig
     
@@ -476,7 +476,7 @@ class MUFStatistic(MUFItemList):
         @brief load in all of the data from each of the files
         '''
         for it in self.muf_items:
-            it.load_data(TouchstoneEditor)
+            it.load_data(TouchstoneEditor,**self.options)
     
     def _extract_data_dict(self,tnp_list):
         '''
