@@ -5,11 +5,11 @@ edit .snp files (.s2p,.s4p,etc...)
 @author: ajw5
 """
 import os
-import cmath 
 import numpy as np
 import copy
 import re
-import six
+import operator
+from functools import reduce
 from xml.dom.minidom import parse 
 
 from samurai.base.SamuraiPlotter import SamuraiPlotter
@@ -36,23 +36,29 @@ class TouchstoneEditor(object):
        @param[in] input_file - path of file to load in. 
                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                measurement with n ports and frequencies [f1,f2,...] 
+       @param[in/OPT] **kwargs - keyword arguments. most passed to init but the following:
+           override_extension_check - prevent the class from being changed due to extension
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data
        '''
-       if isinstance(input_file,str): #this could be a list for an empty object
-           _,ext = os.path.splitext(input_file)
-           if re.findall('meas',ext):
-               input_file = get_unperturbed_meas(input_file)
+       override_extension_check = kwargs.pop('override_extension_check',None)
+       if not override_extension_check: #we can override this new set for certain cases
+           if isinstance(input_file,str): #this could be a list for an empty object
                _,ext = os.path.splitext(input_file)
-           if re.findall('w[\d]+p',ext):
-               out_cls = WnpEditor
-           elif re.findall('s[\d]+p',ext):
-               out_cls = SnpEditor
-           elif re.findall('waveform',ext):
-               out_cls = WaveformEditor
-           else:
-               out_cls = cls
-       else: #if its a list, return whatever it was instantiated as
-           out_cls = cls 
+               if re.findall('meas',ext):
+                   input_file = get_unperturbed_meas(input_file)
+                   _,ext = os.path.splitext(input_file)
+               if re.findall('w[\d]+p',ext):
+                   out_cls = WnpEditor
+               elif re.findall('s[\d]+p',ext):
+                   out_cls = SnpEditor
+               elif re.findall('waveform',ext):
+                   out_cls = WaveformEditor
+               else:
+                   out_cls = cls
+           else: #if its a list, return whatever it was instantiated as
+               out_cls = cls 
+       else: #if we override return whatever it is defined as
+           out_cls = cls
        instance = super().__new__(out_cls)
        if out_cls != cls: #run the init if it hasn't yet
            instance.__init__(input_file,*args,**kwargs)
@@ -82,7 +88,7 @@ class TouchstoneEditor(object):
         self.options['plot_options'] = {'plot_program':'matplotlib'}
         self.options['no_load'] = False
         self.options['default_extension'] = 'tnp' #default
-        for key,val in six.iteritems(arg_options): #overwrite defaults with inputs
+        for key,val in arg_options.items(): #overwrite defaults with inputs
             self.options[key] = val 
         #init plotter if not providied
         if self.options['plotter'] is None:
@@ -630,7 +636,7 @@ class TouchstoneEditor(object):
             params_to_avg = [] #params to average
             for k in key_list:
                 params_to_avg.append(self.waves[wk][k]) #append the parameters
-            avg_param = np.sum(params_to_avg)
+            avg_param = reduce(operator.add,params_to_avg) #reduce to single parameter
             avg_param.raw.real /= len(params_to_avg) #average complex numbers
             avg_param.raw.imag /= len(params_to_avg) 
             for k in key_list: #now set all of the keys. Each key will have a deep copy
@@ -867,6 +873,12 @@ class TouchstoneParam:
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])
         return times,ifft_vals
+    
+    def calculate_dft(self,output_vals):
+        '''
+        @brief directly calculate the dft for current values and return arbitrary output values
+        '''
+        pass
     
     def plot(self,data_type='mag_db',**plot_options):
         '''
@@ -1195,7 +1207,9 @@ if __name__=='__main__':
     add_remove_test = True
     empty_object_test = True
     
-    unittest.main()
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    #unittest.main()
         
     if add_remove_test:
         f1 = os.path.join(dir_path,'test.s2p')
