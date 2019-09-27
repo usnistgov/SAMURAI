@@ -37,22 +37,29 @@ class TouchstoneEditor(object):
        @param[in] input_file - path of file to load in. 
                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                measurement with n ports and frequencies [f1,f2,...] 
+       @param[in/OPT] **kwargs - keyword arguments. most passed to init but the following:
+           override_extension_check - prevent the class from being changed due to extension
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data
        '''
        override_extension_check = kwargs.pop('override_extension_check',None)
        if not override_extension_check: #we can override this new set for certain cases
            if isinstance(input_file,str): #this could be a list for an empty object
                _,ext = os.path.splitext(input_file)
-           if re.findall('w[\d]+p',ext):
-               out_cls = WnpEditor
-           elif re.findall('s[\d]+p',ext):
-               out_cls = SnpEditor
-           elif re.findall('waveform',ext):
-               out_cls = WaveformEditor
-           else:
-               out_cls = cls
-       else: #if its a list, return whatever it was instantiated as
-           out_cls = cls 
+               if re.findall('meas',ext):
+                   input_file = get_unperturbed_meas(input_file)
+                   _,ext = os.path.splitext(input_file)
+               if re.findall('w[\d]+p',ext):
+                   out_cls = WnpEditor
+               elif re.findall('s[\d]+p',ext):
+                   out_cls = SnpEditor
+               elif re.findall('waveform',ext):
+                   out_cls = WaveformEditor
+               else:
+                   out_cls = cls
+           else: #if its a list, return whatever it was instantiated as
+               out_cls = cls 
+       else: #if we override return whatever it is defined as
+           out_cls = cls
        instance = super().__new__(out_cls)
        if out_cls != cls: #run the init if it hasn't yet
            instance.__init__(input_file,*args,**kwargs)
