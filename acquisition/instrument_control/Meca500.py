@@ -32,7 +32,7 @@ from samurai.base.generic import deprecated
 
 class Meca500:
     
-    def __init__(self,ip_addr='10.0.0.5',simulation_mode=False,**options):
+    def __init__(self,ip_addr,simulation_mode=False,**options):
         '''
         @brief Initialize but do not connect the Meca500 positioner class
 

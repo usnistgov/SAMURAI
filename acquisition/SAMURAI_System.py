@@ -22,8 +22,8 @@ import os
 
 #these are default values. These seem to change with the system realatively often so they are placed here at the top
 pnagrabber_template_path = './template.pnagrabber'
-vna_visa_addr = 'TCPIP0::10.0.0.2::inst0::INSTR'
-rx_positioner_address = '10.0.0.5'
+vna_visa_addr = 'TCPIP0::192.168.0.2::inst0::INSTR'
+rx_positioner_address = '192.168.0.5'
 
 class SAMURAI_System():
     """
@@ -55,7 +55,7 @@ class SAMURAI_System():
         self.is_connected = False
         self.set_simulation_mode(is_simulation)
         #self.connect_rx_positioner();
-        self.rx_positioner = Meca500() #meca500 positioner
+        self.rx_positioner = Meca500(rx_positioner_address) #meca500 positioner
 
         
     def connect_rx_positioner(self,run_simulation=None):
