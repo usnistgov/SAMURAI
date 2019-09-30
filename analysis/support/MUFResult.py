@@ -7,7 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
-from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController
+from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 
 import shutil
@@ -50,7 +50,7 @@ class MUFResult(MUFModuleController):
         self.nominal = None
         self.options['ci_percentage'] = 95
         self.options['plotter'] = None
-        self.options['plot_options'] = {}
+        self.options['plot_options'] = {'plot_program':'matplotlib'}
         for k,v in arg_options.items():
             self.options[k] = v
         if self.options['plotter'] is None:
@@ -59,63 +59,21 @@ class MUFResult(MUFModuleController):
         menu_path = meas_path
 
         self.load(menu_path,**arg_options)
-        
-    def init_statistics(self,**arg_options):
-        '''
-        @brief intialize (create the classes) for our MUF statistics
-        '''
-        mc_paths = self.get_monte_carlo_path_list()
-        self.monte_carlo = MUFStatistic(mc_paths,**arg_options)
-        pt_paths = self.get_perturbed_path_list()
-        self.perturbed = MUFStatistic(pt_paths,**arg_options)
-        
-    def calculate_statistics(self,**arg_options):
-        '''
-        @brief calculate statistics for monte carlo and perturbed data
-        '''
-        if self.monte_carlo is None or self.perturbed is None:
-            self.init_statistics()
-        self.calculate_monte_carlo_statistics(**arg_options,plotter=self.options['plotter'])
-        self.calculate_perturbed_statistics(**arg_options,plotter=self.options['plotter'])
-        
-    def calculate_monte_carlo_statistics(self,**arg_options):
-        '''
-        @brief calculate monte carlo statistics
-        '''
-        self.monte_carlo.calculate_statistics()
-        
-    def calculate_perturbed_statistics(self,**arg_options):
-        '''
-        @brief calculate perturbed data statistics
-        '''
-        self.perturbed.calculate_statistics()
-        
-    def get_monte_carlo_path_list(self):
-        '''
-        @brief get a list of paths to our monte carlo data
-        @return list of paths to monte carlo data
-        '''
-        mc_el_list = self._xml_monte_carlo.findall('Item')
-        path_list = [items[1].get('Text') for items in mc_el_list]
-        return path_list
-    
-    def get_perturbed_path_list(self):
-        '''
-        @brief get a list of paths of perterturbed data
-        @return list of paths to perturbed data
-        '''
-        pert_list = self._xml_perturbed.findall('Item')
-        path_list = [items[1].get('Text') for items in pert_list]
-        return path_list
-        
+      
+    ##########################################################################
+    ### XML and other properties for easy access
+    ##########################################################################
     @property
     def nominal_value_path(self):
         '''
         @brief property to return the path of the nominal value
         @return the path to the *.meas nominal value
         '''
-        nom_name = self._xml_nominal[0][1].get('Text')
-        return nom_name
+        if self.nominal.count:
+            nom_name = self._xml_nominal[0][1]
+            return nom_name
+        else:
+            return None
     
     @property
     def _xml_nominal(self):
@@ -145,18 +103,45 @@ class MUFResult(MUFModuleController):
         '''
         return self.getroot()
     
+    @property
+    def plotter(self):
+        '''
+        @brief alias for getting plotter
+        '''
+        return self.options['plotter']
+    
+    @plotter.setter
+    def plotter(self,val):
+        self.options['plotter'] = val
+    
     def __getattr__(self,attr):
         '''
-        @brief pass any nonexistant attribute attempts to our nominal value class
+        @brief pass any nonexistant attribute attempts to our nominal data class
         '''
         try:
-            return getattr(self.nominal,attr)
+            return getattr(self.nominal[0].data,attr)
         except:
             raise AttributeError('{} not in self or self.nominal'.format(attr))
             
     ##########################################################################
-    ### Data editing functions. This will only operate on loaded data
+    ### Data editing and statistics functions. only operates on loaded data
     ##########################################################################
+    def init_statistics(self,**arg_options):
+        '''
+        @brief intialize (create the classes) for our MUF statistics
+        '''
+        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options)
+        self.perturbed = MUFStatistic(self._xml_perturbed,**self.options)
+        
+    def calculate_statistics(self):
+        '''
+        @brief calculate statistics for monte carlo and perturbed data
+        '''
+        if self.monte_carlo is None or self.perturbed is None:
+            self.init_statistics()
+        self.monte_carlo.calculate_statistics()
+        self.perturbed.calculate_statistics()
+        
     def run_touchstone_function(self,funct_name,*args,**kwargs):
         '''
         @brief run a function on all loaded touchstone files
@@ -182,19 +167,11 @@ class MUFResult(MUFModuleController):
     ##########################################################################
     ### parts to create a new *.meas file from a *.snp or *.wnp
     ##########################################################################
-    def create_meas(self,nom_path,monte_carlo_path_list=[],perturbed_path_list=[]):
+    def create_meas(self):
         '''
-        @brief create a *.meas file xml setup
-        @param[in] nom_path - path to nominal measurement
-        @param[in/OPT] monte_carlo_path_list - list of monte carlo paths 
-        @param[in/OPT] perturbed_path_list - list of perturbed snp paths
+        @brief create a *.meas file xml setup. This will be an empty measurement
         '''
-        self._create_meas() #create the skeleton
-        self._add_nominal_path(nom_path) #nominal
-        self._add_meas_item_list(monte_carlo_path_list,self._xml_monte_carlo) #mc
-        self._add_meas_item_list(perturbed_path_list,self._xml_perturbed) #perturbed
-        self.__init__(nom_path)
-        
+        self._create_meas() #create the skeleton        
         
     def _create_meas(self):
         import getpass
@@ -216,81 +193,82 @@ class MUFResult(MUFModuleController):
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
+        self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
         self._xml_monte_carlo.set('FullName',"Me_SplitContainer2__GroupBox3_Panel2_MonteCarloPerturbedSParams")
         self._xml_monte_carlo.set('Count',str(0))
+        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'PerturbedSParams')
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
         self._xml_perturbed.set('Count',str(0))
+        self.monte_carlo = MUFStatistic(self._xml_perturbed,**self.options)
         
     def set_nominal_path(self,nom_path):
         '''
         @brief add a nominal path to the xml *.meas file
         @param[in] nom_path - nominal path
         '''
-        self._set_paths(self._xml_nominal,[nom_path])
+        self.nominal[0][0] = get_name_from_path(nom_path)
+        self.nominal[0][1] = nom_path
         
     def set_monte_carlo_paths(self,mc_path_list):
         '''
         @brief overwrite our monte carlo paths
         '''
-        self._set_paths(self._xml_monte_carlo,mc_path_list)
+        if len(mc_path_list) != len(self.monte_carlo.muf_items):
+            raise Exception("Input List must match the length of the number of items")
+        for i,item in enumerate(self.monte_carlo.muf_items):
+            cur_path = mc_path_list[i]
+            item[0] = get_name_from_path(cur_path)
+            item[1] = cur_path
         
     def set_perturbed_paths(self,pt_path_list):
         '''
         @brief overwrite perturbed paths
         '''
-        self._set_paths(self._xml_perturbed,pt_path_list)
-        
-    def _set_paths(self,parent_element,path_list,subelem_idx=1):
-        '''
-        @brief function to set all paths from a list. This assumes the path is in subelement 1 (index from 0)
-        '''
-        for i,child in enumerate(list(parent_element)):
-            list(child)[subelem_idx].attrib['Text'] = path_list[i]
+        if len(pt_path_list) != len(self.perturbed.muf_items):
+            raise Exception("Input List must match the length of the number of items")
+        for i,item in enumerate(self.perturbed.muf_items):
+            cur_path = pt_path_list[i]
+            item[0] = get_name_from_path(cur_path)
+            item[1] = cur_path
       
-    def _add_meas_item_list(self,parent_element,path_list):
+    def add_meas_item_list(self,item_list,path_list):
         '''
         @brief add a measurement list from items and place it in a parent element (e.g self._xml_monte_carlo)
         '''
-        item_list = []
         for i,path in enumerate(path_list):
-            item_list.append(self._create_meas_item(path))
-        self.add_items(parent_element,item_list)
-        
-    def _create_meas_item(self,path,name=None):
-        '''
-        @brief create an element for an item (a measurement in a .meas file)
-        @param[in] path - path to the measurement
-        @param[in/OPT] name - name of the item. If none use the name of the file
-        '''
-        if name is None:
-            name = self._get_name_from_path(path)
-        subitem_text = [name,path]
-        return self.create_item(name,subitem_text)
+            name = get_name_from_path(path)
+            item_list.add_item([name,path]) #add the item to the MUFItemList
         
     ##########################################################################
     ### extra io functions
     ##########################################################################
-    
-    
-    
-    def _load_data(self,meas_path):
+    def plot(self,key,stat_list=[]):
         '''
-        @brief load some data and return a loaded touchstoneEditor object
+        @brief plot data given a specific key for the Touchstone Data
+        @param[in] key - key (e.g. 21) of the Touchstone data to plot
+        @param[in] stat_list - name of statistics to plot (e.g. 'monte_carlo','perturbed')
         '''
-        return TouchstoneEditor(meas_path)
+        fig = self.plotter.figure()
+        for stat_str in stat_list:
+            stat = getattr(self,stat_str) #get the statistic object
+            stat.plot(key)
+        self.nominal.plot(key)
+        self.plotter.legend()
+        return fig
     
     def _load_nominal(self):
         '''
         @brief load the nominal path value into self.nominal
         '''
-        nom_data = self._load_data(self.nominal_value_path)
-        self.nominal = nom_data
+        if self.nominal is None:
+            self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
+        self.nominal.load_data()
         
     def _load_statistics(self):
         '''
@@ -325,11 +303,10 @@ class MUFResult(MUFModuleController):
             if '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
                 self.set_nominal_path(meas_path)
-                menu_path = None
             else:
                 self._load_xml(meas_path)
         else:
-            raise Exception('Please Provide a *.meas path or a snp/wnp path')
+            self.create_meas()
         #load our nominal and statistics if specified
         if options['load_nominal']:
             self._load_nominal()
@@ -351,13 +328,13 @@ class MUFResult(MUFModuleController):
         @param[in/OPT] out_name - name to write out (default 'nominal')
         '''
         out_file = os.path.join(out_dir,out_name)
-        if self.nominal is None: #then copy the file
+        if self.nominal[0].data is None: #then copy the file
             fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
             nom_path = self.nominal_value_path
             fname+=os.path.splitext(nom_path)[-1]
             fname = shutil.copy(nom_path,fname)
         else:
-            fname = self.nominal.write(out_file)
+            fname = self.nominal[0].data.write(out_file)
         fname = os.path.abspath(fname)
         self.set_nominal_path(fname)
             
@@ -439,8 +416,7 @@ class MUFResult(MUFModuleController):
         self._write_data(out_dir,**kwargs)
         self._write_xml(out_path)
         
-import scipy.stats as st
-class MUFStatistic:
+class MUFStatistic(MUFItemList):
     '''
     @brief a class to generically calculate and hold statistics that the MUF does
          This will calculate and store the following statistics:
@@ -449,13 +425,14 @@ class MUFStatistic:
              -nominal estimate (for monte carlos, sensitivity will just be nominal)
         Each of these uncertainties will be stored
     '''
-    def __init__(self,stat_paths,**arg_options):
+    def __init__(self,xml_element,**arg_options):
         '''
         @brief constructor for the class. 
-        @param[in] stat_paths - list of paths to statistics measurements (should be snp or wnp (can be binary))
+        @param[in] xml_element - parent element for MUF statistic xml
         @param[in/OPT] arg_options - keyword arguemnts as follows
                 ci_percentage - confidence interval percentage (default is 95)
         '''
+        super().__init__(xml_element)
         self.options = {}
         self.options['ci_percentage'] = 95
         self.options['plotter'] = None
@@ -464,22 +441,91 @@ class MUFStatistic:
             self.options[k] = v
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
-        self.file_paths = stat_paths
         #properties
         self.confidence_interval = {}
         self.standard_uncertainty = {}
-        self.data = None
+        
+    ###################################################
+    ### IO Operations
+    ################################################### 
+    def plot(self,key,label=''):
+        '''
+        @brief plot statistics for a given key value 
+        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
+        '''
+        rv_list = []
+        rv_list.append(self.estimate.S[key].plot(DisplayName=label+' estimate'))
+        rv_list.append(self.confidence_interval['+'].S[key].plot(DisplayName=label+' ci+ '+str(self.options['ci_percentage'])+'%'))
+        rv_list.append(self.confidence_interval['-'].S[key].plot(DisplayName=label+' ci- '+str(self.options['ci_percentage'])+'%'))
+        rv_list.append(self.standard_uncertainty['+'].S[key].plot(DisplayName=label+' std uncert +'))
+        rv_list.append(self.standard_uncertainty['-'].S[key].plot(DisplayName=label+' std uncert -'))
+        return rv_list
+    
+    def add_item(self,item):
+        '''
+        @brief extend super().add_item to allow adding Touchstone params
+        '''
+        if isinstance(item,TouchstoneEditor):#then make a MUFItem and set the value as the data
+            mi = MUFItem(['name','path'])
+            mi.data = item
+            item = mi
+        super().add_item(item)
+        
+    def load_data(self):
+        '''
+        @brief load in all of the data from each of the files
+        '''
+        for it in self.muf_items:
+            it.load_data(TouchstoneEditor,**self.options)
+    
+    def _extract_data_dict(self,tnp_list):
+        '''
+        @brief extract data from our snp_list into a dictionary with snp_list[0].wave_dict_key keys
+                and values of (n,m) 2D numpy arrays where n is len(snp_list) and m is len(snp_list[0].freq_list)
+        @return a dictionary as described in the brief
+        '''
+        data_dict = {}
+        data_dict['freq_list'] = tnp_list[0].freq_list
+        data_dict['editor_type'] = type(tnp_list[0]) #assume all of same type
+        data_dict['first_key'] = tnp_list[0].wave_dict_keys[0]
+        for k in tnp_list[0].wave_dict_keys:
+            data_dict[k] = np.array([tnp.S[k].raw for tnp in tnp_list])
+        return data_dict
+        
+    def write_data(self,format_out_path):
+        '''
+        @brief write the data to a provided output path with a formattable string for numbering
+        @param[in] format_out_path - formattable output path (e.g. path/to/data/monte_carlo_{}.snp/wnp)
+        '''
+        for i,item in enumerate(self.muf_items):
+            item.write(format_out_path.format(i))
             
+    @property
+    def data(self):
+        '''
+        @brief return list of all loaded data
+        '''
+        return [it.data for it in self.muf_items]
+            
+    @property
+    def file_paths(self):
+        '''
+        @brief get all of our file paths
+        '''
+        return [mi[1] for mi in self.muf_items]
+
+    ###################################################
+    ### Statistics Operations
+    ###################################################        
     def calculate_statistics(self):
         '''
         @brief calculate and store all statistics. If self.data has been loaded use that
-            Otherwise just momentarily load the data
+            Otherwise load the data
         '''
         if len(self.file_paths) > 2: #make sure we have enough to make a statistic
-            if self.data is None:
-                tnp_list = self._load_stat_files_to_list()
-            else:
-                tnp_list = self.data
+            if not self.data or self.data[0] is None:
+                self.load_data()
+            tnp_list = self.data
             data_dict = self._extract_data_dict(tnp_list)
             #estimate
             self.estimate = self._calculate_estimate(data_dict)
@@ -529,45 +575,7 @@ class MUFStatistic:
         cim = self.confidence_interval['-'].S[key].get_value_from_frequency(freq)
         stp = self.standard_uncertainty['+'].S[key].get_value_from_frequency(freq)
         stm = self.standard_uncertainty['-'].S[key].get_value_from_frequency(freq)
-        return est,cip,cim,stp,stm
-    
-    def plot(self,key,label=''):
-        '''
-        @brief plot statistics for a given key value 
-        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
-        '''
-        rv_list = []
-        rv_list.append(self.estimate.S[key].plot(DisplayName=label+' estimate'))
-        rv_list.append(self.confidence_interval['+'].S[key].plot(DisplayName=label+' ci+ '+str(self.options['ci_percentage'])+'%'))
-        rv_list.append(self.confidence_interval['-'].S[key].plot(DisplayName=label+' ci- '+str(self.options['ci_percentage'])+'%'))
-        rv_list.append(self.standard_uncertainty['+'].S[key].plot(DisplayName=label+' std uncert +'))
-        rv_list.append(self.standard_uncertainty['-'].S[key].plot(DisplayName=label+' std uncert -'))
-        return rv_list
-        
-    def _load_stat_files_to_list(self):
-        '''
-        @brief load the files in self.file_paths to a WnpEditor list
-        @return list of TouchstoneEditor like objects for the files in stat_paths
-        '''
-        tnp_list = []
-        for path in self.file_paths:
-            tnp_list.append(TouchstoneEditor(path))
-        return tnp_list
-    
-    def load_data(self):
-        '''
-        @brief load our statistics files to self.stat_files. These will be WnpEditor types
-        '''
-        self.data = self._load_stat_files_to_list()
-        
-    def write_data(self,format_out_path):
-        '''
-        @brief write the data to a provided output path with a formattable string for numbering
-        @param[in] format_out_path - formattable output path (e.g. path/to/data/monte_carlo_{}.snp/wnp)
-        '''
-        for i,d in enumerate(self.data):
-            d.write(format_out_path.format(i))
-            
+        return est,cip,cim,stp,stm        
     
     def _calculate_estimate(self,data_dict):
         '''
@@ -589,7 +597,6 @@ class MUFStatistic:
             tnp_out.S[k].update(freq_list,data_mean)
         return tnp_out
             
-    
     def _calculate_confidence_interval(self,data_dict):
         '''
         @brief calculate the n% confidence interval where n is self.options['ci_percentage']
@@ -646,34 +653,11 @@ class MUFStatistic:
             tnp_out_m.S[k].update(freq_list,data_minus)
         return tnp_out_p,tnp_out_m
     
-    
-    def _extract_data_dict(self,tnp_list):
-        '''
-        @brief extract data from our snp_list into a dictionary with snp_list[0].wave_dict_key keys
-                and values of (n,m) 2D numpy arrays where n is len(snp_list) and m is len(snp_list[0].freq_list)
-        @return a dictionary as described in the brief
-        '''
-        data_dict = {}
-        data_dict['freq_list'] = tnp_list[0].freq_list
-        data_dict['editor_type'] = type(tnp_list[0]) #assume all of same type
-        data_dict['first_key'] = tnp_list[0].wave_dict_keys[0]
-        for k in tnp_list[0].wave_dict_keys:
-            data_dict[k] = np.array([tnp.S[k].raw for tnp in tnp_list])
-        return data_dict
-    
     def _complex2magphase(self,data):
-        '''
-        @brief take a ndarray and change it to mag phase
-        '''
-        return np.abs(data),np.angle(data)
+        return complex2magphase(data)
     
     def _magphase2complex(self,mag,phase):
-        '''
-        @brief turn magnitude phase data into complex data
-        '''
-        real = mag*np.cos(phase)
-        imag = mag*np.sin(phase)
-        return real+1j*imag
+        return magphase2complex(mag,phase)
             
     @property
     def freq_list(self):
@@ -681,6 +665,71 @@ class MUFStatistic:
         @brief get the frequency list from the estimate value
         '''
         return self.estimate.freq_list
+    
+    
+class MUFNominalValue(MUFStatistic):
+    '''
+    @brief class to hold nominal value
+    '''
+    def __init__(self,xml_element,**arg_options):
+        '''
+        @brief constructor
+        @param[in] xml_element - parent element for MUF statistic xml
+        @param[in/OPT] arg_options - keyword arguemnts as follows
+                plotter - SamuraiPlotter object to use
+        '''
+        super().__init__(xml_element,**arg_options)
+        self.options = {}
+        self.options['plotter'] = None
+        self.options['plot_options'] = {}
+        for k,v in arg_options.items():
+            self.options[k] = v
+        if self.options['plotter'] is None:
+            self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
+            
+    def plot(self,key,label='nominal',**arg_options):
+        '''
+        @brief plot our nominal value using the current plotter
+        @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
+        @param[in/OPT] label - extra label to add to the measurement
+        @param[in/OPT] **arg_options - options passed to plot
+        '''
+        rv = self._muf_items[0].S[key].plot(DisplayName=label,**arg_options)
+        return rv
+    
+    def __getattr__(self,attr):
+        '''
+        @brief pass any attribute calls to the first MUFItem
+        '''
+        try:
+            return getattr(self._muf_items[0],attr)
+        except:
+            raise AttributeError(attr)
+
+
+###################################################
+### Some useful functions
+###################################################  
+def complex2magphase(data):
+    '''
+    @brief take a ndarray and change it to mag phase
+    '''
+    return np.abs(data),np.angle(data)
+
+def magphase2complex(mag,phase):
+    '''
+    @brief turn magnitude phase data into complex data
+    '''
+    real = mag*np.cos(phase)
+    imag = mag*np.sin(phase)
+    return real+1j*imag
+
+def get_name_from_path(path):
+    '''
+    @brief extract a name from a path (no extension or directory)
+    '''
+    return os.path.splitext(os.path.split(path)[-1])[0]
+
 
 if __name__=='__main__':
     from samurai.base.SamuraiPlotter import SamuraiPlotter
@@ -688,24 +737,40 @@ if __name__=='__main__':
     meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
     #res = MUFResult(meas_path,load_stats=True)
     res2 = MUFResult(meas_path)
-    res2.calculate_statistics()
+    mil = MUFStatistic(res2._xml_monte_carlo)
+    mil.file_paths
+    #MUFItem(res2._xml_monte_carlo.getchildren()[-1])
+    #res2.calculate_statistics()
+    
+    res = MUFResult(None)
+    val = TouchstoneEditor(meas_path)
+    res.nominal.add_item(val)
+    pvals = []
+    res.init_statistics()
+   # res.monte_carlo.data = []
+    for i in range(5):
+        rand_vals = ((np.random.rand(len(val))*2)-1)/10
+        pvals.append(val*rand_vals)
+    res.monte_carlo.add_items(pvals)
+    res.write('test/meas_test.meas',write_nominal=True,write_statistics=True)
     #res3 = MUFResult('test.s2p')
     #os.chdir('test/write_test')
     #res.write('test/write_test/test.meas')
     #res2.write('test/write_test/test2.meas')
     #res3.write('test/write_test/test3.meas')
-    '''
-    res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
-    res.S[11].plot()
-    print("Calculating Statistics")
-    res.calculate_statistics()
-    sp = res.options['plotter']
-    res.monte_carlo.plot(11)
-    sp.legend()
-    sp.figure()
-    res.perturbed.plot(11)
-    sp.legend()
-    '''
+    
+    
+    #res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
+    #res.S[21].plot()
+    #print("Calculating Statistics")
+    #res.calculate_statistics()
+    #sp = res.options['plotter']
+    #res.monte_carlo.plot(21)
+    #sp.legend()
+    #sp.figure()
+    #res.perturbed.plot(21)
+    #sp.legend()
+   
     
     #res_m = MUFResult('test.meas')
     #res_s = MUFResult('test.s2p')
