@@ -99,11 +99,11 @@ A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, an
 
 ### IP and VISA Addresses
 
-- PNA-X = [10.0.0.2](http://10.0.0.2)
+- PNA-X = [192.168.0.2](http://192.168.0.2)
   - VISA Address = 'TCPIP0::10.0.0.2::inst0::INSTR'
-- Meca500 = [10.0.0.5](http://10.0.0.5)
+- Meca500 = [192.168.0.5](192.168.0.5)
   - VISA Address = Could not get VISA to work correctly! Connect using sockets.
-- IP Webcam = [10.0.0.101](http://10.0.0.101)
+- IP Webcam = [192.168.0.11](192.168.0.11)
   - Username: `admin` -- Password: `123456`
   - A live stream will show up if you go to the above address and login
   - A VLC stream has higher latency but can be connected by the following steps:
@@ -112,7 +112,7 @@ A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, an
     3. Enter `rtsp://admin:123456@10.0.0.101:554/cam1/mpeg4` and click connect
     4. To take a snapshot click `Video->Take Snapshot`. This will save a snapshot to the users `Pictures` folder from which it can then be renamed and copied
       - The VLC stream has not always been reliable and may freeze. For this reason it is recommended to use the web interface except when taking snapshots of the setup
-- Computer = [10.0.0.7](http://10.0.0.7)
+- Computer = [192.168.0.1](http://192.168.0.1)
   - VISA Address = N/A (local loopback is 127.0.0.1)
   - Setting Network adapter settings for local network:
     1. Go to `Control Panel->Network and Internet->Network Connections`
@@ -123,7 +123,11 @@ A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, an
         - subnet mask = 255.0.0.0
         - Default gateway = DO NOT POPULATE
     5. Then click `OK` and `Close` to close out of the properties menu. You should now be able to access items on the local network.
-- Network Switch = [10.0.0.1](http://10.0.0.1)
+- Network Switch = [192.168.0.239](192.168.0.239)
+    - Password is `password`
+- Optitrack Cameras = [192.168.0.???](192.168.0.255)
+    - These IP addresses are unkown to the user
+    - It is possible at some point in time these may conflict with one of the other devices on the network. If so change the IP of whatever device is conflicting.
 # Running the SAMURAI Software
 
 This section covers the steps required to run a SAMURAI measurement
