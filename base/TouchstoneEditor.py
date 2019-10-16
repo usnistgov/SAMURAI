@@ -907,7 +907,7 @@ class TouchstoneParam:
         times = np.linspace(0,total_time,self.freq_list.shape[0])
         return times,ifft_vals
     
-    def calculate_dft(self,output_vals):
+    def calculate_arbitrary_time_domain_data(self,output_vals):
         '''
         @brief directly calculate the dft for current values and return arbitrary output values
         '''
