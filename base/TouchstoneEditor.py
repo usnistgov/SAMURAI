@@ -117,6 +117,11 @@ class TouchstoneEditor(object):
        @note this should be redefined in inheriting classes
        @note the keys are placed in self.wave_dict_keys
        @return list of keys for the current ports
+       @example
+       >>> mys2p._gen_dict_keys()
+       array([11, 21, 12, 22])
+       >>> myw2p._gen_dict_keys()
+       array([11, 21, 12, 22])
        '''
        keys = np.array([i*10+j for i in np.sort(self._ports) for j in np.sort(self._ports)])
        return keys
@@ -132,6 +137,11 @@ class TouchstoneEditor(object):
    def num_ports(self):
        '''
        @brief quickly get number of ports. Got tired of typing this
+       @example
+       >>> mys2p.num_ports
+       2
+       >>> myw2p.num_ports
+       2
        '''
        return len(self._ports)
             
@@ -267,6 +277,11 @@ class TouchstoneEditor(object):
        @brief return a value of a frequency multiplier from a header (or string unit)
        @param[in/OPT] header_str - header to get multiplier from if none use self.options['header']
        @return a multiplier to get from the current units to Hz or None if no match is found
+       @example
+       >>> mys2p._get_freq_mult()
+       1000000000.0
+       >>> mys2p._get_freq_mult('KHz')
+       1000.0
        '''
        if header_str is None:
            header_str = self.options['header']
@@ -276,7 +291,6 @@ class TouchstoneEditor(object):
        else:
            mult = None
        return mult
-       
     
    def load_empty(self,num_ports,freqs):
         '''
@@ -624,7 +638,15 @@ class TouchstoneEditor(object):
        '''
        @brief get the frequency list of the first dict key parameter (assume they all match)
        '''
-       return self.w1[self.wave_dict_keys[0]].freq_list
+       return self.v1.freq_list
+   
+   @property
+   def bandwidth(self):
+       return self.v1.bandwidth
+   
+   @property
+   def frequency_step(self):
+       return self.v1.frequency_step
    
    def average_keys(self,key_list):
         '''
@@ -805,35 +827,46 @@ class TouchstoneParam:
     def crop(self,lo_freq=0,hi_freq=1e60):
         '''
         @brief remove all frequencies and their corresponding values outside a given window
+        @return - [[freqs],[values]] data that was removed
         '''
         lo_val = np.round(lo_freq)
         hi_val = np.round(hi_freq)
         #data is in ghz in files
         del_idx = np.where(np.logical_or(self.freq_list<lo_val,self.freq_list>hi_val))
         if(np.size(del_idx)==np.size(self.freq_list)):
-            print("Error: No Frequencies within range! Aborting")
+            print("Warning: No Frequencies within range!")
             return -1
         #delete array seems to end up
         #self.del_idx = del_idx;
-        self.freq_list = np.delete(self.freq_list,del_idx)
-        self.raw = np.delete(self.raw,del_idx)
+        return self._pop_idx(del_idx)
         
     #cut out all frequencies insides a window given by lo and hi frequencies (in Hz)
     def cut(self,lo_freq=0,hi_freq=1e60):
         '''
         @brief remove all frequencies and their corresponding values inside a given window
+        @return - [[freqs],[values]] data that was removed
         '''
         lo_val = np.round(lo_freq)
         hi_val = np.round(hi_freq)
         #data is in ghz in files
-        del_idx = np.where(np.logical_or(self.freq_list>lo_val,self.freq_list<hi_val))
+        del_idx = np.where(np.logical_and(self.freq_list>lo_val,self.freq_list<hi_val))
         if(np.size(del_idx)==np.size(self.freq_list)):
-            print("Error: No Frequencies within range! Aborting")
+            print("Warning: No Frequencies within range!")
             return -1
         #delete array seems to end up
         #self.del_idx = del_idx;
-        self.freq_list = np.delete(self.freq_list,del_idx)
-        self.raw = np.delete(self.raw,del_idx)
+        return self._pop_idx(del_idx)
+            
+    def _pop_idx(self,pop_idx):
+        '''
+        @brief pop frequencies and data from self.freq_list and self.raw provided the index
+        @param[in] pop_idx - index,list of indices, or logical array of frequencies to pop
+        @return - [[freqs],[values]] popped
+        '''
+        rv = [self.freq_list[pop_idx],self.raw[pop_idx]]
+        self.freq_list = np.delete(self.freq_list,pop_idx)
+        self.raw = np.delete(self.raw,pop_idx)
+        return rv
     
     #round frequency list to nearest hz
     #useful for writing out 
@@ -874,7 +907,7 @@ class TouchstoneParam:
         times = np.linspace(0,total_time,self.freq_list.shape[0])
         return times,ifft_vals
     
-    def calculate_dft(self,output_vals):
+    def calculate_arbitrary_time_domain_data(self,output_vals):
         '''
         @brief directly calculate the dft for current values and return arbitrary output values
         '''
@@ -889,7 +922,27 @@ class TouchstoneParam:
         if self.options['plotter'] is None:
             raise Exception("No Plotter Defined")
         data = getattr(self,data_type)
-        self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (GHz)',ylabel=data_type,**plot_options)     
+        self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (Hz)',ylabel=data_type,**plot_options)     
+        
+    def get_bandwidth(self):
+        '''
+        @brief get the highest and lowest frequencies to determine our step
+        '''
+        return np.ptp(self.freq_list)
+    
+    @property
+    def bandwidth(self):
+        return self.get_bandwidth()
+        
+    def get_frequency_step(self):
+        '''
+        @brief get the average step between our frequencies
+        '''
+        return np.mean(np.diff(self.freq_list))
+    
+    @property
+    def frequency_step(self):
+        return self.get_frequency_step()
     
     @property
     def mag_db(self):
@@ -1105,26 +1158,31 @@ if __name__=='__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
     dir_path = os.path.join(dir_path,'../analysis/support/test')
     
+    test_snp_txt = 'test.s2p'
+    test_snp_bin = 'test.s2p_binary'
+    test_wnp_txt = 'test.w2p'
+    test_wnp_bin = 'test.w2p_binary'
+    
     class TestTouchstone(unittest.TestCase):
         
-        def test_wnp(self):
+        def test_wnp_io(self):
             '''
             @brief test loading of wnp editor
             '''
             #print("Loading *.wnp files")
-            wnp_text_path = os.path.join(dir_path,'test.w2p')
-            wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
+            wnp_text_path = os.path.join(dir_path,test_wnp_txt)
+            wnp_bin_path  = os.path.join(dir_path,test_wnp_bin)
             wnp_text = WnpEditor(wnp_text_path)
             wnp_bin  = WnpEditor(wnp_bin_path)
             self.assertEqual(wnp_bin,wnp_text)
             
-        def test_snp(self):
+        def test_snp_io(self):
             '''
             @brief test loading and writing of snp editor
             '''
             #print("Loading *.snp files")
-            snp_text_path = os.path.join(dir_path,'test.s2p')
-            snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
+            snp_text_path = os.path.join(dir_path,test_snp_txt)
+            snp_bin_path  = os.path.join(dir_path,test_snp_bin)
             snp_text = SnpEditor(snp_text_path)
             snp_bin  = SnpEditor(snp_bin_path)
             self.assertEqual(snp_bin,snp_text)
@@ -1158,8 +1216,8 @@ if __name__=='__main__':
                 ensures data is not corrupted. It doesnt verify data is actually
                 swapped at all
             '''
-            f1 = os.path.join(dir_path,'test.s2p')
-            f2 = os.path.join(dir_path,'test.s2p_binary')
+            f1 = os.path.join(dir_path,test_snp_txt)
+            f2 = os.path.join(dir_path,test_snp_bin)
             s1 = TouchstoneEditor(f1)
             s2 = TouchstoneEditor(f2)
             so1,so2 = swap_ports(s1,s2) #these files contain the same data
@@ -1190,18 +1248,45 @@ if __name__=='__main__':
             self.assertTrue(np.all(s4.S[21].raw==(sp1.raw*complex(5,2))))
             
         def test_new_class_creation(self):
-            wnp_text_path = os.path.join(dir_path,'test.w2p')
-            wnp_bin_path  = os.path.join(dir_path,'test.w2p_binary')
+            '''
+            @brief test the creatino of new classes from TouchstoneEditor superclass
+            '''
+            wnp_text_path = os.path.join(dir_path,test_wnp_txt)
+            wnp_bin_path  = os.path.join(dir_path,test_wnp_bin)
             w1 = TouchstoneEditor(wnp_text_path)
             w2 = TouchstoneEditor(wnp_bin_path)
             self.assertEqual(type(w1),WnpEditor)
             self.assertEqual(type(w2),WnpEditor)
-            snp_text_path = os.path.join(dir_path,'test.s2p')
-            snp_bin_path  = os.path.join(dir_path,'test.s2p_binary')
+            snp_text_path = os.path.join(dir_path,test_snp_txt)
+            snp_bin_path  = os.path.join(dir_path,test_snp_bin)
             s1 = TouchstoneEditor(snp_text_path)
             s2 = TouchstoneEditor(snp_bin_path)
             self.assertEqual(type(s1),SnpEditor)
             self.assertEqual(type(s2),SnpEditor)
+            
+        def test_add_swap_remove_port(self):
+            '''
+            @brief test adding/swapping/removing ports. This is written only for s2p files
+            '''
+            f1 = os.path.join(dir_path,'test.s2p')
+            s1 = SnpEditor(f1)
+            s1_11 = copy.deepcopy(s1.S[11].raw)
+            s1.swap_ports(1,2)
+            self.assertTrue(np.all(s1_11==s1.S[22].raw))
+            init_keys = copy.deepcopy(s1.wave_dict_keys)
+            s1.add_port(3)
+            self.assertTrue(np.all(s1.wave_dict_keys==[11,12,13,21,22,23,31,32,33]))
+            rw = s1.delete_port(3)
+            rw = s1.delete_port(1)
+            self.assertTrue(np.all(s1.wave_dict_keys==[22]))
+            rw = s1.add_port(1)
+            self.assertTrue(np.all(s1.wave_dict_keys==init_keys))
+            
+            
+    import doctest
+    doctest.testmod(extraglobs=
+                    {'mys2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p')),
+                     'myw2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p'))})
         
         
     add_remove_test = True
@@ -1210,18 +1295,6 @@ if __name__=='__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
     unittest.TextTestRunner(verbosity=2).run(suite)
     #unittest.main()
-        
-    if add_remove_test:
-        f1 = os.path.join(dir_path,'test.s2p')
-        f2 = os.path.join(dir_path,'test.s2p_binary')
-        s1 = SnpEditor(f1)
-        s2 = SnpEditor(f2)
-        s1.swap_ports(1,2)
-        #s1.add_port(3)
-        print(s1.S)
-        rw = s1.delete_port(1)
-        print(s1.S)
-        rw = s1.add_port(1)
         
     if empty_object_test:
         import numpy as np
