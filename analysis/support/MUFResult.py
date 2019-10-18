@@ -70,7 +70,7 @@ class MUFResult(MUFModuleController):
         @return the path to the *.meas nominal value
         '''
         if self.nominal.count:
-            nom_name = self._xml_nominal[0][1]
+            nom_name = self._xml_nominal[0][1].attrib['Text']
             return nom_name
         else:
             return None
@@ -730,6 +730,27 @@ def get_name_from_path(path):
     '''
     return os.path.splitext(os.path.split(path)[-1])[0]
 
+def moving_average(data,n=5):
+    '''
+    @brief calculate a moving average
+    @param[in] data - data to calculate the moving average on
+    @param[in/OPT] n - number of samples to average (default 5)
+    @return averaged data. If complex average in mag/phase not real/imag. This will be of the same size as input
+    @cite https://stackoverflow.com/questions/14313510/how-to-calculate-moving-average-using-numpy/54628145
+    '''
+    if np.iscomplexobj(data):
+        #then split to mag phase
+        mag,phase = complex2magphase(data)
+        ave_mag   = moving_average(mag  ,n)
+        ave_phase = moving_average(phase,n)
+        return magphase2complex(ave_mag,ave_phase)
+    else:
+        ret = np.cumsum(data)
+        ret[n:] = ret[n:] - ret[:-n]
+        ret[n - 1:] /= n
+        ret[:n] = data[:n]
+        ret[-n:] = data[-n:]
+        return ret
 
 if __name__=='__main__':
     from samurai.base.SamuraiPlotter import SamuraiPlotter

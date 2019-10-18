@@ -590,7 +590,19 @@ class TouchstoneEditor(object):
                    other_val = other
                new_val = v._perform_arithmetic_operation(other_val,funct)
                ret.waves[k][w] = new_val
-       return ret    
+       return ret   
+   
+   def run_function_on_data(self,funct,*args,**kwargs):
+       '''
+       @brief run a function on each of our param raw data.
+       @param[in] funct - function to run
+       @param[in/OPT] *args - arguments for funct
+       @param[in/OPT] **kwargs - keyword args for funct
+       @note this will operate directly on the data of each parameter. the first input to funct must also be self.raw
+       '''
+       for k in self.waves.keys(): #loop through each key we have
+           for p in self.waves[k].keys():
+               self.waves[k][p].run_function_on_data(funct,*args,**kwargs)
 
    def __deepcopy__(self,memo):
        '''
@@ -923,7 +935,17 @@ class TouchstoneParam:
             raise Exception("No Plotter Defined")
         data = getattr(self,data_type)
         self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (Hz)',ylabel=data_type,**plot_options)     
-        
+    
+    def run_function_on_data(self,funct,*args,**kwargs):
+       '''
+       @brief run a function on each of our param raw data.
+       @param[in] funct - function to run
+       @param[in/OPT] *args - arguments for funct
+       @param[in/OPT] **kwargs - keyword args for funct
+       @note this will operate directly on self.raw. the first input to funct will be complex ndarray
+       '''
+       self.raw = funct(self.raw,*args,**kwargs)
+    
     def get_bandwidth(self):
         '''
         @brief get the highest and lowest frequencies to determine our step
@@ -1083,7 +1105,6 @@ def get_unperturbed_meas(fname):
     unpt = msp.getElementsByTagName('Item').item(0)
     unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
     return unpt_name
-
 
 class TouchstoneError(Exception):
     '''
