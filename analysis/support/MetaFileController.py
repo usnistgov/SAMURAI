@@ -29,13 +29,16 @@ class MetaFileController(SamuraiDict):
     @todo combine this with samurai_metaFile acquisition code
     '''
 
-    def __init__(self,metafile_path,**arg_options):
+    def __init__(self,metafile_path=None,**arg_options):
         '''
         @brief initialize our class to control our metafile and the data within it
         @param[in] metafile_path - path to the metafile to load 
             This can also be passed as None. If this is done, a
             OrderedDict will be created from samurai_metaFile acquisition code
             with a blank measurements list
+        @param[in] arg_options - keyword arguments as follwos
+            None Yet!
+            -also passed to SamuraiPlotter constructor
         '''
         super().__init__(self) #initialize ordereddict
         if metafile_path is not None:
@@ -45,7 +48,11 @@ class MetaFileController(SamuraiDict):
             self.wdir = os.path.abspath('./') #get the current path
             self.update(SamuraiDict(metaFile(None,None)))
             
-        self.plotter = SamuraiPlotter()
+        plot_args = {}
+        plot_args['plot_program'] = 'matlab'
+        for k,v in arg_options.items():
+            plot_args[k] = v
+        self.plotter = SamuraiPlotter(**plot_args)
         
         self.unit_conversion_dict = { #dictionary to get to meters
                 'mm': 0.001,
@@ -384,6 +391,8 @@ class MetaFileController(SamuraiDict):
             fig = self.plotter.figure(); self.plotter.hold('on',nargout=0); ax = self.plotter.gca()
         for l in label_names:   
             pos = self.get_external_positions_mean(l)
+            if l!='meca_head':
+                pos = np.mean(pos,axis=0)
             self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
         self.plotter.legend(interpreter=None,nargout=0)
         return fig 
