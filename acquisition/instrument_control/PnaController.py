@@ -151,6 +151,20 @@ class PnaController(SCPIInstrument):
             mode = 'CONT'
         self.write('SENS:SWE:MODE',mode)
         
+    def set_sweep_sequence(self,sequence):
+        '''
+        @brief set the sweep sequence found in Stimulus->Sweep->Sweep Setup-> Sweep Sequence
+        @param[in] sequence - sequence to use. Valid inputs are 'standard' and 'point'
+            This could also be 'off' or 'on' for 'standard' and 'point' respectively
+        '''
+        name_dict = {
+                'standard':'off',
+                'point'   :'on'
+                }
+        write_val = name_dict.get(sequence.lower(),sequence.lower())
+        self.write('SENS:SWE:GEN:POIN',write_val)
+        
+        
     def trigger(self,timeout=900000):
         '''
         @brief trigger the vna when in manual mode. This will also wait for the sweep to complete
