@@ -80,8 +80,6 @@ class SamuraiSyntheticApertureAlgorithm:
         [s_data,_] = self.metafile.load_data(**arg_options)
         #now get the values we are looking for
         self.all_s_parameter_data = s_data #turn the s parameters into an array
-        self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
-        self.freq_list = self.freq_list
         self.all_positions = self.metafile.get_positions()
         if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
             self.load_data('nominal',**arg_options)
