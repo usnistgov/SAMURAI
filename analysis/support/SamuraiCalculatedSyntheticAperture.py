@@ -362,6 +362,34 @@ class CalculatedSyntheticAperture:
             new_plot_data = plot_data-np.nanmin(plot_data)
         return new_plot_data,caxis_min,caxis_max,db_range
     
+    def get_snp_data(self,**arg_options):
+        '''
+        @brief get all of our calculated data as a list of info dictionaries and SnpEditor objects
+        @param[in/OPT] arg_options - keyword args as follows
+            None Yet!
+        @return [meas_info_list,SnpEditor_list]
+        '''
+        meas_info = []
+        meas_data = [] #values for returning
+        pos_key_entry = {'position_key':['azimuth','elevation']}
+        freqs = self.freq_list/1e9 #freqs in ghz
+        for i in range(self.num_positions):
+            cur_idx = np.unravel_index(i,self.azimuth.shape)
+            az = self.azimuth[cur_idx]
+            el = self.elevation[cur_idx]
+            #assume our freq_list is in hz then write out in GHz
+            mys = SnpEditor([2,freqs],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees'],header='GHz S RI 50') #create a s2p file
+            #populate the s21,values
+            mys.S[21].update(self.freq_list,self.complex_values[cur_idx])
+            mys.S[12].update(self.freq_list,self.complex_values[cur_idx])
+            #add to list and create our info
+            meas_data.append(mys)
+            cur_info = {}
+            cur_info.update(pos_key_entry)
+            cur_info.update({'position':[float(az),float(el)]})
+            meas_info.append(cur_info)
+        return meas_info,meas_data
+    
     def write_snp_data(self,out_dir='./',**arg_options):
         '''
         @brief write out our frequencies over our angles into s2p files 
@@ -383,20 +411,9 @@ class CalculatedSyntheticAperture:
         for k,v in arg_options.items():
             options[k] = v
         #loop through all of our positions
-        meas_info = []
-        meas_data = [] #values for returning
         meas_paths = []
-        freqs = self.freq_list/1e9 #freqs in ghz
-        pos_key_entry = {'position_key':['azimuth','elevation']}
-        for i in range(self.num_positions):
-            cur_idx = np.unravel_index(i,self.azimuth.shape)
-            az = self.azimuth[cur_idx]
-            el = self.elevation[cur_idx]
-            #assume our freq_list is in hz then write out in GHz
-            mys = SnpEditor([2,freqs],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees'],header='GHz S RI 50') #create a s2p file
-            #populate the s21,values
-            mys.S[21].update(freqs,self.complex_values[cur_idx])
-            mys.S[12].update(freqs,self.complex_values[cur_idx])
+        meas_info,meas_data = self.get_snp_data(**arg_options)
+        for i,mys in enumerate(meas_data):
             #now save out
             out_path = options['out_path_format'].format(i)
             out_path = os.path.join(out_dir,out_path)
@@ -406,11 +423,9 @@ class CalculatedSyntheticAperture:
                 os.makedirs(out_path_dir)
             meas_paths.append(os.path.abspath(out_path))
             mys.write(out_path)
-            meas_data.append(mys)
             cur_info = {'filename':out_path}
-            cur_info.update(pos_key_entry)
-            cur_info.update({'position':[float(az),float(el)]})
-            meas_info.append(cur_info)
+            meas_info[i].update(cur_info)
+            
         if self.options['metafile'] is None: #create a metafile from default if one wasnt provided
             self.options['metafile'] = MetaFileController(None)
         #update our measurements to beamformed data and change some important options

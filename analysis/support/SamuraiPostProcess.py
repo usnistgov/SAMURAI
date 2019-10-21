@@ -60,7 +60,7 @@ class SamuraiSyntheticApertureAlgorithm:
         #initialize so we know if weve loaded them or not
         self.all_s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
         self.all_data_perturbation = None #perturbation on our S parameters
-        self.freq_list = None
+        #self.freq_list = None #this is now a property
         self.all_weights = None #weighting for our antennas
         self.all_positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
         self.all_positions_perturbation = None #perturbations
@@ -79,8 +79,6 @@ class SamuraiSyntheticApertureAlgorithm:
         [s_data,_] = self.metafile.load_data(**arg_options)
         #now get the values we are looking for
         self.all_s_parameter_data = s_data #turn the s parameters into an array
-        self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
-        self.freq_list = self.freq_list
         self.all_positions = self.metafile.get_positions()
         
     def load_positions_from_file(self,file_path,**arg_options):
@@ -330,6 +328,15 @@ class SamuraiSyntheticApertureAlgorithm:
         else:
             sp_dat = None
         return sp_dat
+    
+    @property
+    def freq_list(self):
+        '''
+        @brief getter for frequency list. This will use the first TouchstoneEditor value in self.all_s_parameters
+            to ensure it is up to date in case we cut our data
+        '''
+        if self.all_s_parameter_data is not None:
+            return self.all_s_parameter_data[0].freq_list
     
     def perturb_data(self,stdev):
         '''
