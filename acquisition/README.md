@@ -132,6 +132,37 @@ A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, an
 
 This section covers the steps required to run a SAMURAI measurement
 
+## Running from script
+
+This section shows how to run from a premade python script. This requires the lowest amount of user input and is therefore the recommended method of control.
+
+### 1. Copy Measurement directory Template
+
+We will start by copying a template directory containing all of the required files and the correct directory structure for our measurement. This template can be found at
+
+### 2. Perform 2 Port VNA Calibration
+
+1. In the windows file explorer navigate to `<working-directory>/cal/calibration_pre`
+2. double click on 'cal.pnagrabber' to start PNAGrabber for the calibration.
+3. Attach each of the standards to the calibration plane with the naming convention `<standard-port-1>_<standard-port-2>.s2p`
+    - (e.g. load_short.s2p is load on port 1 and short on port 2)
+4. When the calibration is completed, make a copy of each of the `.s2p` files generated and put them into the `<working-directory>/cal/calibration_pre/raw` folder
+
+### 3. Import the SAMURAI_System Module
+
+1. Open the python CLI (e.g. the command window in Spyder)
+2. Within the command line type the following
+
+  ```python
+  from samurai.acquisition.SAMURAI_System import SAMURAI_System
+  ```  
+  - NOTE: FOR NEW COMPUTERS ONLY - the code must be cloned from the gitlab repo and the directory containing the cloned `samurai` directory must be added the systems `PYTHONPATH`.
+
+### 4. Create a SAMURAI_System Object
+
+1. With the SAMURAI_System module imported, create a SAMURAI_System object by typing `mysam = SAMURAI_System()` into the CLI.
+
+
 ## Running from python command line interface (CLI)
 
 *[CLI]: Command Line Interface  
