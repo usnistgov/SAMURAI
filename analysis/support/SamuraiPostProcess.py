@@ -78,7 +78,7 @@ class SamuraiSyntheticApertureAlgorithm:
         self.metafile = MetaFileController(metafile_path,**arg_options)
         [s_data,_] = self.metafile.load_data(**arg_options)
         #now get the values we are looking for
-        self.all_s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
+        self.all_s_parameter_data = s_data #turn the s parameters into an array
         self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
         self.freq_list = self.freq_list
         self.all_positions = self.metafile.get_positions()
@@ -318,12 +318,13 @@ class SamuraiSyntheticApertureAlgorithm:
     @property
     def s_parameter_data(self):
         '''
-        @brief getter for our s parameter data. This will allow us to mask out undesired locations
+        @brief getter for our s parameter data. This will allow us to mask out undesired locations.
+        @note unlike all_s_parameter_data, this will return a numpy array, not a list of SnpEditors
         @return all s_parameter_data for desired positions that are not masked out
         @todo implemment masking
         '''
         if self.all_s_parameter_data is not None:
-            sp_dat = self.all_s_parameter_data.copy()
+            sp_dat = np.array([s.S[self.options['load_key']].raw for s in self.all_s_parameter_data])
             if self.all_data_perturbation is not None:
                 sp_dat+=self.all_data_perturbation
         else:
