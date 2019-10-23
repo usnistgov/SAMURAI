@@ -1,7 +1,7 @@
 
 # Acquisition Code
 
-This directory contains the code required to run the SAMURAI system. This currently requires a direct path and connection to the U:/ network drive. This code has been tested lately with python 3.6 but should be backward compatable with 2.7.
+This directory contains the code required to run the SAMURAI system. This code has been tested lately with python 3.7. This set of libraries uses some common python libraries. The code can be cloned from the NIST internal Gitlab server.
 
 ## dependencies
 
