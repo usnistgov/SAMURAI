@@ -49,7 +49,7 @@ class MetaFileController(SamuraiDict):
             self.update(SamuraiDict(metaFile(None,None)))
             
         plot_args = {}
-        plot_args['plot_program'] = 'matlab'
+        plot_args['plot_program'] = 'matplotlib'
         for k,v in arg_options.items():
             plot_args[k] = v
         self.plotter = SamuraiPlotter(**plot_args)
