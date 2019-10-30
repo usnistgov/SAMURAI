@@ -112,10 +112,10 @@ class MetaFileController(SamuraiDict):
             #    snpData.append(snp(fname,read_header=read_header))
             if options['data_type']=='monte_carlo':
                 muf_res = MUFResult(fname,no_load=True)
-                fname = muf_res.get_monte_carlo_path(options['data_meas_num'])
+                fname = muf_res.get_monte_carlo_paths()[options['data_meas_num']]
             if options['data_type']=='perturbed':
                 muf_res = MUFResult(fname,no_load=True)
-                fname = muf_res.get_perturbed_path(options['data_meas_num'])
+                fname = muf_res.get_perturbed_paths()[options['data_meas_num']]
             snpData.append(TouchstoneEditor(fname,read_header=read_header))
             numLoadedMeas+=1
             #print(numLoadedMeas)
