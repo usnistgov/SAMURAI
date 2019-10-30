@@ -269,10 +269,8 @@ class MUFResult(MUFModuleController):
             if '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
                 self.set_nominal_path(meas_path)
-                self.init_statistics()
             else:
                 self._load_xml(meas_path)
-                self.init_statistics()
         else:
             self.create_meas()
         #load our nominal and statistics if specified
