@@ -225,6 +225,14 @@ class MUFResult(MUFModuleController):
             cur_path = mc_path_list[i]
             item[0] = get_name_from_path(cur_path)
             item[1] = cur_path
+            
+    def get_monte_carlo_paths(self):
+        '''
+        @brief get a list of our monte carlo paths
+        '''
+        path_list = []
+        for i,item in enumerate(self.monte_carlo.muf_items):
+            path_list.append(item[1])
         
     def set_perturbed_paths(self,pt_path_list):
         '''
@@ -303,15 +311,16 @@ class MUFResult(MUFModuleController):
             if '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
                 self.set_nominal_path(meas_path)
+                self.init_statistics()
             else:
                 self._load_xml(meas_path)
+                self.init_statistics()
         else:
             self.create_meas()
         #load our nominal and statistics if specified
         if options['load_nominal']:
             self._load_nominal()
         if options['load_stats']:
-            self.init_statistics()
             self._load_statistics()
             
     def _write_xml(self,out_path):
