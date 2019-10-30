@@ -65,49 +65,27 @@ class MUFResult(MUFModuleController):
     ##########################################################################
     @property
     def nominal_value_path(self):
-        '''
-        @brief property to return the path of the nominal value
-        @return the path to the *.meas nominal value
-        '''
-        if self.nominal.count:
-            nom_name = self._xml_nominal[0][1].attrib['Text']
-            return nom_name
-        else:
-            return None
+        '''@brief property to return the path of the nominal value'''
+        return self._xml_nominal[0][1].attrib['Text'] if self.nominal.count else None
     
     @property
     def _xml_nominal(self):
-        '''
-        @brief link to nominal xml path value
-        '''
+        '''@brief link to nominal xml path value'''
         return self.controls.find('MeasSParams')
     
     @property
     def _xml_monte_carlo(self):
-        '''
-        @brief link to monte_carlo xml path value
-        '''
+        '''@brief link to monte_carlo xml path value'''
         return self.controls.find('MonteCarloPerturbedSParams')
     
     @property
     def _xml_perturbed(self):
-        '''
-        @brief link to monte_carlo xml path value
-        '''
+        '''@brief link to monte_carlo xml path value'''
         return self.controls.find('PerturbedSParams')
     
     @property
-    def _xml_root(self):
-        '''
-        @brief link to root xml node
-        '''
-        return self.getroot()
-    
-    @property
     def plotter(self):
-        '''
-        @brief alias for getting plotter
-        '''
+        '''@brief alias for getting plotter'''
         return self.options['plotter']
     
     @plotter.setter
@@ -115,9 +93,7 @@ class MUFResult(MUFModuleController):
         self.options['plotter'] = val
     
     def __getattr__(self,attr):
-        '''
-        @brief pass any nonexistant attribute attempts to our nominal data class
-        '''
+        '''@brief pass any nonexistant attribute attempts to our nominal data class'''
         try:
             return getattr(self.nominal[0].data,attr)
         except:
@@ -126,19 +102,11 @@ class MUFResult(MUFModuleController):
     ##########################################################################
     ### Data editing and statistics functions. only operates on loaded data
     ##########################################################################
-    def init_statistics(self,**arg_options):
-        '''
-        @brief intialize (create the classes) for our MUF statistics
-        '''
-        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options)
-        self.perturbed = MUFStatistic(self._xml_perturbed,**self.options)
         
     def calculate_statistics(self):
         '''
         @brief calculate statistics for monte carlo and perturbed data
         '''
-        if self.monte_carlo is None or self.perturbed is None:
-            self.init_statistics()
         self.monte_carlo.calculate_statistics()
         self.perturbed.calculate_statistics()
         
@@ -187,7 +155,7 @@ class MUFResult(MUFModuleController):
         root_elem.set('CreationTime',str(datetime.datetime.now()))
         self._setroot(root_elem)
         #create controls element
-        self._controls = ET.SubElement(self._xml_root,'Controls')  
+        self._controls = ET.SubElement(self.getroot(),'Controls')  
         #now create our nominal
         ET.SubElement(self._controls,'MeasSParams')
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
@@ -274,8 +242,6 @@ class MUFResult(MUFModuleController):
         '''
         @brief load the nominal path value into self.nominal
         '''
-        if self.nominal is None:
-            self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
         self.nominal.load_data()
         
     def _load_statistics(self):
@@ -289,8 +255,13 @@ class MUFResult(MUFModuleController):
         '''
         @brief  parse our file into a dom struct
         @param[in] meas_path - path to *.meas file
+        @note this also loads self.nominal,self.monte_carlo,
+            and self.perturbed
         '''
-        super().load(meas_path)
+        super().load(meas_path)  #load xml
+        self.nominal = MUFNominalValue(self._xml_nominal,**self.options) # parse nominal
+        self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
+        self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
         
     def load(self,meas_path,**kwargs):
         '''
@@ -311,10 +282,8 @@ class MUFResult(MUFModuleController):
             if '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
                 self.set_nominal_path(meas_path)
-                self.init_statistics()
             else:
                 self._load_xml(meas_path)
-                self.init_statistics()
         else:
             self.create_meas()
         #load our nominal and statistics if specified
@@ -323,7 +292,7 @@ class MUFResult(MUFModuleController):
         if options['load_stats']:
             self._load_statistics()
             
-    def _write_xml(self,out_path):
+    def write_xml(self,out_path):
         '''
         @brief write out our current xml file and corresponding measurements
         @param[in] out_path - path to writ ethe file out to 
@@ -423,7 +392,7 @@ class MUFResult(MUFModuleController):
             os.makedirs(out_dir)
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
-        self._write_xml(out_path)
+        self.write_xml(out_path)
         
 class MUFStatistic(MUFItemList):
     '''
@@ -471,9 +440,7 @@ class MUFStatistic(MUFItemList):
         return rv_list
     
     def add_item(self,item):
-        '''
-        @brief extend super().add_item to allow adding Touchstone params
-        '''
+        '''@brief extend super().add_item to allow adding Touchstone params'''
         if isinstance(item,TouchstoneEditor):#then make a MUFItem and set the value as the data
             mi = MUFItem(['name','path'])
             mi.data = item
@@ -481,9 +448,7 @@ class MUFStatistic(MUFItemList):
         super().add_item(item)
         
     def load_data(self):
-        '''
-        @brief load in all of the data from each of the files
-        '''
+        '''@brief load in all of the data from each of the files'''
         for it in self.muf_items:
             it.load_data(TouchstoneEditor,**self.options)
     
@@ -511,16 +476,12 @@ class MUFStatistic(MUFItemList):
             
     @property
     def data(self):
-        '''
-        @brief return list of all loaded data
-        '''
+        '''@brief return list of all loaded data'''
         return [it.data for it in self.muf_items]
             
     @property
-    def file_paths(self):
-        '''
-        @brief get all of our file paths
-        '''
+    def filepaths(self):
+        '''@brief get all of our file paths'''
         return [mi[1] for mi in self.muf_items]
 
     ###################################################
@@ -762,27 +723,48 @@ def moving_average(data,n=5):
         return ret
 
 if __name__=='__main__':
-    from samurai.base.SamuraiPlotter import SamuraiPlotter
+    
+    import unittest
+    
+    class MUFResultTest(unittest.TestCase):
+    
+        def test_load_xml(self):
+            '''
+            @brief in this test we will load a xml file with uncertainties and try
+                to access the path lists of each of the uncertainty lists and the nominal result
+            '''
+            meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
+            res = MUFResult(meas_path)
+            nvp = res.nominal_value_path #try getting our nominal value
+            
+        def test_create_from_empty(self):
+            '''
+            @brief in this test we create an empty .meas file and add our paths to it
+                which is then written out
+            '''
+            pass
+    
+    #from samurai.base.SamuraiPlotter import SamuraiPlotter
     meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
-    meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
-    #res = MUFResult(meas_path,load_stats=True)
-    res2 = MUFResult(meas_path)
-    mil = MUFStatistic(res2._xml_monte_carlo)
-    mil.file_paths
+    #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
+    res = MUFResult(meas_path)
+    #res2 = MUFResult(meas_path)
+    #mil = MUFStatistic(res2._xml_monte_carlo)
+    #mil.file_paths
     #MUFItem(res2._xml_monte_carlo.getchildren()[-1])
     #res2.calculate_statistics()
     
-    res = MUFResult(None)
-    val = TouchstoneEditor(meas_path)
-    res.nominal.add_item(val)
-    pvals = []
-    res.init_statistics()
+    #res = MUFResult(None)
+    #val = TouchstoneEditor(meas_path)
+    #res.nominal.add_item(val)
+    #pvals = []
+   # res.init_statistics()
    # res.monte_carlo.data = []
-    for i in range(5):
-        rand_vals = ((np.random.rand(len(val))*2)-1)/10
-        pvals.append(val*rand_vals)
-    res.monte_carlo.add_items(pvals)
-    res.write('test/meas_test.meas',write_nominal=True,write_statistics=True)
+    #for i in range(5):
+    #    rand_vals = ((np.random.rand(len(val))*2)-1)/10
+   #     pvals.append(val*rand_vals)
+    #res.monte_carlo.add_items(pvals)
+    #res.write('test/meas_test.meas',write_nominal=True,write_statistics=True)
     #res3 = MUFResult('test.s2p')
     #os.chdir('test/write_test')
     #res.write('test/write_test/test.meas')
