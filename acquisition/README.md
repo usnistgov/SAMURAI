@@ -1,7 +1,7 @@
 
 # Acquisition Code
 
-This directory contains the code required to run the SAMURAI system. This currently requires a direct path and connection to the U:/ network drive. This code has been tested lately with python 3.6 but should be backward compatable with 2.7.
+This directory contains the code required to run the SAMURAI system. This code has been tested lately with python 3.7. This set of libraries uses some common python libraries. The code can be cloned from the NIST internal Gitlab server.
 
 ## dependencies
 
@@ -128,7 +128,64 @@ A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, an
 - Optitrack Cameras = [192.168.0.???](192.168.0.255)
     - These IP addresses are unkown to the user
     - It is possible at some point in time these may conflict with one of the other devices on the network. If so change the IP of whatever device is conflicting.
-# Running the SAMURAI Software
+
+# Running Python Scripts
+
+This section explains how to run the python scripts that are mentioned in this document
+
+## Running with the Spyder IDE
+
+1. Open the Spyder IDE (Make sure to use Python 3.7)
+2. Open the script in Spyder
+3. Press the Green play button at the top of the window
+
+## Running from the Anaconda command prompt
+
+1. Run the program 'Anaconda Prompt'
+    - This can be done by searching for this in the Windows toolbar
+2. In the prompt type `python <script_directory>/<script_name>.py` where `<script_directory>` and `<script_name>` create the path to your script
+
+# Mounting and Unmounting the antennas
+
+## Moving the Positioner to the mounting position
+
+The robotic positioner can be moved to a location that is easier to mount/unmount the antennas with the following code:
+
+```python
+from samurai.acquisition.SAMURAI_System import SAMURAI_System
+mysam = SAMURAI_System()            #initialize the class
+mysam.connect_rx_positioner()       #connect and home the positioner
+mysam.move_to_mounting_position()   #move to the mounting position
+```
+
+Once the antennas have been remounted, return the positioner to its home position and disconnect with the following code:
+
+```python
+mysam.zero()                        #move back to its home position
+mysam.disconnect_rx_positioner()    #disconnect the positioner
+```
+
+## Connecting the antennas
+
+Both the transmit and recieve antenna should always be contained in a 3D printed mounting holder. The newest version of this holder will have 3 steel ball bearings that fit into grooves on the Robot mount. Slide the antenna and its mount into the recieving side on the robot and connect the three 3mm nuts to snugly hold together the antenna and recieving mount. DO NOT OVERTIGHTEN THESE NUTS. The connection only needs to be lightly tightened (finger tight plus 1 turn or so). Overtightening will warp the plastic and damage the mount.
+
+# Demo the SAMURAI System
+
+A script has been made to run quick demonstration of the SAMURAI system. This demo will do the following:
+
+1. Perform a 35x35 element planar sweep at 40 GHz
+2. Measure and plot 3D beamformed data for the current channel
+3. Measure and plot a PDP from the measured frequency range start/stop/step = 26.5GHz/40GHz/10MHz at a single aperture position
+
+## Running the Demo
+
+In order to run the demo the following steps must be taken
+
+1. Open the Spyder IDE or the Anaconda command prompt
+2. Run the script `\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\demo\quick_beamform_demo\channel_test.py`
+    - See the 'Running Python Scripts' section for instructions on how to run this file
+
+# Running the SAMURAI System
 
 This section covers the steps required to run a SAMURAI measurement
 
@@ -136,9 +193,14 @@ This section covers the steps required to run a SAMURAI measurement
 
 This section shows how to run from a premade python script. This requires the lowest amount of user input and is therefore the recommended method of control.
 
-### 1. Copy Measurement directory Template
+### 1. Create a new SAMURAI measurement directory
 
-We will start by copying a template directory containing all of the required files and the correct directory structure for our measurement. This template can be found at
+1. Make a copy of `meas_template` in the directory `U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture`
+2. Rename the copy to the current date in the format `mm-dd-yyyy`
+    - From here on, this newly created directory will be referred to as `<working-directory>`
+3. Copy and paste the correct comma separated value (CSV) file containing the positions into `<working-directory>/synthetic_aperture/raw`
+    - Some commonly used templates are contained in `<working-directory>/synthetic_aperture/raw/position_templates` directory.
+    - Once the desired CSV file has been copied, rename it `positions.csv`
 
 ### 2. Perform 2 Port VNA Calibration
 
@@ -148,22 +210,20 @@ We will start by copying a template directory containing all of the required fil
     - (e.g. load_short.s2p is load on port 1 and short on port 2)
 4. When the calibration is completed, make a copy of each of the `.s2p` files generated and put them into the `<working-directory>/cal/calibration_pre/raw` folder
 
-### 3. Import the SAMURAI_System Module
+### 3. Open and update the script
 
-1. Open the python CLI (e.g. the command window in Spyder)
-2. Within the command line type the following
+1. Open the file `<working-directory>/synthetic_aperture/raw/run_script.py`
+    - This contains the code to run the sweep along with metadata information and other input parameters
+2. Set the csv file path by changing the line `position_file = './position_templates/samurai_planar_dp.csv'` to set `position_file` to the relative path to the csv file of positions
+3. Set the motive dictionary for camera tracking. For all rigid bodies create a new line with the entry `motive_dict['<rigid-body-name>'] = None`. For each marker create a new line `motive_dict['<marker-name>'] = <marker-id-number>`
+4. Add any experiment info and notes to `metafile_info_dict['experiment']` and `metafile_info_dict['notes']`
+5. Add any additional metafile info to to the `metafile_info_dict` dictionary.
 
-  ```python
-  from samurai.acquisition.SAMURAI_System import SAMURAI_System
-  ```  
-  - NOTE: FOR NEW COMPUTERS ONLY - the code must be cloned from the gitlab repo and the directory containing the cloned `samurai` directory must be added the systems `PYTHONPATH`.
+### 4. Run the script
 
-### 4. Create a SAMURAI_System Object
+Run the newly updated `run_script.py` using the directions listed in section 'Running Python Scripts'. This will save all data into the same directory as the run script.
 
-1. With the SAMURAI_System module imported, create a SAMURAI_System object by typing `mysam = SAMURAI_System()` into the CLI.
-
-
-## Running from python command line interface (CLI)
+## Running from python command line interface (CLI) (DEPRECATED)
 
 *[CLI]: Command Line Interface  
 *[IDE]: Integrated Development Environment (e.g. Spyder)  
