@@ -29,6 +29,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             measured_values - are we using measurements, or simulated data (default True)
             load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+            data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
+            data_meas_num   - which measurement of monte_carlo or perturbed to use
         '''
         super(SamuraiBeamform,self).__init__(metafile_path,**arg_options)
     
