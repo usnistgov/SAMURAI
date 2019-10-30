@@ -100,9 +100,8 @@ class MUFModuleController(SamuraiXML):
         return self.find('MenuStripComboBoxes')
     
 class MUFItemList:
-    '''
-    @brief class to hold a list of MUF items (e.g. Monte Carlos, Perturbed Measurements, etc.)
-    '''
+    '''@brief class to hold a list of MUF items (e.g. Monte Carlos, Perturbed Measurements, etc.)'''
+    
     def __init__(self,xml_element,**kwargs):
         '''
         @brief constructor
@@ -163,9 +162,7 @@ class MUFItemList:
         
     @property
     def count(self):
-        '''
-        @brief return the current item count
-        '''
+        '''@brief return the current item count'''
         return len(self._xml_element.getchildren())
         
     @property
@@ -186,17 +183,18 @@ class MUFItemList:
             kwargs_out[k] = v
         return ET.tostring(self._xml_element,*args,**kwargs_out)
     
+    def __len__(self):
+        '''@brief get the number of items'''
+        return self.count
+    
     def __getitem__(self,item_num):
-        '''
-        @brief return a _muf_item value
-        '''
+        '''@brief return a _muf_item value'''
         return self._muf_items[item_num]
                 
         
 class MUFItem(MUFItemList):
-    '''
-    @brief class to create a MUF item with subitems
-    '''
+    '''@brief class to create a MUF item with subitems'''
+    
     def __init__(self,xml_element,**kwargs):
         '''
         @brief constructor
@@ -205,6 +203,7 @@ class MUFItem(MUFItemList):
         @param[in/OPT] kwargs - if a new element is being created, kwargs will be passed as attributes
         '''
         self.data = None #this is a placeholder for data to map to xml items (e.g. TouchstoneEditor)
+        self._filepath_subitem_idx = 1 #subitem index of the filepath. Typically 1 for *.meas files
         if isinstance(xml_element,ET._Element):
             super().__init__(xml_element)
         else:
@@ -223,36 +222,38 @@ class MUFItem(MUFItemList):
         self.update_xml_count()
         
     def load_items(self):
-        '''
-        @brief override the loading of items
-        '''
+        '''@brief override the loading of items'''
         pass #dont do anything here to load
         
-    def load_data(self,load_funct,subitem_idx=1,**kwargs):
+    def load_data(self,load_funct,**kwargs):
         '''
         @brief load the data from the path subitem to self.data
         @param[in] load_class - function to load the data (can also be a class constructor)
         @param[in] subitem_idx - which index the path is to load (typically its self[0])
         @param[in] **kwargs - keyword arguments to pass to load_funct
         '''
-        self.data = load_funct(self[subitem_idx],**kwargs)
+        self.data = load_funct(self[self._filepath_subitem_idx],**kwargs)
+        
+    @property
+    def filepath(self):
+        '''@brief getter for filepath'''
+        return self[self._filepath_subitem_idx]
+    
+    @filepath.setter
+    def filepath(self,val):
+        '''@brief setter for filepath'''
+        self[self._filepath_subitem_idx] = val
         
     def __getitem__(self,item_num):
-        '''
-        @brief override [] to return subitem values
-        '''
+        '''@brief override [] to return subitem values'''
         return self._xml_element.getchildren()[item_num].attrib['Text']
     
     def __setitem__(self,item_num,val):
-        '''
-        @brief override [] to set subitem text
-        '''
+        '''@brief override [] to set subitem text'''
         self._xml_element.getchildren()[item_num].attrib['Text'] = val
     
     def __getattr__(self,attr):
-        '''
-        @brief override to pass commands to data and not xml
-        '''
+        '''@brief override to pass commands to data and not xml'''
         try:
             return getattr(self.data,attr)
         except:
@@ -282,9 +283,7 @@ def add_muf_xml_items(parent_element,item_list):
     parent_element.attrib['Count'] = str(len(parent_element.getchildren())) #update the count
     
 def clear_muf_xml_items(parent_element):
-    '''
-    @brief remove all subelements from a parent element
-    '''
+    '''@brief remove all subelements from a parent element'''
     for child in list(parent_element.getchildren()):
         parent_element.remove(child)
     
