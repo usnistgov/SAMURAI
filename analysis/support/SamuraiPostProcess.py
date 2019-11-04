@@ -77,9 +77,6 @@ class SamuraiSyntheticApertureAlgorithm:
         @param[in/OPT] keyword arguments passed to MetaFileController init and MetaFileController.load_data
         '''
         self.metafile = MetaFileController(metafile_path,**arg_options)
-        [s_data,_] = self.metafile.load_data(**arg_options)
-        #now get the values we are looking for
-        self.all_s_parameter_data = s_data #turn the s parameters into an array
         self.all_positions = self.metafile.get_positions()
         if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
             self.load_data('nominal',**arg_options)
