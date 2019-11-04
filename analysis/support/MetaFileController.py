@@ -99,13 +99,15 @@ class MetaFileController(SamuraiDict):
         @return list of snp or wnp classes
         '''
         options = {}
-        options['data_type'] = None
+        options['data_type'] = 'nominal'
         options['data_meas_num'] = 0
         for k,v in arg_options.items():
             options[k] = v
         snpData = []
         numLoadedMeas = 0
-        if verbose: pc = ProgressCounter(len(self.measurements),'Loading Metafile Data: ',update_period=5)
+        #String of what data type and meas num we are loading 
+        data_type_string = 'nominal' if options['data_type']=='nominal' else '{}[{}]'.format(options['data_type'],options['data_meas_num'])
+        if verbose: pc = ProgressCounter(len(self.measurements),'Loading {} Data: '.format(data_type_string),update_period=5)
         for meas in self.measurements:
             fname = os.path.join(self.wdir,meas['filename'].strip())
             #if options['data_type'] is None or options['data_type']=='nominal':

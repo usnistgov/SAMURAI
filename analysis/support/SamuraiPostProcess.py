@@ -38,6 +38,7 @@ class SamuraiSyntheticApertureAlgorithm:
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             measured_values_flg - are we using measurements, or simulated data (default True)
             load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+            load_data       - whether or not to load data on init (default true)
             These are also passed to the load_metafile function
         '''
         #options for the class
@@ -76,10 +77,25 @@ class SamuraiSyntheticApertureAlgorithm:
         @param[in/OPT] keyword arguments passed to MetaFileController init and MetaFileController.load_data
         '''
         self.metafile = MetaFileController(metafile_path,**arg_options)
-        [s_data,_] = self.metafile.load_data(**arg_options)
-        #now get the values we are looking for
-        self.all_s_parameter_data = s_data #turn the s parameters into an array
         self.all_positions = self.metafile.get_positions()
+        if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
+            self.load_data('nominal',**arg_options)
+        
+    def load_data(self,data_type='nominal',data_meas_num=None,**arg_options):
+        '''
+        @brief load s parameter data using metafile paths
+        @param[in/OPT] data_type - nominal,monte_carlo,perturbed,etc. If none do nominal
+        @param[in/OPT] data_meas_num - which measurement of monte_carlo or perturbed to use
+        @param[in/OPT] arg_options - keyword parameters as follows. They are all passed to self.metafile.load_data()
+                None here
+        '''
+        options = self.options.copy() #create local options
+        options['data_type'] = data_type
+        options['data_meas_num'] = data_meas_num
+        for k,v in arg_options.items():
+            options[k] = v #add any other arg inputs
+        [s_data,_] = self.metafile.load_data(**options)
+        self.all_s_parameter_data = s_data
         
     def load_positions_from_file(self,file_path,**arg_options):
         '''
