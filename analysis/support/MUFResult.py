@@ -131,7 +131,7 @@ class MUFResult(MUFModuleController):
                     funct = getattr(d,funct_name)
                     funct(*args,**kwargs)
         return out_list
-    
+ 
     ##########################################################################
     ### parts to create a new *.meas file from a *.snp or *.wnp
     ##########################################################################
@@ -173,53 +173,40 @@ class MUFResult(MUFModuleController):
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
         self._xml_perturbed.set('Count',str(0))
-        self.monte_carlo = MUFStatistic(self._xml_perturbed,**self.options)
+        self.perturbed = MUFStatistic(self._xml_perturbed,**self.options)
         
-    def set_nominal_path(self,nom_path):
+    def set_nominal(self,nom_path):
         '''
         @brief add a nominal path to the xml *.meas file
         @param[in] nom_path - nominal path
         '''
-        self.nominal[0][0] = get_name_from_path(nom_path)
-        self.nominal[0][1] = nom_path
+        self.nominal.clear_items()
+        self.nominal.add_item(nom_path)
+    
+    #alias
+    set_nominal_path = set_nominal
         
-    def set_monte_carlo_paths(self,mc_path_list):
+    def set_monte_carlo(self,mc_path_list):
         '''
-        @brief overwrite our monte carlo paths
+        @brief overwrite our monte carlo items
         '''
-        if len(mc_path_list) != len(self.monte_carlo.muf_items):
-            raise Exception("Input List must match the length of the number of items")
-        for i,item in enumerate(self.monte_carlo.muf_items):
-            cur_path = mc_path_list[i]
-            item[0] = get_name_from_path(cur_path)
-            item[1] = cur_path
+        self.monte_carlo.clear_items()
+        self.monte_carlo.add_items(mc_path_list)
+            
+    set_monte_carlo_paths = set_monte_carlo
             
     def get_monte_carlo_paths(self):
-        '''
-        @brief get a list of our monte carlo paths
-        '''
-        path_list = []
-        for i,item in enumerate(self.monte_carlo.muf_items):
-            path_list.append(item[1])
+        '''@brief get a list of our monte carlo paths'''
+        self.monte_carlo.filepaths
         
-    def set_perturbed_paths(self,pt_path_list):
+    def set_perturbed(self,pt_path_list):
         '''
         @brief overwrite perturbed paths
         '''
-        if len(pt_path_list) != len(self.perturbed.muf_items):
-            raise Exception("Input List must match the length of the number of items")
-        for i,item in enumerate(self.perturbed.muf_items):
-            cur_path = pt_path_list[i]
-            item[0] = get_name_from_path(cur_path)
-            item[1] = cur_path
-      
-    def add_meas_item_list(self,item_list,path_list):
-        '''
-        @brief add a measurement list from items and place it in a parent element (e.g self._xml_monte_carlo)
-        '''
-        for i,path in enumerate(path_list):
-            name = get_name_from_path(path)
-            item_list.add_item([name,path]) #add the item to the MUFItemList
+        self.perturbed.clear_items()
+        self.perturbed.add_items(pt_path_list)
+            
+    set_perturbed_paths = set_perturbed
         
     ##########################################################################
     ### extra io functions
@@ -393,7 +380,8 @@ class MUFResult(MUFModuleController):
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
         self.write_xml(out_path)
-        
+    
+#%%    
 class MUFStatistic(MUFItemList):
     '''
     @brief a class to generically calculate and hold statistics that the MUF does
@@ -441,6 +429,9 @@ class MUFStatistic(MUFItemList):
     
     def add_item(self,item):
         '''@brief extend super().add_item to allow adding Touchstone params'''
+        if isinstance(item,str): #if its a path then add that
+            mi = MUFItem([get_name_from_path(item),os.path.realpath(item)])
+            item = mi
         if isinstance(item,TouchstoneEditor):#then make a MUFItem and set the value as the data
             mi = MUFItem(['name','path'])
             mi.data = item
@@ -636,7 +627,7 @@ class MUFStatistic(MUFItemList):
         '''
         return self.estimate.freq_list
     
-    
+#%%  
 class MUFNominalValue(MUFStatistic):
     '''
     @brief class to hold nominal value
@@ -676,7 +667,7 @@ class MUFNominalValue(MUFStatistic):
         except:
             raise AttributeError(attr)
 
-
+#%%
 ###################################################
 ### Some useful functions
 ###################################################  
@@ -722,6 +713,7 @@ def moving_average(data,n=5):
         ret[-n:] = data[-n:]
         return ret
 
+#%%
 if __name__=='__main__':
     
     import unittest
