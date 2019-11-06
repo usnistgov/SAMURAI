@@ -474,6 +474,8 @@ class MUFStatistic(MUFItemList):
     def filepaths(self):
         '''@brief get all of our file paths'''
         return [mi[1] for mi in self.muf_items]
+    #alias
+    file_paths=filepaths
 
     ###################################################
     ### Statistics Operations
