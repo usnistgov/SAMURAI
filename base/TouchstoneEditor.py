@@ -1040,7 +1040,7 @@ class TouchstoneParam:
         @note only return frequencies that overlap
         @param[in] other - other value to be divided
         '''
-        return self._perform_arithmetic_operation(other,np.add,False)
+        return self._perform_arithmetic_operation(other,np.divide,False)
     
     __floordiv__=__div__ # // operator usually returns an int
     __truediv__=__div__  # / operator 
