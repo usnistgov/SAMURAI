@@ -254,53 +254,15 @@ class CalculatedSyntheticAperture:
         [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type,translation=options['translation'],rotation=options['rotation'])
         X = -X #this is dependent on the robot reference frame. required for V2 reference frame
         db_range = caxis_max-caxis_min
-        '''
-        if(options['plot_program'].lower()=='matlab'):
-            self.init_matlab_plotter()
-            fig = self.mp.figure()
-            self.mp.surf(X,Z,Y,plot_data)
-            self.mp.xlim([-db_range,db_range],nargout=0)
-            self.mp.zlim([-db_range,db_range],nargout=0)
-            self.mp.ylim([0,db_range*2],nargout=0)
-            self.mp.xlabel('X',nargout=0)
-            self.mp.ylabel('Z',nargout=0)
-            self.mp.zlabel('Y',nargout=0)
-            self.mp.shading('interp',nargout=0)
-            num_increments = 3 #(number of label increments)
-            self.mp.colorbar('XTickLabel',tuple([str(np.round(i,2)) for i in np.linspace(caxis_min,caxis_max,num_increments)]),'XTick',np.linspace(0,db_range,num_increments))
-            self.mp.view([170,20])
-            return fig
-        '''  
         
-        if(options['plot_program'].lower()=='plotly'): 
-            #and plot
-            plotly_surf = [go.Surface(z = Y, x = X, y = Z,surfacecolor=plot_data,
-                                      colorbar=dict(
-                                                title=plot_type,
-                                                tickvals=[0,db_range],
-                                                ticktext=[str(round(caxis_min,2)),str(round(caxis_max,2))]
-                                                ))]
-            layout = go.Layout(
-                title='Beamformed Data (%s)' %(plot_type),
-                scene = dict(
-                    xaxis = dict(title='X'),
-                    yaxis = dict(title='Z'),
-                    zaxis = dict(title='Y')
-                ),
-                autosize=True,
-                margin=dict(
-                    l=65,
-                    r=50,
-                    b=65,
-                    t=90
-                ),
-            )
-            fig = go.Figure(data=plotly_surf,layout=layout)
-            ploff.plot(fig,filename=out_name)
-            return fig
-        else:
-            raise Exception("Program %s not recognized" %(options['plot_program']))
-       
+        plot_arg_dict = {}
+        plot_arg_dict.update({'xlabel':'X','ylabel':'Z','zlabel':'Y'})
+        plot_arg_dict.update({'xlim':[-db_range,db_range],'ylim':[0,db_range*2],'zlim':[-db_range,db_range]})
+        plot_arg_dict.update({'shading':'interp'})
+        plot_arg_dict.update({'colorbar':('XTick',[0,db_range/2,db_range],'XTickLabel',[str(caxis_min),str(caxis_min+db_range/2),str(caxis_max)])})
+        #plot_arg_dict.update({'colorbar':('XTick',[caxis_min,caxis_max],'XTickLabel',[str(caxis_min),str(caxis_max)])})
+        rv = self.plotter.surf(X,Z,Y,plot_data,**plot_arg_dict)
+        return rv
         
     def plot_scatter_3d(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
