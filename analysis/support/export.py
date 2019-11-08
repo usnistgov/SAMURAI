@@ -26,27 +26,6 @@ from samurai.analysis.support.MUFResult import MUFResult
 
 from mpl_toolkits.mplot3d import Axes3D
 
-def scatterPointsWithOrientation(points, orientation):
-    """
-    points: array of 3d positions
-    orientation: can be either a constant vector or a vector for each point
-    """
-    # numPoints = points.shape[0]
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.quiver(points[:,0], points[:,1], points[:,2], orientation[:,0], orientation[:,1], orientation[:,2])
-    
-    minX = np.min(points[:,0])
-    maxX = np.max(points[:,0])
-    minY = np.min(points[:,1])
-    minY = np.max(points[:,1])
-    minZ = -.1
-    maxZ = 1.0
-    #ax.set_xlim([minX, maxX])
-    #ax.set_ylim([minY, maxY])
-    ax.set_zlim([minZ, maxZ])
-    plt.show()
-
 def readS21(measFolder, filename, getFreqs=False):
     freqs = None
     if getFreqs:
@@ -87,8 +66,6 @@ def readSamuraiData(jsonFile):
     freqs = None
 
     for iMeas, meas in enumerate(measDict['measurements']):
-        #measS21[iMeas, :] = readS21(measFolder, meas['filename'])
-        #measPos[iMeas, :] = packagePos(meas['position'])
         if iMeas == 0:
             measS21[iMeas, :], freqs = readS21(measFolder, meas['filename'], getFreqs=True)
         else:
