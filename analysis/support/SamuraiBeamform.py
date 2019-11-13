@@ -144,7 +144,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
-        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options,metafile = self.metafile)
+        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options)
         vc = ValueCounter(freq_list,'    Calculating for {:10G} Hz',update_period=10)
         for freq in freq_list:
             if verbose: vc.update(freq)
