@@ -15,6 +15,7 @@ from xml.dom.minidom import parse
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 
 from samurai.base.generic import deprecated
+from samurai.base.generic import moving_average
 
 DEFAULT_HEADER = 'GHz S RI 50'
 DEFAULT_EMPTY_HEADER = 'Hz S RI 50'
@@ -952,6 +953,18 @@ class TouchstoneParam:
         '''
         return np.ptp(self.freq_list)
     
+    def estimate_snr(self,window_size=10):
+        '''
+        @brief estimate the mean snr of the signal 
+            This takes a moving average of the signal and subtracts that from
+            the signal. whatever is left is considered noise. This can only
+            give a vague estimation of SNR multiple measurements would give
+            a much better view
+        @param[in] window_size - size of window to run the moving average with
+        @todo implement
+        '''
+        pass
+    
     @property
     def bandwidth(self):
         return self.get_bandwidth()
@@ -1176,6 +1189,7 @@ if __name__=='__main__':
     import unittest
     #geyt the current file directory for the test data
     import os 
+    import copy
     dir_path = os.path.dirname(os.path.realpath(__file__))
     dir_path = os.path.join(dir_path,'../analysis/support/test')
     
@@ -1183,6 +1197,13 @@ if __name__=='__main__':
     test_snp_bin = 'test.s2p_binary'
     test_wnp_txt = 'test.w2p'
     test_wnp_bin = 'test.w2p_binary'
+    
+    mysnp = TouchstoneEditor(os.path.join(dir_path,test_snp_txt))
+    mysnp_orig = copy.deepcopy(mysnp)
+    mysnp.S[21].run_function_on_data(moving_average,10)
+    r1 = mysnp_orig.S[21].raw
+    r2 = mysnp.S[21].raw
+    #mysnp.plot([21])
     
     class TestTouchstone(unittest.TestCase):
         
@@ -1313,8 +1334,8 @@ if __name__=='__main__':
     add_remove_test = True
     empty_object_test = True
     
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
     #unittest.main()
         
     if empty_object_test:
