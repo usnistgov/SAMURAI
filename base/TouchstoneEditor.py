@@ -1334,8 +1334,8 @@ if __name__=='__main__':
     add_remove_test = True
     empty_object_test = True
     
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
     #unittest.main()
         
     if empty_object_test:
