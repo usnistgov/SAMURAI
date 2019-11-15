@@ -9,6 +9,9 @@ from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpE
 from samurai.base.TouchstoneEditor import TouchstoneParam
 from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
 from samurai.base.SamuraiPlotter import SamuraiPlotter
+from samurai.base.generic import complex2magphase, magphase2complex
+from samurai.base.generic import get_name_from_path
+from samurai.base.generic import moving_average
 
 import shutil
 
@@ -216,6 +219,9 @@ class MUFResult(MUFModuleController):
         @param[in] stat_list - name of statistics to plot (e.g. 'monte_carlo','perturbed')
         '''
         fig = self.plotter.figure()
+        if stat_list is 'all': #only add stats that arent empty
+            sl = ['monte_carlo','perturbed']
+            stat_list = [s for s in sl if not getattr(self,s).is_empty()]
         for stat_str in stat_list:
             stat = getattr(self,stat_str) #get the statistic object
             stat.plot(key)
@@ -224,15 +230,11 @@ class MUFResult(MUFModuleController):
         return fig
     
     def _load_nominal(self):
-        '''
-        @brief load the nominal path value into self.nominal
-        '''
+        '''@brief load the nominal path value into self.nominal'''
         self.nominal.load_data()
         
     def _load_statistics(self):
-        '''
-        @brief load in all of the data for all of our statistics
-        '''
+        '''@brief load in all of the data for all of our statistics'''
         self.monte_carlo.load_data()
         self.perturbed.load_data()
     
@@ -474,6 +476,13 @@ class MUFStatistic(MUFItemList):
         return [mi[1] for mi in self.muf_items]
     #alias
     file_paths=filepaths
+    
+    def is_empty(self):
+        '''@brief check whether the statistic is empty or not'''
+        if self.filepaths==[]:
+            return True
+        else:
+            return False
 
     ###################################################
     ### Statistics Operations
@@ -668,52 +677,6 @@ class MUFNominalValue(MUFStatistic):
             raise AttributeError(attr)
 
 #%%
-###################################################
-### Some useful functions
-###################################################  
-def complex2magphase(data):
-    '''
-    @brief take a ndarray and change it to mag phase
-    '''
-    return np.abs(data),np.angle(data)
-
-def magphase2complex(mag,phase):
-    '''
-    @brief turn magnitude phase data into complex data
-    '''
-    real = mag*np.cos(phase)
-    imag = mag*np.sin(phase)
-    return real+1j*imag
-
-def get_name_from_path(path):
-    '''
-    @brief extract a name from a path (no extension or directory)
-    '''
-    return os.path.splitext(os.path.split(path)[-1])[0]
-
-def moving_average(data,n=5):
-    '''
-    @brief calculate a moving average
-    @param[in] data - data to calculate the moving average on
-    @param[in/OPT] n - number of samples to average (default 5)
-    @return averaged data. If complex average in mag/phase not real/imag. This will be of the same size as input
-    @cite https://stackoverflow.com/questions/14313510/how-to-calculate-moving-average-using-numpy/54628145
-    '''
-    if np.iscomplexobj(data):
-        #then split to mag phase
-        mag,phase = complex2magphase(data)
-        ave_mag   = moving_average(mag  ,n)
-        ave_phase = moving_average(phase,n)
-        return magphase2complex(ave_mag,ave_phase)
-    else:
-        ret = np.cumsum(data)
-        ret[n:] = ret[n:] - ret[:-n]
-        ret[n - 1:] /= n
-        ret[:n] = data[:n]
-        ret[-n:] = data[-n:]
-        return ret
-
-#%%
 if __name__=='__main__':
     
     import unittest
@@ -740,6 +703,9 @@ if __name__=='__main__':
     meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
     #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
     res = MUFResult(meas_path)
+    mr = MUFResult(os.path.join(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Documents\papers\URSI_2020\CUP_paper\figs\touchstone','beamformed_regular_0.meas'))
+    mr.calculate_statistics()
+    mr.plot(21,'all')
     #res2 = MUFResult(meas_path)
     #mil = MUFStatistic(res2._xml_monte_carlo)
     #mil.file_paths
