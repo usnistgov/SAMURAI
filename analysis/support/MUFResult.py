@@ -21,6 +21,40 @@ import numpy as np
 from lxml import etree as ET
 import os
 import re
+import sys
+
+def mufPathVerify(inPath):
+    return sys.path.exists(inPath)
+
+def mufPathFind(inPath, refPoint):
+    inPath = inPath.replace('\\\\', '/').replace('\\', '/')
+    return mufPathFindR(inPath, refPoint)
+
+# Recursive
+def mufPathFindR(inPath, refPoint, level = 0):
+    #print("Level {0}".format(level))
+    if level > 3 or level < 0:
+        print("Error: file: {0} not found".format(inPath))
+        sys.exit(0)
+    fName = os.path.basename(inPath)
+    # Recursively find the subdirectories
+    # This could be better if we included the updated path in the recursion
+    subdir = ''
+    tempPath = inPath
+    for i in range(level):
+        tempPath = os.path.dirname(tempPath)
+        subdir = os.path.join(os.path.basename(tempPath), subdir)
+
+
+    #print("refPoint: {0}".format(refPoint))
+    #print("subdir: {0}".format(subdir))
+    #print("fName: {0}".format(fName))
+    constructPath = os.path.join(refPoint, os.path.join(subdir, fName))
+    #print("path: {0}".format(constructPath))
+    if os.path.exists(constructPath):
+        return constructPath
+    else:
+        return mufPathFindR(inPath, refPoint, level = level+1)
 
 class MUFResult(MUFModuleController):
     '''
@@ -57,7 +91,8 @@ class MUFResult(MUFModuleController):
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #make sure were getting a .meas, if not get the correct data
-        menu_path = meas_path
+        self.meas_path = meas_path
+        self.meas_path_dirname = os.path.dirname(self.meas_path)
 
         self.load(menu_path,**arg_options)
       
@@ -238,7 +273,7 @@ class MUFResult(MUFModuleController):
         self.monte_carlo.load_data()
         self.perturbed.load_data()
     
-    def _load_xml(self,meas_path):
+    def _load_xml(self):
         '''
         @brief  parse our file into a dom struct
         @param[in] meas_path - path to *.meas file
@@ -250,7 +285,7 @@ class MUFResult(MUFModuleController):
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
         
-    def load(self,meas_path,**kwargs):
+    def load(self,**kwargs):
         '''
         @brief load our meas file and its corresponding data
         @param[in] meas_path - path to *.meas file to load in
@@ -264,18 +299,23 @@ class MUFResult(MUFModuleController):
         for k,v in kwargs.items():
             options[k] = v
         #make a *.meas if a wnp or snp file was provided
-        if meas_path is not None:
-            _,ext = os.path.splitext(meas_path) #get our extension
-            if '.meas' not in ext: #if its not a *.meas create our skeleton
+        #if self.meas_path is not None and os.path.exists(self.meas_path):
+        if self.meas_path is not None:
+            _,ext = os.path.splitext(self.meas_path) #get our extension
+            if not os.path.exists(self.meas_path) or '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
-                self.set_nominal_path(meas_path)
+                self.set_nominal_path(self.meas_path)
+                return
             else:
-                self._load_xml(meas_path)
+                self._load_xml()
         else:
             self.create_meas()
         #load our nominal and statistics if specified
         if options['load_nominal']:
             self._load_nominal()
+
+        self.init_statistics()
+
         if options['load_stats']:
             self._load_statistics()
             
@@ -313,12 +353,12 @@ class MUFResult(MUFModuleController):
         @return list of written file paths (absolute paths)
         '''
         out_list = []
-        if stat_class.data is None: #then copy
+        if not hasattr(stat_class, 'data') or stat_class.data is None: #then copy
             files =  stat_class.file_paths
-            for i,file in enumerate(files):
+            for i,iFile in enumerate(files):
                 fname = os.path.splitext(format_out_path.format(i))[0]
-                fname+=os.path.splitext(file)[-1]
-                fname_out = shutil.copy(file,fname)
+                fname+=os.path.splitext(iFile)[-1]
+                fname_out = shutil.copy(iFile,fname)
                 fname_out = os.path.abspath(fname_out)
                 out_list.append(fname_out) #add to our list
         else:
@@ -336,13 +376,9 @@ class MUFResult(MUFModuleController):
         mc_dir = os.path.join(out_dir,'MonteCarlo')
         if not os.path.exists(mc_dir):
             os.makedirs(mc_dir)
-        mc_paths = self._write_statistic(self.monte_carlo,os.path.join(mc_dir,'monte_carlo_{}'))
-        self.set_monte_carlo_paths(mc_paths)
         pt_dir = os.path.join(out_dir,'Perturbed')
         if not os.path.exists(pt_dir):
             os.makedirs(pt_dir)
-        pt_paths = self._write_statistic(self.perturbed,os.path.join(mc_dir,'monte_carlo_{}'))
-        self.set_perturbed_paths(pt_paths)
         
     def _write_data(self,out_dir,**kwargs):
         '''
@@ -728,19 +764,18 @@ if __name__=='__main__':
     #res.write('test/write_test/test.meas')
     #res2.write('test/write_test/test2.meas')
     #res3.write('test/write_test/test3.meas')
-    
-    
-    #res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
-    #res.S[21].plot()
-    #print("Calculating Statistics")
-    #res.calculate_statistics()
-    #sp = res.options['plotter']
-    #res.monte_carlo.plot(21)
-    #sp.legend()
-    #sp.figure()
-    #res.perturbed.plot(21)
-    #sp.legend()
-   
+    '''
+    res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
+    res.S[11].plot()
+    print("Calculating Statistics")
+    res.calculate_statistics()
+    sp = res.options['plotter']
+    res.monte_carlo.plot(11)
+    sp.legend()
+    sp.figure()
+    res.perturbed.plot(11)
+    sp.legend()
+    '''
     
     #res_m = MUFResult('test.meas')
     #res_s = MUFResult('test.s2p')

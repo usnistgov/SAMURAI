@@ -26,6 +26,60 @@ HEADER_FREQ_REGEX = '[KMGT]*[Hh][Zz]' #regex to get GHz, Hz, THz, KHz, MHz
 FREQ_MULT_DICT = {'HZ':1,'KHZ':1e3,'MHZ':1e6,'GHZ':1e9,'THZ':1e12}
 INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse of frequency multiplier dictionary
 
+class MultilineFileParser(object):
+    commentList = ['#', '!']
+    def __init__(self, dataFile):
+        self.dataFile = dataFile
+
+        # Comments at the beginning of the file only
+        self.pastComments = False
+
+        self.fid = open(self.dataFile, 'r')
+
+        self.cachedLine = None
+
+    def is_comment(self, char):
+        return char in self.commentList
+
+    def readline(self):
+        if self.cachedLine is None:
+            return self.fid.readline()
+        else:
+            cLine = self.cachedLine
+            self.cachedLine = None
+            return cLine
+
+    def get_multiline(self):
+        dataStr = self.readline().strip('\n')
+
+        if not self.pastComments:
+            while (self.is_comment(dataStr[0])):
+                dataStr = self.readline().strip('\n')
+            self.pastComments = True
+
+        numCols = len(dataStr.split())
+        # Read a new line
+        rLine = self.readline().strip('\n')
+
+        while (not len(rLine.split()) == numCols) and not rLine == '':
+            dataStr += ' ' + rLine
+            rLine = self.readline().strip('\n')
+
+        # We always read too many lines
+        self.cachedLine = rLine
+
+        return dataStr
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        data = self.get_multiline()
+        if not data == '':
+            return data
+        else:
+            raise StopIteration()
+
 class TouchstoneEditor(object):
    '''
    @brief init arbitrary port touchstone class. This covers wave and S params
@@ -54,6 +108,8 @@ class TouchstoneEditor(object):
                    out_cls = SnpEditor
                elif re.findall('waveform',ext):
                    out_cls = WaveformEditor
+               elif re.findall('switch',ext):
+                   out_cls = SnpEditor
                else:
                    out_cls = cls
            else: #if its a list, return whatever it was instantiated as
@@ -94,7 +150,10 @@ class TouchstoneEditor(object):
         #init plotter if not providied
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
-        
+       
+        #initialize placeholder for data
+        self.raw_data = None
+
         #initialize dictionary of waves
         if self._param_class is None: #default to this
             self._param_class = TouchstoneParam #parameter class
@@ -189,6 +248,8 @@ class TouchstoneEditor(object):
         elif(ftype=='text'):
             raw_data = self._load_text(input_file,**kwargs)
 
+        self.raw_data = raw_data
+
         num_cols = np.size(raw_data,1) #get the number of columns     
         #now split the data (text and binary input should be formatted the same here)
         #first check if our file is named correctly
@@ -238,14 +299,14 @@ class TouchstoneEditor(object):
                         pass     
        else: #dont read comments
             self.options['comments'].append('Header and comments NOT read from file')
-        #now read in data from the file with many possible delimiters in cases
-        #of badly formated files
-       with open(file_path) as fp:
-            regex_str = r'[ ,|\t]+'
-            rc = re.compile(regex_str)
-            raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
-            if raw_data.ndim==1: #case if we have 1 data point only
-                raw_data = np.reshape(raw_data,(1,-1))
+       #now read in data from the file with many possible delimiters in cases
+       #of badly formated files
+       fp = MultilineFileParser(file_path)
+       regex_str = r'[ ,|\t]+'
+       rc = re.compile(regex_str)
+       raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
+       if raw_data.ndim==1: #case if we have 1 data point only
+           raw_data = np.reshape(raw_data,(1,-1))
        return raw_data
        
    def _load_binary(self,file_path,**kwargs):

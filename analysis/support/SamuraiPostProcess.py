@@ -77,6 +77,23 @@ class SamuraiSyntheticApertureAlgorithm:
         @param[in/OPT] keyword arguments passed to MetaFileController init and MetaFileController.load_data
         '''
         self.metafile = MetaFileController(metafile_path,**arg_options)
+        [s_data,_] = self.metafile.load_data(**arg_options)
+        keys = self.options['load_key']
+        if not hasattr(key, "__len__"):
+          keys = [keys]
+
+
+        #now get the values we are looking for
+        self.freq_list = s_data[0].S[keys[0]].freq_list #get frequencies from first file (assume theyre all the same)
+
+        self.all_s_parameter_data = []
+        for s in s_data:
+          #self.all_s_parameter_data.append(np.array([s.S[load_key].raw for load_key in keys])) #turn the s parameters into an array
+          data = np.array([s.S[load_key].raw for load_key in keys]) #turn the s parameters into an array
+          self.all_s_parameter_data.append(data.transpose())
+
+        self.all_s_parameter_data = np.array(self.all_s_parameter_data)
+        self.freq_list = self.freq_list
         self.all_positions = self.metafile.get_positions()
         if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
             self.load_data('nominal',**arg_options)
@@ -721,9 +738,6 @@ if __name__=='__main__':
             
     unittest.main()
             
-    
-    
-    
     
     
     
