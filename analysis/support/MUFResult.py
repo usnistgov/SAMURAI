@@ -94,7 +94,7 @@ class MUFResult(MUFModuleController):
         self.meas_path = meas_path
         self.meas_path_dirname = os.path.dirname(self.meas_path)
 
-        self.load(menu_path,**arg_options)
+        self.load()
       
     ##########################################################################
     ### XML and other properties for easy access
@@ -313,8 +313,6 @@ class MUFResult(MUFModuleController):
         #load our nominal and statistics if specified
         if options['load_nominal']:
             self._load_nominal()
-
-        self.init_statistics()
 
         if options['load_stats']:
             self._load_statistics()
