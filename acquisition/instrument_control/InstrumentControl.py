@@ -346,7 +346,6 @@ class InstrumentCommandDict(SamuraiDict):
         @param[in] load_path - path to file to load
         '''        
         with open(load_path,'r') as json_file:
-            #self = json.load(jsonFile, object_pairs_hook=OrderedDict)
             self.update(json.load(json_file, object_pairs_hook=SamuraiDict))
         #now make a command
         for k,v in self.commands.items():

@@ -2,7 +2,73 @@
 @brief This is a set of generic functions that are useful but don't really fit anywhere else
 @author: ajw5
 """
+#%% some useful math functions
+import numpy as np
+import os
+###################################################
+### Some useful functions
+###################################################  
+def complex2magphase(data):
+    '''
+    @brief take a ndarray and change it to mag phase
+    @param[in] data - complex data to change to mag/phase
+    @return [mag(linear),phase(radians)]
+    '''
+    return np.abs(data),np.angle(data)
 
+def magphase2complex(mag,phase):
+    '''
+    @brief turn magnitude phase data into complex data
+    @param[in] mag - magnitude of signal in linear (scalar or ndarray)
+    @param[in] phase - phase of signal in radians (scalar or ndarray)
+    @return complex data constructed from the magnitude and phase
+    '''
+    real = mag*np.cos(phase)
+    imag = mag*np.sin(phase)
+    return real+1j*imag
+
+def get_name_from_path(path):
+    '''
+    @brief extract a name from a path (no extension or directory)
+    @param[in] path - path to extract name from
+    '''
+    return os.path.splitext(os.path.split(path)[-1])[0]
+
+def moving_average(data,n=5,domain='magphase'):
+    '''
+    @brief calculate a moving average
+    @param[in] data - data to calculate the moving average on
+    @param[in/OPT] n - number of samples to average (default 5)
+    @param[in/OPT] domain - whether to work in 'magphase' or 'complex'
+    @return averaged data. If complex average in mag/phase not real/imag. This will be of the same size as input
+    @cite https://stackoverflow.com/questions/14313510/how-to-calculate-moving-average-using-numpy/54628145
+    @cite https://stackoverflow.com/questions/15927755/opposite-of-numpy-unwrap
+    '''
+    if np.iscomplexobj(data) and domain=='magphase':
+        #then split to mag phase
+        mag,phase = complex2magphase(data)
+        ave_mag   = moving_average(mag  ,n)
+        ave_phase = moving_average(np.unwrap(phase),n)
+        #rewrap between 0 and 2*pi
+        ave_phase = (ave_phase + np.pi) % (2 * np.pi) - np.pi
+        return magphase2complex(ave_mag,ave_phase)
+    else:
+        ret = np.cumsum(data)
+        ret[n:] = ret[n:] - ret[:-n]
+        ret[n - 1:] /= n
+        ret[:n] = data[:n]
+        ret[-n:] = data[-n:]
+        return ret
+
+
+
+
+
+
+
+
+
+#%% Some function decorators for deprecation
 import warnings
 import functools
 
@@ -11,7 +77,6 @@ import inspect
 import warnings
 
 string_types = (type(b''), type(u''))
-
 
 def deprecated(reason):
     """
@@ -135,7 +200,7 @@ def floor_arb(value,multiple):
     ndigs = math.ceil(-1*math.log10(multiple))
     return round(multiple*math.floor(value/multiple),ndigits=ndigs)
 
-
+#%% Some useful counter classes
 class ValueCounter:
     '''
     @brief class to print a set of values and delete the previous (like when printing frequencies for calculations)

@@ -29,6 +29,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             measured_values - are we using measurements, or simulated data (default True)
             load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+            data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
+            data_meas_num   - which measurement of monte_carlo or perturbed to use
         '''
         super(SamuraiBeamform,self).__init__(metafile_path,**arg_options)
     
@@ -142,7 +144,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
-        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options,metafile = self.metafile)
+        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options)
         vc = ValueCounter(freq_list,'    Calculating for {:10G} Hz',update_period=10)
         for freq in freq_list:
             if verbose: vc.update(freq)

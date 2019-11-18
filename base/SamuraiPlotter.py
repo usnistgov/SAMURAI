@@ -249,7 +249,7 @@ class SamuraiPlotEngine:
         @param[in] obj - object to run functions on
         @param[in] **kwargs - arguemenbt dictionary to find functions from
         '''
-        for k,v in kwargs.items():
+        for k in list(kwargs.keys()):
             if hasattr(obj,k):
                 funct_args = kwargs.pop(k) #get the arguemnts and remove the function
                 funct = getattr(obj,k)
@@ -401,7 +401,18 @@ class PlotlyPlotter(SamuraiPlotEngine):
         update_nested_dict(fig_dict,kwarg_trans,overwrite_values=True)
         fig = self.engine.Figure(fig_dict)
         #fig = self.engine.FigureWidget(fig)
-        self.show(fig)
+        self.show(fig,**kwargs)
+        return fig
+    
+    def plot(self,*args,**kwargs):
+        '''
+        @brief 2D plot in plotly
+        '''
+        if len(args)==1: y=args[0]; x=np.arange(len(y))
+        if len(args)==2: y=args[1]; x=args[0]
+        myscat = self.engine.Scatter(x=x,y=y,mode='lines',**kwargs)
+        fig = self.engine.Figure(myscat)
+        self.show(fig,**kwargs)
         return fig
     
     def _set_translation_dict(self):
@@ -416,11 +427,12 @@ class PlotlyPlotter(SamuraiPlotEngine):
     
     def show(self,fig,*args,**kwargs):
         '''
-        @brief show the plot. Currently this is done and saved out to 'filename'
+        @brief show the plot.
             kwarg
-        @param[in] *args,**kwargs - all passed to plotly.offline.plot() (self.engine.plot())d
+        @param[in] *args,**kwargs - all parameters are passed to fig.show()
+            - renderer = 'browser' will plot in the browser
         '''
-        fig.show()
+        fig.show(**kwargs)
         
     def write(self,fig,out_path,*args,**kwargs):
         '''
@@ -448,6 +460,9 @@ class MatlabPlotter(SamuraiPlotEngine):
             self.options[k] = v
         if self.engine is None: #do this so we dont start up the engine to early
             self.engine = SamuraiMatlab(**self.options)
+
+    def help(self,*args,**kwargs):
+        print(self.engine.help(*args,**kwargs))
         
     def surf(self,*args,**kwargs): 
         '''
@@ -499,19 +514,19 @@ class MatlabPlotter(SamuraiPlotEngine):
         return self.engine.get(obj,'type')=='axes'
             
 if __name__=='__main__':
-    surf_test = True
-    plot_test = False
+    surf_test = False
+    plot_test = True
     translate_test = False
     if surf_test:
-        sp = SamuraiPlotter('plotly')
+        sp = SamuraiPlotter('matlab')
         [X,Y] = np.mgrid[1:10:0.5,1:20]
         Z = np.sin(X)+np.cos(Y)
-        fig = sp.surf(X,Y,Z,xlim=[0,20],zlabel='\lambda',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
+        fig = sp.surf(X,Y,Z,xlim=[0,20],zlabel='\lambda',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',[5,7]))
         #args = sp._translate_arguments(zlabel='X',shading='interp')
         #sp._surf_plotly(X,Y,Z,xlim=[0,20],zlabel='X',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
         #sp._surf_matlab(X,Y,Z,xlim=[0.,20.],zlabel='X',shading='interp',colorbar=('XTick',[-1.,1.],'XTickLabel',['A','B']))
     if plot_test:
-        sp = SamuraiPlotter('matlab',verbose=True)
+        sp = SamuraiPlotter('plotly',verbose=True)
         x = np.linspace(0,2*np.pi,1000)
         y = np.sin(x*5)
         sp.plot(x,y,displayname='test')
