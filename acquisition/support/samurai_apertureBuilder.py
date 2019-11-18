@@ -464,6 +464,20 @@ def gen_offset_position_csv(csv_name_in, shift_value_list,flip_flg=True):
     '''
     pass
 
+def gen_repeat_csv(csv_in_path,csv_out_path,num_reps):
+    '''
+    @brief - create a repeats of a single csv and place in a new csv
+    @param[in] csv_in_path - path of csv to repeat
+    @param[in] csv_out_path - path of where to write out the csv
+    '''
+    myap1 = ApertureBuilder()
+    myap2 = ApertureBuilder()
+    myap1.load(csv_in_path)
+    myap2.load(csv_in_path)
+    for i in range(num_reps):
+        myap1.concatenate(myap2) #concatenate n times
+    myap1.write(csv_out_path) #write out
+
 def cat_positions_file(in_path_1,in_path_2,out_path,flip_flg=True):
     '''
     @brief - concatenate positions in two files
@@ -524,6 +538,7 @@ if __name__=='__main__':
     fout_dp = 'sweep_files/samurai_planar_dp.csv'
     cat_positions_file(fout1,fout2,fout_dp)
     '''
+    '''
     #myap.load(fout_dp)
     #myap.plot_path_2D()
     ap1 = myap.gen_cylindrical_aperture([0,128,-80,0,0,0],201,0,1,180,0.25)
@@ -531,7 +546,30 @@ if __name__=='__main__':
     ap = np.concatenate((ap1,np.flipud(ap2)))
     myap.positions = ap
     myap.write('sweep_files/azimuth_antenna_sweep_fine.csv')
-
-        
-        
-     
+    '''
+    planar_base_path = r"C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_planar_vp.csv"
+    cylind_base_path = r"C:\SAMURAI\local_data\4-8-2019\synthetic_aperture\raw\position_templates\positions_SAMURAI_cylinder.csv"
+    
+    cylind_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_cylinder_vp.csv'
+    #convert_v1_file_to_v2_file(cylind_base_path,cylind_out_path)
+    
+    planar_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_offset_l2_40G_planar_vp.csv'
+    '''
+    ap_base = ApertureBuilder()
+    ap_base.load(planar_base_path)
+    ap_offset = ApertureBuilder()
+    ap_offset.load(planar_base_path)
+    l2_40g = (2.99e8/40e9)/2
+    ap_offset.shift_positions([0,0,l2_40g,0,0,0])
+    ap_base.concatenate(ap_offset)
+    ap_offset.shift_positions([0,0,l2_40g,0,0,0])
+    ap_base.concatenate(ap_offset)
+    ap_base.write(planar_out_path)
+    '''
+    myap = ApertureBuilder()
+    myap.load(planar_out_path) #load offset planar
+    myap2 = ApertureBuilder()
+    myap2.load(cylind_out_path) #cylinder
+    myap.concatenate(myap2) #add cylindrical
+    combined_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_offset_planar3_cylinder1_vp.csv'
+    myap.write(combined_out_path)

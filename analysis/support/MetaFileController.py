@@ -29,13 +29,16 @@ class MetaFileController(SamuraiDict):
     @todo combine this with samurai_metaFile acquisition code
     '''
 
-    def __init__(self,metafile_path,**arg_options):
+    def __init__(self,metafile_path=None,**arg_options):
         '''
         @brief initialize our class to control our metafile and the data within it
         @param[in] metafile_path - path to the metafile to load 
             This can also be passed as None. If this is done, a
             OrderedDict will be created from samurai_metaFile acquisition code
             with a blank measurements list
+        @param[in] arg_options - keyword arguments as follwos
+            None Yet!
+            -also passed to SamuraiPlotter constructor
         '''
         super().__init__(self) #initialize ordereddict
         if metafile_path is not None:
@@ -45,7 +48,11 @@ class MetaFileController(SamuraiDict):
             self.wdir = os.path.abspath('./') #get the current path
             self.update(SamuraiDict(metaFile(None,None)))
             
-        self.plotter = SamuraiPlotter()
+        plot_args = {}
+        plot_args['plot_program'] = 'matplotlib'
+        for k,v in arg_options.items():
+            plot_args[k] = v
+        self.plotter = SamuraiPlotter(**plot_args)
         
         self.unit_conversion_dict = { #dictionary to get to meters
                 'mm': 0.001,
@@ -79,7 +86,7 @@ class MetaFileController(SamuraiDict):
         self.saved = 1
         if outPath is None:
             outPath = os.path.join(self.wdir,self.metafile)
-        super().write(outPath)
+        return super().write(outPath)
             
     def load_data(self,verbose=False,read_header=True,**arg_options):
         '''
@@ -92,23 +99,25 @@ class MetaFileController(SamuraiDict):
         @return list of snp or wnp classes
         '''
         options = {}
-        options['data_type'] = None
+        options['data_type'] = 'nominal'
         options['data_meas_num'] = 0
         for k,v in arg_options.items():
             options[k] = v
         snpData = []
         numLoadedMeas = 0
-        if verbose: pc = ProgressCounter(len(self.measurements),'Loading Metafile Data: ',update_period=5)
+        #String of what data type and meas num we are loading 
+        data_type_string = 'nominal' if options['data_type']=='nominal' else '{}[{}]'.format(options['data_type'],options['data_meas_num'])
+        if verbose: pc = ProgressCounter(len(self.measurements),'Loading {} Data: '.format(data_type_string),update_period=5)
         for meas in self.measurements:
             fname = os.path.join(self.wdir,meas['filename'].strip())
             #if options['data_type'] is None or options['data_type']=='nominal':
             #    snpData.append(snp(fname,read_header=read_header))
             if options['data_type']=='monte_carlo':
-                muf_res = MUFResult(fname,no_load=True)
-                fname = muf_res.get_monte_carlo_path(options['data_meas_num'])
+                muf_res = MUFResult(fname)
+                fname = muf_res.monte_carlo[options['data_meas_num']].filepath
             if options['data_type']=='perturbed':
-                muf_res = MUFResult(fname,no_load=True)
-                fname = muf_res.get_perturbed_path(options['data_meas_num'])
+                muf_res = MUFResult(fname)
+                fname = muf_res.perturbed[options['data_meas_num']].filepath
             snpData.append(TouchstoneEditor(fname,read_header=read_header))
             numLoadedMeas+=1
             #print(numLoadedMeas)
@@ -384,6 +393,8 @@ class MetaFileController(SamuraiDict):
             fig = self.plotter.figure(); self.plotter.hold('on',nargout=0); ax = self.plotter.gca()
         for l in label_names:   
             pos = self.get_external_positions_mean(l)
+            if l!='meca_head':
+                pos = np.mean(pos,axis=0)
             self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
         self.plotter.legend(interpreter=None,nargout=0)
         return fig 
@@ -657,7 +668,9 @@ def split_metafile(metafile_path,meas_split,label='split'):
     mymfc = metaFileController(metafile_path)
     mymfc_header = mymfc.get_header_dict()
     mymfc_mf_name = mymfc.get_metafile_name_no_extension()
+    mf_wdir = mymfc.wdir
     num_splits = np.size(meas_split,0)
+    out_names = []
     for i in range(num_splits):
         # Open blank metafile, then add header and our measurements
         split_mfc = metaFileController(metafile_path,suppress_empty_warning=1) 
@@ -670,8 +683,10 @@ def split_metafile(metafile_path,meas_split,label='split'):
         # Now we can change the name and write out.
         mf_name   = mymfc_mf_name+'_'+label+'_'+str(i)+'.json'
         split_mfc.rename(mf_name)
-        split_mfc.set_wdir()
-        split_mfc.write()
+        split_mfc.set_wdir(mf_wdir)
+        out_name = split_mfc.write()
+        out_names.append(out_name)
+    return out_names
         
 # Evenly split into N apertures
 def evenly_split_metafile(metafile_path,num_splits,label='split'):
@@ -696,7 +711,7 @@ def evenly_split_metafile(metafile_path,num_splits,label='split'):
             print("ERROR: Split boundaries are not an integer. Please ensure that the number of measurements are evenly divisible by the 'num_splits'.[%f,%f]" %(start,stop))
             return -1
     meas_split = [range(int(start),int(stop)) for start,stop in meas_split_boundaries]
-    split_metafile(metafile_path,meas_split)
+    return split_metafile(metafile_path,meas_split)
 
 
 #from shutil import copyfile

@@ -38,6 +38,7 @@ class SamuraiSyntheticApertureAlgorithm:
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             measured_values_flg - are we using measurements, or simulated data (default True)
             load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+            load_data       - whether or not to load data on init (default true)
             These are also passed to the load_metafile function
         '''
         #options for the class
@@ -60,7 +61,7 @@ class SamuraiSyntheticApertureAlgorithm:
         #initialize so we know if weve loaded them or not
         self.all_s_parameter_data = None #must be 2D array with axis 0 as each measurement and axis 1 as each position
         self.all_data_perturbation = None #perturbation on our S parameters
-        self.freq_list = None
+        #self.freq_list = None #this is now a property
         self.all_weights = None #weighting for our antennas
         self.all_positions = None #must be in list of [x,y,z,alpha,beta,gamma] points like on robot
         self.all_positions_perturbation = None #perturbations
@@ -77,11 +78,41 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         self.metafile = MetaFileController(metafile_path,**arg_options)
         [s_data,_] = self.metafile.load_data(**arg_options)
+        keys = self.options['load_key']
+        if not hasattr(key, "__len__"):
+          keys = [keys]
+
+
         #now get the values we are looking for
-        self.all_s_parameter_data = np.array([s.S[self.options['load_key']].raw for s in s_data]) #turn the s parameters into an array
-        self.freq_list = s_data[0].S[self.options['load_key']].freq_list #get frequencies from first file (assume theyre all the same)
+        self.freq_list = s_data[0].S[keys[0]].freq_list #get frequencies from first file (assume theyre all the same)
+
+        self.all_s_parameter_data = []
+        for s in s_data:
+          #self.all_s_parameter_data.append(np.array([s.S[load_key].raw for load_key in keys])) #turn the s parameters into an array
+          data = np.array([s.S[load_key].raw for load_key in keys]) #turn the s parameters into an array
+          self.all_s_parameter_data.append(data.transpose())
+
+        self.all_s_parameter_data = np.array(self.all_s_parameter_data)
         self.freq_list = self.freq_list
         self.all_positions = self.metafile.get_positions()
+        if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
+            self.load_data('nominal',**arg_options)
+        
+    def load_data(self,data_type='nominal',data_meas_num=None,**arg_options):
+        '''
+        @brief load s parameter data using metafile paths
+        @param[in/OPT] data_type - nominal,monte_carlo,perturbed,etc. If none do nominal
+        @param[in/OPT] data_meas_num - which measurement of monte_carlo or perturbed to use
+        @param[in/OPT] arg_options - keyword parameters as follows. They are all passed to self.metafile.load_data()
+                None here
+        '''
+        options = self.options.copy() #create local options
+        options['data_type'] = data_type
+        options['data_meas_num'] = data_meas_num
+        for k,v in arg_options.items():
+            options[k] = v #add any other arg inputs
+        [s_data,_] = self.metafile.load_data(**options)
+        self.all_s_parameter_data = s_data
         
     def load_positions_from_file(self,file_path,**arg_options):
         '''
@@ -318,17 +349,27 @@ class SamuraiSyntheticApertureAlgorithm:
     @property
     def s_parameter_data(self):
         '''
-        @brief getter for our s parameter data. This will allow us to mask out undesired locations
+        @brief getter for our s parameter data. This will allow us to mask out undesired locations.
+        @note unlike all_s_parameter_data, this will return a numpy array, not a list of SnpEditors
         @return all s_parameter_data for desired positions that are not masked out
         @todo implemment masking
         '''
         if self.all_s_parameter_data is not None:
-            sp_dat = self.all_s_parameter_data.copy()
+            sp_dat = np.array([s.S[self.options['load_key']].raw for s in self.all_s_parameter_data])
             if self.all_data_perturbation is not None:
                 sp_dat+=self.all_data_perturbation
         else:
             sp_dat = None
         return sp_dat
+    
+    @property
+    def freq_list(self):
+        '''
+        @brief getter for frequency list. This will use the first TouchstoneEditor value in self.all_s_parameters
+            to ensure it is up to date in case we cut our data
+        '''
+        if self.all_s_parameter_data is not None:
+            return self.all_s_parameter_data[0].freq_list
     
     def perturb_data(self,stdev):
         '''
@@ -697,9 +738,6 @@ if __name__=='__main__':
             
     unittest.main()
             
-    
-    
-    
     
     
     
