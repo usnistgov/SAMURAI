@@ -91,7 +91,7 @@ class MUFResult(MUFModuleController):
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #make sure were getting a .meas, if not get the correct data
-        self.load(meas_path)
+        self.load(meas_path,**arg_options) #pass our kwargs here to for loading if desired
       
     ##########################################################################
     ### XML and other properties for easy access
