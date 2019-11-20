@@ -282,7 +282,7 @@ class MUFResult(MUFModuleController):
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
         
-    def load(self,meas_path=None,**kwargs):
+    def load(self,meas_path,**kwargs):
         '''
         @brief load our meas file and its corresponding data
         @param[in/OPT] meas_path - path to *.meas file to load in. This will overwrite self.meas_path
