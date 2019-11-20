@@ -1,0 +1,5 @@
+
+#dont save motive stuff
+*.motive
+*.cal
+motive/
