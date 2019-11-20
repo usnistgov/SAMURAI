@@ -26,6 +26,7 @@ HEADER_FREQ_REGEX = '[KMGT]*[Hh][Zz]' #regex to get GHz, Hz, THz, KHz, MHz
 FREQ_MULT_DICT = {'HZ':1,'KHZ':1e3,'MHZ':1e6,'GHZ':1e9,'THZ':1e12}
 INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse of frequency multiplier dictionary
 
+#%% Class for parsing files with more ports than 2 (e.g. *.s4p)
 class MultilineFileParser(object):
     commentList = ['#', '!']
     def __init__(self, dataFile):
@@ -80,6 +81,7 @@ class MultilineFileParser(object):
         else:
             raise StopIteration()
 
+#%% actual file manipulation class
 class TouchstoneEditor(object):
    '''
    @brief init arbitrary port touchstone class. This covers wave and S params
@@ -1243,11 +1245,146 @@ def map_keys(key_list,mapping_dict):
             i*=10
         new_key_list.append(new_key)
     return np.array(new_key_list)
+	
+	
+#%% Unit testing
+import unittest
+import os 
+class TestTouchstoneEditor(unittest.TestCase):
     
-
+    def __init__(self,*args,**kwargs):
+        '''
+		@brief constructor
+		'''
+		#path of our directory for the data
+        super().__init__(*args,**kwargs)
+        self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.dir_path = os.path.join(self.dir_path,'../analysis/support/test')
+        self.test_snp_txt = 'test.s2p'
+        self.test_snp_bin = 'test.s2p_binary'
+        self.test_wnp_txt = 'test.w2p'
+        self.test_wnp_bin = 'test.w2p_binary'
+	
+    def test_wnp_io(self):
+        '''
+		@brief test loading of wnp editor
+		'''
+		#print("Loading *.wnp files")
+        wnp_text_path = os.path.join(self.dir_path,self.test_wnp_txt)
+        wnp_bin_path  = os.path.join(self.dir_path,self.test_wnp_bin)
+        wnp_text = WnpEditor(wnp_text_path)
+        wnp_bin  = WnpEditor(wnp_bin_path)
+        self.assertEqual(wnp_bin,wnp_text)
+		
+    def test_snp_io(self):
+        '''
+		@brief test loading and writing of snp editor
+		'''
+		#print("Loading *.snp files")
+        snp_text_path = os.path.join(self.dir_path,self.test_snp_txt)
+        snp_bin_path  = os.path.join(self.dir_path,self.test_snp_bin)
+        snp_text = SnpEditor(snp_text_path)
+        snp_bin  = SnpEditor(snp_bin_path)
+        self.assertEqual(snp_bin,snp_text)
+        snp_text.write('test2.s2p')
+        snp_text.write('test2.s2p_binary')
+        snp_text2 = SnpEditor('test2.s2p_binary')
+        snp_text2.write('test22.s2p')
+        self.assertEqual(snp_text,snp_text2)
+        snp_bin.write('test3.s2p')
+        snp_bin2 = SnpEditor('test3.s2p')
+        self.assertEqual(snp_bin,snp_bin2)
+        os.remove('test2.s2p')
+        os.remove('test2.s2p_binary')
+        os.remove('test22.s2p')
+        os.remove('test3.s2p')
+		
+    def test_key_mapping(self):
+        '''
+		@brief test mapping keys to different ports
+		'''
+        keys = [11,31,13,33]
+        mapping = {3:2}
+        expected_keys = [11,21,12,22]
+        new_keys = map_keys(keys,mapping)
+        self.assertTrue(np.all(np.equal(expected_keys,new_keys)))
+		
+    def test_2_port_swapping(self):
+        '''
+		@brief test using swap_ports to swap 2 port files and swapping
+		@todo improve this to test 2 different data files. THis test only
+			ensures data is not corrupted. It doesnt verify data is actually
+			swapped at all
+		'''
+        f1 = os.path.join(self.dir_path,self.test_snp_txt)
+        f2 = os.path.join(self.dir_path,self.test_snp_bin)
+        s1 = TouchstoneEditor(f1)
+        s2 = TouchstoneEditor(f2)
+        so1,so2 = swap_ports(s1,s2) #these files contain the same data
+        self.assertEqual(so1,s1)
+        self.assertEqual(so2,s2)
+        s1c = SnpEditor(f1)
+        s1.swap_ports(1,2)
+        s1.swap_ports(1,2)
+        self.assertEqual(s1,s1c)
+		
+    def test_arithmetic_between_values(self):
+        '''
+		@brief test arithmetic operations
+		@todo add other tests besides just multiply and test multiple ports/waves
+		'''
+		# test arithmetic _mult__,__add__, etc
+        f1 = os.path.join(self.dir_path,self.test_snp_txt)
+        f2 = os.path.join(self.dir_path,self.test_snp_bin)
+        s1 = SnpEditor(f1)
+        s2 = SnpEditor(f2)
+        sp1 = s1.S[21]
+        sp2 = s2.S[21]
+        sp3 = sp1*sp2
+        self.assertTrue(np.all(sp3.raw==(sp1.raw*sp2.raw)))
+        s3 = s1*s2
+        self.assertTrue(np.all(s3.S[21].raw==(sp1.raw*sp2.raw)))
+        s4 = s1*complex(5,2)
+        self.assertTrue(np.all(s4.S[21].raw==(sp1.raw*complex(5,2))))
+		
+    def test_new_class_creation(self):
+        '''
+		@brief test the creatino of new classes from TouchstoneEditor superclass
+		'''
+        wnp_text_path = os.path.join(self.dir_path,self.test_wnp_txt)
+        wnp_bin_path  = os.path.join(self.dir_path,self.test_wnp_bin)
+        w1 = TouchstoneEditor(wnp_text_path)
+        w2 = TouchstoneEditor(wnp_bin_path)
+        self.assertEqual(type(w1),WnpEditor)
+        self.assertEqual(type(w2),WnpEditor)
+        snp_text_path = os.path.join(self.dir_path,self.test_snp_txt)
+        snp_bin_path  = os.path.join(self.dir_path,self.test_snp_bin)
+        s1 = TouchstoneEditor(snp_text_path)
+        s2 = TouchstoneEditor(snp_bin_path)
+        self.assertEqual(type(s1),SnpEditor)
+        self.assertEqual(type(s2),SnpEditor)
+		
+    def test_add_swap_remove_port(self):
+        '''
+        @brief test adding/swapping/removing ports. This is written only for s2p files
+        '''
+        f1 = os.path.join(self.dir_path,self.test_snp_txt)
+        s1 = SnpEditor(f1)
+        s1_11 = copy.deepcopy(s1.S[11].raw)
+        s1.swap_ports(1,2)
+        self.assertTrue(np.all(s1_11==s1.S[22].raw))
+        init_keys = copy.deepcopy(s1.wave_dict_keys)
+        s1.add_port(3)
+        self.assertTrue(np.all(s1.wave_dict_keys==[11,12,13,21,22,23,31,32,33]))
+        rw = s1.delete_port(3)
+        rw = s1.delete_port(1)
+        self.assertTrue(np.all(s1.wave_dict_keys==[22]))
+        rw = s1.add_port(1)
+        self.assertTrue(np.all(s1.wave_dict_keys==init_keys))
+            
+#%% things to run when we run this file
 if __name__=='__main__':
 
-    import unittest
     #geyt the current file directory for the test data
     import os 
     import copy
@@ -1266,126 +1403,6 @@ if __name__=='__main__':
     r2 = mysnp.S[21].raw
     #mysnp.plot([21])
     
-    class TestTouchstone(unittest.TestCase):
-        
-        def test_wnp_io(self):
-            '''
-            @brief test loading of wnp editor
-            '''
-            #print("Loading *.wnp files")
-            wnp_text_path = os.path.join(dir_path,test_wnp_txt)
-            wnp_bin_path  = os.path.join(dir_path,test_wnp_bin)
-            wnp_text = WnpEditor(wnp_text_path)
-            wnp_bin  = WnpEditor(wnp_bin_path)
-            self.assertEqual(wnp_bin,wnp_text)
-            
-        def test_snp_io(self):
-            '''
-            @brief test loading and writing of snp editor
-            '''
-            #print("Loading *.snp files")
-            snp_text_path = os.path.join(dir_path,test_snp_txt)
-            snp_bin_path  = os.path.join(dir_path,test_snp_bin)
-            snp_text = SnpEditor(snp_text_path)
-            snp_bin  = SnpEditor(snp_bin_path)
-            self.assertEqual(snp_bin,snp_text)
-            snp_text.write('test2.s2p')
-            snp_text.write('test2.s2p_binary')
-            snp_text2 = SnpEditor('test2.s2p_binary')
-            snp_text2.write('test22.s2p')
-            self.assertEqual(snp_text,snp_text2)
-            snp_bin.write('test3.s2p')
-            snp_bin2 = SnpEditor('test3.s2p')
-            self.assertEqual(snp_bin,snp_bin2)
-            os.remove('test2.s2p')
-            os.remove('test2.s2p_binary')
-            os.remove('test22.s2p')
-            os.remove('test3.s2p')
-            
-        def test_key_mapping(self):
-            '''
-            @brief test mapping keys to different ports
-            '''
-            keys = [11,31,13,33]
-            mapping = {3:2}
-            expected_keys = [11,21,12,22]
-            new_keys = map_keys(keys,mapping)
-            self.assertTrue(np.all(np.equal(expected_keys,new_keys)))
-            
-        def test_2_port_swapping(self):
-            '''
-            @brief test using swap_ports to swap 2 port files and swapping
-            @todo improve this to test 2 different data files. THis test only
-                ensures data is not corrupted. It doesnt verify data is actually
-                swapped at all
-            '''
-            f1 = os.path.join(dir_path,test_snp_txt)
-            f2 = os.path.join(dir_path,test_snp_bin)
-            s1 = TouchstoneEditor(f1)
-            s2 = TouchstoneEditor(f2)
-            so1,so2 = swap_ports(s1,s2) #these files contain the same data
-            self.assertEqual(so1,s1)
-            self.assertEqual(so2,s2)
-            s1c = SnpEditor(f1)
-            s1.swap_ports(1,2)
-            s1.swap_ports(1,2)
-            self.assertEqual(s1,s1c)
-            
-        def test_arithmetic_between_values(self):
-            '''
-            @brief test arithmetic operations
-            @todo add other tests besides just multiply and test multiple ports/waves
-            '''
-             # test arithmetic _mult__,__add__, etc
-            f1 = os.path.join(dir_path,'test.s2p')
-            f2 = os.path.join(dir_path,'test.s2p_binary')
-            s1 = SnpEditor(f1)
-            s2 = SnpEditor(f2)
-            sp1 = s1.S[21]
-            sp2 = s2.S[21]
-            sp3 = sp1*sp2
-            self.assertTrue(np.all(sp3.raw==(sp1.raw*sp2.raw)))
-            s3 = s1*s2
-            self.assertTrue(np.all(s3.S[21].raw==(sp1.raw*sp2.raw)))
-            s4 = s1*complex(5,2)
-            self.assertTrue(np.all(s4.S[21].raw==(sp1.raw*complex(5,2))))
-            
-        def test_new_class_creation(self):
-            '''
-            @brief test the creatino of new classes from TouchstoneEditor superclass
-            '''
-            wnp_text_path = os.path.join(dir_path,test_wnp_txt)
-            wnp_bin_path  = os.path.join(dir_path,test_wnp_bin)
-            w1 = TouchstoneEditor(wnp_text_path)
-            w2 = TouchstoneEditor(wnp_bin_path)
-            self.assertEqual(type(w1),WnpEditor)
-            self.assertEqual(type(w2),WnpEditor)
-            snp_text_path = os.path.join(dir_path,test_snp_txt)
-            snp_bin_path  = os.path.join(dir_path,test_snp_bin)
-            s1 = TouchstoneEditor(snp_text_path)
-            s2 = TouchstoneEditor(snp_bin_path)
-            self.assertEqual(type(s1),SnpEditor)
-            self.assertEqual(type(s2),SnpEditor)
-            
-        def test_add_swap_remove_port(self):
-            '''
-            @brief test adding/swapping/removing ports. This is written only for s2p files
-            '''
-            f1 = os.path.join(dir_path,'test.s2p')
-            s1 = SnpEditor(f1)
-            s1_11 = copy.deepcopy(s1.S[11].raw)
-            s1.swap_ports(1,2)
-            self.assertTrue(np.all(s1_11==s1.S[22].raw))
-            init_keys = copy.deepcopy(s1.wave_dict_keys)
-            s1.add_port(3)
-            self.assertTrue(np.all(s1.wave_dict_keys==[11,12,13,21,22,23,31,32,33]))
-            rw = s1.delete_port(3)
-            rw = s1.delete_port(1)
-            self.assertTrue(np.all(s1.wave_dict_keys==[22]))
-            rw = s1.add_port(1)
-            self.assertTrue(np.all(s1.wave_dict_keys==init_keys))
-            
-            
     import doctest
     doctest.testmod(extraglobs=
                     {'mys2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p')),
@@ -1395,7 +1412,7 @@ if __name__=='__main__':
     add_remove_test = True
     empty_object_test = True
     
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstone)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstoneEditor)
     unittest.TextTestRunner(verbosity=2).run(suite)
     #unittest.main()
         
