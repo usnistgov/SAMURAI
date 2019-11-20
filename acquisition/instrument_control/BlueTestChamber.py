@@ -10,7 +10,7 @@ path = r"Q:/public/Reverb Measurements Wireless/Labview code/Config files/Blue T
 import subprocess
 import os
 import re
-from samurai.acquisition.support.BislideController import BislideController
+from samurai.acquisition.instrument_control.BislideController import BislideController
 
 class BlueTestChamber:
      def __init__(self,velmex_com_port,**arg_options):

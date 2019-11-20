@@ -120,8 +120,7 @@ def readSamuraiDataMeas(jsonFile):
         #print("meas: ".format(meas['filename']))
         measFile = meas['filename']
         measPath = os.path.join(measFolder, measFile)
-        myMufResult = MUFResult(measPath)
-        myMufResult.load(**loadNomDict)
+        myMufResult = MUFResult(measPath,**loadNomDict)
         nomVal = myMufResult.nominal
         measS21[iMeas, :] = nomVal.raw_data
         measPosRead[iMeas, :] = packagePos(meas['position'])
