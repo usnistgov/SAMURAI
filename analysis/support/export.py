@@ -14,7 +14,7 @@ import scipy.io as sio
 #from steeringVectors import steeringVectors, steeringVectorsWithAntenna
 import sys
 sys.path.insert(0, '../patterns')
-import antenna as antenna
+#import antenna as antenna
 
 from matplotlib import rc
 from matplotlib.ticker import FormatStrFormatter
@@ -120,8 +120,7 @@ def readSamuraiDataMeas(jsonFile):
         #print("meas: ".format(meas['filename']))
         measFile = meas['filename']
         measPath = os.path.join(measFolder, measFile)
-        myMufResult = MUFResult(measPath)
-        myMufResult.load(**loadNomDict)
+        myMufResult = MUFResult(measPath,**loadNomDict)
         nomVal = myMufResult.nominal
         measS21[iMeas, :] = nomVal.raw_data
         measPosRead[iMeas, :] = packagePos(meas['position'])
@@ -144,8 +143,9 @@ def readSamuraiDataMeas(jsonFile):
     freqs = freqs*(10**9) # Convert GHz to Hz
     return freqs, measPos, measS21
 
-dataDir = "/home/bfj/data/reverb/081519/calibrated_data"
-dataDir = r"C:\Users\bfj\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu18.04onWindows_79rhkp1fndgsc\LocalState\rootfs\home\bfj\data/reverb/081519/calibrated_data"
+#dataDir = "/home/bfj/data/reverb/081519/calibrated_data"
+#dataDir = r"C:\Users\bfj\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu18.04onWindows_79rhkp1fndgsc\LocalState\rootfs\home\bfj\data/reverb/081519/calibrated_data"
+dataDir = r"Q:\public\Reverb Measurements Wireless\Rob Jones\data\bluetest_maria_synth_apert_recreate\081519\calibrated_data"
 
 jsonFilename = 'metafile.json'
 

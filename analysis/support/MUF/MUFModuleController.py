@@ -147,11 +147,10 @@ class MUFItemList:
         self.update_xml_count()
             
     def clear_items(self):
-        '''
-        @brief clear all items from the list
-        '''
+        '''@brief clear all items from the list'''
         self._muf_items = [] #clear the list
-        clear_muf_xml_items(self._xml_element) #clear the xml elements
+        if len(self._xml_element)>0:
+            clear_muf_xml_items(self._xml_element) #clear the xml elements
         self.update_xml_count()
         
     def update_xml_count(self):

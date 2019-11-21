@@ -67,7 +67,7 @@ class MUFResult(MUFModuleController):
         >>> mymeas.calculate_monte_carlo_statistics() 
     '''
         
-    def __init__(self,meas_path,**arg_options):
+    def __init__(self,meas_path=None,**arg_options):
         '''
         @brief load up and initialize the *.meas file
         @param[in] meas_path - path to the *.meas file to load. 
@@ -91,10 +91,7 @@ class MUFResult(MUFModuleController):
         if self.options['plotter'] is None:
             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         #make sure were getting a .meas, if not get the correct data
-        self.meas_path = meas_path
-        self.meas_path_dirname = os.path.dirname(self.meas_path)
-
-        self.load()
+        self.load(meas_path,**arg_options) #pass our kwargs here to for loading if desired
       
     ##########################################################################
     ### XML and other properties for easy access
@@ -280,15 +277,15 @@ class MUFResult(MUFModuleController):
         @note this also loads self.nominal,self.monte_carlo,
             and self.perturbed
         '''
-        super().load(meas_path)  #load xml
+        super().load(self.meas_path)  #load xml
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options) # parse nominal
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
         
-    def load(self,**kwargs):
+    def load(self,meas_path,**kwargs):
         '''
         @brief load our meas file and its corresponding data
-        @param[in] meas_path - path to *.meas file to load in
+        @param[in/OPT] meas_path - path to *.meas file to load in. This will overwrite self.meas_path
         @param[in/OPT] kwargs - keyword arguments as follows:
             load_nominal - load our nominal value file in a subfolder of meas_path (default True)
             load_stats - load our statistics to a subfolder of meas_path (default False)
@@ -298,6 +295,9 @@ class MUFResult(MUFModuleController):
         options['load_stats'] = False
         for k,v in kwargs.items():
             options[k] = v
+        self.meas_path = meas_path
+        if meas_path is not None:
+            self.meas_path_dirname = os.path.dirname(self.meas_path)
         #make a *.meas if a wnp or snp file was provided
         #if self.meas_path is not None and os.path.exists(self.meas_path):
         if self.meas_path is not None:
@@ -710,28 +710,49 @@ class MUFNominalValue(MUFStatistic):
         except:
             raise AttributeError(attr)
 
+#%% Unittest class
+import unittest
+class TestMUFResult(unittest.TestCase):
+    
+    wdir = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements"
+    
+    def test_load_xml(self):
+        '''
+        @brief in this test we will load a xml file with uncertainties and try
+            to access the path lists of each of the uncertainty lists and the nominal result
+        '''
+        meas_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas")
+        res = MUFResult(meas_path)
+        nvp = res.nominal_value_path #try getting our nominal value
+        
+    def test_create_from_snp(self):
+        '''
+        @brief this test will create a *.meas file for a given *.snp or *.wnp file
+        '''
+        snp_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\touchstone\meas_cal_template.s2p")
+        res = MUFResult(snp_path)
+        nvp = res.nominal_value_path #try getting our nominal value
+        self.assertEqual(nvp,snp_path)
+        
+    def test_create_from_empty(self):
+        '''
+        @brief in this test we create an empty .meas file and add our paths to it
+            which is then written out
+        '''
+        snp_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\touchstone\meas_cal_template.s2p")
+        res = MUFResult()
+        res.set_nominal(snp_path)
+    
+    def test_create_from_data(self):
+        '''
+        @brief here we will create a MUFResult just given data in TouchstoneEditor format
+            This should build a template around data itself and will write out data
+            using name in one of the write data methods
+        '''
+        pass
+
 #%%
 if __name__=='__main__':
-    
-    import unittest
-    
-    class MUFResultTest(unittest.TestCase):
-    
-        def test_load_xml(self):
-            '''
-            @brief in this test we will load a xml file with uncertainties and try
-                to access the path lists of each of the uncertainty lists and the nominal result
-            '''
-            meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
-            res = MUFResult(meas_path)
-            nvp = res.nominal_value_path #try getting our nominal value
-            
-        def test_create_from_empty(self):
-            '''
-            @brief in this test we create an empty .meas file and add our paths to it
-                which is then written out
-            '''
-            pass
     
     #from samurai.base.SamuraiPlotter import SamuraiPlotter
     meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
