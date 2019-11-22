@@ -33,15 +33,21 @@ class Instrument(SamuraiDict):
         @param[in] command_dict_path - path to the json file
         '''
         self['command_dictionary_path'] = command_dict_path #save for writing out
-        self.command_dict = InstrumentCommandDict(command_dict_path)
+        if command_dict_path is not None:
+            self.command_dict = InstrumentCommandDict(command_dict_path)
+        else:
+            self.command_dict = None
           
-    def connect(self,address):
+    def connect(self,address=None):
         '''
         @brief template for instrumnet connection. calls self.connection.connect()
         '''
         self['connection_address'] = address
         try:
-            self._connect(address)
+            if address is not None:
+                self._connect(address)
+            else:
+                self._connect(address)
         except OSError:
             raise InstrumentConnectionError('Cannot Connect to Instrument')
             
@@ -65,7 +71,7 @@ class Instrument(SamuraiDict):
         '''
         self.connection.disconnect(address)
             
-    def read(self,cast=True,**kwargs):
+    def read(self,cast=False,**kwargs):
         '''
         @brief template for an instrument read. calls self._read()
         @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._read_binary)
@@ -121,13 +127,11 @@ class Instrument(SamuraiDict):
         self.connection.write(msg)
         
     def _write_binary(self,msg,*args,**kwargs):
-        '''
-        @brief internal function for abstracting connection.write_binary()
-        '''
+        '''@brief internal function for abstracting connection.write_binary()'''
         print(msg)
         return self.connection.write_binary_values(msg,*args,**kwargs) #consistent with visa
     
-    def query(self,msg,*args,cast=True,**kwargs):
+    def query(self,msg,*args,cast=False,**kwargs):
         '''
         @brief template for a instrument query. calls self._query()
         @param[in] msg - message to send
@@ -137,30 +141,24 @@ class Instrument(SamuraiDict):
         @param[in] **kwargs - keyword args passed to commands in command_dict
         '''
         msg = self.get_command_from_dict(msg,*args,**kwargs)
-        rv = self._query(msg)
+        rv = self._query(msg,**kwargs)
         if cast:
             rv = self.cast_return_value(rv)
         return rv
     
     def query_binary(self,msg,*args,**kwargs):
-        '''
-        @brief template for querying binary data
-        '''
+        '''@brief template for querying binary data'''
         msg = self.get_command_from_dict(msg,*args,**kwargs)
         rv = self._query_binary(msg,*args,**kwargs)
         return rv
     
-    def _query(self,msg):
-        '''
-        @brief internal function abstracting connection.query() function
-        '''
+    def _query(self,msg,**kwargs):
+        '''@brief internal function abstracting connection.query() function'''
         print(msg)
         return self.connection.query(msg)
     
     def _query_binary(self,msg,*args,**kwargs):
-        '''
-        @brief internal function for abstracting connection.write_binary()
-        '''
+        '''@brief internal function for abstracting connection.write_binary()'''
         return self.connection.query_binary_values(msg,*args,**kwargs) #consistent with visa
         
     def get_command_from_dict(self,command,*args,**kwargs):
@@ -171,10 +169,13 @@ class Instrument(SamuraiDict):
         @param[in] **kwargs -kwargs to pass to command if found
         @return command string
         '''
-        com = self.command_dict.get(command,command)
-        if type(com) is not str:
-            com = com(*args,**kwargs)
-        return com
+        if self.command_dict is not None: #if we have a command dict. get the command
+            com = self.command_dict.get(command,command)
+            if type(com) is not str:
+                com = com(*args,**kwargs)
+            return com
+        else: #just return the input value
+            return command
     
     def cast_return_value(self,value_str):
         '''
