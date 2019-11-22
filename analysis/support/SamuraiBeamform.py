@@ -158,7 +158,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             else:
                 freq_idx = freq_idx[0]
             #if we make it here the frequency exists. now get our s params for the current frequency
-            s21_current = np.ascontiguousarray(s21_vals[...,freq_idx])
+            s21_current = np.ascontiguousarray(s21_vals[...,freq_idx,0])
             #now we can calculate the beam phases for each of the angles at each position
             k = get_k(freq)
             if options['use_vectorized']:
@@ -190,7 +190,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         else:
             ant_vals = None
 
-        return mycsa,ant_vals
+        return mycsa
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
 
 
@@ -200,7 +200,16 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 ###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    testa = True #synthetic and real data tests (commented out)
+    
+    fname = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\CUP_measurements\8-12-2019\aperture_vertical\metafile_split_0.json"        
+    #fname = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\CUP_measurements\8-12-2019\aperture_vertical\metafile_split_short.json"
+    fname = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2-4-2019\aperture_0\metaFile_split_0.json"
+    mybf = SamuraiBeamform(fname,verbose=True)
+    mybf.set_cosine_sum_window_by_name('hamming')
+    mycsa = mybf.beamforming_farfield_azel(np.linspace(-180,179,181),0,40e9)
+    mycsa.plot_3d(renderer='browser')
+    
+    testa = False #synthetic and real data tests (commented out)
     testb = False #data from usc 5-27-2019 (s2p padp output)
     testc = False
     testd = False

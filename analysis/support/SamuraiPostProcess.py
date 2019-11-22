@@ -22,7 +22,7 @@ from samurai.analysis.support.MetaFileController import MetaFileController
 #from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
 #from samurai.acquisition.support.SamuraiPlotter import SamuraiPlotter
 
-#generic class for synthetic aperture algorithms
+#%% generic class for synthetic aperture algorithms
 class SamuraiSyntheticApertureAlgorithm:
     '''
     @brief this is a generic class for samurai aglorithms.
@@ -77,25 +77,9 @@ class SamuraiSyntheticApertureAlgorithm:
         @param[in/OPT] keyword arguments passed to MetaFileController init and MetaFileController.load_data
         '''
         self.metafile = MetaFileController(metafile_path,**arg_options)
-        [s_data,_] = self.metafile.load_data(**arg_options)
-        keys = self.options['load_key']
-        if not hasattr(keys, "__len__"):
-          keys = [keys]
-
-        #now get the values we are looking for
-        self.freq_list = s_data[0].S[keys[0]].freq_list #get frequencies from first file (assume theyre all the same)
-
-        self.all_s_parameter_data = []
-        for s in s_data:
-          #self.all_s_parameter_data.append(np.array([s.S[load_key].raw for load_key in keys])) #turn the s parameters into an array
-          data = np.array([s.S[load_key].raw for load_key in keys]) #turn the s parameters into an array
-          self.all_s_parameter_data.append(data.transpose())
-
-        self.all_s_parameter_data = np.array(self.all_s_parameter_data)
-        self.freq_list = self.freq_list
-        self.all_positions = self.metafile.get_positions()
         if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
             self.load_data('nominal',**arg_options)
+            self.all_positions = self.metafile.get_positions()
         
     def load_data(self,data_type='nominal',data_meas_num=None,**arg_options):
         '''
@@ -144,7 +128,7 @@ class SamuraiSyntheticApertureAlgorithm:
         if np.any(self.weights==None) or len(self.weights)<1:
             raise(Exception("Weights not set"))
     
-    
+#%% Positional Functions
     ###########################################################################
     ### Positional Functions
     ###########################################################################
@@ -341,7 +325,7 @@ class SamuraiSyntheticApertureAlgorithm:
         fig = go.Figure(data=plotly_surf,layout=layout)
         ploff.plot(fig,filename=options['out_name'])
     
-    
+#%% S param functs
     ###########################################################################
     ### s parameter functions
     ########################################################################### 
@@ -352,11 +336,19 @@ class SamuraiSyntheticApertureAlgorithm:
         @note unlike all_s_parameter_data, this will return a numpy array, not a list of SnpEditors
         @return all s_parameter_data for desired positions that are not masked out
         @todo implemment masking
-        '''
+        '''           
         if self.all_s_parameter_data is not None:
-            sp_dat = np.array([s.S[self.options['load_key']].raw for s in self.all_s_parameter_data])
+            sp_dat = []
+            keys = self.options['load_key']
+            if not hasattr(keys, "__len__"):
+                keys = [keys]
+            for s in self.all_s_parameter_data:
+                #self.all_s_parameter_data.append(np.array([s.S[load_key].raw for load_key in keys])) #turn the s parameters into an array
+                data = np.array([s.S[load_key].raw for load_key in keys]) #turn the s parameters into an array
+                sp_dat.append(data.transpose())
             if self.all_data_perturbation is not None:
                 sp_dat+=self.all_data_perturbation
+            return np.array(sp_dat)
         else:
             sp_dat = None
         return sp_dat
@@ -381,7 +373,8 @@ class SamuraiSyntheticApertureAlgorithm:
             This value can be a scalar, or a set of values equal to the shape of the s_parameter_data
         '''
         self.all_data_perturbation = np.random.normal(scale=stdev)
-    
+
+#%% steering vector functions
     ###########################################################################
     ### Steering Vector Functions
     ###########################################################################
@@ -469,7 +462,7 @@ class SamuraiSyntheticApertureAlgorithm:
             self.all_s_parameter_data[:,fi]+=sv_sum
     
 
-    
+#%% windowing
     ###########################################################################
     ### Windowing Functions
     ###########################################################################
@@ -597,7 +590,7 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         self.all_weights = weights
         
-        
+#%% other useful things
 ###########################################################################
 ### some useful other functions
 ###########################################################################        
@@ -673,12 +666,48 @@ def vector_div_complex(num,denom):
 #ax.plot_surface(X,Y,np.angle(sv[:,1830].reshape(X.shape)))
 #ax.plot_surface(y.reshape((35,35)),z.reshape((35,35)),(np.angle(s21.reshape(X.shape))))
 # ax.plot_surface(y.reshape((35,35)),z.reshape((35,35)),dr[:,10000].reshape(35,35))
-    
 
+#%% Unit testing
+import unittest
+class TestSamuraiPostProcess(unittest.TestCase):   
+    #def test_to_azel(self):
+    #    self.assertEqual('foo'.upper(),'FOO')
+    def test_k_vector_calculation_azel(self):
+        #ssaa = SamuraiSyntheticApertureAlgorithm()
+        #ssaa.all_positions = np.random.rand(1225,3)*0.115 #random data points between 0 and 0.115m
+        az_angles = np.arange(-90,90,1)
+        el_angles = np.arange(-90,90,1)
+        [AZ,EL] = np.meshgrid(az_angles,el_angles)
+        az = AZ.flatten()
+        el = EL.flatten()
+        kvecs = get_k_vectors(az,el)
+        kr = np.sqrt(kvecs[0]**2+kvecs[1]**2+kvecs[2]**2) #r should be 1
+        self.assertTrue(np.all(np.round(kr,2)==1),'K Vector radius mean = %f' %kr.mean())
 
-    
+    def test_location_perturbation(self):
+        #test perturbing the positions
+        #this tests to make sure we can perturb and return
+        mysp = SamuraiSyntheticApertureAlgorithm()
+        zlocs = 0
+        xlocs = np.arange(0,0.103,0.003) #default positions in m
+        ylocs = np.arange(0,0.103,0.003)
+        [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+        pos = np.zeros((X.size,6))
+        pos[:,0] = X.flatten()
+        pos[:,1] = Y.flatten()
+        pos[:,2] = Z.flatten()
+        mysp.set_positions(pos,'m') #set our positions 
+        p_m = mysp.get_positions('m')
+        mysp.perturb_positions_normal([1,1,1,0,0,0],units='mm')
+        pp_m = mysp.get_positions('m')
+        self.assertFalse(np.all(pp_m==p_m),'Perturbation not set correctly')
+        mysp.clear_position_perturbation()
+        self.assertTrue(np.all(p_m==mysp.get_positions('m')),'Perturbation not cleared correctly')
+        
+
+#%%
 if __name__=='__main__':
-    
+    pass
     #test_ant_path = './data/test_ant_pattern.csv'
     #myant = Antenna(test_ant_path,dimension=1,plane='az')
     #myap = myant['pattern']
@@ -686,56 +715,20 @@ if __name__=='__main__':
     #myap.plot_scatter_3d()
     #myant['pattern'].plot_scatter_3d()
     #print(myap.get_values([0,0.5,1,45,-45],[0,0,0,0,0]))
-    mysp = SamuraiSyntheticApertureAlgorithm()
-    zlocs = 0
-    xlocs = np.arange(0,0.103,0.003) #default positions in m
-    ylocs = np.arange(0,0.103,0.003)
-    [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
-    pos = np.zeros((X.size,6))
-    pos[:,0] = X.flatten()
-    pos[:,1] = Y.flatten()
-    pos[:,2] = Z.flatten()
-    mysp.set_positions(pos,'m') #set our positions 
-    mysp.perturb_positions_normal([1,1,1,0,0,0],units='mm')
-    #some unit tests
-    import unittest
-    class TestSamuraiPostProcess(unittest.TestCase):   
-        #def test_to_azel(self):
-        #    self.assertEqual('foo'.upper(),'FOO')
-        def test_k_vector_calculation_azel(self):
-            #ssaa = SamuraiSyntheticApertureAlgorithm()
-            #ssaa.all_positions = np.random.rand(1225,3)*0.115 #random data points between 0 and 0.115m
-            az_angles = np.arange(-90,90,1)
-            el_angles = np.arange(-90,90,1)
-            [AZ,EL] = np.meshgrid(az_angles,el_angles)
-            az = AZ.flatten()
-            el = EL.flatten()
-            kvecs = get_k_vectors(az,el)
-            kr = np.sqrt(kvecs[0]**2+kvecs[1]**2+kvecs[2]**2) #r should be 1
-            self.assertTrue(np.all(np.round(kr,2)==1),'K Vector radius mean = %f' %kr.mean())
-    
-        def test_location_perturbation(self):
-            #test perturbing the positions
-            #this tests to make sure we can perturb and return
-            mysp = SamuraiSyntheticApertureAlgorithm()
-            zlocs = 0
-            xlocs = np.arange(0,0.103,0.003) #default positions in m
-            ylocs = np.arange(0,0.103,0.003)
-            [X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
-            pos = np.zeros((X.size,6))
-            pos[:,0] = X.flatten()
-            pos[:,1] = Y.flatten()
-            pos[:,2] = Z.flatten()
-            mysp.set_positions(pos,'m') #set our positions 
-            p_m = mysp.get_positions('m')
-            mysp.perturb_positions_normal([1,1,1,0,0,0],units='mm')
-            pp_m = mysp.get_positions('m')
-            self.assertFalse(np.all(pp_m==p_m),'Perturbation not set correctly')
-            mysp.clear_position_perturbation()
-            self.assertTrue(np.all(p_m==mysp.get_positions('m')),'Perturbation not cleared correctly')
+    #mysp = SamuraiSyntheticApertureAlgorithm()
+    #zlocs = 0
+    #xlocs = np.arange(0,0.103,0.003) #default positions in m
+    #ylocs = np.arange(0,0.103,0.003)
+    #[X,Y,Z] = np.meshgrid(xlocs,ylocs,zlocs)
+    #pos = np.zeros((X.size,6))
+    #pos[:,0] = X.flatten()
+    #pos[:,1] = Y.flatten()
+    #pos[:,2] = Z.flatten()
+    #mysp.set_positions(pos,'m') #set our positions 
+    #mysp.perturb_positions_normal([1,1,1,0,0,0],units='mm')
+
             
-            
-    unittest.main()
+    #unittest.main()
             
     
     

@@ -17,6 +17,7 @@ from samurai.base.TouchstoneEditor import SnpEditor
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.analysis.support.MetaFileController import MetaFileController
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import rotate_3d
+from samurai.base.SamuraiDict import SamuraiDict
 
 import plotly.graph_objs as go
 import plotly.offline as ploff

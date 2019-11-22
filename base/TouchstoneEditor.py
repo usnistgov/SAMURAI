@@ -858,8 +858,7 @@ class WaveformEditor(SnpEditor):
        @note this is overriden here because we are just reading real data, not imaginary
        '''
        freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
-        
-        #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
+       #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
        for ki,k in enumerate(self.wave_dict_keys):
            for wi,w in enumerate(self.waves):
                idx = ki*len(self.waves)*2+(1+2*wi)
@@ -981,6 +980,10 @@ class TouchstoneParam:
         ifft_vals = np.fft.ifft(self.raw)
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])
+        #myw = WaveformEditor(None)
+        #myw.S[21].freq_list = times
+        #myw.S[21].raw = ifft_vals
+        #return myw
         return times,ifft_vals
     
     def calculate_arbitrary_time_domain_data(self,output_vals):
@@ -1171,6 +1174,19 @@ class SnpParam(TouchstoneParam):
      
     def __init__(self,freq_list,raw_list,**arg_options):
         super().__init__(freq_list,raw_list,**arg_options)
+        
+class WaveformParam(TouchstoneParam):
+    '''@brief parameter for waveorm files'''
+    def __init__(self,freq_list,raw_list,**arg_options):
+        super().__init__(freq_list,raw_list,**arg_options)
+    @property
+    def times(self):
+        '''@brief allow times as opposed to freq_list'''
+        return self.freq_list
+    @setter.times
+    def times(self,val):
+        '''@brief setter for times alias'''
+        self.freq_list = times
          
              
 #sl = s2pEditor('U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Cable_Drift/5-18-2018_stretchRepeats/processed/preCal/short_load.s2p')
