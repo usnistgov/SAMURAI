@@ -7,6 +7,7 @@ Created on Thu Aug 15 08:50:09 2019
 from collections import OrderedDict
 import os
 import json
+import numpy as np
 from functools import reduce
 import operator
 
@@ -161,12 +162,14 @@ class SamuraiJSONEncoder(json.JSONEncoder):
     '''
     custom_encoding_method = '_encode_json_' #this method should be written to provide a custom encoding
     def default(self,obj):
+        if isinstance(obj,np.ndarray): #change any ndarrays to lists
+            return obj.tolist()
         if hasattr(obj,self.custom_encoding_method): #assume this will then be a class
             cust_enc_meth = getattr(obj,self.custom_encoding_method)
             class_name = obj.__class__.__name__ #get the class name
             return {'__{}__'.format(class_name):cust_enc_meth()}
         else:
-            return super().default(self,obj)
+            return super().default(obj)
 
 def SamuraiJSONDecoder(o):
     '''
