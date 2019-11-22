@@ -79,9 +79,8 @@ class SamuraiSyntheticApertureAlgorithm:
         self.metafile = MetaFileController(metafile_path,**arg_options)
         [s_data,_] = self.metafile.load_data(**arg_options)
         keys = self.options['load_key']
-        if not hasattr(key, "__len__"):
+        if not hasattr(keys, "__len__"):
           keys = [keys]
-
 
         #now get the values we are looking for
         self.freq_list = s_data[0].S[keys[0]].freq_list #get frequencies from first file (assume theyre all the same)
