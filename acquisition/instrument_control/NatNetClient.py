@@ -55,6 +55,8 @@ class NatNetClient:
         self.newFrameListener = None
         #listener for labeled marker
         self.labeledMarkerListener = None
+        #listener for all points in rigid body
+        self.rigidBodyPointListener = None
         
         #when a description is received, it is placed here
         self.descriptions = NatNetDescriptions()
@@ -144,6 +146,8 @@ class NatNetClient:
                     size = FloatValue.unpack( data[offset:offset+4] )
                     offset += 4
                     trace( "\tMarker Size", i, ":", size[0] )
+                    
+        
                     
         if( self.__natNetStreamVersion[0] >= 2 ):
             markerError, = FloatValue.unpack( data[offset:offset+4] )

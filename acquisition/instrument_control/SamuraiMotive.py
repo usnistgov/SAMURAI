@@ -32,13 +32,13 @@ class MotiveInterface(Instrument):
             init_wait - wait time after starting natnet client. This ensures data is populated (default 0.1)
         '''
         options = {}
-        options['init_wait'] = 0.1
+        options['init_wait'] = 0.25
         for key,val in arg_options.items():
             options[key] = val
         super().__init__(None)
         
-        self.rigid_bodies = {}    #the listeners look to these. Rigid body markers must stay static with respect to one another
-        self.labeled_markers = {} #single labeled markers given by id. Used for non-static marker tracking (e.g. bislide)
+        self._rigid_bodies_dict = {}    #the listeners look to these. Rigid body markers must stay static with respect to one another
+        self._labeled_markers_dict = {} #single labeled markers given by id. Used for non-static marker tracking (e.g. bislide)
          
         self.connect('127.0.0.1') #connect to the Motive software
         time.sleep(options['init_wait']) #sleep to let data be populated
@@ -153,12 +153,17 @@ class MotiveInterface(Instrument):
         @param[in] name - name of the rigid body to get info on
         @return [position,rotation]
         '''
-        if name not in self.rigid_bodies: #has not been measured or wrong name
+        if name not in self._rigid_bodies_dict: #has not been measured or wrong name
             raise InstrumentError("\'{}\' is not a measured rigid body".format(name))
         #get the values
-        pos = self.rigid_bodies[name]['position_mm']
-        rot = self.rigid_bodies[name]['rotation']
+        pos = self._rigid_bodies_dict[name]['position_mm']
+        rot = self._rigid_bodies_dict[name]['rotation']
         return pos,rot
+    
+    @property
+    def rigid_bodies(self):
+        '''@brief return a list of the rigid bodies'''
+        return list(self._rigid_bodies_dict.keys())
     
     def _get_labeled_marker_data(self,id,**arg_options):
         '''
@@ -166,32 +171,17 @@ class MotiveInterface(Instrument):
         @param[in] id - id number of the marker to get
         @return [position,residual]
         '''
-        if id not in self.labeled_markers: #has not been measured or wrong name
+        if id not in self._labeled_markers_dict: #has not been measured or wrong name
             raise InstrumentError("\'{}\' is not a measured marker ID".format(id))
         #get the values
-        pos = self.labeled_markers[id]['position_mm']
-        res = self.labeled_markers[id]['residual_mm']
+        pos = self._labeled_markers_dict[id]['position_mm']
+        res = self._labeled_markers_dict[id]['residual_mm']
         return pos,res
     
-    def write_marker_to_file(self,id_name_dict,out_path,**arg_options):
-        '''
-        @brief write a marker out to a file. the data input is the same as in self.get_position_data 
-            By default include the raw measurement data
-        @param[in] id_name_dict - dictionary containing key value pairs in the form {name:id}
-            for markers and {name:None} for rigid bodies
-            Marker names CAN NOT be the same as a rigid body name
-        @param[in] out_path - output path the save the data to
-        @param[in/OPT] arg_options - keyword arguments as follows:
-            passed to self.get_position_data (see **arg_options of that method)
-        '''
-        options = {}
-        options['include_raw_data'] = True
-        for key,val in arg_options.items():
-            options[key] = val
-        data_dict = self.get_position_data(id_name_dict,**options)
-        #now write this out to our JSON file
-        with open(out_path,'w+') as fp:
-            json.dump(data_dict,fp,indent=4)
+    @property
+    def labeled_markers(self):
+        '''@brief return list of labeled marker ids'''
+        return list(self._labeled_markers_dict.keys())
     
 #%% Instrument commands
    
@@ -227,13 +217,13 @@ class MotiveInterface(Instrument):
         '''
         name = client.descriptions.get_name(id).decode()
         if name is not None:
-            if not name in self.rigid_bodies:
-                self.rigid_bodies[name] = {}
-                self.rigid_bodies[name]['id'] = id
+            if not name in self._rigid_bodies_dict:
+                self._rigid_bodies_dict[name] = {}
+                self._rigid_bodies_dict[name]['id'] = id
                 
-            self.rigid_bodies[name]['position_mm'] = np.array(pos_m)*1000
+            self._rigid_bodies_dict[name]['position_mm'] = np.array(pos_m)*1000
             rot = self._convert_rotation(rot_quat)
-            self.rigid_bodies[name]['rotation'] = np.array(rot) #TODO change to azel
+            self._rigid_bodies_dict[name]['rotation'] = np.array(rot) #TODO change to azel
             
     def _labeled_marker_listener(self,client,id,pos_m,resid):
         '''
@@ -243,11 +233,11 @@ class MotiveInterface(Instrument):
         @param[in] pos_m - position of body in m
         @param[in] resid - residual calculated from uncertainty from 3D approximation from cameras
         '''
-        if id not in self.labeled_markers:
-            self.labeled_markers[id] = {}
+        if id not in self._labeled_markers_dict:
+            self._labeled_markers_dict[id] = {}
             
-        self.labeled_markers[id]['position_mm'] = np.array(pos_m)*1000
-        self.labeled_markers[id]['residual_mm'] = resid*1000
+        self._labeled_markers_dict[id]['position_mm'] = np.array(pos_m)*1000
+        self._labeled_markers_dict[id]['residual_mm'] = resid*1000
         
     def _convert_rotation(self,rotation_quaternion):
         '''
@@ -283,20 +273,37 @@ class MotiveMarkerData(SamuraiPositionDataDict):
 import unittest
 class TestMotiveInterface(unittest.TestCase):
     '''@brief class to test motive interface'''
+    
     def test_get_rigid_body(self):
+        #'''@brief test getting rigid body data'''
         mymot = MotiveInterface()
-        rbname = list(mymot.rigid_bodies.keys())[0] #get the first rigid body
-        #self.
+        rbname = mymot.rigid_bodies[0] #get the first rigid body
+        try:
+            mymot.query(rbname) #try to get the 
+        except InstrumentError as e:
+            self.fail("Exception Raised : {}".format(str(e)))
+            
+    def test_get_labeled_marker(self):
+        #'''@brief test getting labeled marker data'''
+        mymot = MotiveInterface()
+        lmid = mymot.labeled_markers[0] #get the first rigid body
+        try:
+            mymot.query(lmid) #try to get the 
+        except InstrumentError as e:
+            self.fail("Exception Raised : {}".format(str(e)))
 
 #%%
 if __name__=='__main__':
     testa = False #print data to json
     
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMotiveInterface)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    
     mymot = MotiveInterface()
     #time.sleep(0.5)
     a = mymot.query('meca_head')
-    b = mymot.query(74027)
-    c = mymot.query({'meca_head':None,'test':74027})
+    #b = mymot.query(74027)
+    #c = mymot.query({'meca_head':None,'test':74027})
     
     if(testa):
         import json
