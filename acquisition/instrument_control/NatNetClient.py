@@ -24,7 +24,7 @@ import struct
 from threading import Thread
 
 def trace( *args ):
-    pass # print( "".join(map(str,args)) )
+     pass #print( "".join(map(str,args)) )
 
 # Create structs for reading various object types to speed up parsing.
 Vector3 = struct.Struct( '<fff' )
@@ -56,10 +56,10 @@ class NatNetClient:
         #listener for labeled marker
         self.labeledMarkerListener = None
         #listener for all points in rigid body
-        self.rigidBodyPointListener = None
+        #self.rigidBodyMarkerListener = None
         
-        #when a description is received, it is placed here
-        self.descriptions = NatNetDescriptions()
+        #when a rigid body description is recieved put here
+        self.rigid_body_descriptions = NatNetDescriptions()
         
         # NatNet stream version. This will be updated to the actual version the server is using during initialization.
         self.__natNetStreamVersion = (3,0,0,0)
@@ -116,10 +116,6 @@ class NatNetClient:
         offset += 16
         trace( "\tOrientation:", rot[0],",", rot[1],",", rot[2],",", rot[3] )
 
-        # Send information to any listener.
-        if self.rigidBodyListener is not None:
-            self.rigidBodyListener(self, id, pos, rot )
-
         # RB Marker Data ( Before version 3.0.  After Version 3.0 Marker data is in description )
         if( self.__natNetStreamVersion[0] < 3  and self.__natNetStreamVersion[0] != 0) :
             # Marker count (4 bytes)
@@ -136,18 +132,18 @@ class NatNetClient:
 
             if( self.__natNetStreamVersion[0] >= 2 ):
                 # Marker ID's
+                mid = []
                 for i in markerCountRange:
-                    id = int.from_bytes( data[offset:offset+4], byteorder='little' )
+                    mid.append(int.from_bytes( data[offset:offset+4], byteorder='little' ))
                     offset += 4
-                    trace( "\tMarker ID", i, ":", id )
+                    trace( "\tMarker ID", i, ":", mid[i] )
 
                 # Marker sizes
                 for i in markerCountRange:
                     size = FloatValue.unpack( data[offset:offset+4] )
                     offset += 4
                     trace( "\tMarker Size", i, ":", size[0] )
-                    
-        
+                
                     
         if( self.__natNetStreamVersion[0] >= 2 ):
             markerError, = FloatValue.unpack( data[offset:offset+4] )
@@ -160,6 +156,13 @@ class NatNetClient:
             trackingValid = ( param & 0x01 ) != 0
             offset += 2
             trace( "\tTracking Valid:", 'True' if trackingValid else 'False' )
+            
+        #rigid body listener
+        if self.rigidBodyListener is not None:
+            self.rigidBodyListener(self, id, pos, rot,valid=bool(trackingValid) )
+        # get a list of ids from the rigid body
+        #if self.rigidBodyMarkerListener is not None:
+        #    self.rigidBodyMarkerListener(self,mid)
 
         return offset
 
@@ -391,7 +394,7 @@ class NatNetClient:
         parentID = int.from_bytes( data[offset:offset+4], byteorder='little' )
         offset += 4
         
-        self.descriptions.add_description(id,parent_id=parentID,name=name,separator=separator,remainder=remainder)
+        #self.descriptions.add_description(id,parent_id=parentID,name=name,separator=separator,remainder=remainder)
 
         timestamp = Vector3.unpack( data[offset:offset+12] )
         offset += 12
@@ -403,12 +406,18 @@ class NatNetClient:
             trace( "\tRigidBody Marker Count:", markerCount )
 
             markerCountRange = range( 0, markerCount )
+            mo = []
             for marker in markerCountRange:
                 markerOffset = Vector3.unpack(data[offset:offset+12])
                 offset +=12
+                mo.append(markerOffset)
+            al = []
             for marker in markerCountRange:
                 activeLabel = int.from_bytes(data[offset:offset+4],byteorder = 'little')
                 offset += 4
+                al.append(activeLabel)
+                
+        self.rigid_body_descriptions.add_description(name.decode(),id=id,marker_offsets=mo,active_labels=al)
             
         return offset
 
@@ -417,7 +426,7 @@ class NatNetClient:
         offset = 0
 
         name, separator, remainder = bytes(data[offset:]).partition( b'\0' )
-        self.current_description = NatNetDescription(name,separator,remainder)
+        #self.current_description = NatNetDescription(name,separator,remainder)
         offset += len( name ) + 1
         trace( "\tMarker Name:", name.decode( 'utf-8' ) )
         
@@ -547,39 +556,36 @@ class NatNetDescriptions(dict):
         super(NatNetDescriptions,self).__init__() #initialize the dictionary
         #each asset will be stored by its id
     
-    def add_description(self,id,**description_data):
+    def add_description(self,item,**description_data):
         '''
         @brief add a description to the class. If it exists it will not be added
         @param[in] type - type of description (e.g. rigid_body, marker_set)
         @param[in] description_data - keyword arguments for description data
         '''
-        if not id in self: #check if we have the id. If we do do nothing
-            self[id] = {}
-            for key,value in six.iteritems(description_data):
-                self[id][key] = value #add our key value pairs
-        #otherwise we dont do anything
-        
+        if not item in self: #check if we have the id.
+            self[item] = {} #add the description dict
+        for key,value in description_data.items():
+            self[item][key] = value #add our key value pairs
+            
     def get_name(self,id):
         '''
-        @brief quick way to get the name from an id
-        @param[in] id - id of asset of name to get
+        @brief get the name of a rigid body from an id
         '''
-        if id in self:
-            return self[id]['name']
-        else: 
-            return None
+        for k,v in self.items():
+            if v['id']==id:
+                return k
         
         
 if __name__=='__main__':
-    from samurai.acquisition.support.NatNetClient import NatNetClient
+    from samurai.acquisition.instrument_control.NatNetClient import NatNetClient
     mynat = NatNetClient()
     
-    def body_listener(client,id,pos,rot):
+    def body_listener(client,id,pos,rot,**kwargs):
         print("Name",client.descriptions.get_name(id))
         print("Position",pos)
         print("Rotation",rot)
         
-    def label_listener(client,id,pos,resid):
+    def label_listener(client,id,pos,resid,**kwargs):
         pass
         #print("ID %d" %(id))
         #print(pos)
@@ -588,6 +594,8 @@ if __name__=='__main__':
     mynat.rigidBodyListener = body_listener
     mynat.labeledMarkerListener = label_listener
     mynat.run()
+    time.sleep(5)
+    del(mynat)
     
     
     

@@ -32,7 +32,7 @@ class MotiveInterface(Instrument):
             init_wait - wait time after starting natnet client. This ensures data is populated (default 0.1)
         '''
         options = {}
-        options['init_wait'] = 0.25
+        options['init_wait'] = 0.5
         for key,val in arg_options.items():
             options[key] = val
         super().__init__(None)
@@ -54,7 +54,7 @@ class MotiveInterface(Instrument):
                     num_samples - number of samples to take (default 100)
                     sample_wait_time - wait time between samples in seconds (default 1/num_samples seconds)
                     include_raw_data - whether or not to include the raw measured data (default false)
-                    marker_name - when item is a marker id, this can be used to give a name to the marker. Default is id_#
+                    marker_name - when item is a marker id, this can be used to give a name to the marker. Default is id# as an int
         @return a dictionary with data on the positions for the points requested
         '''
         options = {}
@@ -67,24 +67,29 @@ class MotiveInterface(Instrument):
         item_dict = self._get_item_dict(item)
         
         #put single query into dict
-        
-        #else: do nothing. We should only have isinstance(item,dict)==True from here
         raw_data_dict = SamuraiDict() #raw measurement dictionary
-        md = {'labeled_marker':MotiveMarkerData,
-              'rigid_body'    :MotiveRigidBodyData}
+        md = {'labeled_marker'      :MotiveMarkerData,
+              'rigid_body'          :MotiveRigidBodyData,
+              'rigid_body_markers'  :MotiveRigidBodyMarkerData}
         type_dict = self._get_meas_type(item_dict)
         for k,v in type_dict.items():
             raw_data_dict[k] = md[v]() #initialize the data storage
-        # start our sampling here
+        #handle any rigid body marker groups first
+        # start our sampling here of rigid bodies and markers
         for i in range(options['num_samples']): #interleave all of our sampling
             for k,v in item_dict.items():
                 if type_dict[k]=='labeled_marker': #if it is a number then we assume a marker id
                     sample = self._measure_single(v)
                 elif type_dict[k]=='rigid_body':
                     sample = self._measure_single(k)
+                elif type_dict[k]=='rigid_body_markers':
+                    sample = self._get_rigid_body_marker_data(k) #already handled outside of loop
                 else: raise Exception("Something went wrong...")
-                raw_data_dict[k].append(sample)
+                raw_data_dict[k].add_sample(sample)
             time.sleep(options['sample_wait_time'])
+        #now add info
+        for k,v in raw_data_dict.items():
+            raw_data_dict[k]['info'] = self.get_info({k:item_dict[k]})
         #now pack into data struct
         for k in raw_data_dict.keys():
             raw_data_dict[k].calculate_statistics(**options)
@@ -105,9 +110,32 @@ class MotiveInterface(Instrument):
         for key,val in arg_options.items():
             options[key] = val
         md = {'labeled_marker':self._get_labeled_marker_data,
-              'rigid_body'    :self._get_rigid_body_data     }
-        get_fun = md[self._get_meas_type(item)]
+              'rigid_body'    :self._get_rigid_body_data    }
+        mytype = list(self._get_meas_type(item).values())[0] #assume 1 value
+        get_fun = md[mytype]
         d = get_fun(item,**arg_options)
+        return d
+    
+    def get_info(self,item,**arg_options):
+        '''
+        @brief query motive for info on an item
+        @param[in] item - item to get position of. can be a rigid body name
+                or the id of a marker or a dict of values
+        @param[in/OPT] **arg_options - keyword args as follows:
+            -all passed to getter function
+        '''
+        options = {}
+        for key,val in arg_options.items():
+            options[key] = val
+        mytype = list(self._get_meas_type(item).values())[0] #assume 1 value
+        k = list(item.keys())[0]; v = list(item.values())[0]
+        if mytype=='labeled_marker': #if it is a number then we assume a marker id
+            d = self._get_labeled_marker_info(v)
+        elif mytype=='rigid_body':
+            d = self._get_rigid_body_info(k)
+        elif mytype=='rigid_body_markers':
+            d = self._get_rigid_body_marker_info(k) #already handled outside of loop
+        else: raise Exception("no matching data type {}".format(mytype))
         return d
     
     def _get_meas_type(self,item_dict):
@@ -118,12 +146,17 @@ class MotiveInterface(Instrument):
         @return dictionary with each key matched to either 'labeled_marker','rigid_body'
         '''
         type_dict = {}; lm_rv='labeled_marker'; rb_rv='rigid_body'
-        if isinstance(item_dict,Number): return lm_rv
-        if isinstance(item_dict,str)   : return rb_rv
-        for k,v in item_dict.items():
-            if isinstance(v,Number): type_dict[k] = lm_rv #marker
-            elif v is None: type_dict[k] = rb_rv #body
-            else: raise InstrumentError("No matching measurement type found for {}:{}".format(k,v))
+        rbm_rv = 'rigid_body_markers'
+        if isinstance(item_dict,Number)  : return {item_dict:lm_rv}
+        elif isinstance(item_dict,str)   : return {item_dict:rb_rv}
+        elif isinstance(item_dict,dict):
+            for k,v in item_dict.items():   
+                if isinstance(v,Number): type_dict[k] = lm_rv #marker
+                elif v is None: type_dict[k] = rb_rv #body
+                elif v == 'markers': type_dict[k] = rbm_rv
+                else: raise InstrumentError("No matching measurement type found for {}:{}".format(k,v))
+        else:
+            raise InstrumentError("Cannot match measurement of type {}".format(type(item_dict)))
         return type_dict
             
     def _get_item_dict(self,item,**kwargs):
@@ -137,7 +170,7 @@ class MotiveInterface(Instrument):
             options[key] = val
         if isinstance(item,Number): #then we have a marker id
             if options['marker_name'] is None:
-                options['marker_name'] = 'id_{}'.format(item)
+                options['marker_name'] = item
             item_dict = {options['marker_name']:item}
         elif isinstance(item,str): #then its a single rigid body
             item_dict = {item:None}
@@ -160,10 +193,32 @@ class MotiveInterface(Instrument):
         rot = self._rigid_bodies_dict[name]['rotation']
         return pos,rot
     
+    def _get_rigid_body_info(self,name,**arg_options):
+        '''@brief get any other stored info of a given rigid body'''
+        return self._rigid_bodies_dict[name]['info']
+    
     @property
     def rigid_bodies(self):
         '''@brief return a list of the rigid bodies'''
         return list(self._rigid_bodies_dict.keys())
+    
+    def _get_rigid_body_marker_data(self,name,**arg_options):
+        '''
+        @brief get rigid body marker positions and generate some statistics on it
+        @param[in] name - name of the rigid body to get info on
+        @return dictionary of labeled marker datas
+        '''
+        rbd = self._get_rigid_body_data(name,**arg_options) #first get the rigid body locations
+        #then get the marker offsets
+        offsets = self.connection.rigid_body_descriptions[name]['marker_offsets']
+        pos_list = np.array(rbd[0])+np.array(offsets)
+        ret_vals = [[pval,[np.nan]] for pval in pos_list]
+        #now shape this correctly
+        return ret_vals
+    
+    def _get_rigid_body_marker_info(self,name,**arg_options):
+        '''@brief get any other stored info of a given rigid body'''
+        return self._rigid_bodies_dict[name]['info']
     
     def _get_labeled_marker_data(self,id,**arg_options):
         '''
@@ -178,6 +233,10 @@ class MotiveInterface(Instrument):
         res = self._labeled_markers_dict[id]['residual_mm']
         return pos,res
     
+    def _get_labeled_marker_info(self,id,**arg_options):
+        '''@brief get any other info of a given labeled marker'''
+        return self._labeled_markers_dict[id]['info']
+    
     @property
     def labeled_markers(self):
         '''@brief return list of labeled marker ids'''
@@ -187,10 +246,12 @@ class MotiveInterface(Instrument):
    
     def _connect(self,address):
         ''' @brief connect to the natnet server client '''
-        mynat = NatNetClient(address)
-        mynat.rigidBodyListener = self._rigid_body_listener
-        mynat.labeledMarkerListener = self._labeled_marker_listener
-        mynat.run()
+        self.connection = NatNetClient(address)
+        #add our listeners for data
+        self.connection.rigidBodyListener = self._rigid_body_listener
+        self.connection.labeledMarkerListener = self._labeled_marker_listener
+        #run the client
+        self.connection.run()
         
     #functions that dont relate to motive
     def _write(self):
@@ -207,7 +268,7 @@ class MotiveInterface(Instrument):
 #%% natnet listeners
         
      #now make our listener functions
-    def _rigid_body_listener(self,client,id,pos_m,rot_quat):
+    def _rigid_body_listener(self,client,id,pos_m,rot_quat,**kwargs):
         '''
         @brief listener for rigid bodies from natnet
         @param[in] client   - NatNet client that called this
@@ -215,7 +276,7 @@ class MotiveInterface(Instrument):
         @param[in] pos_m    - position of body in m
         @param[in] rot_quat - rotation of body in quaternion
         '''
-        name = client.descriptions.get_name(id).decode()
+        name = client.rigid_body_descriptions.get_name(id)
         if name is not None:
             if not name in self._rigid_bodies_dict:
                 self._rigid_bodies_dict[name] = {}
@@ -223,9 +284,29 @@ class MotiveInterface(Instrument):
                 
             self._rigid_bodies_dict[name]['position_mm'] = np.array(pos_m)*1000
             rot = self._convert_rotation(rot_quat)
-            self._rigid_bodies_dict[name]['rotation'] = np.array(rot) #TODO change to azel
+            self._rigid_bodies_dict[name]['rotation'] = np.array(rot)
+            self._rigid_bodies_dict[name]['info'] = SamuraiDict()
+            self._rigid_bodies_dict[name]['info'].update(kwargs) #any other info
+           
+#    def _rigid_body_markers_listener(self,client,id,mids,**kwargs):
+#        '''
+#        @brief listener for rigid bodies from natnet
+#        @param[in] client   - NatNet client that called this
+#        @param[in] id       - id of rigid body calling
+#        @param[in] mid      - list of marker ids in the rigid body
+#        '''
+#        name = client.descriptions.get_name(id).decode()
+#        if name is not None:
+#            if not name in self._rigid_bodies_dict:
+#                self._rigid_body_markers_dict[name] = {}
+#                self._rigid_body_markers_dict[name]['id'] = id
+#            #add the list of rigid bodies
+#            self._rigid_body_markers_dict[name]['marker_id'] = np.array(rot)
+#            self._rigid_body_markers_dict[name]['info'] = SamuraiDict()
+#            self._rigid_body_markers_dict[name]['info'].update(kwargs) #any other info
             
-    def _labeled_marker_listener(self,client,id,pos_m,resid):
+            
+    def _labeled_marker_listener(self,client,id,pos_m,resid,**kwargs):
         '''
         @brief listener for labeled markers from natnet
         @param[in] client - NatNet client that called this
@@ -238,6 +319,8 @@ class MotiveInterface(Instrument):
             
         self._labeled_markers_dict[id]['position_mm'] = np.array(pos_m)*1000
         self._labeled_markers_dict[id]['residual_mm'] = resid*1000
+        self._labeled_markers_dict[id]['info'] = SamuraiDict()
+        self._labeled_markers_dict[id]['info'].update(kwargs) #any other info
         
     def _convert_rotation(self,rotation_quaternion):
         '''
@@ -269,6 +352,32 @@ class MotiveMarkerData(SamuraiPositionDataDict):
         super().__init__(*args,**kwargs)
         self.add_data_set(['position','residual'])
         
+class MotiveRigidBodyMarkerData(SamuraiDict):
+    '''@brief class to hold list of rigid body markers'''
+    def __init__(self,*args,**kwargs):
+        '''@brief constructor'''
+        super().__init__(*args,**kwargs)
+        self['data'] = []
+        self['info'] = SamuraiDict()
+        
+    def add_sample(self,sample):
+        '''
+        @brief add a sample to our data.
+        @param[in] sample here should be a  dict with ids and marker samples (position/residual)
+        @note this needs to be a dictionary because the rigid body may not have the same markers
+            on every measurement if one is lost. (we dont want to combine different markers)
+        '''
+        num_markers = len(sample) #assume sample is correct size
+        while len(self['data'])<num_markers: #add data if needed
+            self['data'].append(MotiveMarkerData())
+        for i,s in enumerate(sample):
+            self['data'][i].add_sample(s) #add the sample to the marker
+            
+    def calculate_statistics(self,**kwargs):
+        '''@brief calculate statistics'''
+        for i in range(len(self['data'])):
+            self['data'][i].calculate_statistics(**kwargs)
+        
 #%% some unittesting
 import unittest
 class TestMotiveInterface(unittest.TestCase):
@@ -291,17 +400,27 @@ class TestMotiveInterface(unittest.TestCase):
             mymot.query(lmid) #try to get the 
         except InstrumentError as e:
             self.fail("Exception Raised : {}".format(str(e)))
+            
+    def test_get_rigid_body_markers(self):
+        mymot = MotiveInterface()
+        rbname = mymot.rigid_bodies[0] #get the first rigid body
+        try:
+            v = mymot.query({rbname:'markers'}) #try to get the 
+            print(v)
+        except InstrumentError as e:
+            self.fail("Exception Raised : {}".format(str(e)))
+
 
 #%%
 if __name__=='__main__':
     testa = False #print data to json
     
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestMotiveInterface)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #suite = unittest.TestLoader().loadTestsFromTestCase(TestMotiveInterface)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
     
     mymot = MotiveInterface()
     #time.sleep(0.5)
-    a = mymot.query('meca_head')
+    a = mymot.query({'meca_head':'markers'})
     #b = mymot.query(74027)
     #c = mymot.query({'meca_head':None,'test':74027})
     
