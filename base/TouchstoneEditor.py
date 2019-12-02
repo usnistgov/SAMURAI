@@ -13,6 +13,7 @@ from functools import reduce
 from xml.dom.minidom import parse 
 
 from samurai.base.SamuraiPlotter import SamuraiPlotter
+from samurai.base.SamuraiDict import SamuraiDict
 
 from samurai.base.generic import deprecated
 from samurai.base.generic import moving_average
@@ -159,9 +160,9 @@ class TouchstoneEditor(object):
         #initialize dictionary of waves
         if self._param_class is None: #default to this
             self._param_class = TouchstoneParam #parameter class
-        self.waves = dict()
+        self.waves = SamuraiDict()
         for w in self.options['waves']:
-            self.waves[w] = dict()
+            self.waves[w] = SamuraiDict()
         self._ports = [] #start with no ports
         #now load the file
         if not self.options['no_load']:
@@ -250,8 +251,6 @@ class TouchstoneEditor(object):
         elif(ftype=='text'):
             raw_data = self._load_text(input_file,**kwargs)
 
-        self.raw_data = raw_data
-
         num_cols = np.size(raw_data,1) #get the number of columns     
         #now split the data (text and binary input should be formatted the same here)
         #first check if our file is named correctly
@@ -261,6 +260,11 @@ class TouchstoneEditor(object):
         
         if self.options['header'] is None: #if we dont have a header here, set the default
             self.set_header(DEFAULT_HEADER)
+            
+        self.freqs = raw_data[:,0]*self._get_freq_mult() #set our frequencies from the raw data
+        self.raw_data = raw_data #raw data before unpacking
+        #this raw data will be of size (number_of_waves(e.g. 'S' or 'A','B'),num_keys(e.g. 11,21,12,22),num_freqs(num_measured_values))
+        self.raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(self.freqs)),dtype=np.cdouble)
         
         #file is good if we make it here so continue to unpacking
         self._extract_data(raw_data)
@@ -269,15 +273,19 @@ class TouchstoneEditor(object):
    def _extract_data(self,raw_data):
        '''
        @brief class to extract data from raw data. This can be overriden for special cases
+       @note if not overriden this points to the same data as in self.raw
        '''
-       freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
+       #freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
         
         #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
        for ki,k in enumerate(self.wave_dict_keys):
-           for wi,w in enumerate(self.waves):
+           for wi,w in enumerate(self.waves.keys()):
                idx = ki*len(self.waves)*2+(1+2*wi)
                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
-               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               #extract to self.raw
+               self.raw[wi,ki,:] = data
+               #self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
+               self.waves[w][k] = self._param_class(self.freqs[:],self.raw[wi,ki,:],plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
     
    def _load_text(self,file_path,**kwargs):
@@ -1183,7 +1191,7 @@ class WaveformParam(TouchstoneParam):
     def times(self):
         '''@brief allow times as opposed to freq_list'''
         return self.freq_list
-    @setter.times
+    @times.setter
     def times(self,val):
         '''@brief setter for times alias'''
         self.freq_list = times
