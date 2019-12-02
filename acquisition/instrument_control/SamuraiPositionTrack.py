@@ -17,6 +17,7 @@ class SamuraiPositionDataDict(SamuraiDict):
     def __init__(self,*args,**kwargs):
         '''@brief constructor'''
         super().__init__(*args,**kwargs)
+        self['info'] = SamuraiDict() #location for any extra information
         
     def add_data_set(self,names):
         '''
@@ -35,7 +36,8 @@ class SamuraiPositionDataDict(SamuraiDict):
             include_raw_data - whether or not to include raw data
         '''
         for k in self.keys():
-            self[k].calculate_statistics(**arg_options)
+            if k!='info':
+                self[k].calculate_statistics(**arg_options)
             
     def add_sample(self,data,**kwargs):
         '''
@@ -47,7 +49,7 @@ class SamuraiPositionDataDict(SamuraiDict):
             key_order - list of key orders to save the data. otherwise just get self.keys()
         '''
         options = {}
-        options['key_order'] = self.keys()
+        options['key_order'] = [k for k in self.keys() if k!='info']
         for k,v in kwargs.items():
             options[k] = v
         #now add it to our sets
@@ -96,7 +98,7 @@ class SamuraiPositionData(SamuraiDict):
             include_raw_data - whether or not to include raw data
         '''
         options = {}
-        options['include_raw_data'] = False
+        options['include_raw_data'] = True
         for key,val in arg_options.items():
             options[key] = val
             
@@ -107,7 +109,7 @@ class SamuraiPositionData(SamuraiDict):
         
         self['mean'] = np.mean(raw,axis=0)
         self['standard_deviation'] = np.std(raw,axis=0)
-        self['covariance_matrix'] = np.cov(np.transpose(raw))
+        #self['covariance_matrix'] = np.cov(np.transpose(raw))
         if(options['include_raw_data']):
             self['raw'] = raw
         
@@ -225,11 +227,39 @@ class TestPositionTrack(unittest.TestCase):
             fail_msg = 'Failure with rotation {}:{}.\n {} \nNOT EQUAL\n {}'.format(rot_ax,rot_ang,np.round(rot_mat,3),rot_comp)
             self.assertTrue(np.all(np.round(rot_mat,3)==rot_comp),msg=fail_msg)
             
+    def test_position_data(self):
+        #'''@brief test position data class'''
+        pd = SamuraiPositionData()
+        np.random.seed(1234)
+        data = np.random.rand(10)
+        mean = np.mean(data)
+        std  = np.std(data)
+        for d in data:
+            pd.add_sample(d)
+        pd.calculate_statistics()
+        self.assertEqual(mean,pd['mean'])
+        self.assertEqual(std,pd['standard_deviation'])
+        
+    def test_position_data_dict(self):
+        pdd = SamuraiPositionDataDict()
+        pdd.add_data_set(['test1','test2'])
+        np.random.seed(1234)
+        data = np.random.rand(10,2,2)
+        mean = np.mean(data,axis=0)
+        std  = np.std(data,axis=0)
+        for dd in data:
+            pdd.add_sample(dd)
+        pdd.calculate_statistics()
+        pddv = [v for k,v in pdd.items() if k!='info']
+        for i,v in enumerate(pddv):
+            self.assertTrue(np.all(mean[i]==v['mean']))
+            self.assertTrue(np.all(std[i]==v['standard_deviation']))
             
     
         
 if __name__=='__main__':
-    unittest.main()
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestPositionTrack)
+    unittest.TextTestRunner(verbosity=2).run(suite)
     
     testb = False #test rotational matrix
 
