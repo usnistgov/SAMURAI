@@ -362,10 +362,13 @@ class PlotlyPlotter(SamuraiPlotEngine):
         '''
         import plotly.graph_objects as go
         from mpl_toolkits.mplot3d import Axes3D
+        import plotly.io as pio
         super().__init__(*args,**kwargs)
         self.options['engine'] = go
+        self.options['default_renderer'] = 'browser'
         for k,v in kwargs.items():
             self.options[k] = v
+        pio.renderers.default = self.options['default_renderer']
             
     def surf(self,*args,**kwargs):
         '''
