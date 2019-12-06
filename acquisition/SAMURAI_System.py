@@ -10,7 +10,7 @@ from samurai.acquisition.instrument_control.PnaController import PnaController
 from samurai.acquisition.support import samurai_metaFile as smf     #for keeping track of data
 from samurai.acquisition.instrument_control.Meca500  import Meca500       #our posisioner
 import samurai.acquisition.support.samurai_support  as ss      #some other functions
-import samurai.acquisition.support.samurai_optitrack as samurai_optitrack  #import optitrack tracking
+import samurai.acquisition.instrument_control.SamuraiMotive as samurai_optitrack  #import optitrack tracking
 
 import six
 import json
