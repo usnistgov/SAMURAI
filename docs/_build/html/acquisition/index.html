@@ -1,0 +1,1360 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>SAMURAI Data Acquisition &mdash; SAMURAI 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Acquisition Code" href="README.html" />
+    <link rel="prev" title="SAMURAI Base Libraries" href="../base/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> SAMURAI
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../base/index.html">SAMURAI Base Libraries</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">SAMURAI Data Acquisition</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-samurai-system">Running the SAMURAI System</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="README.html">Acquisition Code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="README.html#samurai-hardware-information">SAMURAI Hardware Information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="README.html#running-python-scripts">Running Python Scripts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="README.html#mounting-and-unmounting-the-antennas">Mounting and Unmounting the antennas</a></li>
+<li class="toctree-l3"><a class="reference internal" href="README.html#demo-the-samurai-system">Demo the SAMURAI System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="README.html#running-the-samurai-system">Running the SAMURAI System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="README.html#measurement-todo-list">Measurement TODO List</a></li>
+<li class="toctree-l3"><a class="reference internal" href="README.html#code-editing-todo-list">Code Editing TODO List</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-acquisition.SAMURAI_System">System Control Libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-acquisition.instrument_control">Instrument Control Libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-acquisition.instrument_control.InstrumentControl">Instrument Control Base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-acquisition.instrument_control.SamuraiMotive">Optitrack Interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-acquisition.instrument_control.PnaController">VNA Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-acquisition.instrument_control.Meca500">Robot Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-acquisition.instrument_control.BislideController">Other Positioner Control Software</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis/index.html">SAMURAI Data Analysis</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SAMURAI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>SAMURAI Data Acquisition</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/acquisition/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="samurai-data-acquisition">
+<h1>SAMURAI Data Acquisition<a class="headerlink" href="#samurai-data-acquisition" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="running-the-samurai-system">
+<h2>Running the SAMURAI System<a class="headerlink" href="#running-the-samurai-system" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="README.html">Acquisition Code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="README.html#dependencies">dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#subdirectories">Subdirectories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#samurai-hardware-information">SAMURAI Hardware Information</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="README.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#networking">Networking</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#running-python-scripts">Running Python Scripts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="README.html#running-with-the-spyder-ide">Running with the Spyder IDE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#running-from-the-anaconda-command-prompt">Running from the Anaconda command prompt</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#mounting-and-unmounting-the-antennas">Mounting and Unmounting the antennas</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="README.html#moving-the-positioner-to-the-mounting-position">Moving the Positioner to the mounting position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#connecting-the-antennas">Connecting the antennas</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#demo-the-samurai-system">Demo the SAMURAI System</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="README.html#running-the-demo">Running the Demo</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#running-the-samurai-system">Running the SAMURAI System</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="README.html#running-from-script">Running from script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#running-from-python-command-line-interface-cli-deprecated">Running from python command line interface (CLI) (DEPRECATED)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#running-from-the-graphical-user-interface-gui-samurgui">Running from the Graphical User Interface (GUI) SAMURGUI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#measurement-todo-list">Measurement TODO List</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html#code-editing-todo-list">Code Editing TODO List</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="README.html#current-work">Current Work</a></li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#on-backburner">On backburner</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="module-acquisition.SAMURAI_System">
+<span id="system-control-libraries"></span><h2>System Control Libraries<a class="headerlink" href="#module-acquisition.SAMURAI_System" title="Permalink to this headline">¶</a></h2>
+<p>Created on Wed Oct 31 13:47:17 2018
+Full High level system controls for samurai
+&#64;author: ajw5</p>
+<dl class="class">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System">
+<em class="property">class </em><code class="descclassname">acquisition.SAMURAI_System.</code><code class="descname">SAMURAI_System</code><span class="sig-paren">(</span><em>is_simulation=False</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief - Class to control the entire SAMURAI system</p>
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.connect_rx_positioner">
+<code class="descname">connect_rx_positioner</code><span class="sig-paren">(</span><em>run_simulation=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.connect_rx_positioner" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief connect and ready our rx positioner (Meca500) for movement</p>
+<p>&#64;param[in/OPT] run_simulation - whther to run in sim mode (defaults to NO)</p>
+<p>&#64;return list of Meca return values as follows:</p>
+<ul class="simple">
+<li>[set_sim_mode_rv,init_rx_pos_rv,set_wrf_rv,set_trf_rv,set_velocity_rv]</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.csv_position_sweep">
+<code class="descname">csv_position_sweep</code><span class="sig-paren">(</span><em>out_dir</em>, <em>out_name</em>, <em>external_position_measurements</em>, <em>csv_path</em>, <em>num_reps=1</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.csv_position_sweep" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief sweep positions and generate positional info on this data.</p>
+<ul class="simple">
+<li>this does not have the same data overwrite protection as the typical metafile</li>
+</ul>
+<p>&#64;param[in] out_dir - directory to write out to</p>
+<p>&#64;param[in] out_name - output name (no extension)</p>
+<p>&#64;param[in] csv_path - path to csv file</p>
+<p>&#64;param[in/OPT] external_position_measurements - configuration of external measurement device (e.g. optitrack)</p>
+<p>&#64;note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+A set of measurements will be provided for each of these (e.g [{‘tx_antenna’:50336},{‘meca_head’:None},{‘origin’:None},{‘cyl_1’:50123}]).
+For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+&#64;param[in/OPT] num_reps - number of times to repeat the sweep (default to 1)</p>
+<p>&#64;param[in/OPT] arg_options - keyword arguments as follows:</p>
+<ul class="simple">
+<li>settling_time - time for positioner to settle (default 0.1)</li>
+<li>num_samples   - number of samples to take per marker per location</li>
+<li>comment_character - character or list of characters for comments (default #)</li>
+<li>Look at samurai_optitrack for more options</li>
+</ul>
+<p>&#64;return file path that the data is written to</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.csv_sweep">
+<code class="descname">csv_sweep</code><span class="sig-paren">(</span><em>data_out_dir</em>, <em>csv_path</em>, <em>run_vna=True</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.csv_sweep" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief measure a synthetic aperture with the SAMURAI system using positions from a CSV (comma separated value) file</p>
+<p>&#64;param[in] data_out_dir - where the data will be output</p>
+<p>&#64;param[in] csv_path - path to the comma separated value (CSV) file</p>
+<p>&#64;param[in/OPT] run_vna - whether or not to run the VNA when sweeping (default to true=run the vna)</p>
+<p>&#64;param[in/OPT] arg_options - keyword arguments as follows:</p>
+<ul class="simple">
+<li>note - note to put in the metafile  (defaults to ‘’)</li>
+<li>output_name - name of the output files (defaults to ‘meas’)</li>
+<li>template_path - location of pnagrabber template to run from (default ‘./template.pnagrabber’)</li>
+<li>settling time - time in seconds to let robot settle (default 0.1s)</li>
+<li>metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)</li>
+<li>comment_character - character or list of characters for comments (default #)</li>
+<li>external_position_measurements - configuration of external measurement device (e.g. optitrack).</li>
+</ul>
+<p>&#64;note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+A set of measurements will be provided for each of these (e.g [{‘tx_antenna’:50336},{‘meca_head’:None},{‘origin’:None},{‘cyl_1’:50123}]).
+For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+- meas_obj - class to use as a measure tool just needs a .measure method</p>
+<ul class="simple">
+<li>meas_obj_init_args - arguments for the class <a href="#id1"><span class="problematic" id="id2">**</span></a>init**() method</li>
+<li>meas_obj_meas_args - arguments for the class .measure() method</li>
+</ul>
+<p>&#64;return sweep time</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.disconnect_rx_positioner">
+<code class="descname">disconnect_rx_positioner</code><span class="sig-paren">(</span><em>zero_flg=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.disconnect_rx_positioner" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief run self.rx_positioner.close()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.get_positioner_status">
+<code class="descname">get_positioner_status</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.get_positioner_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get and print the status of the positioner</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.get_rx_positioner_status">
+<code class="descname">get_rx_positioner_status</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.get_rx_positioner_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief returns self.rx_positioner.get_status()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.move_to_mounting_position">
+<code class="descname">move_to_mounting_position</code><span class="sig-paren">(</span><em>side='left'</em>, <em>rotation=-120</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.move_to_mounting_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief move the Meca500 to a predetermined moutning position.</p>
+<p>&#64;param[in/OPT] side - what side of the table to move to looking from behind the meca. (defaults ‘left’) CAUTION: ‘right’ MAY BE DANGEROUS</p>
+<p>&#64;param[in/OPT] rotation - how much to rotate the arm at the mounting position (default -120 degrees) CAUTION: UNTESTED ANGLES MAY BE DANGEROUS</p>
+<p>&#64;return the return of set_position() (I believe it is nothing right now)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.set_options">
+<code class="descname">set_options</code><span class="sig-paren">(</span><em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.set_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief easy way to set options</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.set_position">
+<code class="descname">set_position</code><span class="sig-paren">(</span><em>pos_vals</em>, <em>software_limits=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.set_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set the position of our Meca500 robot (or other positioner if changed)</p>
+<p>&#64;param[in] pos_vals - position of robot. For meca this is in [x,y,z,alpha,beta,gamma] in mm and degrees</p>
+<p>&#64;param[in/OPT] software_limits - whether or not to software limit the robot (defaults to true. These limits have been pre-tested and are hardcoded)</p>
+<p>&#64;return nothing</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.set_simulation_mode">
+<code class="descname">set_simulation_mode</code><span class="sig-paren">(</span><em>on_off</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.set_simulation_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief - set whether the robot operations in simulation mode.
+This can only be done when disconnected, so we will check that</p>
+<p>&#64;param[in] <strong>on_off</strong> - True to turn on Simulation, False to turn off Simulation</p>
+<p>&#64;return 0 for success, -1 if value cannot be set (because we are connected currently)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.verify_position_file">
+<code class="descname">verify_position_file</code><span class="sig-paren">(</span><em>file_path</em>, <em>comment_char='#'</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.verify_position_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief verify that the file of positions is for the correct reference frames
+just raise an exception if the file is not value for the current reference frame.
+The verification looks for the following values to check against:</p>
+<ul class="simple">
+<li>#WRF (or world reference frame or with _) = [x,y,z,alpha,beta,gamma]</li>
+<li>#TRF (or tool reference frame or with _) = [x,y,z,alpha,beta,gamma]</li>
+</ul>
+<p>&#64;param[in] file_path - the path to the position file (e.g. <a href="#id3"><span class="problematic" id="id4">*</span></a>.csv,etc)</p>
+<p>&#64;param[in/OPT] comment_char - character or list of characters for comments</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.SAMURAI_System.SAMURAI_System.zero">
+<code class="descname">zero</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.SAMURAI_System.SAMURAI_System.zero" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief bring the rx_positioner to its zero position</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-acquisition.instrument_control">
+<span id="instrument-control-libraries"></span><h2>Instrument Control Libraries<a class="headerlink" href="#module-acquisition.instrument_control" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-acquisition.instrument_control.InstrumentControl">
+<span id="instrument-control-base"></span><h3>Instrument Control Base<a class="headerlink" href="#module-acquisition.instrument_control.InstrumentControl" title="Permalink to this headline">¶</a></h3>
+<p>Created on Thu Jul 25 10:31:36 2019</p>
+<p>Ideally all instruments will eventually inherit from this to provide a consistent set
+of interface commands. It is not this way yet.</p>
+<p>&#64;author: ajw5</p>
+<dl class="class">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">Instrument</code><span class="sig-paren">(</span><em>command_dict_path</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class for instrument control abstraction</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.cast_return_value">
+<code class="descname">cast_return_value</code><span class="sig-paren">(</span><em>value_str</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.cast_return_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief try and cast a return value. return float or string depending
+on what works.</p>
+<p>&#64;param[in] value_str - value string to cast</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.connect">
+<code class="descname">connect</code><span class="sig-paren">(</span><em>address=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for instrumnet connection. calls self.connection.connect()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.disconnect">
+<code class="descname">disconnect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.disconnect" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for instrument disconnect. calls self.connection.disconnect()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.get_command_from_dict">
+<code class="descname">get_command_from_dict</code><span class="sig-paren">(</span><em>command</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.get_command_from_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief search our dictionary for the command. If it isnt there, return the command</p>
+<p>&#64;param[in] command - command to search the dictionary for</p>
+<p>&#64;param[in] <a href="#id5"><span class="problematic" id="id6">*</span></a>args - arguments to pass to command if found</p>
+<p>&#64;param[in] <a href="#id7"><span class="problematic" id="id8">**</span></a>kwargs -kwargs to pass to command if found</p>
+<p>&#64;return command string</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.get_settings">
+<code class="descname">get_settings</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.get_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get our settings from the device. These values will be pulled from
+self.setting_params</p>
+<p>&#64;param[in/OPT] <a href="#id9"><span class="problematic" id="id10">*</span></a>args - arguments to pass to each of the commands</p>
+<p>&#64;param[in/OPT] <a href="#id11"><span class="problematic" id="id12">**</span></a>kwargs - keyword args to pass to each of the commands</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.load_command_dict">
+<code class="descname">load_command_dict</code><span class="sig-paren">(</span><em>command_dict_path</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.load_command_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief load a command dictionary from a json file path</p>
+<p>&#64;param[in] command_dict_path - path to the json file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.query">
+<code class="descname">query</code><span class="sig-paren">(</span><em>msg</em>, <em>*args</em>, <em>cast=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for a instrument query. calls self._query()</p>
+<p>&#64;param[in] msg - message to send</p>
+<p>&#64;param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._query_binary)</p>
+<p>&#64;param[in/OPT] cast - whether or not to try and cast the data</p>
+<p>&#64;param[in] <a href="#id13"><span class="problematic" id="id14">*</span></a>args - arguments to be passed to command if its in self.command_dict</p>
+<p>&#64;param[in] <a href="#id15"><span class="problematic" id="id16">**</span></a>kwargs - keyword args passed to commands in command_dict</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.query_binary">
+<code class="descname">query_binary</code><span class="sig-paren">(</span><em>msg</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.query_binary" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for querying binary data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.read">
+<code class="descname">read</code><span class="sig-paren">(</span><em>cast=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for an instrument read. calls self._read()</p>
+<p>&#64;param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._read_binary)</p>
+<p>&#64;param[in/OPT] cast - whether or not to try and cast the data</p>
+<p>&#64;param[in/OPT] kwargs - keyword args to pass to _read_binary</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.read_binary">
+<code class="descname">read_binary</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.read_binary" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for reading binary values</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.set_from_dict">
+<code class="descname">set_from_dict</code><span class="sig-paren">(</span><em>com_dict</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.set_from_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief run commands from a dictionary</p>
+<p>&#64;param[in] com_dict - command dict in format {command1:(<a href="#id17"><span class="problematic" id="id18">*</span></a>args1),command2:(<a href="#id19"><span class="problematic" id="id20">*</span></a>args2),…}</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>msg</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for instrument write. calls self._write()</p>
+<p>&#64;param[in] <a href="#id21"><span class="problematic" id="id22">*</span></a>args - arguments to be passed to command if its in self.command_dict</p>
+<p>&#64;param[in] <a href="#id23"><span class="problematic" id="id24">**</span></a>kwargs - keyword args passed to commands in command_dict</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.Instrument.write_binary">
+<code class="descname">write_binary</code><span class="sig-paren">(</span><em>msg</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.Instrument.write_binary" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief template for writing binary data</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">InstrumentCommand</code><span class="sig-paren">(</span><em>command_raw</em>, <em>command_type</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class that defines an instrument command.
+Can be SCPI, or not… can be anything</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.add_arg">
+<code class="descname">add_arg</code><span class="sig-paren">(</span><em>arg_name</em>, <em>optional_flg</em>, <em>return_type=None</em>, <em>description=''</em>, <em>**other_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.add_arg" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add argument to this command</p>
+<p>&#64;param[in] arg_name - the name of the argument. This should be the whole string (e.g.  NOT cnum)
+This is important because these names will be searched when creating the template</p>
+<p>&#64;param[in] optional_flg - True if the arg is optional</p>
+<p>&#64;param[in/OPT] description - brief description of the argument</p>
+<p>&#64;param[in/OPT] return_type - value to be returned (str,int,float,etc)</p>
+<p>&#64;param[in/OPT] other_options - anything else to add to the argument</p>
+<ul class="simple">
+<li>arg_string - if this is specified, this value instead of arg_name</li>
+</ul>
+<p>will be stripped from our command when getting our template</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.arg_default_value_list">
+<code class="descname">arg_default_value_list</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.arg_default_value_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get a list of our default argument values in order</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.arg_dict">
+<code class="descname">arg_dict</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.arg_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief return a list of argument names as keys with default params</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.arg_key_list">
+<code class="descname">arg_key_list</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.arg_key_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get a list of arguments in ordered form [required,optional]</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.command_template">
+<code class="descname">command_template</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.command_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief generate a template for our command to use for formatting</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.get_command_template">
+<code class="descname">get_command_template</code><span class="sig-paren">(</span><em>ignore_regex_list=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.get_command_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief generate a template to use for command formatting</p>
+<p>&#64;param[in/OPT] ignore_regex_list - list of regex of things to remove (e.g non-required args)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.help">
+<code class="descname">help</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.help" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief return help for our command</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommand.num_args">
+<code class="descname">num_args</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommand.num_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief provide total number of arguments</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandDict">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">InstrumentCommandDict</code><span class="sig-paren">(</span><em>load_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to store instrument commands</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.add_command">
+<code class="descname">add_command</code><span class="sig-paren">(</span><em>instrument_command</em>, <em>alias=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.add_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a command to the dictionary. default to key,val pairs</p>
+<p>&#64;param[in] instrument_command - InstrumentCommand Class</p>
+<p>&#64;param[in] alias - alias to add to this command</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.aliases">
+<code class="descname">aliases</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.aliases" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief shorthand for self[‘aliases’]</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.commands">
+<code class="descname">commands</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief shorthand for self[‘commands’]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.find_command">
+<code class="descname">find_command</code><span class="sig-paren">(</span><em>search_str</em>, <em>case_sensitive=False</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.find_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief search our command dictionary for values values that contain
+search_str. this just looks through the default keys</p>
+<p>&#64;param[in] search_str - substring or regex expression to find</p>
+<p>&#64;param[in/OPT] case_sensitive - is the search case sensitive</p>
+<p>&#64;return list of commands with the substring,list of aliases with substring</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.get">
+<code class="descname">get</code><span class="sig-paren">(</span><em>key</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get a command from a key or an alias. This syntax is the same as dict.get()</p>
+<p>&#64;param[in] key - key to get the command of</p>
+<p>&#64;param[in/OPT] default - adefault argument can also be passed in if the key is not found</p>
+<p>&#64;note this also allows nested aliases (e.g. alias1-&gt;alias2-&gt;command)</p>
+<p>&#64;return InstrumentCommand class of the command</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>load_path</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandDict.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief load in a file from a json format</p>
+<p>&#64;param[in] load_path - path to file to load</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentCommandError">
+<em class="property">exception </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">InstrumentCommandError</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentCommandError" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief error for instrument commands</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentConnectionError">
+<em class="property">exception </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">InstrumentConnectionError</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentConnectionError" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief error for connections to instruments</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="acquisition.instrument_control.InstrumentControl.InstrumentError">
+<em class="property">exception </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">InstrumentError</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.InstrumentError" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief generic class for instrument error</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPICommand">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">SCPICommand</code><span class="sig-paren">(</span><em>command_raw</em>, <em>argument_regex='&lt;.*?&gt;'</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPICommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class specifically for scpi commands</p>
+<dl class="attribute">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPICommand.command_template">
+<code class="descname">command_template</code><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPICommand.command_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief generate a template for our command to use for formatting</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPICommandDict">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">SCPICommandDict</code><span class="sig-paren">(</span><em>load_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPICommandDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class for scpi commands</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPICommandDict.add_command">
+<code class="descname">add_command</code><span class="sig-paren">(</span><em>instrument_command</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPICommandDict.add_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief typical command adding except we add a shortened version alias</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPICommandDict.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>load_path</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPICommandDict.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief load in a file from a json format</p>
+<p>&#64;param[in] load_path - path to file to load</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPIInstrument">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.InstrumentControl.</code><code class="descname">SCPIInstrument</code><span class="sig-paren">(</span><em>command_dict_path</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPIInstrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class for scpi instrument control</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPIInstrument.load_command_dict">
+<code class="descname">load_command_dict</code><span class="sig-paren">(</span><em>command_dict_path</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPIInstrument.load_command_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief load a command dictionary from a json file path</p>
+<p>&#64;param[in] command_dict_path - path to the json file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.InstrumentControl.SCPIInstrument.query">
+<code class="descname">query</code><span class="sig-paren">(</span><em>msg</em>, <em>*args</em>, <em>cast=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.InstrumentControl.SCPIInstrument.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief additional code for instrument query</p>
+<p>&#64;note this will automatically add a ? if not arguments are provided</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-acquisition.instrument_control.SamuraiPositionTrack"></span><p>Created on Mon Apr 15 14:45:56 2019</p>
+<p>&#64;author: ajw5</p>
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiPositionTrack.</code><code class="descname">SamuraiPositionData</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to store position data and calculate info on it</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.add_sample">
+<code class="descname">add_sample</code><span class="sig-paren">(</span><em>data</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.add_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a raw data sample</p>
+<p>&#64;param[in] data - sample to add (one at a time)</p>
+<p>&#64;param[in/OPT] arg_options - keyword args as follows</p>
+<ul class="simple">
+<li>None yet!</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.append">
+<code class="descname">append</code><span class="sig-paren">(</span><em>data</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.append" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a raw data sample</p>
+<p>&#64;param[in] data - sample to add (one at a time)</p>
+<p>&#64;param[in/OPT] arg_options - keyword args as follows</p>
+<ul class="simple">
+<li>None yet!</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.calculate_statistics">
+<code class="descname">calculate_statistics</code><span class="sig-paren">(</span><em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.calculate_statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief calculate statistics from self.raw_data and save to self</p>
+<p>&#64;param[in/OPT] arg_options - keyword values as follows:</p>
+<ul class="simple">
+<li>include_raw_data - whether or not to include raw data</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.set">
+<code class="descname">set</code><span class="sig-paren">(</span><em>raw_data</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionData.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set the raw data for the position_data and calculate statistics</p>
+<p>&#64;param[in] raw_data - 2D numpy array of raw data with each row as a sample</p>
+<p>&#64;param[in/OPT] arg_options - keyword args passed to self._calculate_statistics()</p>
+<ul class="simple">
+<li>include_raw_data - whether or not to include raw data in dictionary (default false)</li>
+</ul>
+<p>&#64;note right now these are not actually part of the dictionary</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiPositionTrack.</code><code class="descname">SamuraiPositionDataDict</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief a class to hold a list of samurai position data</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.add_data_set">
+<code class="descname">add_data_set</code><span class="sig-paren">(</span><em>names</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.add_data_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a new data set to the list</p>
+<p>&#64;param[in] names - name(s) to use as keys for data set(s)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.add_sample">
+<code class="descname">add_sample</code><span class="sig-paren">(</span><em>data</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.add_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a raw data sample or samples.</p>
+<p>&#64;param[in] data - sample to add. This should be a list of
+lists where len(data[i])==len(self). This assumes input ordering
+is the same as self.keys</p>
+<p>&#64;param[in/OPT] arg_options - keyword args as follows</p>
+<ul class="simple">
+<li>key_order - list of key orders to save the data. otherwise just get self.keys()</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.append">
+<code class="descname">append</code><span class="sig-paren">(</span><em>data</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.append" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a raw data sample or samples.</p>
+<p>&#64;param[in] data - sample to add. This should be a list of
+lists where len(data[i])==len(self). This assumes input ordering
+is the same as self.keys</p>
+<p>&#64;param[in/OPT] arg_options - keyword args as follows</p>
+<ul class="simple">
+<li>key_order - list of key orders to save the data. otherwise just get self.keys()</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.calculate_statistics">
+<code class="descname">calculate_statistics</code><span class="sig-paren">(</span><em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.SamuraiPositionDataDict.calculate_statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief calculate statistics from self.raw_data and save to self</p>
+<p>&#64;param[in/OPT] arg_options - keyword values as follows:</p>
+<ul class="simple">
+<li>include_raw_data - whether or not to include raw data</li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.TestPositionTrack">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiPositionTrack.</code><code class="descname">TestPositionTrack</code><span class="sig-paren">(</span><em>methodName='runTest'</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.TestPositionTrack" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief unittesting for Position tracking</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.generate_rotation_matrix_3d">
+<code class="descclassname">acquisition.instrument_control.SamuraiPositionTrack.</code><code class="descname">generate_rotation_matrix_3d</code><span class="sig-paren">(</span><em>axis</em>, <em>angle</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.generate_rotation_matrix_3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief generate a rotation matrix for a set of rotations</p>
+<p>&#64;param[in] axis - ‘x’,’y’,’z’, or a string (e.g. ‘xyz’) of them to generate the rotation matrix</p>
+<p>&#64;param[in] angle - value or list of values(for len(axis)&gt;1) in degrees to rotate (just like alpha beta gamma of meca)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.quaternion_to_euler">
+<code class="descclassname">acquisition.instrument_control.SamuraiPositionTrack.</code><code class="descname">quaternion_to_euler</code><span class="sig-paren">(</span><em>quat</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.quaternion_to_euler" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief change quaternion to euler angles</p>
+<p>&#64;cite <a class="reference external" href="https://stackoverflow.com/questions/53033620/how-to-convert-euler-angles-to-quaternions-and-get-the-same-euler-angles-back-fr?rq=1">https://stackoverflow.com/questions/53033620/how-to-convert-euler-angles-to-quaternions-and-get-the-same-euler-angles-back-fr?rq=1</a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="acquisition.instrument_control.SamuraiPositionTrack.rotate_3d">
+<code class="descclassname">acquisition.instrument_control.SamuraiPositionTrack.</code><code class="descname">rotate_3d</code><span class="sig-paren">(</span><em>axis</em>, <em>angle</em>, <em>coords</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiPositionTrack.rotate_3d" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief rotate a set of 3d points given in X,Y,Z</p>
+<p>&#64;param[in] axis - ‘x’,’y’,’z’, or a string (e.g. ‘xyz’) of them to generate the rotation matrix</p>
+<p>&#64;param[in] angle - value or list of values(for len(axis)&gt;1) in degrees to rotate</p>
+<p>&#64;param[in] coords - list of [x,y,z] (i.e. [[x1,y1,z1],[x2,y2,z2],…]) coordinate values to rotate
+Should be of shape (n,3) where n is the number of coordinates</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-acquisition.instrument_control.SamuraiMotive">
+<span id="optitrack-interface"></span><h3>Optitrack Interface<a class="headerlink" href="#module-acquisition.instrument_control.SamuraiMotive" title="Permalink to this headline">¶</a></h3>
+<p>Created on Fri Nov 22 09:09:10 2019</p>
+<p>&#64;author: ajw5</p>
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveInterface">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiMotive.</code><code class="descname">MotiveInterface</code><span class="sig-paren">(</span><em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief This is a class to interface with the NatNet server set up by Motive
+Motive is the software for optitrack cameras. This should allow us to easily
+access our live streaming values for our rigid bodies, and markers.
+We are still extending the Instrument class here to try and keep some sort
+of consistency even though it won’t use many parts of it. Allows for isinstance(-,Instrument) to be true</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveInterface.get_info">
+<code class="descname">get_info</code><span class="sig-paren">(</span><em>item</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveInterface.get_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief query motive for info on an item</p>
+<p>&#64;param[in] item - item to get position of. can be a rigid body name
+or the id of a marker or a dict of values</p>
+<p>&#64;param[in/OPT] <a href="#id25"><span class="problematic" id="id26">**</span></a>arg_options - keyword args as follows:</p>
+<ul class="simple">
+<li>all passed to getter function</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveInterface.get_position_data">
+<code class="descname">get_position_data</code><span class="sig-paren">(</span><em>item</em>, <em>**arg_options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveInterface.get_position_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get position data and generate some statistics on it return will be a dictionary of the values</p>
+<p>&#64;param[in] item - rigid body name, marker id, or
+dictionary containing key value pairs in the form {name:id} for markers,
+{name:None} for rigid bodies, and {name:’markers’} for rigid body marker positions.
+Marker names CAN NOT be the same as a rigid body name</p>
+<p>&#64;param[in] arg_options - keyword arguments as follows</p>
+<ul class="simple">
+<li>num_samples - number of samples to take (default 100)</li>
+<li>sample_wait_time - wait time between samples in seconds (default 1/num_samples seconds)</li>
+<li>include_raw_data - whether or not to include the raw measured data (default false)</li>
+<li>marker_name - when item is a marker id, this can be used to give a name to the marker. Default is id# as an int</li>
+</ul>
+<p>&#64;return a dictionary with data on the positions for the points requested</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveInterface.labeled_markers">
+<code class="descname">labeled_markers</code><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveInterface.labeled_markers" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief return list of labeled marker ids</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveInterface.rigid_bodies">
+<code class="descname">rigid_bodies</code><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveInterface.rigid_bodies" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief return a list of the rigid bodies</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveMarkerData">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiMotive.</code><code class="descname">MotiveMarkerData</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveMarkerData" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to hold labeled marker data</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyData">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiMotive.</code><code class="descname">MotiveRigidBodyData</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyData" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to hold rigid body data</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyMarkerData">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiMotive.</code><code class="descname">MotiveRigidBodyMarkerData</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyMarkerData" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to hold list of rigid body markers</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyMarkerData.add_sample">
+<code class="descname">add_sample</code><span class="sig-paren">(</span><em>sample</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyMarkerData.add_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a sample to our data.</p>
+<p>&#64;param[in] sample here should be a  dict with ids and marker samples (position/residual)</p>
+<p>&#64;note this needs to be a dictionary because the rigid body may not have the same markers
+on every measurement if one is lost. (we dont want to combine different markers)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyMarkerData.calculate_statistics">
+<code class="descname">calculate_statistics</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.MotiveRigidBodyMarkerData.calculate_statistics" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief calculate statistics</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.SamuraiMotive.TestMotiveInterface">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.SamuraiMotive.</code><code class="descname">TestMotiveInterface</code><span class="sig-paren">(</span><em>methodName='runTest'</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.SamuraiMotive.TestMotiveInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to test motive interface</p>
+</dd></dl>
+
+<span class="target" id="module-acquisition.instrument_control.NatNetClient"></span><p>This has been edited by ajw for usage with the samurai system.</p>
+<p>This specifcally has been slightly edited to get quick marker and rigid body locations</p>
+<dl class="class">
+<dt id="acquisition.instrument_control.NatNetClient.NatNetDescriptions">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.NatNetClient.</code><code class="descname">NatNetDescriptions</code><a class="headerlink" href="#acquisition.instrument_control.NatNetClient.NatNetDescriptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class for natnet descriptions
+data will be associated with the descriptions id</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.NatNetClient.NatNetDescriptions.add_description">
+<code class="descname">add_description</code><span class="sig-paren">(</span><em>item</em>, <em>**description_data</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.NatNetClient.NatNetDescriptions.add_description" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief add a description to the class. If it exists it will not be added</p>
+<p>&#64;param[in] type - type of description (e.g. rigid_body, marker_set)</p>
+<p>&#64;param[in] description_data - keyword arguments for description data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.NatNetClient.NatNetDescriptions.get_name">
+<code class="descname">get_name</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.NatNetClient.NatNetDescriptions.get_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get the name of a rigid body from an id</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-acquisition.instrument_control.PnaController">
+<span id="vna-control"></span><h3>VNA Control<a class="headerlink" href="#module-acquisition.instrument_control.PnaController" title="Permalink to this headline">¶</a></h3>
+<p>Created on Fri May 11 13:23:47 2018</p>
+<p>&#64;author: ajw5</p>
+<dl class="class">
+<dt id="acquisition.instrument_control.PnaController.PnaController">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.PnaController.</code><code class="descname">PnaController</code><span class="sig-paren">(</span><em>visa_address=None</em>, <em>command_dict_path='C:\SAMURAI\git\samurai\acquisition\instrument_control\./command_sets/PNAX_communication_dictionary.json'</em>, <em>**other_info</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.get_all_trace_data">
+<code class="descname">get_all_trace_data</code><span class="sig-paren">(</span><em>binary_xfer=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.get_all_trace_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get data from all traces on a single channel</p>
+<p>&#64;return [frequency_list, {trace_name:{‘parameter’:param,’data’:[values]}]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.get_freq_list">
+<code class="descname">get_freq_list</code><span class="sig-paren">(</span><em>binary_xfer=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.get_freq_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get a list of the frequencies from the vna</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.get_segment_table">
+<code class="descname">get_segment_table</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.get_segment_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get the segment table from the vna</p>
+<p>&#64;return list of dicts describing the segments as [{table0},…]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.get_trace_data">
+<code class="descname">get_trace_data</code><span class="sig-paren">(</span><em>trace_name</em>, <em>binary_xfer=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.get_trace_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get the complex data from a single trace</p>
+<p>&#64;param[in] trace_name - name of trace to get the data from</p>
+<p>&#64;return complex data from the trace in a numpy array</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.get_traces">
+<code class="descname">get_traces</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.get_traces" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get trace name value pairs</p>
+<p>&#64;return dictionary with / pairs</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.measure">
+<code class="descname">measure</code><span class="sig-paren">(</span><em>out_path</em>, <em>port_mapping=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.measure" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief alias used to fit into SAMURAI_System with PNAGrabber code</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.measure_s_params">
+<code class="descname">measure_s_params</code><span class="sig-paren">(</span><em>out_path</em>, <em>port_mapping=None</em>, <em>binary_xfer=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.measure_s_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief measure s parameters of current traces and write out to out_path</p>
+<p>&#64;param[in] out_path - path to write out data to</p>
+<p>&#64;param[in/OPT] port_mapping - optional dictionary of port mappings (e.g {3:2})</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.set">
+<code class="descname">set</code><span class="sig-paren">(</span><em>command</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set a value from self.setting_alias_dict or try command_dict</p>
+<p>&#64;param[in] command - can be an alias from setting_alias_dict, or command_dict</p>
+<p>&#64;param[in] <a href="#id27"><span class="problematic" id="id28">*</span></a>args - arguments for the commands</p>
+<p>&#64;param[in] <a href="#id29"><span class="problematic" id="id30">**</span></a>kwargs - keyword arguments for the command</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.set_continuous_trigger">
+<code class="descname">set_continuous_trigger</code><span class="sig-paren">(</span><em>on_off</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.set_continuous_trigger" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set continuous trigger on or off</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.set_seg_source_list_iterating">
+<code class="descname">set_seg_source_list_iterating</code><span class="sig-paren">(</span><em>src_num</em>, <em>seg_table</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.set_seg_source_list_iterating" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;TODO FIGURE OUT WHAT THIS CODE IS FOR!!!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.set_segment_sweep">
+<code class="descname">set_segment_sweep</code><span class="sig-paren">(</span><em>seg_table</em>, <em>arb=True</em>, <em>couple=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.set_segment_sweep" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief setup a segment sweep on the vna bysetting the segment list</p>
+<p>&#64;param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),…]</p>
+<p>&#64;param[in/OPT] arb - arbitrary segment sweep allowed (default True)</p>
+<p>&#64;param[in/OPT] couple - whether or not to couple the sources (default True)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.set_segment_table">
+<code class="descname">set_segment_table</code><span class="sig-paren">(</span><em>seg_table</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.set_segment_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set the segment table on the vna</p>
+<p>&#64;param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),…]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.set_sweep_sequence">
+<code class="descname">set_sweep_sequence</code><span class="sig-paren">(</span><em>sequence</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.set_sweep_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set the sweep sequence found in Stimulus-&gt;Sweep-&gt;Sweep Setup-&gt; Sweep Sequence</p>
+<p>&#64;param[in] sequence - sequence to use. Valid inputs are ‘standard’ and ‘point’
+This could also be ‘off’ or ‘on’ for ‘standard’ and ‘point’ respectively</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.setup_s_param_measurement">
+<code class="descname">setup_s_param_measurement</code><span class="sig-paren">(</span><em>parameter_list</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.setup_s_param_measurement" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief setup n port s parameter measurement</p>
+<p>&#64;param[in] parameter_list - which parameters to measure (e.g. [11,21,22,21])</p>
+<p>&#64;note help from <a class="reference external" href="http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm">http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.trigger">
+<code class="descname">trigger</code><span class="sig-paren">(</span><em>timeout=900000</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.trigger" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief trigger the vna when in manual mode. This will also wait for the sweep to complete</p>
+<p>&#64;param[in] timeout - timeout of visa. The OPC? command hangs until the sweep is finished in single mode
+This default to 15 minutes. reset the timeout when were done</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.PnaController.PnaController.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>msg</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.PnaController.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief write a message to the PNA</p>
+<p>&#64;param[in/OPT] <a href="#id31"><span class="problematic" id="id32">*</span></a>args,**kwargs - args for when commands from command_dict are used</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="acquisition.instrument_control.PnaController.clean_file_name">
+<code class="descclassname">acquisition.instrument_control.PnaController.</code><code class="descname">clean_file_name</code><span class="sig-paren">(</span><em>fname</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.PnaController.clean_file_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief make sure the file name doesnt exist. If it does add an ending so it doesnt overwrite</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="acquisition.instrument_control.PnaController.pnaController">
+<code class="descclassname">acquisition.instrument_control.PnaController.</code><code class="descname">pnaController</code><a class="headerlink" href="#acquisition.instrument_control.PnaController.pnaController" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#acquisition.instrument_control.PnaController.PnaController" title="acquisition.instrument_control.PnaController.PnaController"><code class="xref py py-class docutils literal notranslate"><span class="pre">acquisition.instrument_control.PnaController.PnaController</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-acquisition.instrument_control.Meca500">
+<span id="robot-control"></span><h3>Robot Control<a class="headerlink" href="#module-acquisition.instrument_control.Meca500" title="Permalink to this headline">¶</a></h3>
+<p>Created on Wed Sep 12 15:19:22 2018</p>
+<p>-This is a library to control the Meca500 positioner.
+Currently all of the calls are blocking. This means that every sent command
+waits for the corresponding TCP response. This could be edited in the future
+to have a socket server listen for tcp responses, but this is really not needed
+for now so is not implemented.</p>
+<p>-The top set of commands are basic TCP/IP commands wrapped from the socket package.
+The lower set of commands are specific to the Meca500. The blocking is done by
+using the query function. This could be changed by just using the send and as stated,
+listening for replies on socket server (I’m not sure whether this works with
+TCP/IP communication or not).</p>
+<p>-Errors from the meca are currently all just thrown as exceptions. No handling is done.
+Execution will terminate if an error message is recieved
+&#64;author: ajw5
+&#64;todo This should inherit from InstrumentControl</p>
+<dl class="exception">
+<dt id="acquisition.instrument_control.Meca500.MecaError">
+<em class="property">exception </em><code class="descclassname">acquisition.instrument_control.Meca500.</code><code class="descname">MecaError</code><span class="sig-paren">(</span><em>err_msg</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.Meca500.MecaError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception for Meca Errors</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="acquisition.instrument_control.Meca500.MecaReturnMessage">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.Meca500.</code><code class="descname">MecaReturnMessage</code><span class="sig-paren">(</span><em>raw_meca_message</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.Meca500.MecaReturnMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to hold and parse messages from Meca500 Positioner</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.Meca500.MecaReturnMessage.get_float_list">
+<code class="descname">get_float_list</code><span class="sig-paren">(</span><em>delim='</em>, <em>'</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.Meca500.MecaReturnMessage.get_float_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get the message as a list of floating point numbers</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.Meca500.MecaReturnMessage.parse_raw_msg">
+<code class="descname">parse_raw_msg</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.Meca500.MecaReturnMessage.parse_raw_msg" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief parse our raw meca message</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-acquisition.instrument_control.BislideController">
+<span id="other-positioner-control-software"></span><h3>Other Positioner Control Software<a class="headerlink" href="#module-acquisition.instrument_control.BislideController" title="Permalink to this headline">¶</a></h3>
+<p>Created on Mon Feb 25 14:25:02 2019</p>
+<p>Class to control bislide</p>
+<p>&#64;author: ajw5</p>
+<dl class="class">
+<dt id="acquisition.instrument_control.BislideController.BislideController">
+<em class="property">class </em><code class="descclassname">acquisition.instrument_control.BislideController.</code><code class="descname">BislideController</code><span class="sig-paren">(</span><em>com_port</em>, <em>**options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief class to abstract bislide control. THIS IS ONLY FOR VELMEX BISLIDES</p>
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.clear_commands">
+<code class="descname">clear_commands</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.clear_commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief clear all commands in the queue</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.connect">
+<code class="descname">connect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief open the bislide serial port</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.disconnect">
+<code class="descname">disconnect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.disconnect" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief close the bislide serial port</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.enable_online_mode">
+<code class="descname">enable_online_mode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.enable_online_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief enable the ability to control interactively
+(one command at a time)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.get_controller_status">
+<code class="descname">get_controller_status</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.get_controller_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get and unpack the status of the controller</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.get_limit_status">
+<code class="descname">get_limit_status</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.get_limit_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get the status of the limit switches</p>
+<p>&#64;return a dictionary with entries 1-,1+,2-,2+
+which shows whehter the limit switches are activated</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.get_position">
+<code class="descname">get_position</code><span class="sig-paren">(</span><em>motor_num=1</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.get_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get the position of our motor in mm</p>
+<p>&#64;param[in/OPT] motor_num - which motor to query (default 1)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.get_position_steps">
+<code class="descname">get_position_steps</code><span class="sig-paren">(</span><em>motor_num</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.get_position_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get our position in steps of a motor</p>
+<p>&#64;param[in] motor_num - which motor to get the steps of</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.interactive_write">
+<code class="descname">interactive_write</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.interactive_write" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief interactively write commands Should probably be DEPRECATED.
+Not commonly used because we zero the position regs here.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.mm_to_steps">
+<code class="descname">mm_to_steps</code><span class="sig-paren">(</span><em>mm</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.mm_to_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief convert millimeters to # of steps</p>
+<p>&#64;param[in] mm - number of millimeters to convert</p>
+<p>&#64;return converted value in steps rounded to the nearest whole number</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.move_mm">
+<code class="descname">move_mm</code><span class="sig-paren">(</span><em>distance_mm</em>, <em>motor_num=1</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.move_mm" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief move a motor a given number of mm</p>
+<p>&#64;param[in] num_steps - number of steps to move</p>
+<p>&#64;param[in/OPT] motor_num - which motor number to move (default 1)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.move_steps">
+<code class="descname">move_steps</code><span class="sig-paren">(</span><em>num_steps</em>, <em>motor_num</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.move_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief move a motor a given number of steps</p>
+<p>&#64;param[in] num_steps - number of steps to move</p>
+<p>&#64;param[in] motor_num - which motor number to move</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.query">
+<code class="descname">query</code><span class="sig-paren">(</span><em>msg</em>, <em>terminator=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief send followed by recieve</p>
+<p>&#64;param[in] msg - message to send</p>
+<p>&#64;param[in] read_bytes - number of bytes to read from the buffer (this is blocking)</p>
+<p>&#64;return bytes read from controller</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.read">
+<code class="descname">read</code><span class="sig-paren">(</span><em>terminator=None</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief reads all data in buffer from a command</p>
+<p>&#64;param[in] OPTIONAL terminator - if provided, read_until(terminator) will be used</p>
+<p>&#64;return message read</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.read_current_program">
+<code class="descname">read_current_program</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.read_current_program" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief get the current program the slide is running</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.set_options">
+<code class="descname">set_options</code><span class="sig-paren">(</span><em>**options</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.set_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief quick method to set options outside of init</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.set_position">
+<code class="descname">set_position</code><span class="sig-paren">(</span><em>location_mm</em>, <em>motor_num=1</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.set_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief move a motor a given location from zero in mm</p>
+<p>&#64;param[in] num_steps - number of steps to move</p>
+<p>&#64;param[in/OPT] motor_num - which motor number to move (default 1)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.set_position_steps">
+<code class="descname">set_position_steps</code><span class="sig-paren">(</span><em>num_steps</em>, <em>motor_num</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.set_position_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set the position of the bislide in steps</p>
+<p>&#64;param[in] num_steps - how many steps from 0 to move to</p>
+<p>&#64;param[in] motor_num - which motor to move</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.set_step_speed">
+<code class="descname">set_step_speed</code><span class="sig-paren">(</span><em>steps_per_second=2000</em>, <em>motor_num=1</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.set_step_speed" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief set the speed of the motor. Default is 2000 Steps per second</p>
+<p>&#64;param[in/OPT] steps_per_second - number of steps per second (default 2000)
+2000 is also the value the controller starts up at</p>
+<p>&#64;param[in/OPT] motor_num - which motor to set the speed for (default 1)</p>
+<p>&#64;note This is set for 70% power (SmMx command) This can be changed
+To use 100% power using the SAmMx command (m is motor#, x is steps_per_second)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.steps_to_mm">
+<code class="descname">steps_to_mm</code><span class="sig-paren">(</span><em>steps</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.steps_to_mm" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief convert # of steps to millimeters</p>
+<p>&#64;param[in] steps - number of steps to convert</p>
+<p>&#64;return converted value in millimeters</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.wait_motor_ready">
+<code class="descname">wait_motor_ready</code><span class="sig-paren">(</span><em>ready_character='^'</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.wait_motor_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief wait until our motor returns a ready character (blocking)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief write a message to the bislide</p>
+<p>&#64;param[in] msg - message to write</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.zero">
+<code class="descname">zero</code><span class="sig-paren">(</span><em>direction='-'</em>, <em>motor_num=1</em>, <em>zero_position_reg=True</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.zero" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief zero to limit switch</p>
+<p>&#64;param[in] direction ‘+’ for positive ‘-‘ for negative</p>
+<p>&#64;param[in/OPT] zero_position_reg - do we reset our position to zero?
+defaults to true, but if we zero to the + direction should probably
+be false otherwise all position values will be negative</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="acquisition.instrument_control.BislideController.BislideController.zero_position_reg">
+<code class="descname">zero_position_reg</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.BislideController.zero_position_reg" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief dont move the slider, but zero the position registers</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="acquisition.instrument_control.BislideController.get_bits">
+<code class="descclassname">acquisition.instrument_control.BislideController.</code><code class="descname">get_bits</code><span class="sig-paren">(</span><em>val</em><span class="sig-paren">)</span><a class="headerlink" href="#acquisition.instrument_control.BislideController.get_bits" title="Permalink to this definition">¶</a></dt>
+<dd><p>&#64;brief unpack bits from a given value in LSB order</p>
+<p>&#64;param[in] val - value to unpack to bits</p>
+<p>&#64;return array of unpacked bits</p>
+</dd></dl>
+
+<span class="target" id="module-acquisition.instrument_control.BlueTestChamber"></span><p>Created on Tue Jul 16 16:44:56 2019</p>
+<p>&#64;author: rdj</p>
+<span class="target" id="module-acquisition.instrument_control.LindgrenTurnTableController"></span><p>Created on Mon Aug 20 13:03:56 2018
+Controller for ETS Lindgren Turn Table Model 2005
+raw and not-raw angles are separated because it was desired to
+be able to use negative angles, but the positioner only allows
+angles between 0 and 360 it seems.
+The posoitnoer always starts up at 0 degrees and this value can be changed
+with the CP command. This is run in the set_origin method. The angle is then
+read and everything is adjusted to this new origin when not using raw angles
+&#64;author: ajw5</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="README.html" class="btn btn-neutral float-right" title="Acquisition Code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../base/index.html" class="btn btn-neutral float-left" title="SAMURAI Base Libraries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, NIST
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

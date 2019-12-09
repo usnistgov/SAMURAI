@@ -1,0 +1,707 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Acquisition Code &mdash; SAMURAI 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> SAMURAI
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../base/index.html">SAMURAI Base Libraries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">SAMURAI Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../analysis/index.html">SAMURAI Data Analysis</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">SAMURAI</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Acquisition Code</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/acquisition/README.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="acquisition-code">
+<h1>Acquisition Code<a class="headerlink" href="#acquisition-code" title="Permalink to this headline">¶</a></h1>
+<p>This directory contains the code required to run the SAMURAI system. This code has been tested lately with python 3.7. This set of libraries uses some common python libraries. The code can be cloned from the NIST internal Gitlab server.</p>
+<div class="section" id="dependencies">
+<h2>dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Anaconda with python 3.X</li>
+<li>pyvisa</li>
+<li>cannot remember the last one</li>
+</ul>
+<div class="section" id="installing-anaconda-and-dependencies">
+<h3>Installing Anaconda and Dependencies<a class="headerlink" href="#installing-anaconda-and-dependencies" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Install Anaconda<ol>
+<li>Go to the anaconda download page <a class="reference external" href="https://www.anaconda.com/distribution/#download-section">here</a></li>
+<li>Select the correct operating system and installer</li>
+<li>Download and run the executable and follow the installer to install Anaconda 3.X</li>
+</ol>
+</li>
+<li>Install pyvisa<ol>
+<li>Type into the windows search ‘anaconda prompt’ and run the program</li>
+<li>In the terminal run <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">-c</span> <span class="pre">conda-forge</span> <span class="pre">pyvisa</span></code> to install pyvisa</li>
+</ol>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="subdirectories">
+<h2>Subdirectories<a class="headerlink" href="#subdirectories" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="support">
+<h3>/support<a class="headerlink" href="#support" title="Permalink to this headline">¶</a></h3>
+<p>This subdirectory contains multiple classes and functions to run the SAMURAI system including control for the VNA and Meca500 Robot arm. This contains the following files</p>
+<ul class="simple">
+<li>/support/autoPNAGrabber.py<ul>
+<li>python control of PNAGrabber. Requires PNAGrabber executable to be run from command line with <code class="docutils literal notranslate"><span class="pre">-r</span></code> flag to ‘press’ the ‘meas all’ button without opening the UI</li>
+</ul>
+</li>
+<li>/support/Meca500.py<ul>
+<li>Class for controlling Meca500 Robot</li>
+</ul>
+</li>
+<li>/support/metaFileController.py<ul>
+<li>Class for interacting with already written metafile from a measurement</li>
+</ul>
+</li>
+<li>/support/pnaController.py<ul>
+<li>Class to interact with PNA to get various settings and set some things on it</li>
+</ul>
+</li>
+<li>/support/samurai_metaFile.py<ul>
+<li>Class for creating metafile for SAMURAI measurements</li>
+</ul>
+</li>
+<li>/support/samurai_support.py<ul>
+<li>Some support functions to use. (mainly functions used when USC came out in Aug. 2018 for phased array calibration)</li>
+</ul>
+</li>
+<li>/support/BislideController.py<ul>
+<li>A class to control a Velmex Bislide</li>
+</ul>
+</li>
+<li>/support/samurai_tktools.py<ul>
+<li>Some functions for quick building of GUIs with Tkinter (Tk)</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="samurai-hardware-information">
+<h1>SAMURAI Hardware Information<a class="headerlink" href="#samurai-hardware-information" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-mermaid notranslate"><div class="highlight"><pre><span></span>graph TD;
+  A--&gt;B;
+  A--&gt;C;
+  B--&gt;D;
+  C--&gt;D;
+</pre></div>
+</div>
+<p>(PICTURE OF SETUP)</p>
+<div class="section" id="hardware">
+<h2>Hardware<a class="headerlink" href="#hardware" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="meca-500-6-axis-positioner">
+<h3>Meca 500 6 axis positioner<a class="headerlink" href="#meca-500-6-axis-positioner" title="Permalink to this headline">¶</a></h3>
+<p>Small 6 axis positioner.</p>
+<ul class="simple">
+<li><a class="reference external" href="https://www.mecademic.com/products/Meca500-small-robot-arm">Website</a></li>
+<li><a class="reference external" href="hardware/datasheets/Meca500-R3-User-Manual.pdf">User Guide</a></li>
+<li><a class="reference external" href="hardware/datasheets/Meca500-R3-Programming-Manual.pdf">Programming Manual</a></li>
+</ul>
+</div>
+<div class="section" id="keysight-pna-x-n5245a">
+<h3>Keysight PNA-X (N5245A)<a class="headerlink" href="#keysight-pna-x-n5245a" title="Permalink to this headline">¶</a></h3>
+<p>10MHz to 50GHz VNA. Ports are 2.4mm Male typically with 2.4mm F-F connector savers on them.</p>
+<ul class="simple">
+<li><a class="reference external" href="hardware/datasheets/N5245.pdf">Datasheet</a></li>
+</ul>
+</div>
+<div class="section" id="antennas">
+<h3>Antennas<a class="headerlink" href="#antennas" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Sage-millimeter 17dBi WR-28 Horn antenna<ul>
+<li><a class="reference external" href="hardware/datasheets/17dBi_horn_sagemillimeter.pdf">Datasheet</a></li>
+</ul>
+</li>
+<li>Sage-millimeter 23dBi WR-28 Horn antenna<ul>
+<li><a class="reference external" href="hardware/datasheets/23dBi_horn_sagemillimeter.pdf">Datasheet</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="cables">
+<h3>Cables<a class="headerlink" href="#cables" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Junkosha 2.4mm (M-M) 3m Cables<ul>
+<li>info (link datasheet)</li>
+</ul>
+</li>
+<li>Junkosha 2.4mm (M-M) 0.25m Cables<ul>
+<li>info (link datasheet)</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="adapters">
+<h3>Adapters<a class="headerlink" href="#adapters" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Sage-millimeter 2.4mm to WR-28 Adapters</li>
+</ul>
+</div>
+</div>
+<div class="section" id="networking">
+<h2>Networking<a class="headerlink" href="#networking" title="Permalink to this headline">¶</a></h2>
+<p>Currently, the samurai system is run over a custom local network run through a simple network switch. This connects to the VNA, Meca500 Robot arm, and eventually cameras.</p>
+<div class="section" id="remote-pna-x-control">
+<h3>Remote PNA-X control<a class="headerlink" href="#remote-pna-x-control" title="Permalink to this headline">¶</a></h3>
+<p>A remote Keyboard, Video, Mouse box is used. This allows a keyboard, monitor, and a mouse to be placed far away from our VNA and a single CAT-5 cable (ethernet) to be run between the two. This comprises of a small box with 2 usb ports and a VGA connection. This box is then connected directly via a CAT-5 Cable near the VNA with a usb-B output and a second VGA connection. These two boxes provide remote control over the VNA</p>
+<ul class="simple">
+<li>NOTE: This is not connected to the local network. These two boxes are only connected to one another and cannot be run over a network. They simply translate the usb and VGA info and transmit over a CAT-5 cable.</li>
+</ul>
+</div>
+<div class="section" id="ip-and-visa-addresses">
+<h3>IP and VISA Addresses<a class="headerlink" href="#ip-and-visa-addresses" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">PNA-X = <a class="reference external" href="http://192.168.0.2">192.168.0.2</a></p>
+<ul class="simple">
+<li>VISA Address = ‘TCPIP0::10.0.0.2::inst0::INSTR’</li>
+</ul>
+</li>
+<li><p class="first">Meca500 = <a class="reference external" href="192.168.0.5">192.168.0.5</a></p>
+<ul class="simple">
+<li>VISA Address = Could not get VISA to work correctly! Connect using sockets.</li>
+</ul>
+</li>
+<li><p class="first">IP Webcam = <a class="reference external" href="192.168.0.11">192.168.0.11</a></p>
+<ul>
+<li><p class="first">Username: <code class="docutils literal notranslate"><span class="pre">admin</span></code> – Password: <code class="docutils literal notranslate"><span class="pre">123456</span></code></p>
+</li>
+<li><p class="first">A live stream will show up if you go to the above address and login</p>
+</li>
+<li><p class="first">A VLC stream has higher latency but can be connected by the following steps:</p>
+<ol class="simple">
+<li>Open VideoLAN (VLC with the construction cone icon)</li>
+<li>Select <code class="docutils literal notranslate"><span class="pre">Media-&gt;Open</span> <span class="pre">Network</span> <span class="pre">Stream...</span></code></li>
+<li>Enter <code class="docutils literal notranslate"><span class="pre">rtsp://admin:123456&#64;10.0.0.101:554/cam1/mpeg4</span></code> and click connect</li>
+<li>To take a snapshot click <code class="docutils literal notranslate"><span class="pre">Video-&gt;Take</span> <span class="pre">Snapshot</span></code>. This will save a snapshot to the users <code class="docutils literal notranslate"><span class="pre">Pictures</span></code> folder from which it can then be renamed and copied</li>
+</ol>
+<ul class="simple">
+<li>The VLC stream has not always been reliable and may freeze. For this reason it is recommended to use the web interface except when taking snapshots of the setup</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p class="first">Computer = <a class="reference external" href="http://192.168.0.1">192.168.0.1</a></p>
+<ul class="simple">
+<li>VISA Address = N/A (local loopback is 127.0.0.1)</li>
+<li>Setting Network adapter settings for local network:<ol>
+<li>Go to <code class="docutils literal notranslate"><span class="pre">Control</span> <span class="pre">Panel-&gt;Network</span> <span class="pre">and</span> <span class="pre">Internet-&gt;Network</span> <span class="pre">Connections</span></code></li>
+<li>Right click on the network controller for the local network and select <code class="docutils literal notranslate"><span class="pre">Properties</span></code> (admin status required)</li>
+<li>Click on <code class="docutils literal notranslate"><span class="pre">TCP/IPv4</span></code> and then click <code class="docutils literal notranslate"><span class="pre">Properties</span></code></li>
+<li>Click the radio button for <code class="docutils literal notranslate"><span class="pre">Use</span> <span class="pre">the</span> <span class="pre">following</span> <span class="pre">IP</span> <span class="pre">address</span></code> and type in the following parameters<ul>
+<li>IP address = 10.0.0.1</li>
+<li>subnet mask = 255.0.0.0</li>
+<li>Default gateway = DO NOT POPULATE</li>
+</ul>
+</li>
+<li>Then click <code class="docutils literal notranslate"><span class="pre">OK</span></code> and <code class="docutils literal notranslate"><span class="pre">Close</span></code> to close out of the properties menu. You should now be able to access items on the local network.</li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p class="first">Network Switch = <a class="reference external" href="192.168.0.239">192.168.0.239</a></p>
+<ul class="simple">
+<li>Password is <code class="docutils literal notranslate"><span class="pre">password</span></code></li>
+</ul>
+</li>
+<li><p class="first">Optitrack Cameras = <a class="reference external" href="192.168.0.255">192.168.0.???</a></p>
+<ul class="simple">
+<li>These IP addresses are unkown to the user</li>
+<li>It is possible at some point in time these may conflict with one of the other devices on the network. If so change the IP of whatever device is conflicting.</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="running-python-scripts">
+<h1>Running Python Scripts<a class="headerlink" href="#running-python-scripts" title="Permalink to this headline">¶</a></h1>
+<p>This section explains how to run the python scripts that are mentioned in this document</p>
+<div class="section" id="running-with-the-spyder-ide">
+<h2>Running with the Spyder IDE<a class="headerlink" href="#running-with-the-spyder-ide" title="Permalink to this headline">¶</a></h2>
+<ol class="simple">
+<li>Open the Spyder IDE (Make sure to use Python 3.7)</li>
+<li>Open the script in Spyder</li>
+<li>Press the Green play button at the top of the window</li>
+</ol>
+</div>
+<div class="section" id="running-from-the-anaconda-command-prompt">
+<h2>Running from the Anaconda command prompt<a class="headerlink" href="#running-from-the-anaconda-command-prompt" title="Permalink to this headline">¶</a></h2>
+<ol class="simple">
+<li>Run the program ‘Anaconda Prompt’<ul>
+<li>This can be done by searching for this in the Windows toolbar</li>
+</ul>
+</li>
+<li>In the prompt type <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">&lt;script_directory&gt;/&lt;script_name&gt;.py</span></code> where <code class="docutils literal notranslate"><span class="pre">&lt;script_directory&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;script_name&gt;</span></code> create the path to your script</li>
+</ol>
+</div>
+</div>
+<div class="section" id="mounting-and-unmounting-the-antennas">
+<h1>Mounting and Unmounting the antennas<a class="headerlink" href="#mounting-and-unmounting-the-antennas" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="moving-the-positioner-to-the-mounting-position">
+<h2>Moving the Positioner to the mounting position<a class="headerlink" href="#moving-the-positioner-to-the-mounting-position" title="Permalink to this headline">¶</a></h2>
+<p>The robotic positioner can be moved to a location that is easier to mount/unmount the antennas with the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">samurai.acquisition.SAMURAI_System</span> <span class="kn">import</span> <span class="n">SAMURAI_System</span>
+<span class="n">mysam</span> <span class="o">=</span> <span class="n">SAMURAI_System</span><span class="p">()</span>            <span class="c1">#initialize the class</span>
+<span class="n">mysam</span><span class="o">.</span><span class="n">connect_rx_positioner</span><span class="p">()</span>       <span class="c1">#connect and home the positioner</span>
+<span class="n">mysam</span><span class="o">.</span><span class="n">move_to_mounting_position</span><span class="p">()</span>   <span class="c1">#move to the mounting position</span>
+</pre></div>
+</div>
+<p>Once the antennas have been remounted, return the positioner to its home position and disconnect with the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mysam</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span>                        <span class="c1">#move back to its home position</span>
+<span class="n">mysam</span><span class="o">.</span><span class="n">disconnect_rx_positioner</span><span class="p">()</span>    <span class="c1">#disconnect the positioner</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="connecting-the-antennas">
+<h2>Connecting the antennas<a class="headerlink" href="#connecting-the-antennas" title="Permalink to this headline">¶</a></h2>
+<p>Both the transmit and recieve antenna should always be contained in a 3D printed mounting holder. The newest version of this holder will have 3 steel ball bearings that fit into grooves on the Robot mount. Slide the antenna and its mount into the recieving side on the robot and connect the three 3mm nuts to snugly hold together the antenna and recieving mount. DO NOT OVERTIGHTEN THESE NUTS. The connection only needs to be lightly tightened (finger tight plus 1 turn or so). Overtightening will warp the plastic and damage the mount.</p>
+</div>
+</div>
+<div class="section" id="demo-the-samurai-system">
+<h1>Demo the SAMURAI System<a class="headerlink" href="#demo-the-samurai-system" title="Permalink to this headline">¶</a></h1>
+<p>A script has been made to run quick demonstration of the SAMURAI system. This demo will do the following:</p>
+<ol class="simple">
+<li>Perform a 35x35 element planar sweep at 40 GHz</li>
+<li>Measure and plot 3D beamformed data for the current channel</li>
+<li>Measure and plot a PDP from the measured frequency range start/stop/step = 26.5GHz/40GHz/10MHz at a single aperture position</li>
+</ol>
+<div class="section" id="running-the-demo">
+<h2>Running the Demo<a class="headerlink" href="#running-the-demo" title="Permalink to this headline">¶</a></h2>
+<p>In order to run the demo the following steps must be taken</p>
+<ol class="simple">
+<li>Open the Spyder IDE or the Anaconda command prompt</li>
+<li>Run the script <code class="docutils literal notranslate"><span class="pre">\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel</span> <span class="pre">Model</span> <span class="pre">Uncertainty\Measurements\demo\quick_beamform_demo\channel_test.py</span></code><ul>
+<li>See the ‘Running Python Scripts’ section for instructions on how to run this file</li>
+</ul>
+</li>
+</ol>
+</div>
+</div>
+<div class="section" id="running-the-samurai-system">
+<h1>Running the SAMURAI System<a class="headerlink" href="#running-the-samurai-system" title="Permalink to this headline">¶</a></h1>
+<p>This section covers the steps required to run a SAMURAI measurement</p>
+<div class="section" id="running-from-script">
+<h2>Running from script<a class="headerlink" href="#running-from-script" title="Permalink to this headline">¶</a></h2>
+<p>This section shows how to run from a premade python script. This requires the lowest amount of user input and is therefore the recommended method of control.</p>
+<div class="section" id="create-a-new-samurai-measurement-directory">
+<h3>1. Create a new SAMURAI measurement directory<a class="headerlink" href="#create-a-new-samurai-measurement-directory" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>Make a copy of <code class="docutils literal notranslate"><span class="pre">meas_template</span></code> in the directory <code class="docutils literal notranslate"><span class="pre">U:\67Internal\DivisionProjects\Channel</span> <span class="pre">Model</span> <span class="pre">Uncertainty\Measurements\Synthetic_Aperture</span></code></li>
+<li>Rename the copy to the current date in the format <code class="docutils literal notranslate"><span class="pre">mm-dd-yyyy</span></code><ul>
+<li>From here on, this newly created directory will be referred to as <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;</span></code></li>
+</ul>
+</li>
+<li>Copy and paste the correct comma separated value (CSV) file containing the positions into <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw</span></code><ul>
+<li>Some commonly used templates are contained in <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw/position_templates</span></code> directory.</li>
+<li>Once the desired CSV file has been copied, rename it <code class="docutils literal notranslate"><span class="pre">positions.csv</span></code></li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section" id="perform-2-port-vna-calibration">
+<h3>2. Perform 2 Port VNA Calibration<a class="headerlink" href="#perform-2-port-vna-calibration" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>In the windows file explorer navigate to <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/cal/calibration_pre</span></code></li>
+<li>double click on ‘cal.pnagrabber’ to start PNAGrabber for the calibration.</li>
+<li>Attach each of the standards to the calibration plane with the naming convention <code class="docutils literal notranslate"><span class="pre">&lt;standard-port-1&gt;_&lt;standard-port-2&gt;.s2p</span></code><ul>
+<li>(e.g. load_short.s2p is load on port 1 and short on port 2)</li>
+</ul>
+</li>
+<li>When the calibration is completed, make a copy of each of the <code class="docutils literal notranslate"><span class="pre">.s2p</span></code> files generated and put them into the <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/cal/calibration_pre/raw</span></code> folder</li>
+</ol>
+</div>
+<div class="section" id="open-and-update-the-script">
+<h3>3. Open and update the script<a class="headerlink" href="#open-and-update-the-script" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>Open the file <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw/run_script.py</span></code><ul>
+<li>This contains the code to run the sweep along with metadata information and other input parameters</li>
+</ul>
+</li>
+<li>Set the csv file path by changing the line <code class="docutils literal notranslate"><span class="pre">position_file</span> <span class="pre">=</span> <span class="pre">'./position_templates/samurai_planar_dp.csv'</span></code> to set <code class="docutils literal notranslate"><span class="pre">position_file</span></code> to the relative path to the csv file of positions</li>
+<li>Set the motive dictionary for camera tracking. For all rigid bodies create a new line with the entry <code class="docutils literal notranslate"><span class="pre">motive_dict['&lt;rigid-body-name&gt;']</span> <span class="pre">=</span> <span class="pre">None</span></code>. For each marker create a new line <code class="docutils literal notranslate"><span class="pre">motive_dict['&lt;marker-name&gt;']</span> <span class="pre">=</span> <span class="pre">&lt;marker-id-number&gt;</span></code></li>
+<li>Add any experiment info and notes to <code class="docutils literal notranslate"><span class="pre">metafile_info_dict['experiment']</span></code> and <code class="docutils literal notranslate"><span class="pre">metafile_info_dict['notes']</span></code></li>
+<li>Add any additional metafile info to to the <code class="docutils literal notranslate"><span class="pre">metafile_info_dict</span></code> dictionary.</li>
+</ol>
+</div>
+<div class="section" id="run-the-script">
+<h3>4. Run the script<a class="headerlink" href="#run-the-script" title="Permalink to this headline">¶</a></h3>
+<p>Run the newly updated <code class="docutils literal notranslate"><span class="pre">run_script.py</span></code> using the directions listed in section ‘Running Python Scripts’. This will save all data into the same directory as the run script.</p>
+</div>
+</div>
+<div class="section" id="running-from-python-command-line-interface-cli-deprecated">
+<h2>Running from python command line interface (CLI) (DEPRECATED)<a class="headerlink" href="#running-from-python-command-line-interface-cli-deprecated" title="Permalink to this headline">¶</a></h2>
+<p>*[CLI]: Command Line Interface<br />*[IDE]: Integrated Development Environment (e.g. Spyder)<br />The following steps are to run a SAMURAI measurement from the python CLI. The steps using the python CLI here are valid for the integrated command line within the Spyder IDE. While these steps will be similar using a basic python setup, the importing of the SAMURAI classes and libraries may be a bit more complex.</p>
+<div class="section" id="id1">
+<h3>1. Create a new SAMURAI measurement directory<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>Make a copy of <code class="docutils literal notranslate"><span class="pre">meas_template</span></code> in the directory <code class="docutils literal notranslate"><span class="pre">U:\67Internal\DivisionProjects\Channel</span> <span class="pre">Model</span> <span class="pre">Uncertainty\Measurements\Synthetic_Aperture</span></code></li>
+<li>Rename the copy to the current date in the format <code class="docutils literal notranslate"><span class="pre">mm-dd-yyyy</span></code><ul>
+<li>From here on, this newly created directory will be referred to as <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;</span></code></li>
+</ul>
+</li>
+<li>Copy and paste the correct comma separated value (CSV) file containing the positions into <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw</span></code><ul>
+<li>Some commonly used templates are contained in <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw/position_templates</span></code> directory.</li>
+<li>Once the desired CSV file has been copied, rename it <code class="docutils literal notranslate"><span class="pre">positions.csv</span></code></li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section" id="id2">
+<h3>2. Perform 2 Port VNA Calibration<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>In the windows file explorer navigate to <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/cal/calibration_pre</span></code></li>
+<li>double click on ‘cal.pnagrabber’ to start PNAGrabber for the calibration.</li>
+<li>Attach each of the standards to the calibration plane with the naming convention <code class="docutils literal notranslate"><span class="pre">&lt;standard-port-1&gt;_&lt;standard-port-2&gt;.s2p</span></code><ul>
+<li>(e.g. load_short.s2p is load on port 1 and short on port 2)</li>
+</ul>
+</li>
+<li>When the calibration is completed, make a copy of each of the <code class="docutils literal notranslate"><span class="pre">.s2p</span></code> files generated and put them into the <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/cal/calibration_pre/raw</span></code> folder</li>
+</ol>
+</div>
+<div class="section" id="import-the-samurai-system-module">
+<h3>3. Import the SAMURAI_System Module<a class="headerlink" href="#import-the-samurai-system-module" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>Open the python CLI (e.g. the command window in Spyder)</li>
+<li>Within the command line type the following</li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">samurai.acquisition.SAMURAI_System</span> <span class="kn">import</span> <span class="n">SAMURAI_System</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>NOTE: FOR NEW COMPUTERS ONLY - the code must be cloned from the gitlab repo and the directory containing the cloned <code class="docutils literal notranslate"><span class="pre">samurai</span></code> directory must be added the systems <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>.</li>
+</ul>
+</div>
+<div class="section" id="create-a-samurai-system-object">
+<h3>4. Create a SAMURAI_System Object<a class="headerlink" href="#create-a-samurai-system-object" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>With the SAMURAI_System module imported, create a SAMURAI_System object by typing <code class="docutils literal notranslate"><span class="pre">mysam</span> <span class="pre">=</span> <span class="pre">SAMURAI_System()</span></code> into the CLI.</li>
+</ol>
+</div>
+<div class="section" id="change-directory-to-measurement-directory">
+<h3>5. Change directory to measurement directory<a class="headerlink" href="#change-directory-to-measurement-directory" title="Permalink to this headline">¶</a></h3>
+<ol>
+<li><p class="first">Change the directory to <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw</span></code> by running the following set of commands:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="o">&lt;</span><span class="n">working</span><span class="o">-</span><span class="n">directory</span><span class="o">&gt;/</span><span class="n">synthetic_aperture</span><span class="o">/</span><span class="n">raw</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>OR in certain iPython CLIs</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">&lt;</span><span class="n">working</span><span class="o">-</span><span class="n">directory</span><span class="o">&gt;/</span><span class="n">synthetic_aperture</span><span class="o">/</span><span class="n">raw</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="mount-the-antennas">
+<h3>6. Mount the Antennas<a class="headerlink" href="#mount-the-antennas" title="Permalink to this headline">¶</a></h3>
+<ol>
+<li><p class="first">Mount the Tx Antenna (usually port 2) to the fixed holder</p>
+</li>
+<li><p class="first">Move the SAMURAI Robot to the mountain position using the commands below</p>
+<ul class="simple">
+<li>The <code class="docutils literal notranslate"><span class="pre">mysam</span></code> object must exist for this step to work</li>
+<li>Keep in mind, after this code the positioner is still connected and activated after these commands</li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mysam</span><span class="o">.</span><span class="n">connect_rx_positioner</span><span class="p">()</span> <span class="c1">#connect and home the positioner</span>
+<span class="n">mysam</span><span class="o">.</span><span class="n">move_to_mounting_position</span><span class="p">()</span> <span class="c1">#move to an easy position to mount the antenna</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Use the four m3 screws to attach the Antenna to the Meca500</p>
+</li>
+</ol>
+</div>
+<div class="section" id="open-the-robot-s-web-interface-optional">
+<h3>8. Open the Robot’s Web interface (Optional)<a class="headerlink" href="#open-the-robot-s-web-interface-optional" title="Permalink to this headline">¶</a></h3>
+<p>Before running the sweep we can perform the extra step of viewing the robot’s movement and status through its web monitoring interface.
+To open up the web monitoring interface:</p>
+<ol class="simple">
+<li>Open a web browser (tested in chrome)</li>
+<li>type <a class="reference external" href="http://10.0.0.5">10.0.0.5</a> into the address bar</li>
+<li>In the web interface, click the ‘Connection’ button on the top toolbar.</li>
+<li>In the pop-up window select ‘Monitoring’ and click ‘Connect’</li>
+</ol>
+</div>
+<div class="section" id="run-the-synthetic-aperture-sweep">
+<h3>8. Run the Synthetic Aperture Sweep<a class="headerlink" href="#run-the-synthetic-aperture-sweep" title="Permalink to this headline">¶</a></h3>
+<p>Now we can begin the sweep</p>
+<ol>
+<li><p class="first">Ensure the working directory is set to <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw</span></code> (see step 5)</p>
+<ul class="simple">
+<li>Some editors/IDE’s (e.g. spyder) show this in a top bar of the screen</li>
+<li>The current directory can be found from a python CLI by typing <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">os;</span> <span class="pre">os.getcwd()</span></code></li>
+</ul>
+</li>
+<li><p class="first">Type the following code and hit enter to begin the sweep</p>
+<ul class="simple">
+<li>This step assumes the robot has previously been connected and initialized (activated and homed)</li>
+<li>This also assumes the <code class="docutils literal notranslate"><span class="pre">mysam</span></code> object has already been created</li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mysam</span><span class="o">.</span><span class="n">csv_sweep</span><span class="p">(</span><span class="s1">&#39;./&#39;</span><span class="p">,</span><span class="s1">&#39;./positions.csv&#39;</span><span class="p">,</span><span class="n">template_path</span><span class="o">=</span><span class="s1">&#39;template.pnagrabber&#39;</span><span class="p">);</span><span class="n">disconnect_rx_positioner</span><span class="p">()</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li>NOTE: If a csv file is being tested, the flag <code class="docutils literal notranslate"><span class="pre">run_vna=False</span></code> can be added to the <code class="docutils literal notranslate"><span class="pre">mysam.csv_sweep()</span></code> call to prevent the VNA from running</li>
+<li>NOTE: The robot can also be put into simulation mode where all commands are sent and the web interface shows the robot moving, but the robot does not physically move. For more information on this reference the code documentation.</li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section" id="unmount-the-antennas">
+<h3>9. Unmount the Antennas<a class="headerlink" href="#unmount-the-antennas" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>Create <code class="docutils literal notranslate"><span class="pre">mysam</span></code> object if it does not exist</li>
+<li>Connect to positioner (refer to ‘Mount the Antennas’ section)</li>
+</ol>
+</div>
+<div class="section" id="collect-and-save-data">
+<h3>10. Collect and Save data<a class="headerlink" href="#collect-and-save-data" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li>copy data from <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw</span></code> to <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/</span></code></li>
+<li>Perform post-calibration in <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/cal/calibration_post</span></code> (refer to ‘Perform 2 Port VNA Calibration’ section)</li>
+</ol>
+</div>
+<div class="section" id="example-python-script">
+<h3>Example python script<a class="headerlink" href="#example-python-script" title="Permalink to this headline">¶</a></h3>
+<p>Here we have an example python script to run the sweep. This is assuming we have already created a <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;</span></code>. This also assumes we have placed a pnagrabber template named <code class="docutils literal notranslate"><span class="pre">template.pnagrabber</span></code> and a list of positions called <code class="docutils literal notranslate"><span class="pre">positions.csv</span></code> in <code class="docutils literal notranslate"><span class="pre">&lt;working-directory&gt;/synthetic_aperture/raw</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span> <span class="c1">#import os for chdir</span>
+<span class="kn">from</span> <span class="nn">samurai.acquisition.SAMURAI_System</span> <span class="kn">import</span> <span class="n">SAMURAI_System</span> <span class="c1">#import the samurai system class</span>
+
+<span class="n">mysam</span> <span class="o">=</span> <span class="n">SAMURAI_System</span><span class="p">()</span> <span class="c1">#create a samurai system object</span>
+<span class="n">mysam</span><span class="o">.</span><span class="n">connect_rx_positioner</span><span class="p">()</span> <span class="c1">#connect to the Meca500 (or other positioner)</span>
+<span class="n">mysam</span><span class="o">.</span><span class="n">move_to_mounting_position</span><span class="p">()</span> <span class="c1">#move to the position to unmount the antenna for calibration</span>
+
+<span class="c1">###################################</span>
+<span class="c1"># Unmount antenna from Meca500</span>
+<span class="c1">###</span>
+<span class="c1"># PERFORM CALIBRATION HERE</span>
+<span class="c1">###</span>
+<span class="c1"># Mount antenna onto Meca500</span>
+<span class="c1">###################################</span>
+
+<span class="n">mysam</span><span class="o">.</span><span class="n">zero</span><span class="p">()</span> <span class="c1">#return the robot to its zero position</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s1">&#39;&lt;working-directory&gt;/syntetic_aperture/raw&#39;</span><span class="p">)</span> <span class="c1">#change into our measurement directory</span>
+<span class="n">mysam</span><span class="o">.</span><span class="n">csv_sweep</span><span class="p">(</span><span class="s1">&#39;./&#39;</span><span class="p">,</span><span class="s1">&#39;./positions.csv&#39;</span><span class="p">,</span><span class="n">template_path</span><span class="o">=</span><span class="s1">&#39;./template.pnagrabber&#39;</span><span class="p">)</span> <span class="c1">#run the csv sweep with the vna</span>
+
+<span class="n">mysam</span><span class="o">.</span><span class="n">disconnect_rx_positioner</span><span class="p">()</span> <span class="c1">#disconnect from the Meca500 when finished</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="running-from-the-graphical-user-interface-gui-samurgui">
+<h2>Running from the Graphical User Interface (GUI) SAMURGUI<a class="headerlink" href="#running-from-the-graphical-user-interface-gui-samurgui" title="Permalink to this headline">¶</a></h2>
+<p>Code not currently complete</p>
+</div>
+</div>
+<div class="section" id="measurement-todo-list">
+<h1>Measurement TODO List<a class="headerlink" href="#measurement-todo-list" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>[x] Line of Sight Measurements</li>
+<li>[x] Cylinder Measurement</li>
+<li>[x] Cylinder non-LOS measurement</li>
+<li>[ ] Active (2 source) AoA measurements</li>
+</ul>
+</div>
+<div class="section" id="code-editing-todo-list">
+<h1>Code Editing TODO List<a class="headerlink" href="#code-editing-todo-list" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="current-work">
+<h2>Current Work<a class="headerlink" href="#current-work" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>[ ] Beamforming code for 3D and cylinder</li>
+<li>[ ] Angular resolution for each different aperture</li>
+<li>[ ] Read on AoA verification work</li>
+<li>[ ] Read on AoA algorithm work</li>
+<li>[ ] Create basic MUSIC, SAGE, Etc. algorithms</li>
+<li>[ ] Speed these up</li>
+</ul>
+</div>
+<div class="section" id="on-backburner">
+<h2>On backburner<a class="headerlink" href="#on-backburner" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>[ ] allow user to move_to_mounting_position from SAMURGUI</li>
+<li>[ ] allow user to run csv_sweep without connect/disconnect from SAMURGUI</li>
+<li>[ ] add metafile editing interface to SAMURGUI</li>
+<li>[ ] add Meca500 status viewer in SAMURGUI</li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, NIST
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
