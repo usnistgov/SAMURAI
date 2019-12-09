@@ -16,18 +16,18 @@ from itertools import chain
 
 class SamuraiMatlab:
     '''
-    @brief class for plotting figures using matlab engine
-        This class will start a matlab engine when initiated and close it when
+    @brief class for plotting figures using matlab engine  
+        - This class will start a matlab engine when initiated and close it when
         deleted
     '''
     
     def __init__(self,engine=None,**arg_options):
         '''
-        @brief initialize the class and start our MATLAB engine
-        @param[in/OPT] engine - pass an engine from a different instance
-        @param[in/OPT] arg_options - keyword arguments as follows:
-            verbose - be verbose in our plotting (default False)
-            debug - extra verbose for debugging
+        @brief initialize the class and start our MATLAB engine  
+        @param[in/OPT] engine - pass an engine from a different instance  
+        @param[in/OPT] arg_options - keyword arguments as follows:  
+            verbose - be verbose in our plotting (default False)  
+            debug - extra verbose for debugging  
         '''
         self.options = {}
         self.options['verbose'] = False
@@ -55,10 +55,10 @@ class SamuraiMatlab:
     
     def call_matlab_funct(self,funct_name,*args,**kwargs):
         '''
-        @brief call a matlab function given by name funct_name
-        @param[in] funct_name - name of function to call
-        @param[in/OPT] *args - variable arguments to pass to matlab funciton
-        @parma[in/OPT] **kwargs - keyword args to pass to matlab function (all except nargout)
+        @brief call a matlab function given by name funct_name  
+        @param[in] funct_name - name of function to call  
+        @param[in/OPT] *args - variable arguments to pass to matlab funciton  
+        @param[in/OPT] **kwargs - keyword args to pass to matlab function (all except nargout)  
         '''
         funct = getattr(self.engine,funct_name)
         args,kwargs = self.args2matlab(*args,**kwargs)
@@ -67,12 +67,12 @@ class SamuraiMatlab:
     
     def call_functs_from_dict(self,funct_dict,**kwargs):
         '''
-        @brief call a set of matlab functions from a dictionary
+        @brief call a set of matlab functions from a dictionary  
         @param[in] funct_dict - dictionary of function:argument pairs
-            multiple arguments MUST be provided as tuple
+            multiple arguments MUST be provided as tuple  
         @param[in/OPT] kwargs - keyword arguments to be passed to call_matlab_funct for all values
-            nargout - typically called for functions that have no outputs use 'nargout=0'
-        @return list of function returns
+            nargout - typically called for functions that have no outputs use 'nargout=0'  
+        @return list of function returns  
         '''
         rv = []
         for k,v in funct_dict.items():
@@ -85,11 +85,11 @@ class SamuraiMatlab:
     def args2matlab(self,*args,**kwargs):
         '''
         @brief convert variable number of arguments to matlab
-            kwargs will also be converted to name/value pairs
-        @param[in] *args - variable arguments
-        @param[in/OPT] **kwargs - kwargs will be converted to name/value pairs
+            kwargs will also be converted to name/value pairs  
+        @param[in] *args - variable arguments  
+        @param[in/OPT] **kwargs - kwargs will be converted to name/value pairs  
         @return tuple of variable args (*args) and dict for keyword arguments
-            kwargs will just have special required keyword args like nargout
+            kwargs will just have special required keyword args like nargout  
         '''
         args_out = []
         for arg in args: #loop through each argument.
@@ -120,9 +120,9 @@ class SamuraiMatlab:
     
     def _kwargs2matlab(self,**kwargs):
         '''
-        @brief convert kwargs to list of name/value pairs
+        @brief convert kwargs to list of name/value pairs  
         @note the following special values will be passed back as a dictionary
-        and should be passed to matlab as kwargs
+        and should be passed to matlab as kwargs  
                 nargout - number of output arguments required to be 0 for some functions
         '''
         special_kwargs = ['nargout']
@@ -136,17 +136,17 @@ class SamuraiMatlab:
     
     def nparray2matlab(self,mynparray):
         '''
-        @brief change a numpy array to a MATLAB array
-        @param[in] mynparray - a numpy array of any number of dimensions
-        @return mlarray.double
+        @brief change a numpy array to a MATLAB array  
+        @param[in] mynparray - a numpy array of any number of dimensions  
+        @return mlarray.double  
         '''
         return matlab.double(mynparray.tolist())    
         
     def __getattr__(self,name):
         '''
-        @brief This is the MOST IMPORTANT METHOD. It allows all matlab functions to 
-        be called from self. This is not ideal because if nargout must=0 then we have to 
-        run the funciton twice (this can be sped up by manually passing nargout=0)
+        @brief This is the MOST IMPORTANT METHOD. It allows all matlab functions to
+        be called from self. This is not ideal because if nargout must=0 then we have to
+        run the funciton twice (this can be sped up by manually passing nargout=0)  
         '''
         def default_method(*args,**kwargs):
             try:

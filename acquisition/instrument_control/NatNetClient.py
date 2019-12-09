@@ -15,8 +15,8 @@
 # OptiTrack NatNet direct depacketization library for Python 3.x
 
 '''
-This has been edited by ajw for usage with the samurai system. 
-This specifcally has been slightly edited to get quick marker and rigid body locations
+This has been edited by ajw for usage with the samurai system.   
+This specifcally has been slightly edited to get quick marker and rigid body locations  
 '''
 
 import socket
@@ -550,7 +550,7 @@ import six
 class NatNetDescriptions(dict):
     '''
     @brief class for natnet descriptions
-            data will be associated with the descriptions id
+            data will be associated with the descriptions id  
     '''
     def __init__(self):
         super(NatNetDescriptions,self).__init__() #initialize the dictionary
@@ -558,9 +558,9 @@ class NatNetDescriptions(dict):
     
     def add_description(self,item,**description_data):
         '''
-        @brief add a description to the class. If it exists it will not be added
-        @param[in] type - type of description (e.g. rigid_body, marker_set)
-        @param[in] description_data - keyword arguments for description data
+        @brief add a description to the class. If it exists it will not be added  
+        @param[in] type - type of description (e.g. rigid_body, marker_set)  
+        @param[in] description_data - keyword arguments for description data  
         '''
         if not item in self: #check if we have the id.
             self[item] = {} #add the description dict
@@ -569,7 +569,7 @@ class NatNetDescriptions(dict):
             
     def get_name(self,id):
         '''
-        @brief get the name of a rigid body from an id
+        @brief get the name of a rigid body from an id  
         '''
         for k,v in self.items():
             if v['id']==id:

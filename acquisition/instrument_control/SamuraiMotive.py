@@ -23,14 +23,14 @@ class MotiveInterface(Instrument):
         Motive is the software for optitrack cameras. This should allow us to easily
         access our live streaming values for our rigid bodies, and markers.
         We are still extending the Instrument class here to try and keep some sort
-        of consistency even though it won't use many parts of it. Allows for isinstance(-,Instrument) to be true
+        of consistency even though it won't use many parts of it. Allows for isinstance(-,Instrument) to be true  
     '''
     
     def __init__(self,**arg_options):
         '''
-        @brief intiialize the class
+        @brief intiialize the class  
         @param[in/OPT] arg_options - keyword argument input as follows:
-            init_wait - wait time after starting natnet client. This ensures data is populated (default 0.1)
+            init_wait - wait time after starting natnet client. This ensures data is populated (default 0.1)  
         '''
         options = {}
         options['init_wait'] = 0.5
@@ -46,17 +46,17 @@ class MotiveInterface(Instrument):
         
     def _query(self,item,**arg_options):
         '''
-        @brief get position data and generate some statistics on it return will be a dictionary of the values
+        @brief get position data and generate some statistics on it return will be a dictionary of the values  
         @param[in] item - rigid body name, marker id, or 
                                 dictionary containing key value pairs in the form {name:id} for markers,
                                 {name:None} for rigid bodies, and {name:'markers'} for rigid body marker positions.
-                                Marker names CAN NOT be the same as a rigid body name
-        @param[in] arg_options - keyword arguments as follows
-                    num_samples - number of samples to take (default 100)
-                    sample_wait_time - wait time between samples in seconds (default 1/num_samples seconds)
-                    include_raw_data - whether or not to include the raw measured data (default false)
-                    marker_name - when item is a marker id, this can be used to give a name to the marker. Default is id# as an int
-        @return a dictionary with data on the positions for the points requested
+                                Marker names CAN NOT be the same as a rigid body name  
+        @param[in] arg_options - keyword arguments as follows  
+                    - num_samples - number of samples to take (default 100)  
+                    - sample_wait_time - wait time between samples in seconds (default 1/num_samples seconds)  
+                    - include_raw_data - whether or not to include the raw measured data (default false)  
+                    - marker_name - when item is a marker id, this can be used to give a name to the marker. Default is id# as an int  
+        @return a dictionary with data on the positions for the points requested  
         '''
         options = {}
         options['num_samples'] = 10
@@ -108,11 +108,11 @@ class MotiveInterface(Instrument):
     
     def _measure_single(self,item,**arg_options):
         '''
-        @brief query motive for position info on a given item
+        @brief query motive for position info on a given item  
         @param[in] item - item to get position of. can be a rigid body name
-                or the id of a marker
-        @param[in/OPT] **arg_options - keyword args as follows:
-            -all passed to getter function
+                or the id of a marker  
+        @param[in/OPT] **arg_options - keyword args as follows:  
+            - all passed to getter function  
         '''
         options = {}
         for key,val in arg_options.items():
@@ -126,11 +126,11 @@ class MotiveInterface(Instrument):
     
     def get_info(self,item,**arg_options):
         '''
-        @brief query motive for info on an item
+        @brief query motive for info on an item  
         @param[in] item - item to get position of. can be a rigid body name
-                or the id of a marker or a dict of values
-        @param[in/OPT] **arg_options - keyword args as follows:
-            -all passed to getter function
+                or the id of a marker or a dict of values  
+        @param[in/OPT] **arg_options - keyword args as follows:  
+            - all passed to getter function  
         '''
         options = {}
         for key,val in arg_options.items():
@@ -149,10 +149,10 @@ class MotiveInterface(Instrument):
     
     def _get_meas_type(self,item_dict):
         '''
-        @brief get the type of measurement from an item_dict
+        @brief get the type of measurement from an item_dict  
         @param[in] item_dict - item dictionary to get the types from. This will also handle
-            strings or numbers for fast getting of a single measurement
-        @return dictionary with each key matched to either 'labeled_marker','rigid_body'
+            strings or numbers for fast getting of a single measurement  
+        @return dictionary with each key matched to either 'labeled_marker','rigid_body'  
         '''
         type_dict = {}; lm_rv='labeled_marker'; rb_rv='rigid_body'
         rbm_rv = 'rigid_body_markers'
@@ -170,8 +170,8 @@ class MotiveInterface(Instrument):
             
     def _get_item_dict(self,item,**kwargs):
         '''
-        @brief get a dictionary of items (if not already)
-        @param[in] item - item input
+        @brief get a dictionary of items (if not already)  
+        @param[in] item - item input  
         '''
         options = {}
         options['marker_name'] = None
@@ -191,9 +191,9 @@ class MotiveInterface(Instrument):
         
     def _get_rigid_body_data(self,name,**arg_options):
         '''
-        @brief get rigid body position data and generate some statistics on it
-        @param[in] name - name of the rigid body to get info on
-        @return [position,rotation]
+        @brief get rigid body position data and generate some statistics on it  
+        @param[in] name - name of the rigid body to get info on  
+        @return [position,rotation]  
         '''
         if name not in self._rigid_bodies_dict: #has not been measured or wrong name
             raise InstrumentError("\'{}\' is not a measured rigid body".format(name))
@@ -213,9 +213,9 @@ class MotiveInterface(Instrument):
     
     def _get_rigid_body_marker_data(self,name,**arg_options):
         '''
-        @brief get rigid body marker positions and generate some statistics on it
-        @param[in] name - name of the rigid body to get info on
-        @return dictionary of labeled marker datas
+        @brief get rigid body marker positions and generate some statistics on it  
+        @param[in] name - name of the rigid body to get info on  
+        @return dictionary of labeled marker datas  
         '''
         name = name.replace('_markers','') #remove _markers if its there
         rbd = self._get_rigid_body_data(name,**arg_options) #first get the rigid body locations
@@ -232,9 +232,9 @@ class MotiveInterface(Instrument):
     
     def _get_labeled_marker_data(self,id,**arg_options):
         '''
-        @brief get rigid body position data and generate some statistics on it
-        @param[in] id - id number of the marker to get
-        @return [position,residual]
+        @brief get rigid body position data and generate some statistics on it  
+        @param[in] id - id number of the marker to get  
+        @return [position,residual]  
         '''
         if id not in self._labeled_markers_dict: #has not been measured or wrong name
             raise InstrumentError("\'{}\' is not a measured marker ID".format(id))
@@ -280,11 +280,11 @@ class MotiveInterface(Instrument):
      #now make our listener functions
     def _rigid_body_listener(self,client,id,pos_m,rot_quat,**kwargs):
         '''
-        @brief listener for rigid bodies from natnet
-        @param[in] client   - NatNet client that called this
-        @param[in] id       - id of rigid body calling
-        @param[in] pos_m    - position of body in m
-        @param[in] rot_quat - rotation of body in quaternion
+        @brief listener for rigid bodies from natnet  
+        @param[in] client   - NatNet client that called this  
+        @param[in] id       - id of rigid body calling  
+        @param[in] pos_m    - position of body in m  
+        @param[in] rot_quat - rotation of body in quaternion  
         '''
         name = client.rigid_body_descriptions.get_name(id)
         if name is not None:
@@ -318,11 +318,11 @@ class MotiveInterface(Instrument):
             
     def _labeled_marker_listener(self,client,id,pos_m,resid,**kwargs):
         '''
-        @brief listener for labeled markers from natnet
-        @param[in] client - NatNet client that called this
-        @param[in] id     - id of rigid body calling
-        @param[in] pos_m - position of body in m
-        @param[in] resid - residual calculated from uncertainty from 3D approximation from cameras
+        @brief listener for labeled markers from natnet  
+        @param[in] client - NatNet client that called this  
+        @param[in] id     - id of rigid body calling  
+        @param[in] pos_m - position of body in m  
+        @param[in] resid - residual calculated from uncertainty from 3D approximation from cameras  
         '''
         if id not in self._labeled_markers_dict:
             self._labeled_markers_dict[id] = {}
@@ -334,8 +334,8 @@ class MotiveInterface(Instrument):
         
     def _convert_rotation(self,rotation_quaternion):
         '''
-        @brief change quaternion from optitrack to euler angles like in positioner format
-        @param[in] rotation_quaternion - measured rotation from optitrack
+        @brief change quaternion from optitrack to euler angles like in positioner format  
+        @param[in] rotation_quaternion - measured rotation from optitrack  
         '''
         rot_euler = quaternion_to_euler(rotation_quaternion)
         rot = np.zeros(3)
@@ -372,10 +372,10 @@ class MotiveRigidBodyMarkerData(SamuraiDict):
         
     def add_sample(self,sample):
         '''
-        @brief add a sample to our data.
-        @param[in] sample here should be a  dict with ids and marker samples (position/residual)
+        @brief add a sample to our data.  
+        @param[in] sample here should be a  dict with ids and marker samples (position/residual)  
         @note this needs to be a dictionary because the rigid body may not have the same markers
-            on every measurement if one is lost. (we dont want to combine different markers)
+            on every measurement if one is lost. (we dont want to combine different markers)  
         '''
         num_markers = len(sample) #assume sample is correct size
         while len(self['data'])<num_markers: #add data if needed

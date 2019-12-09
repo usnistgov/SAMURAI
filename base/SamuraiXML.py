@@ -9,27 +9,27 @@ from lxml import etree as ET
 
 class SamuraiXML(ET._ElementTree):
     '''
-    @brief class to implement some default lxml etree operations 
+    @brief class to implement some default lxml etree operations   
     '''
     def __init__(self,*args,**kwargs):
         '''
-        @brief initialize the class. All arguments passed to super().__init__()
+        @brief initialize the class. All arguments passed to super().__init__()  
         '''
         super().__init__(*args,**kwargs)
         
     def load(self,fpath):
         '''
-        @brief load a menu
-        @param[in] fpath - path to xml file to load
+        @brief load a menu  
+        @param[in] fpath - path to xml file to load  
         '''
         parser = ET.XMLParser(remove_blank_text=True)
         self.parse(fpath,parser)
     
     def write(self,fpath,*args,**kwargs):
         '''
-        @brief write out the menu
-        @param[in] fpath - path to write to
-        @param[in/OPT] *args,**kwargs - args to pass to ET._ElementTree.write().
+        @brief write out the menu  
+        @param[in] fpath - path to write to  
+        @param[in/OPT] *args,**kwargs - args to pass to ET._ElementTree.write().  
         '''
         #defaults
         kwargs_out = {}
@@ -41,8 +41,8 @@ class SamuraiXML(ET._ElementTree):
         
     def tostring(self,*args,**kwargs):
         '''
-        @brief print to string
-        @param[in] *args,**kwargs - all passed to ET.tostring() method
+        @brief print to string  
+        @param[in] *args,**kwargs - all passed to ET.tostring() method  
         '''
         #defaults
         kwargs_out = {}
@@ -57,12 +57,12 @@ class SamuraiXML(ET._ElementTree):
     
 class SamuraiXMLElement(ET.ElementBase):
     '''
-    @brief a samurai element in an elementTree
+    @brief a samurai element in an elementTree  
     '''
     def tostring(self,*args,**kwargs):
         '''
-        @brief print to string
-        @param[in] *args,**kwargs - all passed to ET.tostring() method
+        @brief print to string  
+        @param[in] *args,**kwargs - all passed to ET.tostring() method  
         '''
         #defaults
         kwargs_out = {}

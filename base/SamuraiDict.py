@@ -15,13 +15,13 @@ class SamuraiDict(OrderedDict):
     '''
     @brief this is a class to inherit from that slightly extends orderedDict
         This will provide read/write from json file capabilities along with
-        some other small capabilities not provided by orderedict
+        some other small capabilities not provided by orderedict  
     '''
     def __init__(self,*args,**kwargs):
         '''
-        @brief initialize the class. This will take the same arguments as dict()
-        @param[in] *args - arguments to pass to OrderedDict
-        @param[in] **kwargs - keyword arguments to pass to OrderedDict
+        @brief initialize the class. This will take the same arguments as dict()  
+        @param[in] *args - arguments to pass to OrderedDict  
+        @param[in] **kwargs - keyword arguments to pass to OrderedDict  
         '''
         self._alias_dict_key = '__aliases__'
         self._alias_dict = None
@@ -31,10 +31,10 @@ class SamuraiDict(OrderedDict):
         '''
         @brief add an alias to a key in the dictionary. Aliases are always from
             the base level of the dicitionary, but they can be a list of keys
-            to work with nested dictionaries.
-        @param[in] alias - alias for the key
-        @param[in] key - key to make an alias to
-        @note the dictionary is written, these aliases will be under __alias__ key
+            to work with nested dictionaries.  
+        @param[in] alias - alias for the key  
+        @param[in] key - key to make an alias to  
+        @note the dictionary is written, these aliases will be under __alias__ key  
         '''
         #first check if we have our alias dictionary already
         if self._alias_dict is None: #init if it hasnt been
@@ -48,9 +48,9 @@ class SamuraiDict(OrderedDict):
         
     def load(self,fpath,**kwargs):
         '''
-        @brief load dictionary data from a json file
-        @param[in] fpath - path to file to load
-        @param[in/OPT] kwargs - keyword args will be passed to json.load()
+        @brief load dictionary data from a json file  
+        @param[in] fpath - path to file to load  
+        @param[in/OPT] kwargs - keyword args will be passed to json.load()  
         '''
         if not os.path.exists(fpath):
             raise FileNotFoundError("File '{}' not found".format(os.path.abspath(fpath)))
@@ -59,10 +59,10 @@ class SamuraiDict(OrderedDict):
             
     def write(self,fpath,**kwargs):
         '''
-        @brief write out dictionary data to a json file
-        @param[in] fpath - path to write to 
-        @param[in/OPT] kwargs - keyword args will be passed to json.dump()
-        @return path that was written to 
+        @brief write out dictionary data to a json file  
+        @param[in] fpath - path to write to   
+        @param[in/OPT] kwargs - keyword args will be passed to json.dump()  
+        @return path that was written to   
         '''
         with open(fpath,'w+') as json_file:
             json.dump(self,json_file,indent=4,cls=SamuraiJSONEncoder) 
@@ -70,9 +70,9 @@ class SamuraiDict(OrderedDict):
     
     def set_from_path(self,key_list,value,**kwargs):
         '''
-        @brief set a value from a list of dictionary keys
-        @param[in] key_list - list of keys to traverse to set the dictionary value
-        @param[in] value - value to set at final value
+        @brief set a value from a list of dictionary keys  
+        @param[in] key_list - list of keys to traverse to set the dictionary value  
+        @param[in] value - value to set at final value  
         '''
         #We need to add keys if they dont exist
         cur_dict = self #start at the root of the dict
@@ -87,18 +87,18 @@ class SamuraiDict(OrderedDict):
             
     def get_from_path(self,key_list,**kwargs):
         '''
-        @param[in] value - value to set at final value
-        @param[in] key_list - list of keys to traverse to set the dictionary value
-        @note solution from https://stackoverflow.com/questions/14692690/access-nested-dictionary-items-via-a-list-of-keys
+        @param[in] value - value to set at final value  
+        @param[in] key_list - list of keys to traverse to set the dictionary value  
+        @note solution from https://stackoverflow.com/questions/14692690/access-nested-dictionary-items-via-a-list-of-keys  
         ''' 
         return reduce(operator.getitem,key_list,self)
     
     def get(self,key,default=None):
         '''
-        @brief override the default get to allow nested dict keys
-        @param[in] key - key to get
-        @param[in] default - value to return if key doesnt exist
-        @note utilizes __getitem__ to try and access the key
+        @brief override the default get to allow nested dict keys  
+        @param[in] key - key to get  
+        @param[in] default - value to return if key doesnt exist  
+        @note utilizes __getitem__ to try and access the key  
         '''
         try:
             rv = self[key] #use getitem
@@ -108,7 +108,7 @@ class SamuraiDict(OrderedDict):
     
     def __getitem__(self,*args,**kwargs):
         '''
-        @brief allow getting item from a list of keys (e.g. dict[[1,2,3]] or dict[1,2,3]) for nested dict
+        @brief allow getting item from a list of keys (e.g. dict[[1,2,3]] or dict[1,2,3]) for nested dict  
         '''
         item = args[0] #first argument should be item
         if type(item) is list or type(item) is tuple: #if its a list or tuple, get from path
@@ -128,7 +128,7 @@ class SamuraiDict(OrderedDict):
       
     def __setitem__(self,*args,**kwargs):
         '''
-        @brief allow settings items from key list for nested dictionaries
+        @brief allow settings items from key list for nested dictionaries  
         '''
         item = args[0] #first argument should be item
         value = args[1]
@@ -140,10 +140,10 @@ class SamuraiDict(OrderedDict):
 def update_nested_dict(dict_update,dict_to_add,overwrite_values=False,**kwargs):
     '''
     @brief take two nested dictionaries and merge them. 
-        items in dict1 take precedence. will be merged into dict 1
-    @param[in] dict_update - dictionary to update
-    @param[in] dict_to_add - dictionary to update from
-    @param[in/OPT] overwrite_values - do we overwrite dict_update values if they already exist
+        items in dict1 take precedence. will be merged into dict 1  
+    @param[in] dict_update - dictionary to update  
+    @param[in] dict_to_add - dictionary to update from  
+    @param[in/OPT] overwrite_values - do we overwrite dict_update values if they already exist  
     '''
     for k,v in dict_to_add.items():
         if k in dict_update.keys(): #if the key exist keep merging
@@ -158,7 +158,7 @@ def update_nested_dict(dict_update,dict_to_add,overwrite_values=False,**kwargs):
 
 class SamuraiJSONEncoder(json.JSONEncoder):
     '''
-    @brief custom json encoder for specific samurai types
+    @brief custom json encoder for specific samurai types  
     '''
     custom_encoding_method = '_encode_json_' #this method should be written to provide a custom encoding
     def default(self,obj):
@@ -173,11 +173,11 @@ class SamuraiJSONEncoder(json.JSONEncoder):
 
 def SamuraiJSONDecoder(o):
     '''
-    @brief allow defining custom decoders in a function
-    @note class must have a default constructor (class_()) 
-    @note the class must have a _decode_json_ method
-    @note the class must also be imported into globals()
-    @note if the above notes are not met, standard decoding will be done
+    @brief allow defining custom decoders in a function  
+    @note class must have a default constructor (class_())   
+    @note the class must have a _decode_json_ method  
+    @note the class must also be imported into globals()  
+    @note if the above notes are not met, standard decoding will be done  
     '''
     custom_decoding_method = '_decode_json_'
     first_key_name = list(o.keys())[0] #

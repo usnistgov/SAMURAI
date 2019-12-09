@@ -21,8 +21,8 @@ class SamuraiPositionDataDict(SamuraiDict):
         
     def add_data_set(self,names):
         '''
-        @brief add a new data set to the list
-        @param[in] names - name(s) to use as keys for data set(s)
+        @brief add a new data set to the list  
+        @param[in] names - name(s) to use as keys for data set(s)  
         '''
         if not np.ndim(names): #make sure we always have a list
             names = [names] 
@@ -31,9 +31,9 @@ class SamuraiPositionDataDict(SamuraiDict):
             
     def calculate_statistics(self,**arg_options):
         '''
-        @brief calculate statistics from self.raw_data and save to self
-        @param[in/OPT] arg_options - keyword values as follows:
-            include_raw_data - whether or not to include raw data
+        @brief calculate statistics from self.raw_data and save to self  
+        @param[in/OPT] arg_options - keyword values as follows:  
+            - include_raw_data - whether or not to include raw data  
         '''
         for k in self.keys():
             if k!='info':
@@ -41,12 +41,12 @@ class SamuraiPositionDataDict(SamuraiDict):
             
     def add_sample(self,data,**kwargs):
         '''
-        @brief add a raw data sample or samples. 
+        @brief add a raw data sample or samples.   
         @param[in] data - sample to add. This should be a list of 
                 lists where len(data[i])==len(self). This assumes input ordering 
-                is the same as self.keys
-        @param[in/OPT] arg_options - keyword args as follows
-            key_order - list of key orders to save the data. otherwise just get self.keys()
+                is the same as self.keys  
+        @param[in/OPT] arg_options - keyword args as follows  
+            - key_order - list of key orders to save the data. otherwise just get self.keys()
         '''
         options = {}
         options['key_order'] = [k for k in self.keys() if k!='info']
@@ -71,10 +71,10 @@ class SamuraiPositionData(SamuraiDict):
         
     def add_sample(self,data,**arg_options):
         '''
-        @brief add a raw data sample
-        @param[in] data - sample to add (one at a time)
-        @param[in/OPT] arg_options - keyword args as follows
-            None yet!
+        @brief add a raw data sample  
+        @param[in] data - sample to add (one at a time)  
+        @param[in/OPT] arg_options - keyword args as follows  
+            - None yet!
         '''
         self.raw.append(data)
     #alias
@@ -82,20 +82,20 @@ class SamuraiPositionData(SamuraiDict):
         
     def set(self,raw_data,**arg_options):
         '''
-        @brief set the raw data for the position_data and calculate statistics
-        @param[in] raw_data - 2D numpy array of raw data with each row as a sample
-        @param[in/OPT] arg_options - keyword args passed to self._calculate_statistics()
-            include_raw_data - whether or not to include raw data in dictionary (default false)
-        @note right now these are not actually part of the dictionary
+        @brief set the raw data for the position_data and calculate statistics  
+        @param[in] raw_data - 2D numpy array of raw data with each row as a sample  
+        @param[in/OPT] arg_options - keyword args passed to self._calculate_statistics()  
+            - include_raw_data - whether or not to include raw data in dictionary (default false)
+        @note right now these are not actually part of the dictionary  
         '''
         self.raw = raw_data
         self.calculate_statistics(**arg_options)
         
     def calculate_statistics(self,**arg_options):
         '''
-        @brief calculate statistics from self.raw_data and save to self
-        @param[in/OPT] arg_options - keyword values as follows:
-            include_raw_data - whether or not to include raw data
+        @brief calculate statistics from self.raw_data and save to self  
+        @param[in/OPT] arg_options - keyword values as follows:  
+            - include_raw_data - whether or not to include raw data
         '''
         options = {}
         options['include_raw_data'] = True
@@ -119,8 +119,8 @@ class SamuraiPositionData(SamuraiDict):
             
 def quaternion_to_euler(quat):
         '''
-        @brief change quaternion to euler angles
-        @cite https://stackoverflow.com/questions/53033620/how-to-convert-euler-angles-to-quaternions-and-get-the-same-euler-angles-back-fr?rq=1
+        @brief change quaternion to euler angles  
+        @cite https://stackoverflow.com/questions/53033620/how-to-convert-euler-angles-to-quaternions-and-get-the-same-euler-angles-back-fr?rq=1  
         '''
         x = quat[0]
         y = quat[1]
@@ -145,11 +145,11 @@ def quaternion_to_euler(quat):
     
 def rotate_3d(axis,angle,coords):
     '''
-    @brief rotate a set of 3d points given in X,Y,Z
-    @param[in] axis - 'x','y','z', or a string (e.g. 'xyz') of them to generate the rotation matrix
-    @param[in] angle - value or list of values(for len(axis)>1) in degrees to rotate 
+    @brief rotate a set of 3d points given in X,Y,Z  
+    @param[in] axis - 'x','y','z', or a string (e.g. 'xyz') of them to generate the rotation matrix  
+    @param[in] angle - value or list of values(for len(axis)>1) in degrees to rotate   
     @param[in] coords - list of [x,y,z] (i.e. [[x1,y1,z1],[x2,y2,z2],...]) coordinate values to rotate
-        Should be of shape (n,3) where n is the number of coordinates
+        Should be of shape (n,3) where n is the number of coordinates  
     '''
     R = generate_rotation_matrix_3d(axis,angle)
     rotated_coords = np.matmul(coords,R.transpose()) #same as np.matmul(R,coords.transpose()).transpose()
@@ -157,9 +157,9 @@ def rotate_3d(axis,angle,coords):
 
 def generate_rotation_matrix_3d(axis,angle):
     '''
-    @brief generate a rotation matrix for a set of rotations
-    @param[in] axis - 'x','y','z', or a string (e.g. 'xyz') of them to generate the rotation matrix
-    @param[in] angle - value or list of values(for len(axis)>1) in degrees to rotate (just like alpha beta gamma of meca) 
+    @brief generate a rotation matrix for a set of rotations  
+    @param[in] axis - 'x','y','z', or a string (e.g. 'xyz') of them to generate the rotation matrix  
+    @param[in] angle - value or list of values(for len(axis)>1) in degrees to rotate (just like alpha beta gamma of meca)   
     '''
     if not hasattr(angle,'__iter__'):
         angle = [angle] #make sure we can iterate over
@@ -191,7 +191,7 @@ def generate_rotation_matrix_3d(axis,angle):
 
 import unittest
 class TestPositionTrack(unittest.TestCase):
-    
+    '''@brief unittesting for Position tracking'''
     def test_generate_rotation_matrix_3d(self):
         rot_axis_orders = [] #rotation axis orders
         rot_angle_list  = [] #angles [alpha,beta,gamma] to rotate

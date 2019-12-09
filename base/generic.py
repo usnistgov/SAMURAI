@@ -10,18 +10,18 @@ import os
 ###################################################  
 def complex2magphase(data):
     '''
-    @brief take a ndarray and change it to mag phase
-    @param[in] data - complex data to change to mag/phase
-    @return [mag(linear),phase(radians)]
+    @brief take a ndarray and change it to mag phase  
+    @param[in] data - complex data to change to mag/phase  
+    @return [mag(linear),phase(radians)]  
     '''
     return np.abs(data),np.angle(data)
 
 def magphase2complex(mag,phase):
     '''
-    @brief turn magnitude phase data into complex data
-    @param[in] mag - magnitude of signal in linear (scalar or ndarray)
-    @param[in] phase - phase of signal in radians (scalar or ndarray)
-    @return complex data constructed from the magnitude and phase
+    @brief turn magnitude phase data into complex data  
+    @param[in] mag - magnitude of signal in linear (scalar or ndarray)  
+    @param[in] phase - phase of signal in radians (scalar or ndarray)  
+    @return complex data constructed from the magnitude and phase  
     '''
     real = mag*np.cos(phase)
     imag = mag*np.sin(phase)
@@ -29,20 +29,20 @@ def magphase2complex(mag,phase):
 
 def get_name_from_path(path):
     '''
-    @brief extract a name from a path (no extension or directory)
-    @param[in] path - path to extract name from
+    @brief extract a name from a path (no extension or directory)  
+    @param[in] path - path to extract name from  
     '''
     return os.path.splitext(os.path.split(path)[-1])[0]
 
 def moving_average(data,n=5,domain='magphase'):
     '''
-    @brief calculate a moving average
-    @param[in] data - data to calculate the moving average on
-    @param[in/OPT] n - number of samples to average (default 5)
-    @param[in/OPT] domain - whether to work in 'magphase' or 'complex'
-    @return averaged data. If complex average in mag/phase not real/imag. This will be of the same size as input
-    @cite https://stackoverflow.com/questions/14313510/how-to-calculate-moving-average-using-numpy/54628145
-    @cite https://stackoverflow.com/questions/15927755/opposite-of-numpy-unwrap
+    @brief calculate a moving average  
+    @param[in] data - data to calculate the moving average on  
+    @param[in/OPT] n - number of samples to average (default 5)  
+    @param[in/OPT] domain - whether to work in 'magphase' or 'complex'  
+    @return averaged data. If complex average in mag/phase not real/imag. This will be of the same size as input  
+    @cite https://stackoverflow.com/questions/14313510/how-to-calculate-moving-average-using-numpy/54628145  
+    @cite https://stackoverflow.com/questions/15927755/opposite-of-numpy-unwrap  
     '''
     if np.iscomplexobj(data) and domain=='magphase':
         #then split to mag phase
@@ -80,9 +80,9 @@ string_types = (type(b''), type(u''))
 
 def deprecated(reason):
     """
-    @brief decorator for deprecating old functions
-    @author laurent laporte https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically
-    @param[in] reason - why its deprecated and what to do
+    @brief decorator for deprecating old functions  
+    @author laurent laporte https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically  
+    @param[in] reason - why its deprecated and what to do  
     """
     if isinstance(reason, string_types):
 
@@ -143,8 +143,8 @@ def deprecated(reason):
 #incomplete functino decorator
 def incomplete(reason):
     """
-    @brief decorator for incomplete functions
-    @param[in] reason - reason that its incomplete. Unlike deprecation this REQUIRES a reason
+    @brief decorator for incomplete functions  
+    @param[in] reason - reason that its incomplete. Unlike deprecation this REQUIRES a reason  
     """
     def decorator(func1):
         if inspect.isclass(func1):
@@ -169,7 +169,7 @@ def incomplete(reason):
 def verified(reason):
     '''
     @brief decorator for verified functions
-        for now is just a label. eventually this should throw a flag if a global flag is set
+        for now is just a label. eventually this should throw a flag if a global flag is set  
     '''
     def decorator(func1):
         return func1 #dont do anything for now
@@ -179,11 +179,11 @@ def verified(reason):
 import math
 def round_arb(value,multiple):
     '''
-    @brief round a number to a multiple of another arbitrary number
-    @example >round_arb(5.2,2) = 6
-    @param[in] value - value to round
-    @param[in] multiple - multiple to round to 
-    @return rounded value
+    @brief round a number to a multiple of another arbitrary number  
+    @example >>>round_arb(5.2,2) = 6  
+    @param[in] value - value to round  
+    @param[in] multiple - multiple to round to   
+    @return rounded value  
     '''
     ndigs = math.ceil(-1*math.log10(multiple))
     if multiple>0:
@@ -192,10 +192,10 @@ def round_arb(value,multiple):
 
 def floor_arb(value,multiple):
     '''
-    @brief floor a number to an arbitray multiple
-    @param[in] value - value to round
-    @param[in] multiple - multiple to floor to 
-    @return floored value
+    @brief floor a number to an arbitray multiple  
+    @param[in] value - value to round  
+    @param[in] multiple - multiple to floor to   
+    @return floored value  
     '''
     ndigs = math.ceil(-1*math.log10(multiple))
     return round(multiple*math.floor(value/multiple),ndigits=ndigs)
@@ -203,17 +203,17 @@ def floor_arb(value,multiple):
 #%% Some useful counter classes
 class ValueCounter:
     '''
-    @brief class to print a set of values and delete the previous (like when printing frequencies for calculations)
+    @brief class to print a set of values and delete the previous (like when printing frequencies for calculations)  
     '''
     def __init__(self,value_list,string_value,**arg_options):
         '''
-        @brief constructor for the class
-        @note Nothing else should be printed between init and finalization
-        @param[in] value_list - total number of values being processed
-        @param[in/OPT] string_value - formattable string to place values into (should contain a {:#} type number format for consistency)
-        @param[in/OPT] arg_options - keyword values as follows
-            update_period - how often to print (default=1 every value)
-            delete_on_finalize - should we delete everything on finalize (default False)
+        @brief constructor for the class  
+        @note Nothing else should be printed between init and finalization  
+        @param[in] value_list - total number of values being processed  
+        @param[in/OPT] string_value - formattable string to place values into (should contain a {:#} type number format for consistency)  
+        @param[in/OPT] arg_options - keyword values as follows  
+            - update_period - how often to print (default=1 every value)
+            - delete_on_finalize - should we delete everything on finalize (default False)
         '''
         self.value_list = value_list
         self.string_value = string_value
@@ -229,9 +229,9 @@ class ValueCounter:
 
     def update(self,value=None):
         '''
-        @brief update to the next value in value_list
-        @param[in/OPT] if value is None, the current increment of value_list will be used
-             This allows self.value_list to be None and value to just be provided
+        @brief update to the next value in value_list  
+        @param[in/OPT] value - if is None, the current increment of value_list will be used
+             This allows self.value_list to be None and value to just be provided  
         '''
         if value is None:
             cur_value = self.value_list[self.i]
@@ -246,7 +246,7 @@ class ValueCounter:
         
     def finalize(self):
         '''
-        @brief finalize the counter
+        @brief finalize the counter  
         '''
         if self.options['delete_on_finalize']: #delete everything when finalizing
             print("\b"*self.prev_str_len)
@@ -255,17 +255,17 @@ class ValueCounter:
 
 class ProgressCounter(ValueCounter):
     '''
-    @brief class to provid a printed counter of progress (like a progress bar)
+    @brief class to provid a printed counter of progress (like a progress bar)  
     '''
     def __init__(self,total_count,string_value='',**arg_options):
         '''
-        @brief constructor for the class
-        @note Nothing else should be printed between init and finalization
-        @param[in] - total_count - total number of values being processed
-        @param[in/OPT] string_value - value to be printed as a descriptor
-        @param[in/OPT] arg_options - keyword values as follows
-                update_period - how often to print (default=10)
-                print_zero - do we print 0/#?
+        @brief constructor for the class  
+        @note Nothing else should be printed between init and finalization  
+        @param[in] - total_count - total number of values being processed  
+        @param[in/OPT] string_value - value to be printed as a descriptor  
+        @param[in/OPT] arg_options - keyword values as follows  
+                - update_period - how often to print (default=10)
+                - print_zero - do we print 0/#?
         '''
         #some important things
         self.total_count = total_count
