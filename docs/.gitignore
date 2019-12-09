@@ -1,0 +1,4 @@
+#ignore build files and build on gitlab pages
+_build/
+_static/
+_templates
