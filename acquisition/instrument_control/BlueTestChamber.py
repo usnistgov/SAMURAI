@@ -15,8 +15,8 @@ from samurai.acquisition.instrument_control.BislideController import BislideCont
 class BlueTestChamber:
      def __init__(self,velmex_com_port,**arg_options):
          '''
-         @Initializes the BlueTest chamber as well as the Velmex slides
-         @param[in] velmex_com_port - COM# that communicates with velmex slides. BlueTest chamber does not have a COM port that needs to be declared (check .btc file)
+         @Initializes the BlueTest chamber as well as the Velmex slides  
+         @param[in] velmex_com_port - COM# that communicates with velmex slides. BlueTest chamber does not have a COM port that needs to be declared (check .btc file)  
          '''
          self.options = {}
          self.options['chamber_directory'] = r"Q:/public/Reverb Measurements Wireless/Labview code/Config files/Blue Test Config/09_20_BT_1.17_btc_update"
@@ -27,8 +27,8 @@ class BlueTestChamber:
         
      def init_linear_slides(self,com_port):
           '''
-          @brief Initializes the vertical and linear slides
-          @param[in] com_port - COM# that communicates to the Velmex Controller
+          @brief Initializes the vertical and linear slides  
+          @param[in] com_port - COM# that communicates to the Velmex Controller  
           '''
           #com_port = 'COM4'
           self.lin_slides = BislideController(com_port)
@@ -38,8 +38,8 @@ class BlueTestChamber:
      
      def hslide_move_to_dist(self,distance):
          '''
-         @brief Moves the horziontal BiSlide to specified distance in cm
-         @param[in] distance - distance in mm from zero the slide will move to
+         @brief Moves the horziontal BiSlide to specified distance in cm  
+         @param[in] distance - distance in mm from zero the slide will move to  
          '''
          limit = 303
          if distance <= limit:
@@ -49,8 +49,8 @@ class BlueTestChamber:
          
      def vslide_move_to_dist(self,distance):
          '''
-         @brief Moves the horziontal BiSlide to specified distance in cm
-         @param[in] distance - distance in mm from zero the slide will move to
+         @brief Moves the horziontal BiSlide to specified distance in cm  
+         @param[in] distance - distance in mm from zero the slide will move to  
          '''
          limit = 309
          if distance <= limit:
@@ -61,8 +61,8 @@ class BlueTestChamber:
          
      def run_chamber_command(self,command):
         '''
-        @brief Function that changes directory temporarily, runs the chamber_control_server.exe commands, and then switches back
-        @param[in] command - string that corresponds to the specific commands available for use in chamber_control_Server.exe
+        @brief Function that changes directory temporarily, runs the chamber_control_server.exe commands, and then switches back  
+        @param[in] command - string that corresponds to the specific commands available for use in chamber_control_Server.exe  
         '''
         old_dir = os.getcwd()
         out_str = None
@@ -78,7 +78,7 @@ class BlueTestChamber:
      
      def initialize(self):
          '''
-         @brief Re-Inititalizes the BlueTest chamber and the Linear Slides
+         @brief Re-Inititalizes the BlueTest chamber and the Linear Slides  
          '''
          self.run_chamber_command('init')
          self.init_linear_slides(self.com_port)
@@ -86,9 +86,9 @@ class BlueTestChamber:
      
      def tt_move_to_angle(self,desired_angle):
          '''
-         @FIXME THIS IS A MESS. WAITING ON TT CONVERSION, ALSO NEED TO CHANGE IT TO SET POSITION AND MAKE IT PADDLE AND TT FRIENDLY
-         @Function that takes in an angle to go to, converts to steps, then calls run_chamber_command to move the turntable
-         @param[in] desired_angle - angle, in degrees, the turntable needs to turn to
+         @FIXME THIS IS A MESS. WAITING ON TT CONVERSION, ALSO NEED TO CHANGE IT TO SET POSITION AND MAKE IT PADDLE AND TT FRIENDLY  
+         @Function that takes in an angle to go to, converts to steps, then calls run_chamber_command to move the turntable  
+         @param[in] desired_angle - angle, in degrees, the turntable needs to turn to  
          '''
          if desired_angle <= 339: #was 350.8, 338.705
              #angle_in_steps = desired_angle * (70000/339)
@@ -103,22 +103,22 @@ class BlueTestChamber:
      
      def tt_zero(self):
          '''
-         @Function that brings the turn table back to starting position
+         @Function that brings the turn table back to starting position  
          '''
          self.tt_move_to_angle(0)
          
      def deinitialize(self):
          '''
-         @Exits out of the BlueTest server as well as disconnects the bislides
+         @Exits out of the BlueTest server as well as disconnects the bislides  
          '''
          self.run_chamber_command('exit')
          self.lin_slides.disconnect()
          
      def stirrer_get_position(self,stirrer):
          '''
-         @Grabs the position of a/all stirring mechanism(s) in the BlueTest Chamber
-         @param[in] stirrer - can be either 'tt' for turn table, 'paddle#' for paddle#,or 'all' for all stirrers 
-         @param[out] returns the encoder value of each of the mechanisms. FOR TT IT IS THE ANGLE
+         @Grabs the position of a/all stirring mechanism(s) in the BlueTest Chamber  
+         @param[in] stirrer - can be either 'tt' for turn table, 'paddle#' for paddle#,or 'all' for all stirrers   
+         @param[out] returns the encoder value of each of the mechanisms. FOR TT IT IS THE ANGLE  
          '''
          #FIXME need to add the eoncoder to distance conversion for the paddles
          #Regular Expression
@@ -145,9 +145,9 @@ class BlueTestChamber:
          
      def get_position(self):
          '''
-         @Returns an array of the positions [V slide, H slide, TurnTable]
-         @ V slide and H slide are in mm's. TurnTable is in degrees
-         @Need to add functionality for returning paddle positions
+         @Returns an array of the positions [V slide, H slide, TurnTable]  
+         @ V slide and H slide are in mm's. TurnTable is in degrees  
+         @Need to add functionality for returning paddle positions  
          '''
          #Grab BlueTest Chamber parameters
          tt_angle = self.stirrer_get_position('tt')
@@ -161,8 +161,8 @@ class BlueTestChamber:
     
      def set_position(self,set_position_array):
          '''
-         @Function that moves vslide, hslide and tt to a set mm/angular position
-         @param[in] set_position_array
+         @Function that moves vslide, hslide and tt to a set mm/angular position  
+         @param[in] set_position_array  
          '''
          self.vslide_move_to_dist(set_position_array[0])
          self.hslide_move_to_dist(set_position_array[1])
@@ -170,8 +170,8 @@ class BlueTestChamber:
     
      def set_position_no_tt(self,set_position_array):
          '''
-         @Function that moves vslide, hslide. No TT becuase it take forever
-         @param[in] set_position_array
+         @Function that moves vslide, hslide. No TT becuase it take forever  
+         @param[in] set_position_array  
          '''
          self.vslide_move_to_dist(set_position_array[0])
          self.hslide_move_to_dist(set_position_array[1])

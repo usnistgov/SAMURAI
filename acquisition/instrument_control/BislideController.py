@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Feb 25 14:25:02 2019
-Class to control bislide
-@author: ajw5
+Created on Mon Feb 25 14:25:02 2019  
+Class to control bislide  
+@author: ajw5  
 """
 from collections import OrderedDict
 import six
@@ -23,14 +23,14 @@ default_info['steps_per_rotation'] = 400
 
 class BislideController():
     '''
-    @brief class to abstract bislide control. THIS IS ONLY FOR VELMEX BISLIDES
+    @brief class to abstract bislide control. THIS IS ONLY FOR VELMEX BISLIDES  
     '''
     
     def __init__(self,com_port,**options):
         '''
-        @brief initialize the controller
-        @param[in] com_port - com port (ie 'COM22') to connect to
-        @param[in] options  - dictionary of options
+        @brief initialize the controller  
+        @param[in] com_port - com port (ie 'COM22') to connect to  
+        @param[in] options  - dictionary of options  
         '''
         #com port
         self.com_port = com_port
@@ -46,7 +46,7 @@ class BislideController():
     
     def connect(self):
         '''
-        @brief open the bislide serial port
+        @brief open the bislide serial port  
         '''
         #set options
         self.ser.port = self.com_port
@@ -56,18 +56,18 @@ class BislideController():
         
     def disconnect(self):
         '''
-        @brief close the bislide serial port
+        @brief close the bislide serial port  
         '''
         self.ser.close()
         return "Bislide Connected : %s" % self.ser.is_open
     
     def zero(self,direction='-',motor_num=1,zero_position_reg=True):
         '''
-        @brief zero to limit switch
-        @param[in] direction '+' for positive '-' for negative 
+        @brief zero to limit switch  
+        @param[in] direction '+' for positive '-' for negative   
         @param[in/OPT] zero_position_reg - do we reset our position to zero?
             defaults to true, but if we zero to the + direction should probably
-            be false otherwise all position values will be negative
+            be false otherwise all position values will be negative  
         '''
         if direction=='-':
             com = "I%dM-0\r" %(motor_num)
@@ -83,9 +83,9 @@ class BislideController():
     
     def move_steps(self,num_steps,motor_num):
         '''
-        @brief move a motor a given number of steps
-        @param[in] num_steps - number of steps to move
-        @param[in] motor_num - which motor number to move
+        @brief move a motor a given number of steps  
+        @param[in] num_steps - number of steps to move  
+        @param[in] motor_num - which motor number to move  
         '''
         com = "I%dM%d\r" %(motor_num,num_steps)
         self.enable_online_mode()
@@ -96,9 +96,9 @@ class BislideController():
         
     def move_mm(self,distance_mm,motor_num=1):
         '''
-        @brief move a motor a given number of mm
-        @param[in] num_steps - number of steps to move
-        @param[in/OPT] motor_num - which motor number to move (default 1)
+        @brief move a motor a given number of mm  
+        @param[in] num_steps - number of steps to move  
+        @param[in/OPT] motor_num - which motor number to move (default 1)  
         '''
         steps = self.mm_to_steps(distance_mm)
         self.move_steps(steps,motor_num)
@@ -106,9 +106,9 @@ class BislideController():
     
     def set_position_steps(self,num_steps,motor_num):
         '''
-        @brief set the position of the bislide in steps
-        @param[in] num_steps - how many steps from 0 to move to
-        @param[in] motor_num - which motor to move
+        @brief set the position of the bislide in steps  
+        @param[in] num_steps - how many steps from 0 to move to  
+        @param[in] motor_num - which motor to move  
         '''
         com = "IA%dM%d\r" %(motor_num,num_steps)
         self.enable_online_mode()
@@ -119,9 +119,9 @@ class BislideController():
     
     def set_position(self,location_mm,motor_num=1):
         '''
-        @brief move a motor a given location from zero in mm
-        @param[in] num_steps - number of steps to move
-        @param[in/OPT] motor_num - which motor number to move (default 1)
+        @brief move a motor a given location from zero in mm  
+        @param[in] num_steps - number of steps to move  
+        @param[in/OPT] motor_num - which motor number to move (default 1)  
         '''
         steps = self.mm_to_steps(location_mm)
         self.set_position_steps(steps,motor_num)
@@ -130,9 +130,9 @@ class BislideController():
         
     def get_limit_status(self):
         '''
-        @brief get the status of the limit switches
+        @brief get the status of the limit switches  
         @return a dictionary with entries 1-,1+,2-,2+ 
-            which shows whehter the limit switches are activated
+            which shows whehter the limit switches are activated  
         '''
         self.enable_online_mode()
         lim_val = self.query('?')
@@ -146,7 +146,7 @@ class BislideController():
         
     def read_current_program(self):
         '''
-        @brief get the current program the slide is running
+        @brief get the current program the slide is running  
         '''
         prog = self.query('lst',terminator=b'\r')
         return prog
@@ -154,28 +154,28 @@ class BislideController():
     def enable_online_mode(self):
         '''
         @brief enable the ability to control interactively 
-            (one command at a time)
+            (one command at a time)  
         '''
         self.write('F')
         return self.get_controller_status()
     
     def zero_position_reg(self):
         '''
-        @brief dont move the slider, but zero the position registers
+        @brief dont move the slider, but zero the position registers  
         '''
         self.write('N')
         return self.get_position()
     
     def clear_commands(self):
         '''
-        @brief clear all commands in the queue
+        @brief clear all commands in the queue  
         '''
         self.write('C')
         
     def interactive_write(self,msg):
         '''
         @brief interactively write commands Should probably be DEPRECATED. 
-            Not commonly used because we zero the position regs here.
+            Not commonly used because we zero the position regs here.  
         '''
         #interactive command as shown in the manual
         self.write('F') #put the VXM online
@@ -186,15 +186,15 @@ class BislideController():
         
     def wait_motor_ready(self,ready_character='^'):
         '''
-        @brief wait until our motor returns a ready character (blocking)
+        @brief wait until our motor returns a ready character (blocking)  
         '''
         while(self.read() != ready_character):
             pass
     
     def get_position_steps(self,motor_num):
         '''
-        @brief get our position in steps of a motor
-        @param[in] motor_num - which motor to get the steps of
+        @brief get our position in steps of a motor  
+        @param[in] motor_num - which motor to get the steps of  
         '''
         motor_dict = {}
         motor_dict[1] = 'X'
@@ -206,15 +206,15 @@ class BislideController():
     
     def get_position(self,motor_num=1):
         '''
-        @brief get the position of our motor in mm
-        @param[in/OPT] motor_num - which motor to query (default 1)
+        @brief get the position of our motor in mm  
+        @param[in/OPT] motor_num - which motor to query (default 1)  
         '''
         steps = self.get_position_steps(motor_num)
         return self.steps_to_mm(steps)
         
     def get_controller_status(self):
         '''
-        @brief get and unpack the status of the controller
+        @brief get and unpack the status of the controller  
         '''
         qv =  self.query('V')
         #now change to a message
@@ -228,12 +228,12 @@ class BislideController():
     
     def set_step_speed(self,steps_per_second=2000,motor_num=1):
         '''
-        @brief set the speed of the motor. Default is 2000 Steps per second
+        @brief set the speed of the motor. Default is 2000 Steps per second  
         @param[in/OPT] steps_per_second - number of steps per second (default 2000)
-            2000 is also the value the controller starts up at
-        @param[in/OPT] motor_num - which motor to set the speed for (default 1)
+            2000 is also the value the controller starts up at  
+        @param[in/OPT] motor_num - which motor to set the speed for (default 1)  
         @note This is set for 70% power (SmMx command) This can be changed
-            To use 100% power using the SAmMx command (m is motor#, x is steps_per_second)
+            To use 100% power using the SAmMx command (m is motor#, x is steps_per_second)  
         '''
         sps_int = int(steps_per_second) #convert to integer
         command = "S%dM%d\r" %(int(motor_num),sps_int) #generate the command
@@ -241,7 +241,7 @@ class BislideController():
         
     def set_options(self,**options):
         '''
-        @brief quick method to set options outside of init
+        @brief quick method to set options outside of init  
         '''
         for key,value in six.iteritems(options):
             self.options[key] = value
@@ -251,16 +251,16 @@ class BislideController():
         
     def write(self,msg):
         '''
-        @brief write a message to the bislide
-        @param[in] msg - message to write
+        @brief write a message to the bislide  
+        @param[in] msg - message to write  
         '''
         self.ser.write(msg.encode())
         
     def read(self,terminator=None):
         '''
-        @brief reads all data in buffer from a command
-        @param[in] OPTIONAL terminator - if provided, read_until(terminator) will be used
-        @return message read
+        @brief reads all data in buffer from a command  
+        @param[in] OPTIONAL terminator - if provided, read_until(terminator) will be used  
+        @return message read  
         '''
         if terminator:
             rv = self.ser.read_until(terminator)
@@ -273,10 +273,10 @@ class BislideController():
         
     def query(self,msg,terminator=None):
         '''
-        @brief send followed by recieve
-        @param[in] msg - message to send
-        @param[in] read_bytes - number of bytes to read from the buffer (this is blocking)
-        @return bytes read from controller
+        @brief send followed by recieve  
+        @param[in] msg - message to send  
+        @param[in] read_bytes - number of bytes to read from the buffer (this is blocking)  
+        @return bytes read from controller  
         '''
         self.write(msg)
         rv = self.read(terminator)
@@ -284,25 +284,25 @@ class BislideController():
     
     def steps_to_mm(self,steps):
         '''
-        @brief convert # of steps to millimeters
-        @param[in] steps - number of steps to convert
-        @return converted value in millimeters
+        @brief convert # of steps to millimeters  
+        @param[in] steps - number of steps to convert  
+        @return converted value in millimeters  
         '''
         return steps*self.options['mm_per_rotation']/self.options['steps_per_rotation']
     
     def mm_to_steps(self,mm): 
         '''
-        @brief convert millimeters to # of steps
-        @param[in] mm - number of millimeters to convert
-        @return converted value in steps rounded to the nearest whole number
+        @brief convert millimeters to # of steps  
+        @param[in] mm - number of millimeters to convert  
+        @return converted value in steps rounded to the nearest whole number  
         '''
         return round(mm*self.options['steps_per_rotation']/self.options['mm_per_rotation'])
 
 def get_bits(val):
     '''
-    @brief unpack bits from a given value in LSB order
-    @param[in] val - value to unpack to bits
-    @return array of unpacked bits
+    @brief unpack bits from a given value in LSB order  
+    @param[in] val - value to unpack to bits  
+    @return array of unpacked bits  
     '''
     ba = bytearray(val)
     len_ba = len(ba)

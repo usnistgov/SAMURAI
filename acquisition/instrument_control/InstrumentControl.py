@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jul 25 10:31:36 2019
-
+Created on Thu Jul 25 10:31:36 2019  
+Ideally all instruments will eventually inherit from this to provide a consistent set 
+of interface commands. It is not this way yet.  
 @author: ajw5
 """
 
@@ -13,12 +14,12 @@ import numpy as np
 
 class Instrument(SamuraiDict):
     '''
-    @brief class for instrument control abstraction
+    @brief class for instrument control abstraction  
     '''
     def __init__(self,command_dict_path):
         '''
-        @brief constructor
-        @param[in] command_dict -json file of all the commands if none don't load
+        @brief constructor  
+        @param[in] command_dict -json file of all the commands if none don't load  
         '''    
         #abstraction for any type of connection (e.g. visa object)
         # to use default read/write/query should have a read/write/query method
@@ -29,48 +30,54 @@ class Instrument(SamuraiDict):
 
     def load_command_dict(self,command_dict_path):
         '''
-        @brief load a command dictionary from a json file path
-        @param[in] command_dict_path - path to the json file
+        @brief load a command dictionary from a json file path  
+        @param[in] command_dict_path - path to the json file  
         '''
         self['command_dictionary_path'] = command_dict_path #save for writing out
-        self.command_dict = InstrumentCommandDict(command_dict_path)
+        if command_dict_path is not None:
+            self.command_dict = InstrumentCommandDict(command_dict_path)
+        else:
+            self.command_dict = None
           
-    def connect(self,address):
+    def connect(self,address=None):
         '''
-        @brief template for instrumnet connection. calls self.connection.connect()
+        @brief template for instrumnet connection. calls self.connection.connect()  
         '''
         self['connection_address'] = address
         try:
-            self._connect(address)
+            if address is not None:
+                self._connect(address)
+            else:
+                self._connect(address)
         except OSError:
             raise InstrumentConnectionError('Cannot Connect to Instrument')
             
     def _connect(self,address):
         '''
         @brief internal function to connect to device. This prevents from requiring
-            the connection to have self.connection.connect() to run self.connect()
+            the connection to have self.connection.connect() to run self.connect()  
         '''
         self.connection.connect(address)
         
     def disconnect(self):
         '''
-        @brief template for instrument disconnect. calls self.connection.disconnect()
+        @brief template for instrument disconnect. calls self.connection.disconnect()  
         '''
         self._disconnect()
         
     def _disconnect(self,address):
         '''
         @brief internal function to connect to device. This prevents from requiring
-            the connection to have self.connection.connect() to run self.connect()
+            the connection to have self.connection.connect() to run self.connect()  
         '''
         self.connection.disconnect(address)
             
-    def read(self,cast=True,**kwargs):
+    def read(self,cast=False,**kwargs):
         '''
-        @brief template for an instrument read. calls self._read()
-        @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._read_binary)
-        @param[in/OPT] cast - whether or not to try and cast the data
-        @param[in/OPT] kwargs - keyword args to pass to _read_binary
+        @brief template for an instrument read. calls self._read()  
+        @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._read_binary)  
+        @param[in/OPT] cast - whether or not to try and cast the data  
+        @param[in/OPT] kwargs - keyword args to pass to _read_binary  
         '''
         rv = self._read()
         if cast:
@@ -79,108 +86,103 @@ class Instrument(SamuraiDict):
     
     def read_binary(self,*args,**kwargs):
         '''
-        @brief template for reading binary values
+        @brief template for reading binary values  
         '''
         rv = self._read_binary(**kwargs)
         return rv
     
     def _read(self):
         '''
-        @brief internal function abstracting connection.read() function
+        @brief internal function abstracting connection.read() function  
         '''
         return self.connection.read()
     
     
     def _read_binary(self,*args,**kwargs):
         '''
-        @brief internal function for abstracting connection.read_binary()
+        @brief internal function for abstracting connection.read_binary()  
         '''
         return self.connection.read_binary_values(*args,**kwargs)
     
     def write(self,msg,*args,**kwargs):
         '''
-        @brief template for instrument write. calls self._write()
-        @param[in] *args - arguments to be passed to command if its in self.command_dict
-        @param[in] **kwargs - keyword args passed to commands in command_dict
+        @brief template for instrument write. calls self._write()  
+        @param[in] *args - arguments to be passed to command if its in self.command_dict  
+        @param[in] **kwargs - keyword args passed to commands in command_dict  
         '''
         msg = self.get_command_from_dict(msg,*args,**kwargs)
         self._write(msg)
             
     def write_binary(self,msg,*args,**kwargs):
         '''
-        @brief template for writing binary data
+        @brief template for writing binary data  
         '''
         msg = self.get_command_from_dict(msg,*args,**kwargs)
         self._write_binary(msg,*args,**kwargs)
     
     def _write(self,msg,**kwargs):
         '''
-        @brief internal function abstracting connection.write() function
+        @brief internal function abstracting connection.write() function  
         '''
         print(msg)
         self.connection.write(msg)
         
     def _write_binary(self,msg,*args,**kwargs):
-        '''
-        @brief internal function for abstracting connection.write_binary()
-        '''
+        '''@brief internal function for abstracting connection.write_binary()'''
         print(msg)
         return self.connection.write_binary_values(msg,*args,**kwargs) #consistent with visa
     
-    def query(self,msg,*args,cast=True,**kwargs):
+    def query(self,msg,*args,cast=False,**kwargs):
         '''
-        @brief template for a instrument query. calls self._query()
-        @param[in] msg - message to send
-        @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._query_binary)
-        @param[in/OPT] cast - whether or not to try and cast the data
-        @param[in] *args - arguments to be passed to command if its in self.command_dict
-        @param[in] **kwargs - keyword args passed to commands in command_dict
+        @brief template for a instrument query. calls self._query()  
+        @param[in] msg - message to send  
+        @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._query_binary)  
+        @param[in/OPT] cast - whether or not to try and cast the data  
+        @param[in] *args - arguments to be passed to command if its in self.command_dict  
+        @param[in] **kwargs - keyword args passed to commands in command_dict  
         '''
         msg = self.get_command_from_dict(msg,*args,**kwargs)
-        rv = self._query(msg)
+        rv = self._query(msg,**kwargs)
         if cast:
             rv = self.cast_return_value(rv)
         return rv
     
     def query_binary(self,msg,*args,**kwargs):
-        '''
-        @brief template for querying binary data
-        '''
+        '''@brief template for querying binary data'''
         msg = self.get_command_from_dict(msg,*args,**kwargs)
         rv = self._query_binary(msg,*args,**kwargs)
         return rv
     
-    def _query(self,msg):
-        '''
-        @brief internal function abstracting connection.query() function
-        '''
+    def _query(self,msg,**kwargs):
+        '''@brief internal function abstracting connection.query() function'''
         print(msg)
         return self.connection.query(msg)
     
     def _query_binary(self,msg,*args,**kwargs):
-        '''
-        @brief internal function for abstracting connection.write_binary()
-        '''
+        '''@brief internal function for abstracting connection.write_binary()'''
         return self.connection.query_binary_values(msg,*args,**kwargs) #consistent with visa
         
     def get_command_from_dict(self,command,*args,**kwargs):
         '''
-        @brief search our dictionary for the command. If it isnt there, return the command
-        @param[in] command - command to search the dictionary for
-        @param[in] *args - arguments to pass to command if found
-        @param[in] **kwargs -kwargs to pass to command if found
-        @return command string
+        @brief search our dictionary for the command. If it isnt there, return the command  
+        @param[in] command - command to search the dictionary for  
+        @param[in] *args - arguments to pass to command if found  
+        @param[in] **kwargs -kwargs to pass to command if found  
+        @return command string  
         '''
-        com = self.command_dict.get(command,command)
-        if type(com) is not str:
-            com = com(*args,**kwargs)
-        return com
+        if self.command_dict is not None: #if we have a command dict. get the command
+            com = self.command_dict.get(command,command)
+            if type(com) is not str:
+                com = com(*args,**kwargs)
+            return com
+        else: #just return the input value
+            return command
     
     def cast_return_value(self,value_str):
         '''
         @brief try and cast a return value. return float or string depending
-            on what works.
-        @param[in] value_str - value string to cast
+            on what works.  
+        @param[in] value_str - value string to cast  
         '''
         try:
             try:
@@ -195,17 +197,17 @@ class Instrument(SamuraiDict):
     def get_settings(self,*args,**kwargs):
         '''
         @brief get our settings from the device. These values will be pulled from
-            self.setting_params
-        @param[in/OPT] *args - arguments to pass to each of the commands
-        @param[in/OPT] **kwargs - keyword args to pass to each of the commands
+            self.setting_params  
+        @param[in/OPT] *args - arguments to pass to each of the commands  
+        @param[in/OPT] **kwargs - keyword args to pass to each of the commands  
         '''
         for key in self.setting_params:
             self[key] = self.query(key)
             
     def set_from_dict(self,com_dict):
         '''
-        @brief run commands from a dictionary
-        @param[in] com_dict - command dict in format {command1:(*args1),command2:(*args2),...}
+        @brief run commands from a dictionary  
+        @param[in] com_dict - command dict in format {command1:(*args1),command2:(*args2),...}  
         '''
         for key,val in com_dict.items():
             if val is None:
@@ -215,34 +217,34 @@ class Instrument(SamuraiDict):
         
     def __del__(self):
         '''
-        @brief try to disconnect when the object is deleted
+        @brief try to disconnect when the object is deleted  
         '''
         self.disconnect()
                 
 class SCPIInstrument(Instrument):
     '''
-    @brief class for scpi instrument control
+    @brief class for scpi instrument control  
     '''
     def __init__(self,command_dict_path):
         '''
-        @brief constructor
-        @param[in] command_dict -json file of all the commands
+        @brief constructor  
+        @param[in] command_dict -json file of all the commands  
         '''
         super().__init__(command_dict_path)
     
     #override from superclass
     def load_command_dict(self,command_dict_path):
         '''
-        @brief load a command dictionary from a json file path
-        @param[in] command_dict_path - path to the json file
+        @brief load a command dictionary from a json file path  
+        @param[in] command_dict_path - path to the json file  
         '''
         self['command_dictionary_path'] = command_dict_path #save for writing out
         self.command_dict = SCPICommandDict(command_dict_path)
         
     def query(self,msg,*args,cast=True,**kwargs):
         '''
-        @brief additional code for instrument query
-        @note this will automatically add a ? if not arguments are provided
+        @brief additional code for instrument query  
+        @note this will automatically add a ? if not arguments are provided  
         '''
         if not args and not kwargs and '?' not in msg: #if they are both empty and we dont already have a ? (some commands do)
             args = ('?',)
@@ -251,12 +253,12 @@ class SCPIInstrument(Instrument):
 
 class InstrumentCommandDict(SamuraiDict):
     '''
-    @brief class to store instrument commands
+    @brief class to store instrument commands  
     '''
     def __init__(self,load_path=None):
         '''
-        @brief constructor
-        @param[in/OPT] load_path - path to load from json file
+        @brief constructor  
+        @param[in/OPT] load_path - path to load from json file  
         '''
         super().__init__()
         self['aliases'] = {} #aliases for commands
@@ -266,9 +268,9 @@ class InstrumentCommandDict(SamuraiDict):
         
     def add_command(self,instrument_command,alias=None):
         '''
-        @brief add a command to the dictionary. default to key,val pairs
-        @param[in] instrument_command - InstrumentCommand Class
-        @param[in] alias - alias to add to this command
+        @brief add a command to the dictionary. default to key,val pairs  
+        @param[in] instrument_command - InstrumentCommand Class  
+        @param[in] alias - alias to add to this command  
         '''
         com_name = self._get_default_command_name(instrument_command)
         self.commands.update({com_name:instrument_command})
@@ -286,8 +288,8 @@ class InstrumentCommandDict(SamuraiDict):
     def _get_default_command_name(self,instrument_command):
         '''
         @brief generate a default command name. This is going to be
-            by default '' passed to all arguments and then stripped of whitespace
-        @param[in] instrument_command - InstrumentCommandClass to get default name
+            by default '' passed to all arguments and then stripped of whitespace  
+        @param[in] instrument_command - InstrumentCommandClass to get default name  
         '''
         default_format = ''
         format_args = tuple([default_format]*instrument_command.num_args)
@@ -297,11 +299,11 @@ class InstrumentCommandDict(SamuraiDict):
         
     def get(self,key,*args):
         '''
-        @brief get a command from a key or an alias. This syntax is the same as dict.get()
-        @param[in] key - key to get the command of
-        @param[in/OPT] default - adefault argument can also be passed in if the key is not found
-        @note this also allows nested aliases (e.g. alias1->alias2->command)
-        @return InstrumentCommand class of the command
+        @brief get a command from a key or an alias. This syntax is the same as dict.get()  
+        @param[in] key - key to get the command of  
+        @param[in/OPT] default - adefault argument can also be passed in if the key is not found  
+        @note this also allows nested aliases (e.g. alias1->alias2->command)  
+        @return InstrumentCommand class of the command  
         '''
         #see if the value is an alias
         if key in self.aliases.keys():
@@ -315,10 +317,10 @@ class InstrumentCommandDict(SamuraiDict):
     def find_command(self,search_str,case_sensitive=False):
         '''
         @brief search our command dictionary for values values that contain
-            search_str. this just looks through the default keys
-        @param[in] search_str - substring or regex expression to find 
-        @param[in/OPT] case_sensitive - is the search case sensitive
-        @return list of commands with the substring,list of aliases with substring
+            search_str. this just looks through the default keys  
+        @param[in] search_str - substring or regex expression to find   
+        @param[in/OPT] case_sensitive - is the search case sensitive  
+        @return list of commands with the substring,list of aliases with substring  
         '''
         if not case_sensitive: #make lower case
             search_str = search_str.lower()
@@ -342,8 +344,8 @@ class InstrumentCommandDict(SamuraiDict):
             
     def load(self,load_path):
         '''
-        @brief load in a file from a json format
-        @param[in] load_path - path to file to load
+        @brief load in a file from a json format  
+        @param[in] load_path - path to file to load  
         '''        
         with open(load_path,'r') as json_file:
             self.update(json.load(json_file, object_pairs_hook=SamuraiDict))
@@ -358,20 +360,20 @@ class InstrumentCommandDict(SamuraiDict):
     @property
     def commands(self):
         '''
-        @brief shorthand for self['commands']
+        @brief shorthand for self['commands']  
         '''
         return self['commands']
     
     @property
     def aliases(self):
         '''
-        @brief shorthand for self['aliases']
+        @brief shorthand for self['aliases']  
         '''
         return self['aliases']
         
     def __getattr__(self,attr):
         '''
-        @brief try and check for alias calls on getattr
+        @brief try and check for alias calls on getattr  
         '''
         try:
             self.get(attr)
@@ -381,14 +383,14 @@ class InstrumentCommandDict(SamuraiDict):
 
 class SCPICommandDict(InstrumentCommandDict):
     '''
-    @brief class for scpi commands
+    @brief class for scpi commands  
     '''
     def __init__(self,load_path=None):
         super().__init__(load_path)
     
     def add_command(self,instrument_command):
         '''
-        @brief typical command adding except we add a shortened version alias
+        @brief typical command adding except we add a shortened version alias  
         '''
         com_name = self._get_default_command_name(instrument_command)
         alias_name = re.sub('[a-z]+','',com_name)
@@ -408,13 +410,13 @@ class SCPICommandDict(InstrumentCommandDict):
 class InstrumentCommand(SamuraiDict):
     '''
     @brief class that defines an instrument command.
-        Can be SCPI, or not... can be anything
+        Can be SCPI, or not... can be anything  
     '''
     def __init__(self,command_raw,command_type,**arg_options):
         '''
-        @brief constructor
-        @param[in] command_raw - raw string for command descriptor (i.e. SENS<cnum>:FREQ <num>)
-        @param[in] command_type - type of command (i.e. SCPI)
+        @brief constructor  
+        @param[in] command_raw - raw string for command descriptor (i.e. SENS<cnum>:FREQ <num>)  
+        @param[in] command_type - type of command (i.e. SCPI)  
         '''
         super().__init__()
         self.update({'type':command_type}) #update command type
@@ -425,15 +427,15 @@ class InstrumentCommand(SamuraiDict):
         
     def add_arg(self,arg_name,optional_flg,return_type=None,description='',**other_options):
         '''
-        @brief add argument to this command
+        @brief add argument to this command  
         @param[in] arg_name - the name of the argument. This should be the whole string (e.g. <cnum> NOT cnum)
-            This is important because these names will be searched when creating the template
-        @param[in] optional_flg - True if the arg is optional
-        @param[in/OPT] description - brief description of the argument
-        @param[in/OPT] return_type - value to be returned (str,int,float,etc)
-        @param[in/OPT] other_options - anything else to add to the argument
-            arg_string - if this is specified, this value instead of arg_name
-                    will be stripped from our command when getting our template
+            This is important because these names will be searched when creating the template  
+        @param[in] optional_flg - True if the arg is optional  
+        @param[in/OPT] description - brief description of the argument  
+        @param[in/OPT] return_type - value to be returned (str,int,float,etc)  
+        @param[in/OPT] other_options - anything else to add to the argument  
+            - arg_string - if this is specified, this value instead of arg_name
+                    will be stripped from our command when getting our template  
         '''
         arg_dict = {
                 'description':None,
@@ -449,8 +451,8 @@ class InstrumentCommand(SamuraiDict):
     
     def __call__(self,*args,**kwargs):
         '''
-        @brief when called as function call the parameter
-        @return a string with the formatted function call
+        @brief when called as function call the parameter  
+        @return a string with the formatted function call  
         '''
         arg_dict = self.arg_dict
         arg_keys = list(arg_dict.keys()) #ordered keys
@@ -467,8 +469,8 @@ class InstrumentCommand(SamuraiDict):
     
     def get_command_template(self,ignore_regex_list=None):
         '''
-        @brief generate a template to use for command formatting
-        @param[in/OPT] ignore_regex_list - list of regex of things to remove (e.g non-required args)
+        @brief generate a template to use for command formatting  
+        @param[in/OPT] ignore_regex_list - list of regex of things to remove (e.g non-required args)  
         '''
         template = self['command_raw']
         #first lets remove our required arguments
@@ -487,14 +489,14 @@ class InstrumentCommand(SamuraiDict):
     @property
     def command_template(self):
         '''
-        @brief generate a template for our command to use for formatting
+        @brief generate a template for our command to use for formatting  
         '''
         return self.get_command_template()
     
     @property
     def arg_key_list(self):
         '''
-        @brief get a list of arguments in ordered form [required,optional]
+        @brief get a list of arguments in ordered form [required,optional]  
         '''
         arg_list = []
         arg_list += self['arguments']['required'].keys()
@@ -504,7 +506,7 @@ class InstrumentCommand(SamuraiDict):
     @property
     def arg_dict(self):
         '''
-        @brief return a list of argument names as keys with default params
+        @brief return a list of argument names as keys with default params  
         '''
         req_dict = SamuraiDict((k,v['default']) for k,v in self['arguments']['required'].items())
         opt_dict = SamuraiDict((k,v['default']) for k,v in self['arguments']['optional'].items())
@@ -515,7 +517,7 @@ class InstrumentCommand(SamuraiDict):
     @property
     def arg_default_value_list(self):
         '''
-        @brief get a list of our default argument values in order
+        @brief get a list of our default argument values in order  
         '''
         val_list = []
         val_list += [d['default'] for d in self['arguments']['required'].values()]
@@ -525,7 +527,7 @@ class InstrumentCommand(SamuraiDict):
     @property
     def num_args(self):
         '''
-        @brief provide total number of arguments
+        @brief provide total number of arguments  
         '''
         return self.num_required_args+self.num_optional_args
     
@@ -539,20 +541,20 @@ class InstrumentCommand(SamuraiDict):
     
     def help(self):
         '''
-        @brief return help for our command
+        @brief return help for our command  
         '''
         print(self['description'])
         
         
 class SCPICommand(InstrumentCommand):
     '''
-    @brief class specifically for scpi commands
+    @brief class specifically for scpi commands  
     '''
     def __init__(self,command_raw,argument_regex='<.*?>',**arg_options):
         '''
-        @brief constructor
-        @param[in] command_raw - raw command string (SENSe<cnum>:FREQuency:CENTer <num>)
-        @param[in/OPT] argument_regex - regular expression to extract arguments
+        @brief constructor  
+        @param[in] command_raw - raw command string (SENSe<cnum>:FREQuency:CENTer <num>)  
+        @param[in/OPT] argument_regex - regular expression to extract arguments  
         '''
         self.options = {}
         #in this we ignore optoinal things and either or type args ([:CW], | BWID)
@@ -592,28 +594,27 @@ class SCPICommand(InstrumentCommand):
     
 class InstrumentError(Exception):
     '''
-    @brief generic class for instrument error
+    @brief generic class for instrument error  
     '''
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         
 class InstrumentConnectionError(InstrumentError):
     '''
-    @brief error for connections to instruments
+    @brief error for connections to instruments  
     '''
     pass
 
 class InstrumentCommandError(InstrumentError):
     '''
-    @brief error for instrument commands
+    @brief error for instrument commands  
     '''
     pass
 
 if __name__=='__main__':
     '''
-    command = 'SENSe<cnum>:FREQuency:CENTer <num>'
-    command_list = [command]
-    
+    command = 'SENSe<cnum>:FREQuency:CENTer <num>'  
+    command_list = [command]  
     com_dict = InstrumentCommandDict()
     for i,c in enumerate(command_list):
         scom = SCPICommand(c)
