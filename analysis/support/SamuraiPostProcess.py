@@ -24,22 +24,22 @@ from samurai.analysis.support.MetaFileController import MetaFileController
 
 #%% generic class for synthetic aperture algorithms
 class SamuraiSyntheticApertureAlgorithm:
-    '''
+    ''' 
     @brief this is a generic class for samurai aglorithms.
-    this should be completed and the rest of this restructured in the future
+    this should be completed and the rest of this restructured in the futur
     This will allow a more generic things to work with such as importing measured vs. simed values
     '''
     def __init__(self,metafile_path=None,**arg_options):
         '''
-        @brief initilaize the SamSynthApAlg class
-        @param[in/OPT] metafile_path - metafile for real measurements (defaults to None)
-        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit
-            verbose         - whether or not to be verbose (default False)
-            antenna_pattern - AntennaPattern Class parameter to include (default None)
-            measured_values_flg - are we using measurements, or simulated data (default True)
-            load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
-            load_data       - whether or not to load data on init (default true)
-            These are also passed to the load_metafile function
+        @brief initilaize the SamSynthApAlg class  
+        @param[in/OPT] metafile_path - metafile for real measurements (defaults to None)  
+        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit  
+            - verbose         - whether or not to be verbose (default False)  
+            - antenna_pattern - AntennaPattern Class parameter to include (default None)  
+            - measured_values_flg - are we using measurements, or simulated data (default True)  
+            - load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)  
+            - load_data       - whether or not to load data on init (default true)  
+            - These are also passed to the load_metafile function  
         '''
         #options for the class
         self.options = {}
