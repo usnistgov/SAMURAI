@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Aug 15 08:50:09 2019
-
+@brief this is a set of functions and classes to extend pythons OrderedDict class  
+@warning reading a writing of integer keys using JSON is INVALID and WILL NOT WORK  
 @author: ajw5
 """
 from collections import OrderedDict
@@ -52,10 +53,26 @@ class SamuraiDict(OrderedDict):
         @param[in] fpath - path to file to load  
         @param[in/OPT] kwargs - keyword args will be passed to json.load()  
         '''
+        my_kwargs = {}
+        my_kwargs['object_hook'] = SamuraiJSONDecoder
+        for k,v in kwargs:
+            my_kwargs[k] = v
         if not os.path.exists(fpath):
             raise FileNotFoundError("File '{}' not found".format(os.path.abspath(fpath)))
         with open(fpath,'r') as jsonFile:
-            self.update(json.load(jsonFile, object_pairs_hook=SamuraiDict,object_hook=SamuraiJSONDecoder,**kwargs))
+            self.update(json.load(jsonFile,**my_kwargs))
+            
+    def loads(self,mystr,**kwargs):
+        '''
+        @brief load dictionary data from a string
+        @param[in] mystr - string to load from
+        @param[in/OPT] kwargs - keyword args will be passed to json.loads() 
+        '''
+        my_kwargs = {}
+        my_kwargs['object_hook'] = SamuraiJSONDecoder
+        for k,v in kwargs:
+            my_kwargs[k] = v
+        self.update(json.loads(mystr,**my_kwargs))
             
     def write(self,fpath,**kwargs):
         '''
@@ -64,9 +81,32 @@ class SamuraiDict(OrderedDict):
         @param[in/OPT] kwargs - keyword args will be passed to json.dump()  
         @return path that was written to   
         '''
+        my_kwargs = {}
+        my_kwargs['indent'] = 4
+        my_kwargs['cls'] = SamuraiJSONEncoder
+        for k,v in kwargs:
+            my_kwargs[k] = v
         with open(fpath,'w+') as json_file:
-            json.dump(self,json_file,indent=4,cls=SamuraiJSONEncoder) 
+            json.dump(self,json_file,**my_kwargs) 
         return fpath
+    
+    dump=write #alias to match json names
+    
+    def writes(self,**kwargs):
+        '''
+        @brief dump a dictionary to a json string  
+        @param[in/OPT] kwargs - keyword args passed to json.dump  
+        @return string of json  
+        '''
+        my_kwargs = {}
+        my_kwargs['indent'] = 4
+        my_kwargs['cls'] = SamuraiJSONEncoder
+        for k,v in kwargs:
+            my_kwargs[k] = v
+        mystr = json.dumps(self,**my_kwargs)
+        return mystr
+    
+    dumps=writes #alias to match json names
     
     def set_from_path(self,key_list,value,**kwargs):
         '''
@@ -164,10 +204,10 @@ class SamuraiJSONEncoder(json.JSONEncoder):
     def default(self,obj):
         if isinstance(obj,np.ndarray): #change any ndarrays to lists
             return obj.tolist()
-        if hasattr(obj,self.custom_encoding_method): #assume this will then be a class
-            cust_enc_meth = getattr(obj,self.custom_encoding_method)
-            class_name = obj.__class__.__name__ #get the class name
-            return {'__{}__'.format(class_name):cust_enc_meth()}
+        elif hasattr(obj,self.custom_encoding_method): #assume this will then be a class with a custom method
+            return class_encoder(obj)
+        elif callable(obj): #if its a callable (e.g. a fucntion) try to encode it
+            return function_encoder(obj)
         else:
             return super().default(obj)
 
@@ -181,29 +221,109 @@ def SamuraiJSONDecoder(o):
     '''
     custom_decoding_method = '_decode_json_'
     first_key_name = list(o.keys())[0] #
-    if first_key_name != first_key_name.strip('_'): #then assume its a class
-        class_name = first_key_name.strip('_')
-        globals_ = globals()
-        class_ = globals_.get(class_name)
-        obj = class_() #must have a default constructor
-        if class_ is not None: #check if its a 
-            if hasattr(obj,custom_decoding_method):
-                cust_dec_meth = getattr(obj,custom_decoding_method)
-                obj.cust_dec_meth(o)
-                return obj
+    if first_key_name.startswith('__') and first_key_name.endswith('__'): 
+        #then assume its a special directive (e.g. class or operation)
+        spec_dir = first_key_name.strip('__')
+        if spec_dir=='function':
+            return function_decoder(o)
+        elif spec_dir=='class': #assume its a class
+            class_name = spec_dir
+            globals_ = globals()
+            class_ = globals_.get(class_name)
+            obj = class_() #must have a default constructor
+            if class_ is not None: #check if its a 
+                if hasattr(obj,custom_decoding_method):
+                    cust_dec_meth = getattr(obj,custom_decoding_method)
+                    return cust_dec_meth(o)
+    elif isinstance(o,dict): #if its a dict, make it a samuraiDict
+        o = SamuraiDict(o)
     return o
+
+import inspect
+from textwrap import dedent
+def function_encoder(myfun):
+    '''
+    @brief encode a funciton into a dictionary  
+    @param[in] myfun - function to encode  
+    '''
+    mydict = OrderedDict({'__function__':dedent(inspect.getsource(myfun))})
+    mydict['__name__'] = myfun.__name__
+    return mydict
+
+def function_decoder(obj):
+    '''
+    @brief class to decode a function created by function_encoder
+    @param[in] object from function_encoder
+    '''
+    exec(obj['__function__']) #define the function (e.g. def foo(a,b): return a+b)
+    return eval(obj['__name__']) #return the function that was defined (e.g. foo)
+    
+def class_encoder(myclass):
+    '''
+    @brief encode a class into a dictionary
+    @param[in] myclass - class to encode
+    @note this assumes the class has an encode and decode method
+    '''
+    cust_enc_meth = getattr(myclass,'custom_encoding_method')
+    class_name = myclass.__class__.__name__ #get the class name
+    class_dict = OrderedDict({'__class__':cust_enc_meth()})
+    class_dict['__classname__'] = class_name 
+    return class_dict
+    
+
+import unittest
+class TestSamuraiDict(unittest.TestCase):
+    '''@brief unittest class for testing SamuraiDict operation'''
+    
+    def test_dict_operation(self):
+        '''@brief test basic dictionary operations'''
+        myd = {'1':'test1','test2':2,'3':{'3':'test3'}}
+        mysd = SamuraiDict(myd)
+        self.assertEqual(myd['test2'],mysd['test2'])
+        self.assertEqual(myd.get('na',None),mysd.get('na',None))
+    
+    def test_key_list_update(self):
+        '''@brief test updating of nested dictionaries from a key list'''
+        myd = SamuraiDict({'test1':'test2',3:{'test':{5:'abc'}}})
+        myd[[3,'test',5]] = 'xyz'
+        self.assertEqual(myd[3]['test'][5],'xyz')
         
-            
+    def test_rw_string(self):
+        '''@brief test reading and writing from string'''
+        #test basic dictionary
+        myd = SamuraiDict({'test1':'test2','3':SamuraiDict({'test':SamuraiDict({'5':'abc'})})})
+        mydl = SamuraiDict() #dict to load
+        mydl.loads(myd.dumps())
+        self.assertEqual(myd,mydl)
+        #test the saving and loading of a function
+        def foo(a,b):
+            c = a*b
+            return c+a
+        myd = SamuraiDict({'test1':'test2','3':{'test':{'5':foo}}})
+        mydl = SamuraiDict() #dict to load
+        mydl.loads(myd.dumps())
+        self.assertEqual(foo(4,5),mydl['3']['test']['5'](4,5)) #make sure the function was decoded
+        
     
 if __name__=='__main__':
-    myd  = SamuraiDict({'test1':'test2',3:{'test':{5:'abc'}}})
-    myd2 = SamuraiDict({3:{'test1':{"test2":54},'test':{6:123}}})
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestSamuraiDict)
+    unittest.TextTestRunner(verbosity=2).run(suite)
     
-    update_nested_dict(myd,myd2)
+    if True:
+        def foo(a,b): 
+            return a+b
+    
+    myd3 = SamuraiDict({1:{'test1':{'myfun':foo}}})
+    myd4 = SamuraiDict()
+    myd4.loads(myd3.dumps()) #try and load a function
+    myd4['1']['test1']['myfun']
+    json.loads(myd3.dumps(),object_hook=SamuraiJSONDecoder)
+    
+    #update_nested_dict(myd,myd2)
 
     #myd.add_alias('myalias',[3,'test',6])
-    print(myd)
-    myd.write('test/test.json')
+    #print(myd)
+    #myd.write('test/test.json')
     
     
     
