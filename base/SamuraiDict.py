@@ -245,6 +245,7 @@ def function_encoder(myfun):
     '''
     @brief encode a funciton into a dictionary  
     @param[in] myfun - function to encode  
+    @note this is still limited in functionality by inspect.getsource
     '''
     mydict = OrderedDict({'__function__':dedent(inspect.getsource(myfun))})
     mydict['__name__'] = myfun.__name__
@@ -252,8 +253,8 @@ def function_encoder(myfun):
 
 def function_decoder(obj):
     '''
-    @brief class to decode a function created by function_encoder
-    @param[in] object from function_encoder
+    @brief class to decode a function created by function_encoder  
+    @param[in] object from function_encoder  
     '''
     exec(obj['__function__']) #define the function (e.g. def foo(a,b): return a+b)
     return eval(obj['__name__']) #return the function that was defined (e.g. foo)
