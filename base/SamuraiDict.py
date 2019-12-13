@@ -55,7 +55,7 @@ class SamuraiDict(OrderedDict):
         '''
         my_kwargs = {}
         my_kwargs['object_hook'] = SamuraiJSONDecoder
-        for k,v in kwargs:
+        for k,v in kwargs.items():
             my_kwargs[k] = v
         if not os.path.exists(fpath):
             raise FileNotFoundError("File '{}' not found".format(os.path.abspath(fpath)))
@@ -70,7 +70,7 @@ class SamuraiDict(OrderedDict):
         '''
         my_kwargs = {}
         my_kwargs['object_hook'] = SamuraiJSONDecoder
-        for k,v in kwargs:
+        for k,v in kwargs.items():
             my_kwargs[k] = v
         self.update(json.loads(mystr,**my_kwargs))
             
@@ -84,7 +84,7 @@ class SamuraiDict(OrderedDict):
         my_kwargs = {}
         my_kwargs['indent'] = 4
         my_kwargs['cls'] = SamuraiJSONEncoder
-        for k,v in kwargs:
+        for k,v in kwargs.items():
             my_kwargs[k] = v
         with open(fpath,'w+') as json_file:
             json.dump(self,json_file,**my_kwargs) 
@@ -101,7 +101,7 @@ class SamuraiDict(OrderedDict):
         my_kwargs = {}
         my_kwargs['indent'] = 4
         my_kwargs['cls'] = SamuraiJSONEncoder
-        for k,v in kwargs:
+        for k,v in kwargs.items():
             my_kwargs[k] = v
         mystr = json.dumps(self,**my_kwargs)
         return mystr

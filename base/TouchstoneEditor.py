@@ -181,12 +181,10 @@ class TouchstoneEditor(object):
        @note the keys are placed in self.wave_dict_keys  
        @return list of keys for the current ports  
        @example
-	   ```
-       >>> mys2p._gen_dict_keys()
+       >>> mys2p._gen_dict_keys()  
+       array([11, 21, 12, 22])  
+       >>> myw2p._gen_dict_keys()  
        array([11, 21, 12, 22])
-       >>> myw2p._gen_dict_keys()
-       array([11, 21, 12, 22])
-	   ```
        '''
        keys = np.array([i*10+j for i in np.sort(self._ports) for j in np.sort(self._ports)])
        return keys
@@ -378,10 +376,11 @@ class TouchstoneEditor(object):
         if self.options['header'] is None: #allow override
             self.set_header(DEFAULT_EMPTY_HEADER) #set the default header
         #and pack the port data with 0s
-        freqs = np.array(freqs)*self._get_freq_mult()
-        for k in self.wave_dict_keys:
-            for wave in self.waves.keys():
-                self.waves[wave][k] = self._param_class(freqs,np.zeros(len(freqs)),plotter=self.options['plotter'])
+        self.freqs = np.array(freqs)*self._get_freq_mult()
+        self.raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(freqs)),dtype=np.cdouble)
+        for ki,k in enumerate(self.wave_dict_keys):
+            for wi,wave in enumerate(self.waves.keys()):
+                self.waves[wave][k] = self._param_class(self.freqs[:],self.raw[wi,ki,:],plotter=self.options['plotter'])
         self.round_freq_lists()
         
    def _set_num_ports(self,num_ports):
@@ -721,10 +720,8 @@ class TouchstoneEditor(object):
    
    @property
    def freq_list(self):
-       '''
-       @brief get the frequency list of the first dict key parameter (assume they all match)  
-       '''
-       return self.v1.freq_list
+       '''@brief get the frequency list of the data'''
+       return self.freqs
    
    @property
    def bandwidth(self):
@@ -856,9 +853,24 @@ class SnpEditor(TouchstoneEditor):
            return super()._gen_dict_keys() #otherwise use the generic
        
 class WaveformEditor(SnpEditor):
-    '''
-    @brief class to read *.waveform classes that the MUF puts out  
-    '''
+    '''@brief class to read *.waveform classes that the MUF puts out'''
+    
+    def __init__(self,*args,**kwargs):
+        '''
+        @brief wrap touchstone parameter constructor to allow passing of x,y data explicitly
+        @param[in] args - variable arguements. If 2 args are passed, its assumed we have times/freqs,data (xaxis,yaxis)
+                    otherwise pass parsing to TouchstoneParameter parsing
+        '''
+        if 'default_extension' not in kwargs.keys():
+            kwargs['default_extension'] = 'waveform'
+        if len(args)==2: #assume data is passed explicitly
+            data_len = len(args[0]) #length of our frequencies
+            super().__init__([1,np.arange(data_len)],**kwargs) #create correct size
+            self.waves['S'][21].raw = np.array(args[1],dtype=np.cdouble)
+            self.freqs = np.array(args[0])
+        else:
+            super().__init__(*args,**kwargs)
+    
     def _gen_dict_keys(self):
         return [21] #always only have a single key for waveform
     
@@ -876,6 +888,15 @@ class WaveformEditor(SnpEditor):
                self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
        self.round_freq_lists() #round when we load (remove numerical rounding error)
 
+    def __getattr__(self,attr):
+           '''@brief try and find in S[21] if not part of WaveformEditor'''
+           try:
+               return getattr(self.waves['S'][21],attr)
+           except:
+               try: #try and find in S21
+                   return self.waves[attr]
+               except:
+                   raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
 
 #acutally is the same as snpParam
 class TouchstoneParam:
@@ -970,7 +991,7 @@ class TouchstoneParam:
         @param[in] raw_list  - raw complex data for the parameter  
         '''
         self.freq_list = freq_list
-        self.raw = raw_list
+        self._raw = raw_list
         
     def get_value_from_frequency(self,freq):
         '''
@@ -1040,6 +1061,16 @@ class TouchstoneParam:
         @todo implement  
         '''
         pass
+    
+    @property
+    def raw(self):
+        '''@brief abstract self.raw from self._raw to not edit block data in TouchstoneEditor'''
+        return self._raw
+    
+    @raw.setter
+    def raw(self,val):
+        '''@brief setter to not overwrite raw'''
+        self.raw[:] = val
     
     @property
     def bandwidth(self):
@@ -1432,11 +1463,12 @@ if __name__=='__main__':
     r2 = mysnp.S[21].raw
     #mysnp.plot([21])
     
-    import doctest
-    doctest.testmod(extraglobs=
-                    {'mys2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p')),
-                     'myw2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p'))})
+    #import doctest
+    #doctest.testmod(extraglobs=
+    #                {'mys2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p')),
+    #                 'myw2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p'))})
         
+    myw = WaveformEditor([1,2,3],[3,2,1])
         
     add_remove_test = True
     empty_object_test = True

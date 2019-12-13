@@ -22,12 +22,12 @@ pnagrabber_exe_path_default = r'C:\\Program Files (x86)\\NIST\\Uncertainty Frame
 
 class PnaGrabber:
     '''
-    @brief a class to run pnagrabber from python. This relies on using the executable with a -r option
-    @param[in] **options - options for the class are as follows:
-                                wdir - working directory for the run (usually './')
-                                pnagrabber_template_path - where to get the template for pnagrabber
-                                pnagrabber_exe_path - where the executable is (defaults to typical install location)
-                                pnagrabber_output_path - the path of the output from pnagrabber (defaults to the first measurement from the template)
+    @brief a class to run pnagrabber from python. This relies on using the executable with a -r option  
+    @param[in] **options - options for the class are as follows:  
+			- wdir - working directory for the run (usually './')  
+			- pnagrabber_template_path - where to get the template for pnagrabber  
+			- pnagrabber_exe_path - where the executable is (defaults to typical install location)  
+			- pnagrabber_output_path - the path of the output from pnagrabber (defaults to the first measurement from the template)  
     '''
 
     def __init__(self,**options):
@@ -55,9 +55,9 @@ class PnaGrabber:
     #run pnagrabber (for single file)
     def run(self,newPath,clean=-1):
         '''
-        @brief run pnagrabber from the template file and rename to newPath
-        @param[in] newPath - name to move the output to
-        @param[in/OPT] clean - append this value to the output. If -1 it will auto increment (reccomended)
+        @brief run pnagrabber from the template file and rename to newPath  
+        @param[in] newPath - name to move the output to  
+        @param[in/OPT] clean - append this value to the output. If -1 it will auto increment (reccomended)  
         '''
         #get file and time
         ts = time.time()
@@ -84,16 +84,14 @@ class PnaGrabber:
         return te-ts,newPath
     
     def measure(self,newPath,clean=-1):
-        '''
-        @brief alias of run
-        '''
+        '''@brief alias of run'''
         return self.run(newPath,clean=-1)
     
     #get list of enabled measurements from template path
     def get_meas_list(self):
         '''
-        @brief get a list of measurements from the pnagrabber template menu
-        @return list of measurement names
+        @brief get a list of measurements from the pnagrabber template menu  
+        @return list of measurement names  
         '''
         controls = self.root.find('Controls')
         num_text_boxes = 14 #this is hardcoded into the MUF
@@ -111,9 +109,9 @@ PNAGrabber = PnaGrabber
 
 class LoopTimeReport:
     '''
-    @brief class to track and print statistics on measurement loop
-    @param[in] tot_vals - number of total measurement being performed in the loop
-    @param[in] print_mod - print every how many measurements (defaults to every measurement)
+    @brief class to track and print statistics on measurement loop  
+    @param[in] tot_vals - number of total measurement being performed in the loop  
+    @param[in] print_mod - print every how many measurements (defaults to every measurement)  
     '''
     def __init__(self,tot_vals,print_mod=1):
         self.tot_vals = tot_vals
@@ -145,9 +143,9 @@ class LoopTimeReport:
 #check to see if the directory exists, if it does increment and do unitl it doesnt
 def clean_dir_name(dir_name):
     '''
-    @brief clean a directory name. if the directory exists increment until it doesnt (appends '_#')
-    @param[in] dir_name - name of the directory to clean
-    @return name for cleaned directory
+    @brief clean a directory name. if the directory exists increment until it doesnt (appends '_#')  
+    @param[in] dir_name - name of the directory to clean  
+    @return name for cleaned directory  
     '''
     end_num = 0
     dir_name = os.path.abspath(dir_name)
@@ -162,9 +160,9 @@ cleanDirName=clean_dir_name
 
 def clean_file_name(file_name,num=-1):
     '''
-    @brief clean a file name. if the directory exists increment until it doesnt (appends '(#)')
-    @param[in] file_name - name of the file to clean
-    @return name for cleaned file
+    @brief clean a file name. if the directory exists increment until it doesnt (appends '(#)')  
+    @param[in] file_name - name of the file to clean  
+    @return name for cleaned file  
     '''
     fout=file_name
     i=0

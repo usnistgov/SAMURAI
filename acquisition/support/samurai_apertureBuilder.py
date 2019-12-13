@@ -28,16 +28,16 @@ v1_to_v2_convert = np.array([[0,1,0,0,0,0],
 
 class ApertureBuilder():
     '''
-    @brief class to help build apertures for use with samurai system
+    @brief class to help build apertures for use with samurai system  
     '''
     
     def __init__(self,**arg_options):
         '''
-        @brief initializer for the class
-        @param[in/OPT] arg_options - keyword arguments as follows:
-            trf_pos - position of tool reference frame (default is typical)
-            wrf_pos - position of world reference frame (default is typical)
-            comment_character - character to use for comments and header (default '#')
+        @brief initializer for the class  
+        @param[in/OPT] arg_options - keyword arguments as follows:  
+            - trf_pos - position of tool reference frame (default is typical)  
+            - wrf_pos - position of world reference frame (default is typical)  
+            - comment_character - character to use for comments and header (default '#')  
         '''
         #parse input arguments
         tool_length = 131 #length of tool off face in mm. Change for weird tools (or mounts)
@@ -54,8 +54,8 @@ class ApertureBuilder():
        
     def load(self,file_path):
         '''
-        @brief load in csv file positions (overwrite any current positions)
-        @param[in] file_path - path of file to load (assume csv for now)
+        @brief load in csv file positions (overwrite any current positions)  
+        @param[in] file_path - path of file to load (assume csv for now)  
         '''
         ext = os.path.splitext(file_path)[-1].strip('.')
         if ext=='csv':
@@ -65,8 +65,8 @@ class ApertureBuilder():
 
     def write(self,file_path):
         '''
-        @brief write out file positions
-        @param[in] file_path - path of file to write to 
+        @brief write out file positions  
+        @param[in] file_path - path of file to write to   
         '''
         ext = os.path.splitext(file_path)[-1].strip('.')
         header = self.build_header()
@@ -75,8 +75,8 @@ class ApertureBuilder():
             
     def build_header(self):
         '''
-        @brief build our output header
-        @return string of the output header
+        @brief build our output header  
+        @return string of the output header  
         '''
         header_lines = []
         header_lines.append('TRF = '+str(self.options['trf_pos']))
@@ -90,10 +90,10 @@ class ApertureBuilder():
         '''
         @brief add positions to our aperture. 
             The positions should be a 6 element list or array in the form
-            [X,Y,Z,Alpha,Beta,Gamma]. A list of these lists is also acceptable (or 2D array)
-        @param[in] positions - single position or list of positions in format [X,Y,Z,Alpha,Beta,Gamma]
-        @param[in/OPT] arg_options - keyword arguments for options as follows:
-                None yet!
+            [X,Y,Z,Alpha,Beta,Gamma]. A list of these lists is also acceptable (or 2D array)  
+        @param[in] positions - single position or list of positions in format [X,Y,Z,Alpha,Beta,Gamma]  
+        @param[in/OPT] arg_options - keyword arguments for options as follows:  
+                - None yet!
         '''
         positions = np.array(positions) #make a numpy array regardless
         self.validate_position(positions)
@@ -104,8 +104,8 @@ class ApertureBuilder():
             
     def shift_positions(self,shift_value):
         '''
-        @brief shift our positions by a given amount. shifts self.positions
-        @param[in] shift_value - value to shift each positino by in [x,y,z,alpha,beta,gamma]
+        @brief shift our positions by a given amount. shifts self.positions  
+        @param[in] shift_value - value to shift each positino by in [x,y,z,alpha,beta,gamma]  
         '''
         self.validate_position(shift_value)
         self.positions += np.array(shift_value)
@@ -113,12 +113,12 @@ class ApertureBuilder():
     def gen_planar_aperture(self,start_position,size=None,step=None,numel=None):
         '''
         @brief generate a planar aperture given a start position,size, and step, or number of elements
-            at least two of the three (size,step,numel) must be specified
-        @param[in] start_position - [x,y,z,alpha,beta,gamma] position for corner
-        @param[in/OPT] size - total size of the aperture in input units (default mm) [x,y,z]
-        @param[in/OPT] step - step size in input units (default mm) [x,y,z]
-        @param[in/OPT] numel - number of elements in each direction of the array [x,y,z]
-        @note overwrites self.positions
+            at least two of the three (size,step,numel) must be specified  
+        @param[in] start_position - [x,y,z,alpha,beta,gamma] position for corner  
+        @param[in/OPT] size - total size of the aperture in input units (default mm) [x,y,z]  
+        @param[in/OPT] step - step size in input units (default mm) [x,y,z]  
+        @param[in/OPT] numel - number of elements in each direction of the array [x,y,z]  
+        @note overwrites self.positions  
         '''
         self.validate_position(start_position)
         #ensure we have enough inputs to run
@@ -161,11 +161,11 @@ class ApertureBuilder():
     
     def gen_planar_aperture_from_center(self,center_point,size=None,step=None,numel=None):
         '''
-        @brief generate a planar aperture given an aperture center point,size, and step
-        @param[in] center point - [x,y,z,alpha,beta,gamma] position of center
-        @param[in] size - total size of the aperture in input units (default mm) [x,y,z]
-        @param[in] step - step size in input units (default mm) [x,y,z]
-        @note overwrites self.positions
+        @brief generate a planar aperture given an aperture center point,size, and step  
+        @param[in] center point - [x,y,z,alpha,beta,gamma] position of center  
+        @param[in] size - total size of the aperture in input units (default mm) [x,y,z]  
+        @param[in] step - step size in input units (default mm) [x,y,z]  
+        @note overwrites self.positions  
         '''
         size_2 = np.zeros(6)
         if np.array(size)==None:
@@ -176,14 +176,14 @@ class ApertureBuilder():
     
     def gen_cylindrical_aperture(self,origin,radius,height,height_step_size_mm,sweep_angle,angle_step_size_degrees):
         '''
-        @brief generate a cylindrical aperture
-        @param[in] origin - [x,y,z,alpha,beta,gamma] position for cylinder center
-        @param[in] radius - radius of cylinder in mm
-        @param[in] height - height of the cylinder to generate
-        @param[in] height_step_size_mm - step size in vertical direction in mm
-        @param[in] sweep_angle - angle to sweep in degrees
-        @param[in] angle_step_size_degrees - azimuthal angular step in degrees
-        @return 2D array of positions
+        @brief generate a cylindrical aperture  
+        @param[in] origin - [x,y,z,alpha,beta,gamma] position for cylinder center    
+        @param[in] radius - radius of cylinder in mm  
+        @param[in] height - height of the cylinder to generate  
+        @param[in] height_step_size_mm - step size in vertical direction in mm  
+        @param[in] sweep_angle - angle to sweep in degrees  
+        @param[in] angle_step_size_degrees - azimuthal angular step in degrees  
+        @return 2D array of positions  
         '''
         self.validate_position(origin)
         #unpack the values
@@ -220,8 +220,8 @@ class ApertureBuilder():
             
     def curve_array(self,curve_radius_mm):
         '''
-        @brief - curve our current points into a cylinder. Ideally this will be a planar array to start
-        @param[in] - curve_radius - radius to curve along in millimeters
+        @brief - curve our current points into a cylinder. Ideally this will be a planar array to start  
+        @param[in] - curve_radius - radius to curve along in millimeters  
         '''
         pts = self.positions
         planar_center = (np.max(pts,axis=0)-np.min(pts,axis=0))/2+np.min(pts,axis=0) #find the center of the points
@@ -246,9 +246,9 @@ class ApertureBuilder():
     
     def get_vectors(self,mag=1):
         '''
-        @brief get positions in vector format
-        @param[in/OPT] mag - magnitude of vectors
-        @return [x,y,z,u,v,w] vectors
+        @brief get positions in vector format  
+        @param[in/OPT] mag - magnitude of vectors  
+        @return [x,y,z,u,v,w] vectors  
         '''
         data = self.positions.transpose() #make each direction (x,y,z,alpha,...) its own list of values
         [x,y,z] = data[0:3] #get x,y,z values (they dont change for vectors)
@@ -263,9 +263,9 @@ class ApertureBuilder():
     
     def get_polarization_lines(self,mag=5):
         '''
-        @brief get xyzuvw coordinates of a quiverplot line to show the polarization at each position
-        @param[in/OPT] mag - magnitude of the line (+- the point)
-        @return np.array([x,y,z,u,v,w])
+        @brief get xyzuvw coordinates of a quiverplot line to show the polarization at each position  
+        @param[in/OPT] mag - magnitude of the line (+- the point)  
+        @return np.array([x,y,z,u,v,w])  
         '''
         #default quiver options for drawing these lines
         default_quiver_opts = dict(pivot='middle')
@@ -283,9 +283,9 @@ class ApertureBuilder():
         
     def plot(self,fig_handle=None,magnitude=5):
         '''
-        @brief plot the aperture points. We flip y and z for nicer view angle
-        @param[in/OPT] fig_handle - handle to figure to plot points on
-        @param[in/OPT] magnitude - magnitude of vector positions to plot
+        @brief plot the aperture points. We flip y and z for nicer view angle  
+        @param[in/OPT] fig_handle - handle to figure to plot points on  
+        @param[in/OPT] magnitude - magnitude of vector positions to plot  
         '''
         if not fig_handle: #if not provided, generate a figure
             fig = plt.figure()
@@ -306,8 +306,8 @@ class ApertureBuilder():
     
     def plot_path_2D(self,fig_handle=None):
         '''
-        @brief plot the 2D path of the robot for the points provided
-        @param[in/OPT]fig_handle - handle to figure to plot points on
+        @brief plot the 2D path of the robot for the points provided  
+        @param[in/OPT]fig_handle - handle to figure to plot points on  
         '''
         if not fig_handle: #if not provided, generate a figure
             fig = plt.figure()
@@ -332,15 +332,15 @@ class ApertureBuilder():
     
     def optimize_aperture(self):
         '''
-        @brief optimize our aperture by making the robot travel the smallest distance possible
-        @todo implement 2-opt https://en.wikipedia.org/wiki/2-opt to solve traveling saleman problem here
+        @brief optimize our aperture by making the robot travel the smallest distance possible  
+        @todo implement 2-opt https://en.wikipedia.org/wiki/2-opt to solve traveling saleman problem here  
         '''
         pass
     
     def flip_alternate_rows(self,row_length):
         '''
-        @brief flip alternating rows for better pattern with cylinder and planar data
-        @param[in] - row_length - number of points per aperture row (same as num columns)
+        @brief flip alternating rows for better pattern with cylinder and planar data  
+        @param[in] - row_length - number of points per aperture row (same as num columns)  
         '''
         pts = self.positions.copy()
         num_rows = int(np.size(pts,0)//row_length)
@@ -353,24 +353,24 @@ class ApertureBuilder():
     
     def validate_position(self,position):
         '''
-        @brief validate positional input (for now just check shape)
-        @param[in] position - position to validate (or list of positions/2D array)
+        @brief validate positional input (for now just check shape)  
+        @param[in] position - position to validate (or list of positions/2D array)  
         '''
         if np.array(position).shape[-1] != 6:
             raise Exception("Positions must have 6 elements ([x,y,z,alpha,beta,gamma])")
             
     def concatenate(self,ap2):
         '''
-        @brief add concat 2 apertures
-        @param[in] ap2 - second aperture to concatenate with
+        @brief add concat 2 apertures  
+        @param[in] ap2 - second aperture to concatenate with  
         '''
         self.add_positions(ap2.positions)
         
     def change_reference_frame(self,rotation_matrix,external_positions=None):
         '''
-        @brief change our reference frame using a rotation matrix. This matrix should be 6 by 6
-        @param[in] rotation_matrix - 6 by 6 matrix for rotation
-        @param[in/OPT] external_positions - external positions to change. If none operate on self.positions
+        @brief change our reference frame using a rotation matrix. This matrix should be 6 by 6  
+        @param[in] rotation_matrix - 6 by 6 matrix for rotation  
+        @param[in/OPT] external_positions - external positions to change. If none operate on self.positions  
         '''
         if external_positions is None:
             self.positions = np.matmul(self.positions,rotation_matrix)
@@ -379,7 +379,7 @@ class ApertureBuilder():
         
     def flipud(self):
         '''
-        @brief reverse the order of positions (flip up/down)
+        @brief reverse the order of positions (flip up/down)  
         '''
         self.positions = np.flipud(self.positions)
 
@@ -389,9 +389,9 @@ class ApertureBuilder():
     
 def convert_v1_file_to_v2_file(in_path,out_path):
     '''
-    @brief convert original tool reference frame of samurai (metafile v1) to new reference frame (metafile v2)
-    @param[in] in_path - v1 input file path
-    @param[in] out_path - v2 output file path
+    @brief convert original tool reference frame of samurai (metafile v1) to new reference frame (metafile v2)  
+    @param[in] in_path - v1 input file path  
+    @param[in] out_path - v2 output file path  
     '''
     myap = ApertureBuilder()
     myap.load(in_path)
@@ -400,10 +400,10 @@ def convert_v1_file_to_v2_file(in_path,out_path):
 
 def shift_scan_grid_file(shift_value,in_path,out_path):
     '''
-    @brief - shift values in a csv file
-    @param[in] in_path - name of input file to shift 
-    @param[in] out_path - output name to write to 
-    @param[in] shift_value - amount to shift positoins by
+    @brief - shift values in a csv file  
+    @param[in] in_path - name of input file to shift   
+    @param[in] out_path - output name to write to   
+    @param[in] shift_value - amount to shift positoins by  
     '''
     myap = ApertureBuilder()
     myap.load(in_path)
@@ -412,13 +412,13 @@ def shift_scan_grid_file(shift_value,in_path,out_path):
 
 def gen_offset_positions(start_plane,shift_value_list,flip_flg=True):
     '''
-    @brief - This generates a set of positions with multiple planes using a list of shift values
-    @param[in] - start_plane - reference plane from which everything is shifted
-    @param[in] - shift_value_list - list of shift values to include in the output postitions
+    @brief - This generates a set of positions with multiple planes using a list of shift values  
+    @param[in] - start_plane - reference plane from which everything is shifted  
+    @param[in] - shift_value_list - list of shift values to include in the output postitions  
     @note - this function does not automatically include the start_plane in the output positions.
-             [0,0,0,0,0,0] must be entered as an item in shift_value_list
-    @param[in] - flip_flg - flip every other plane so we dont have to move back to the beginning
-    @return - List of positoins for the robot to go to of the planes appended to one another
+             [0,0,0,0,0,0] must be entered as an item in shift_value_list  
+    @param[in] - flip_flg - flip every other plane so we dont have to move back to the beginning  
+    @return - List of positoins for the robot to go to of the planes appended to one another  
     '''
     pass
     '''
@@ -439,13 +439,13 @@ def gen_offset_positions(start_plane,shift_value_list,flip_flg=True):
 
 def gen_offset_position_csv(csv_name_in, shift_value_list,flip_flg=True):
     '''
-    @brief - Generate shifted csv file from input file positions. Outputs will be csv 
+    @brief - Generate shifted csv file from input file positions. Outputs will be csv
               files of separate shifted planes named as <csv_name_in>_shift_#.csv and all
-              shifted plane positions together in <csv_name_in>_shift_full.csv
-    @param[in] - csv_name_in - name of input csv positions to shift
-    @param[in] - shift_value_list - list of shifts performed on the input positions
-        @note - shift_value_list must inlcude [0,0,0,0,0,0] in order to include original positoins
-    @param[in] - flip_flg - flip every other plane so we dont have to move back to the beginning
+              shifted plane positions together in <csv_name_in>_shift_full.csv  
+    @param[in] - csv_name_in - name of input csv positions to shift  
+    @param[in] - shift_value_list - list of shifts performed on the input positions  
+        @note - shift_value_list must inlcude [0,0,0,0,0,0] in order to include original positoins  
+    @param[in] - flip_flg - flip every other plane so we dont have to move back to the beginning  
     '''
     '''
     @todo in class
@@ -466,9 +466,9 @@ def gen_offset_position_csv(csv_name_in, shift_value_list,flip_flg=True):
 
 def gen_repeat_csv(csv_in_path,csv_out_path,num_reps):
     '''
-    @brief - create a repeats of a single csv and place in a new csv
-    @param[in] csv_in_path - path of csv to repeat
-    @param[in] csv_out_path - path of where to write out the csv
+    @brief - create a repeats of a single csv and place in a new csv  
+    @param[in] csv_in_path - path of csv to repeat  
+    @param[in] csv_out_path - path of where to write out the csv  
     '''
     myap1 = ApertureBuilder()
     myap2 = ApertureBuilder()
@@ -480,11 +480,11 @@ def gen_repeat_csv(csv_in_path,csv_out_path,num_reps):
 
 def cat_positions_file(in_path_1,in_path_2,out_path,flip_flg=True):
     '''
-    @brief - concatenate positions in two files
-    @param[in] csv_path_1 - first file to concatenate
-    @param[in] csv_path_2 - second file to concatenate
-    @param[in] csv_out_path - output file name
-    @param[in/OPT] flip_flg - do we flip(reverse) the second set of points (default True)
+    @brief - concatenate positions in two files  
+    @param[in] csv_path_1 - first file to concatenate  
+    @param[in] csv_path_2 - second file to concatenate  
+    @param[in] csv_out_path - output file name  
+    @param[in/OPT] flip_flg - do we flip(reverse) the second set of points (default True)  
     '''
     myap1 = ApertureBuilder()
     myap2 = ApertureBuilder()
@@ -498,11 +498,11 @@ def cat_positions_file(in_path_1,in_path_2,out_path,flip_flg=True):
 
 def plot_points_file(in_path,mag=10):
     '''
-    @brief - plot positions from a file and plot 2D path
-    @param[in] in_path - path to position file
-    @param[in/OPT] fig_handle - what figure handle to use
-    @param[in/OPT] mangnitude - mangitude of plotted vectors
-    @return 3D plot of points, 2D plots of path the points will be run in
+    @brief - plot positions from a file and plot 2D path  
+    @param[in] in_path - path to position file  
+    @param[in/OPT] fig_handle - what figure handle to use  
+    @param[in/OPT] mangnitude - mangitude of plotted vectors  
+    @return 3D plot of points, 2D plots of path the points will be run in  
     '''
     myap = ApertureBuilder()
     myap.load(in_path)

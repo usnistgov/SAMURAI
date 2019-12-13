@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Oct 31 13:24:04 2018
+Created on Wed Oct 31 13:24:04 2018  
 This is where all of the other SAMURAI functionality is going that doesn't nicely 
-fit somewhere else
-@author: ajw5
+fit somewhere else  
+@author: ajw5  
 """
 import time
 import sys
@@ -16,6 +16,7 @@ import numpy as np
 vna_visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
 
 def countLinesInFile(filePointer,comments='#'):
+	'''@brief count the number of lines in a file'''
     cnt = 0
     for line in filePointer:
         if(line.strip()):
@@ -26,7 +27,7 @@ def countLinesInFile(filePointer,comments='#'):
     return cnt
 
 def init_vna_usc(self,if_start=1.65e9,if_stop=2.05e9,rf_start=27.65e9,rf_stop=28.05e9,num_pts=41,source="RF"):
-    
+    '''@brief special initialization of VNA for IF/RF downconverting phased array tests'''
     ts = time.time()
     
     pnac = pnaCont.pnaController(vna_visa_address)

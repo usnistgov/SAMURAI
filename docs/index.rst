@@ -17,6 +17,7 @@ Welcome to SAMURAI's documentation!
    base/index
    acquisition/index
    analysis/index
+   data/index
    :maxdepth: 2
    :caption: Contents:
 

@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+'''
+@brief class to create a metafile and update its values during measurement. 
+This works by creating a json template from the provided measurement positions.
+While measuring, information is then stored in a raw text file to prevent python from parsing the json on every measurement.
+After completion of the measurement, this raw text file is then used to populate the final json measurement file 
+@author ajw5
+@date 2018
+'''
 
 from collections import OrderedDict
 import os
@@ -13,7 +21,12 @@ import getpass
 #also give the csv file where positions are running from to build JSON template
 #Written by Alec Weiss 2018
 class metaFile(OrderedDict):
-    # init our class
+    '''
+	@brief class to create a metafile and add measurements to it during a full measurement sweep  
+	@param[in] csv_path - path to file for positions of measurement (used to generate json template)  
+	@param[in] pna_addr - visa address of pna to get information from  
+	@param[in/OPT] arg_options - keyword arguments will replace any input key with provided value  
+	'''
     def __init__(self,csv_path,pna_addr,**arg_options):
 
         #input options
@@ -96,9 +109,9 @@ class metaFile(OrderedDict):
     
     def add_antenna(self,antenna,idx=None):
         '''
-        @brief add info on an antenna. This can be in whatever format
-        @param[in] antenna - information on antenna (usually a dictionary)
-        @param[in] OPTIONAL idx - if provided, overwrite given slot in antenna
+        @brief add info on an antenna. This can be in whatever format   
+        @param[in] antenna - information on antenna (usually a dictionary)   
+        @param[in] OPTIONAL idx - if provided, overwrite given slot in antenna   
         '''
         if(idx):
             self['antennas'][idx] = antenna
@@ -107,8 +120,8 @@ class metaFile(OrderedDict):
 
     def set_options(self,**options):
         '''
-        @brief set values in the options dictionary.
-        @param[in] options - key value pairs of options to set
+        @brief set values in the options dictionary.  
+        @param[in] options - key value pairs of options to set  
         '''
         for key,value in six.iteritems(options):
             self[key] = value
@@ -116,8 +129,8 @@ class metaFile(OrderedDict):
      #clean and create file names
     def make_file_names(self,clean=True):
         '''
-        @brief clean (increment name) and create file names for json and raw files
-        @param[in] clean - flag on whether or not to clean the file (change the name if it exists)
+        @brief clean (increment name) and create file names for json and raw files  
+        @param[in] clean - flag on whether or not to clean the file (change the name if it exists)  
         '''
         #tmp path is used to prevent unneccessary writes
         #to json file but save in case of crash
@@ -133,11 +146,10 @@ class metaFile(OrderedDict):
     #alias
     makeFileNames = make_file_names    
     
-    #get parameters from vna
     def get_vna_params(self,pna_addr):
         '''
-        @brief get parameters from the VNA if we can
-        @param[in] pna_addr - visa address of vna
+        @brief get parameters from the VNA if we can  
+        @param[in] pna_addr - visa address of vna  
         '''     
         from samurai.acquisition.instrument_control.PnaController import PnaController
         from samurai.acquisition.instrument_control.InstrumentControl import InstrumentConnectionError
@@ -148,13 +160,10 @@ class metaFile(OrderedDict):
         except InstrumentConnectionError: #only accespt instrument conection error
             print("Connection Error. Unable to get parameters from VNA.")
             
-    #init function to be called after all values set by user
-    #This will call init JSON and other files to build template.
-    #parameters after this cannot be changed
     def init(self,**additional_header_info):
         '''
-        @brief initialize after values set by user to create the json template
-        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        @brief initialize after values set by user to create the json template  
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header  
         '''
         #build our json file template
         self.build_json_template(**additional_header_info)
@@ -164,8 +173,8 @@ class metaFile(OrderedDict):
     def load_json_template(self,metafile_path):
         '''
         @brief load an already created json template (metafile without measurements)
-            This is usually done in case of failure of a mesurement. It will overwrite our options for this class too
-        @param[in] metafile_path - path to the metafile template (*.json) to load
+            This is usually done in case of failure of a mesurement. It will overwrite our options for this class too  
+        @param[in] metafile_path - path to the metafile template (*.json) to load  
         '''
         #load the json data
         self.jsonPath = metafile_path
@@ -180,17 +189,17 @@ class metaFile(OrderedDict):
     def load_raw_file(self,raw_path):
         '''
         @brief 'load' an already created raw (*.raw) file from a measurement.
-            Again usually used in case self.finalize is not reached in a measurement.
-            This actually just sets the self.tempfpath property
-        @param[in] raw_path - path to the raw (*.raw) file
+            Again usually used in case self.finalize is not reached in a measurement. 
+            This actually just sets the self.tempfpath property  
+        @param[in] raw_path - path to the raw (*.raw) file  
         '''
         self.raw_path = raw_path
         
     #build the initial template for our json file
     def build_json_template(self,**additional_header_info):
         '''
-        @brief build our json template with header and positions
-        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        @brief build our json template with header and positions  
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header  
         '''
         #first build header
         jhd = OrderedDict({})
@@ -235,9 +244,9 @@ class metaFile(OrderedDict):
     #can be built after all raw measurements have been taken
     def build_json_from_raw(self,raw_file_path='default',**additional_header_info):
         '''
-        @brief build a json template from a raw json file
-        @param[in] raw_file_path - location of raw file to create json from
-        @param[in/OPT] additional_header_info - keyword arguments to be added to the header
+        @brief build a json template from a raw json file  
+        @param[in] raw_file_path - location of raw file to create json from  
+        @param[in/OPT] additional_header_info - keyword arguments to be added to the header  
         '''
         if(raw_file_path=='default'):
             raw_file_path = self.raw_path
@@ -320,14 +329,14 @@ class metaFile(OrderedDict):
     #update temporary metaFile
     def update(self,file_path,position,**arg_options):
         '''
-        @brief update the temporary metafile data
-        @param[in] file_path - path of the measurement file
-        @param[in] position  - position of the positoiner for the measurement
-        @param[in] arg_options - keyword arguments as follows:
-            cal_file_path - location of the calibration file 
-            note - note to add to the measurement
-            measID - id of the measurement (default -1 autodetects)
-            dict_data - dicitionary of extra data to write to the measurement piece
+        @brief update the temporary metafile data  
+        @param[in] file_path - path of the measurement file  
+        @param[in] position  - position of the positoiner for the measurement  
+        @param[in] arg_options - keyword arguments as follows:  
+            - cal_file_path - location of the calibration file   
+            - note - note to add to the measurement  
+            - measID - id of the measurement (default -1 autodetects)  
+            - dict_data - dicitionary of extra data to write to the measurement piece  
         '''
         defaults = {'cal_file_path':self['cal_path'],'note':'none','measID':-1}
         defaults['dict_data'] = None 
@@ -362,7 +371,7 @@ class metaFile(OrderedDict):
         '''
         @brief write our data from our temp file back to the json file
             This finishes the measurement. After this is called the data from 
-            the '.raw' measurement file will be put into our json file
+            the '.raw' measurement file will be put into our json file  
         '''
         #load json data
         jsonFile = open(self.jsonPath,'r')
@@ -406,15 +415,18 @@ class metaFile(OrderedDict):
         #remove temp metafile
         #os.remove(self.jsonPath+'.tmp');
         
-        
-    #laod from previous session
     def load_session(self,metaName):
-        print("DO THIS")
+		'''
+		@brief load a previously incomplete measurement session 
+		@todo IMPLEMENT THIS FUNCTION
+		'''
+        raise NotImplementedError
         #build file with info to continue then delete at end when finished
         
      
     #get the file id of the last entry
     def get_last_meas_id(self):
+		'''@brief get the id of the last file saved in the raw file'''
         with open(self.raw_path,'r') as fp:
             #get last line
             for line in fp:
@@ -427,9 +439,9 @@ import re
 #check if file exists and change name if it does
 def clean_file_name(file_path,num=-1):
     '''
-    @brief clean the file name so if the file exists at an ending
-    @param[in] file_path - path/to/file to clean name of
-    @param[in/OPT] num - number to add (-1 finds the next lowest unused number)
+    @brief clean the file name so if the file exists at an ending  
+    @param[in] file_path - path/to/file to clean name of  
+    @param[in/OPT] num - number to add (-1 finds the next lowest unused number)  
     '''
     [mydir,fname] = os.path.split(file_path)
     i=0
@@ -452,9 +464,9 @@ MetaFile = metaFile
 def finalize_metafile(metafile_path,raw_path,**kwargs):
     '''
     @brief finalize a metafile in case of failure. 
-        This will finalize a metafile given the metafile path and the raw data path
-    @param[in] metafile_path - path to the metafile (.json) template create at the beginning of the measurement
-    @param[in] raw_path - path to the raw file (.raw) created from the mesaurements taken
+        This will finalize a metafile given the metafile path and the raw data path  
+    @param[in] metafile_path - path to the metafile (.json) template create at the beginning of the measurement  
+    @param[in] raw_path - path to the raw file (.raw) created from the mesaurements taken  
     '''
     mymf = MetaFile(None,None)
     mymf.load_json_template(metafile_path)

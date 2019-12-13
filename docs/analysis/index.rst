@@ -6,6 +6,18 @@
 	
 SAMURAI Data Analysis
 ======================
-This is not currently fully documented
+Some functions contained in the library are not fully documented here.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+Metafile Manipulation
+-----------------------
+Manipulation of the Metafile allows quick extraction of measurement positions, filepaths, and experimental setup information.
+
+.. automodule:: analysis.support.MetafileController
+    :members:
+    :undoc-members:
 
 
