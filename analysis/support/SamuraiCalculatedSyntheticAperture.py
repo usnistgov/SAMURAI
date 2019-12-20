@@ -807,6 +807,7 @@ class Antenna(OrderedDict):
 import os
 import re
     
+@deprecated("Superseded by samurai.analysis.SamuraiPostProcess.Antenna")
 class AntennaPattern(CalculatedSyntheticAperture):
     '''
     @brief class to hold antenna pattern values

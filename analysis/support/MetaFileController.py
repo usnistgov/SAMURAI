@@ -22,6 +22,7 @@ from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
 from samurai.acquisition.support.samurai_metaFile import metaFile
+from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
 class MetaFileController(SamuraiDict):
     '''
@@ -213,7 +214,7 @@ class MetaFileController(SamuraiDict):
     
     def get_external_positions(self,label=None,meas_num=-1):
         '''
-        @brief get externally measured positions. 
+        @brief get externally measured positions.
             If label is specified, a list of positional data for the data point
             or rigid body with that label will be returned. This return value
             will be a list of dictionaries with the entries various entries providing info on the measurements

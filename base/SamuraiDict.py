@@ -204,6 +204,8 @@ class SamuraiJSONEncoder(json.JSONEncoder):
     def default(self,obj):
         if isinstance(obj,np.ndarray): #change any ndarrays to lists
             return obj.tolist()
+        if np.iscomplexobj(obj): #then its a complex number
+            return complex_number_encoder(obj) #encode complex numbers
         elif hasattr(obj,self.custom_encoding_method): #assume this will then be a class with a custom method
             return class_encoder(obj)
         elif callable(obj): #if its a callable (e.g. a fucntion) try to encode it
@@ -226,6 +228,8 @@ def SamuraiJSONDecoder(o):
         spec_dir = first_key_name.strip('__')
         if spec_dir=='function':
             return function_decoder(o)
+        elif spec_dir=='complex_number':
+            return complex_number_decoder(o)
         elif spec_dir=='class': #assume its a class
             class_name = spec_dir
             globals_ = globals()
@@ -270,6 +274,24 @@ def class_encoder(myclass):
     class_dict = OrderedDict({'__class__':cust_enc_meth()})
     class_dict['__classname__'] = class_name 
     return class_dict
+
+def complex_number_encoder(obj):
+    '''
+    @brief Encode a complex number to json with the format
+        {__complex_number__:{real:[r1,r2,r3,...],imag:[i1,i2,i3,...]}}  
+    @param[in] obj - complex object to encode
+    @return Complex number dictionary
+    '''
+    return {'__complex_number__':{'real':np.real(obj),'imag':np.imag(obj)}}
+
+def complex_number_decoder(obj):
+    '''
+    @brief Decode a complex number from complex_number_encoder
+    @param[in] obj - encoded complex number like {__complex_number__:{real:[r1,r2,r3,...],imag:[i1,i2,i3,...]}}
+    @return A complex number or array of numbers
+    '''
+    nd = obj['__complex_number__']
+    return np.array(nd['real'])+1j*np.array(nd['imag'])
     
 
 import unittest
@@ -289,13 +311,17 @@ class TestSamuraiDict(unittest.TestCase):
         myd[[3,'test',5]] = 'xyz'
         self.assertEqual(myd[3]['test'][5],'xyz')
         
-    def test_rw_string(self):
-        '''@brief test reading and writing from string'''
+    def test_ed_basic(self):
+        '''@brief test encode/decode basic data from string'''
         #test basic dictionary
         myd = SamuraiDict({'test1':'test2','3':SamuraiDict({'test':SamuraiDict({'5':'abc'})})})
         mydl = SamuraiDict() #dict to load
         mydl.loads(myd.dumps())
         self.assertEqual(myd,mydl)
+        
+        
+    def test_ed_function(self):
+        '''@brief test encode/decode of functions from string'''
         #test the saving and loading of a function
         def foo(a,b):
             c = a*b
@@ -305,6 +331,21 @@ class TestSamuraiDict(unittest.TestCase):
         mydl.loads(myd.dumps())
         self.assertEqual(foo(4,5),mydl['3']['test']['5'](4,5)) #make sure the function was decoded
         
+    def test_ed_complex_number(self):
+        '''@brief test encode/decode of complex number(s) from string'''
+        myd = SamuraiDict({'test1':'test2','3':{'test':{'5':complex(1,0)},'t2':complex(3.2,4.1)}})
+        mydl = SamuraiDict()
+        mydl.loads(myd.dumps())
+        self.assertEqual(1+0j,mydl['3']['test']['5'])
+        self.assertEqual(3.2+4.1j,mydl['3']['t2'])
+        #and also test lists
+        vals_a = np.ones((100,))+np.zeros((100,))
+        vals_b = np.random.rand(100)+np.random.rand(100)
+        myd = SamuraiDict({'test1':'test2','3':{'test':{'5':vals_a},'t2':vals_b}})
+        mydl = SamuraiDict()
+        mydl.loads(myd.dumps())
+        self.assertTrue(np.all(vals_a==mydl['3']['test']['5']))
+        self.assertTrue(np.all(vals_b==mydl['3']['t2']))
     
 if __name__=='__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestSamuraiDict)
