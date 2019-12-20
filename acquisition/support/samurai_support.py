@@ -16,7 +16,7 @@ import numpy as np
 vna_visa_address = 'TCPIP0::10.0.0.2::inst0::INSTR'
 
 def countLinesInFile(filePointer,comments='#'):
-	'''@brief count the number of lines in a file'''
+    '''@brief count the number of lines in a file '''
     cnt = 0
     for line in filePointer:
         if(line.strip()):

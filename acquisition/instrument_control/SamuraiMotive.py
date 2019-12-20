@@ -353,6 +353,7 @@ class MotiveRigidBodyData(SamuraiPositionDataDict):
     def __init__(self,*args,**kwargs):
         '''@brief constructor'''
         super().__init__(*args,**kwargs)
+        self['units'] = 'mm'
         self.add_data_set(['position','rotation'])
         
 class MotiveMarkerData(SamuraiPositionDataDict):
@@ -360,6 +361,7 @@ class MotiveMarkerData(SamuraiPositionDataDict):
     def __init__(self,*args,**kwargs):
         '''@brief constructor'''
         super().__init__(*args,**kwargs)
+        self['units'] = 'mm'
         self.add_data_set(['position','residual'])
         
 class MotiveRigidBodyMarkerData(SamuraiDict):
@@ -367,6 +369,7 @@ class MotiveRigidBodyMarkerData(SamuraiDict):
     def __init__(self,*args,**kwargs):
         '''@brief constructor'''
         super().__init__(*args,**kwargs)
+        self['units'] = 'mm'
         self['data'] = []
         #self['info'] = SamuraiDict()
         

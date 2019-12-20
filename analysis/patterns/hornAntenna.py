@@ -201,7 +201,7 @@ for iPhi in range(numPhiVals):
         antResponse[0, 0, iTheta, iPhi], antResponse[1, 0, iTheta, iPhi] = sageHorn23.evalGain(thetaVals[iTheta], phiVals[iPhi], freqs[0])
 
 
-antStr='sage23'
+antStr='sage17'
 X, Y = R*np.cos(P*np.pi/180.), R*np.sin(P*np.pi/180.)
 #X, Y = R, P
 tt, pp = np.meshgrid(thetaVals, phiVals)
@@ -255,7 +255,8 @@ plt.savefig('cartVsSphereDirectivity_'+antStr+'.png')
 ###############################################################################
 fig, axs = plt.subplots(1,3, figsize=myFigSize)
 ax = axs[0]
-plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
+#plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
+plotGain = gainPattern[0,:,:]
 plotData = plotGain.transpose() # 20*np.log10(plotGain.transpose())
 im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
 ax.set_title('Gain Linear')
@@ -290,13 +291,14 @@ plt.show()
 plt.tight_layout()
 plt.savefig('sphereELinear_'+antStr+'.png')
 
-###############################################################################
-# Spherical E fields - dB
-###############################################################################
+################################################################################
+## Spherical E fields - dB
+################################################################################
 cutoff = -100 # dB
 fig, axs = plt.subplots(1,3, figsize=myFigSize)
 ax = axs[0]
-plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
+#plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
+plotGain = gainPattern[0,:,:]
 plotData = 20*np.log10(plotGain.transpose())
 mask = plotData < cutoff
 plotData[mask] = np.nan
@@ -337,271 +339,271 @@ plt.show()
 plt.tight_layout()
 plt.savefig('sphereEdB_'+antStr+'.png')
 
-###############################################################################
-# Cartesian E fields - linear
-###############################################################################
-fig, axs = plt.subplots(1,3, figsize=myFigSize)
-
-ax = axs[0]
-plotEx = np.abs(antResponseXYZ[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'$|E_x|$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-
-ax = axs[1]
-plotEy = np.abs(antResponseXYZ[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'$|E_y|$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-
-ax = axs[2]
-plotEy = np.abs(antResponseXYZ[2,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'$|E_z|$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-plt.tight_layout()
-plt.savefig('cartELinear_'+antStr+'.png')
-
-###############################################################################
-# Cartesian E fields - dB
-###############################################################################
-cutoff = -100 # dB
-fig, axs = plt.subplots(1,3, figsize=myFigSize)
-
-ax = axs[0]
-plotEx = np.abs(antResponseXYZ[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = 20*np.log10(plotEx.transpose()) # 20*np.log10(plotGain.transpose())
-mask = plotData < cutoff
-plotData[mask] = np.nan
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1, vmin=cutoff) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'$|E_x|$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-
-ax = axs[1]
-plotEy = np.abs(antResponseXYZ[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = 20*np.log10(plotEy.transpose()) # 20*np.log10(plotGain.transpose())
-mask = plotData < cutoff
-plotData[mask] = np.nan
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1, vmin=cutoff) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'$|E_y|$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-
-ax = axs[2]
-plotEy = np.abs(antResponseXYZ[2,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = 20*np.log10(plotEy.transpose()) # 20*np.log10(plotGain.transpose())
-mask = plotData < cutoff
-plotData[mask] = np.nan
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1, vmin=cutoff) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'$|E_z|$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-plt.tight_layout()
-plt.savefig('cartEdB_'+antStr+'.png')
-
-###############################################################################
-# Spherical E fields - linear
-###############################################################################
-myFigSize2 = (6.66,3)
-fig, axs = plt.subplots(1,2, figsize=myFigSize2)
-
-ax = axs[0]
-plotEx = 180./np.pi*np.angle(antResponse[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'Phase $E_\theta$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-
-ax = axs[1]
-plotEy = 180./np.pi*np.angle(antResponse[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'Phase $E_\phi$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-plt.tight_layout()
-plt.savefig('sphereEPhase_'+antStr+'.png')
-
-###############################################################################
-# Cartesian E fields - phase
-###############################################################################
-fig, axs = plt.subplots(1,3, figsize=myFigSize)
-
-ax = axs[0]
-plotEx = 180./np.pi*np.angle(antResponseXYZ[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'Phase $E_x$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-
-ax = axs[1]
-plotEy = 180./np.pi*np.angle(antResponseXYZ[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'Phase $E_y$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-
-ax = axs[2]
-plotEy = 180./np.pi*np.angle(antResponseXYZ[2,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
-plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'Phase $E_z$')
-ax.set_xticks([-180, -90, 0, 90, 180])
-ax.set_yticks([-180, -90, 0, 90, 180])
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-plt.tight_layout()
-plt.savefig('cartEPhase_'+antStr+'.png')
-
-sys.exit(0)
-
-fig, axs = plt.subplots(1,3)
-ax = axs[0]
-plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
-plotData = plotGain.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title('Gain Linear')
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-
-ax = axs[1]
-plotEx = np.angle(antResponseXYZ[0,0,:,:])
-plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'Phase $E_x$')
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-
-ax = axs[2]
-plotEy = np.angle(antResponseXYZ[1,0,:,:])
-plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
-im = ax.contourf(X, Y, plotData) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-ax.set_title(r'Phase of $E_y$')
-divider = make_axes_locatable(ax)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im, cax=cax, orientation='vertical')
-plt.show()
-
-sys.exit(0)
-
-
-
-
-fig, axs = plt.subplots(3,1)
-ax = fig.add_subplot(111, projection='3d')
-#Z = ((R**2 - 1)**2)
-axs[0].contourf(X, Y, np.transpose(np.abs(antResponse[0,0,:,:])))
-axs[1].contourf(X, Y, np.transpose(np.abs(antResponse[1,0,:,:])))
-axs[2].contourf(X, Y, np.transpose(np.abs(gainPattern[0,:,:])))
-#plt.contourf(X, Y, np.transpose(gainPattern[0,:,:]))
-#fig.colorbar()
-plt.show()
-
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
-plotData = 20*np.log10(plotGain.transpose())
-maskVal = -40
-mask = plotData < maskVal
-plotData[mask] = maskVal
-surf = ax.plot_surface(X, Y, plotData, cmap=cm.coolwarm) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-# Customize the z axis.
-#ax.set_zlim(bottom=maskVal, top=-60)
-#ax.zaxis.set_major_locator(LinearLocator(10))
-#ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-# Add a color bar which maps values to colors.
-fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.title('Gain in dB')
-plt.show()
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
-plotData = plotGain.transpose() # 20*np.log10(plotGain.transpose())
+################################################################################
+## Cartesian E fields - linear
+################################################################################
+#fig, axs = plt.subplots(1,3, figsize=myFigSize)
+#
+#ax = axs[0]
+#plotEx = np.abs(antResponseXYZ[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'$|E_x|$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#
+#ax = axs[1]
+#plotEy = np.abs(antResponseXYZ[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'$|E_y|$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#
+#ax = axs[2]
+#plotEy = np.abs(antResponseXYZ[2,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'$|E_z|$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#plt.tight_layout()
+#plt.savefig('cartELinear_'+antStr+'.png')
+#
+################################################################################
+## Cartesian E fields - dB
+################################################################################
+#cutoff = -100 # dB
+#fig, axs = plt.subplots(1,3, figsize=myFigSize)
+#
+#ax = axs[0]
+#plotEx = np.abs(antResponseXYZ[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = 20*np.log10(plotEx.transpose()) # 20*np.log10(plotGain.transpose())
+#mask = plotData < cutoff
+#plotData[mask] = np.nan
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1, vmin=cutoff) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'$|E_x|$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#
+#ax = axs[1]
+#plotEy = np.abs(antResponseXYZ[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = 20*np.log10(plotEy.transpose()) # 20*np.log10(plotGain.transpose())
+#mask = plotData < cutoff
+#plotData[mask] = np.nan
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1, vmin=cutoff) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'$|E_y|$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#
+#ax = axs[2]
+#plotEy = np.abs(antResponseXYZ[2,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = 20*np.log10(plotEy.transpose()) # 20*np.log10(plotGain.transpose())
+#mask = plotData < cutoff
+#plotData[mask] = np.nan
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1, vmin=cutoff) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'$|E_z|$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#plt.tight_layout()
+#plt.savefig('cartEdB_'+antStr+'.png')
+#
+################################################################################
+## Spherical E fields - linear
+################################################################################
+#myFigSize2 = (6.66,3)
+#fig, axs = plt.subplots(1,2, figsize=myFigSize2)
+#
+#ax = axs[0]
+#plotEx = 180./np.pi*np.angle(antResponse[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'Phase $E_\theta$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#
+#ax = axs[1]
+#plotEy = 180./np.pi*np.angle(antResponse[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'Phase $E_\phi$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#plt.tight_layout()
+#plt.savefig('sphereEPhase_'+antStr+'.png')
+#
+################################################################################
+## Cartesian E fields - phase
+################################################################################
+#fig, axs = plt.subplots(1,3, figsize=myFigSize)
+#
+#ax = axs[0]
+#plotEx = 180./np.pi*np.angle(antResponseXYZ[0,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'Phase $E_x$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#
+#ax = axs[1]
+#plotEy = 180./np.pi*np.angle(antResponseXYZ[1,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'Phase $E_y$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#
+#ax = axs[2]
+#plotEy = 180./np.pi*np.angle(antResponseXYZ[2,0,:,:]) #/np.max(np.abs(antResponseXYZ[1,0,:,:]))
+#plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'Phase $E_z$')
+#ax.set_xticks([-180, -90, 0, 90, 180])
+#ax.set_yticks([-180, -90, 0, 90, 180])
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#plt.tight_layout()
+#plt.savefig('cartEPhase_'+antStr+'.png')
+#
+#sys.exit(0)
+#
+#fig, axs = plt.subplots(1,3)
+#ax = axs[0]
+#plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
+#plotData = plotGain.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title('Gain Linear')
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#
+#ax = axs[1]
+#plotEx = np.angle(antResponseXYZ[0,0,:,:])
+#plotData = plotEx.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'Phase $E_x$')
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#
+#ax = axs[2]
+#plotEy = np.angle(antResponseXYZ[1,0,:,:])
+#plotData = plotEy.transpose() # 20*np.log10(plotGain.transpose())
+#im = ax.contourf(X, Y, plotData) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+#ax.set_title(r'Phase of $E_y$')
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im, cax=cax, orientation='vertical')
+#plt.show()
+#
+#sys.exit(0)
+#
+#
+#
+#
+#fig, axs = plt.subplots(3,1)
+#ax = fig.add_subplot(111, projection='3d')
+##Z = ((R**2 - 1)**2)
+#axs[0].contourf(X, Y, np.transpose(np.abs(antResponse[0,0,:,:])))
+#axs[1].contourf(X, Y, np.transpose(np.abs(antResponse[1,0,:,:])))
+#axs[2].contourf(X, Y, np.transpose(np.abs(gainPattern[0,:,:])))
+##plt.contourf(X, Y, np.transpose(gainPattern[0,:,:]))
+##fig.colorbar()
+#plt.show()
+#
+#
+#fig = plt.figure()
+#ax = fig.gca(projection='3d')
+#plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
+#plotData = 20*np.log10(plotGain.transpose())
 #maskVal = -40
 #mask = plotData < maskVal
 #plotData[mask] = maskVal
-surf = ax.plot_surface(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
-# Customize the z axis.
-#ax.set_zlim(bottom=maskVal, top=-60)
-#ax.zaxis.set_major_locator(LinearLocator(10))
-#ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
-# Add a color bar which maps values to colors.
+#surf = ax.plot_surface(X, Y, plotData, cmap=cm.coolwarm) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+## Customize the z axis.
+##ax.set_zlim(bottom=maskVal, top=-60)
+##ax.zaxis.set_major_locator(LinearLocator(10))
+##ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+## Add a color bar which maps values to colors.
 #fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.title('Gain in linear')
-plt.show()
-
-# 
-fig = plt.figure()
-plt.contourf(X, Y, np.transpose(np.log10(gainPattern[0,:,:]))) #, levels=100)
-plt.show()
-
-ey = np.cos(pp*np.pi/180.)*np.transpose(antResponse[1,0,:,:]) - np.cos(tt*np.pi/180.)*np.sin(pp*np.pi/180.)*np.transpose(antResponse[0,0,:,:])
-plt.show()
-
-fig = plt.figure()
-plt.contourf(X, Y, 20*np.log10(np.abs(ey)), levels=range(-60,10,10), vmax=0.0, vmin=-60, extend='both')
-plt.colorbar()
-ax = plt.gca()
-#ax.zlim([-8, 0])
-plt.show()
-fig = plt.figure()
-plt.contourf(X, Y, np.angle(ey, deg=True)) #, vmax=0.0, vmin=-60)
-plt.colorbar()
-ax = plt.gca()
-#ax.zlim([-8, 0])
-plt.show()
+#plt.title('Gain in dB')
+#plt.show()
+#
+#fig = plt.figure()
+#ax = fig.gca(projection='3d')
+#plotGain = gainPattern[0,:,:]/np.max(gainPattern[0,:,:])
+#plotData = plotGain.transpose() # 20*np.log10(plotGain.transpose())
+##maskVal = -40
+##mask = plotData < maskVal
+##plotData[mask] = maskVal
+#surf = ax.plot_surface(X, Y, plotData, color='white', shade=True, edgecolor='black', linewidths=0.1) #, vmin=-120, vmax=-60) #=False) #,                      cmap=cm.coolwarm, linewidth=0, antialiased=False)
+## Customize the z axis.
+##ax.set_zlim(bottom=maskVal, top=-60)
+##ax.zaxis.set_major_locator(LinearLocator(10))
+##ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+## Add a color bar which maps values to colors.
+##fig.colorbar(surf, shrink=0.5, aspect=5)
+#plt.title('Gain in linear')
+#plt.show()
+#
+## 
+#fig = plt.figure()
+#plt.contourf(X, Y, np.transpose(np.log10(gainPattern[0,:,:]))) #, levels=100)
+#plt.show()
+#
+#ey = np.cos(pp*np.pi/180.)*np.transpose(antResponse[1,0,:,:]) - np.cos(tt*np.pi/180.)*np.sin(pp*np.pi/180.)*np.transpose(antResponse[0,0,:,:])
+#plt.show()
+#
+#fig = plt.figure()
+#plt.contourf(X, Y, 20*np.log10(np.abs(ey)), levels=range(-60,10,10), vmax=0.0, vmin=-60, extend='both')
+#plt.colorbar()
+#ax = plt.gca()
+##ax.zlim([-8, 0])
+#plt.show()
+#fig = plt.figure()
+#plt.contourf(X, Y, np.angle(ey, deg=True)) #, vmax=0.0, vmin=-60)
+#plt.colorbar()
+#ax = plt.gca()
+##ax.zlim([-8, 0])
+#plt.show()
 
 ###############################################################################
 # Balanis style plot

@@ -416,7 +416,7 @@ class metaFile(OrderedDict):
         #os.remove(self.jsonPath+'.tmp');
         
     def load_session(self,metaName):
-		'''
+        '''
 		@brief load a previously incomplete measurement session 
 		@todo IMPLEMENT THIS FUNCTION
 		'''
@@ -426,7 +426,7 @@ class metaFile(OrderedDict):
      
     #get the file id of the last entry
     def get_last_meas_id(self):
-		'''@brief get the id of the last file saved in the raw file'''
+        '''@brief get the id of the last file saved in the raw file'''
         with open(self.raw_path,'r') as fp:
             #get last line
             for line in fp:
