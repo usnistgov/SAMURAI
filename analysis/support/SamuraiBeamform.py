@@ -32,14 +32,14 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
             data_meas_num   - which measurement of monte_carlo or perturbed to use
         '''
-        super(SamuraiBeamform,self).__init__(metafile_path,**arg_options)
+        super().__init__(metafile_path,**arg_options)
     
     def beamforming_farfield_azel(self,az_vals,el_vals,freq_list='all',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in azimuth elevation
             All locations will be pulled from the metafile positions
-        @param[in] az_vals - azimuth angles in elevation from x axis
-        @param[in] el_vals - elevation angles in azimuth from xy plane
+        @param[in] az_vals - azimuth angles in elevation from x axis (degrees)
+        @param[in] el_vals - elevation angles in azimuth from xy plane (degrees)
         @note - az and el vals will be meshgridded (only provide cross sections)
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
         @param[in/OPT] arg_options - keyword arguments as follows:

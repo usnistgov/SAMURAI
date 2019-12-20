@@ -17,19 +17,46 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 
-# -- Parse docstrings as markdown --------------------------------------------
+# -- Docstring Parsing -------------------------------------------------------
 import commonmark
+import re
 
-def docstring(app, what, name, obj, options, lines):
-    md  = '\n'.join(lines)
-    ast = commonmark.Parser().parse(md)
-    rst = commonmark.ReStructuredTextRenderer().render(ast)
+dox_funct_dict = {
+    "brief"  : lambda str: re.sub(' +',' ',str.strip().strip("brief").replace('\n','').strip()),
+    "param"  : lambda str: re.sub(' +',' ',':param '+' '.join(str.strip().split(' ')[1:]).replace(' -',':').replace('\n','')+'\n'),
+    "example": lambda str: re.sub(' +',' ',('.. code-block:: python\n'+str.strip().strip('example')).replace('\n','\n   ')+'\n'),
+    "return" : lambda str: re.sub(' +',' ',":return: "+str.strip().strip("return").replace('\n','')+'\n'),
+	"note"   : lambda str: re.sub(' +',' ',".. note:"+str.strip().strip("note").replace('\n','')+'\n'),
+    "warning": lambda str: re.sub(' +',' ',".. warning:"+str.strip().strip("warning").replace('\n','')+'\n'),
+    "todo"   : lambda str: re.sub(' +',' ',".. todo::"+str.strip().strip("todo").replace('\n','')+'\n'),
+    "cite"   : lambda str: re.sub(' +',' ',".. seealso:: "+"*"+str.strip().strip("cite").replace('\n','')+"*+\n"),
+}
+
+def doxygen2rst(dox_str):
+    '''@brief take doxygen-like docstrings that are partially rst and make them restructured text'''
+    dox_str = dox_str.strip() #remove any leading or trailing whitespaces
+    dox_lines = dox_str.split('@')[1:] #split lines on ampersand and remove first empty bit
+    rst_str_list = []
+    for dl in dox_lines: #loop through each split line
+        for k in dox_funct_dict.keys(): #look for the key 
+            if dl.startswith(k):
+                dl = dox_funct_dict[k](dl) #format the line 
+        rst_str_list.append(dl) #add the line to the lines
+    return ' \n'.join(rst_str_list)
+
+def docstring(app, what, name, obj, options, lines): #change this to not use markdown
+    dox  = '\n'.join(lines)
+    rst = dox
+    #ast = commonmark.Parser().parse(md)
+    #rst = commonmark.ReStructuredTextRenderer().render(ast)
     lines.clear()
+    rst = doxygen2rst(rst)
     for line in rst.splitlines():
         lines.append(line)
 
 def setup(app):
     app.connect('autodoc-process-docstring', docstring)
+
 
 # -- Project information -----------------------------------------------------
 

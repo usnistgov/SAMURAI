@@ -180,7 +180,8 @@ import math
 def round_arb(value,multiple):
     '''
     @brief round a number to a multiple of another arbitrary number  
-    @example >>>round_arb(5.2,2) = 6  
+    @example 
+        >>>round_arb(5.2,2) = 6  
     @param[in] value - value to round  
     @param[in] multiple - multiple to round to   
     @return rounded value  

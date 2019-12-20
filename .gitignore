@@ -1,4 +1,5 @@
-
+#ignore test documents
+test_docs
 #ignore vscode info
 */external/
 .vscode/
