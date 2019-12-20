@@ -95,7 +95,7 @@ class TouchstoneEditor(object):
        @param[in] input_file - path of file to load in. 
                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
                measurement with n ports and frequencies [f1,f2,...]   
-       @param[in/OPT] **kwargs - keyword arguments. most passed to init but the following:
+       @param[in/OPT] kwargs - keyword arguments. most passed to init but the following:
            override_extension_check - prevent the class from being changed due to extension  
        @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data  
        '''
@@ -215,7 +215,7 @@ class TouchstoneEditor(object):
         '''
         @brief load a wave parameter file and parse into the class  
         @param[in] input_file - path of file to load  
-        @param[in/OPT] - **kwargs - keyword arguements as follows:  
+        @param[in/OPT] - kwargs - keyword arguements as follows:  
                 - ftype  - type of file we are loading (e.g. 'text' or 'binary')  
                 - read_header - whether or not to read the header and comments in text files. It is faster to not read the header/comments
         '''
@@ -295,7 +295,7 @@ class TouchstoneEditor(object):
        '''
        @brief internal function to load text snp/wnp file  
        @param[in] file_path - path of text file to load  
-       @param[in/OPT] **kwargs - keyword args as follows:  
+       @param[in/OPT] kwargs - keyword args as follows:  
            - read_header - whether or not to read the header and comments in text files.
                            It is faster to not read the header/comments  
        '''
@@ -326,7 +326,7 @@ class TouchstoneEditor(object):
        '''
        @brief internal function to load binary snp/wnp file  
        @param[in] file_path - path of binary file to load  
-       @param[in/OPT] **kwargs - keyword args as follows:  
+       @param[in/OPT] kwargs - keyword args as follows:  
            - None yet!
        '''
        [num_rows,num_cols] = np.fromfile(file_path,dtype=np.uint32,count=2) 
@@ -401,7 +401,7 @@ class TouchstoneEditor(object):
             (e.g *.snp) the n will be replaced with the correct number of ports  
         @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)  
         @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')  
-        @param[in/OPT] **kwargs - keyword arguments as follows  
+        @param[in/OPT] kwargs - keyword arguments as follows  
             - fix_extension - whether or not to fix the extension provided by out_file (default True)
                 This ensures the output file extension is correct  
         '''
@@ -604,7 +604,7 @@ class TouchstoneEditor(object):
    def __eq__(self,other):
        '''
        @brief override default to check equality of each port. 
-         we will return whther number of ports match, then lists of A matching and B matching  
+         we will return whether number of ports match, then lists of A matching and B matching  
        '''
        eq_ports,eq_out_vals = self.check_equal(other)
        tf_list = [eq_ports]
@@ -670,8 +670,8 @@ class TouchstoneEditor(object):
        '''
        @brief run a function on each of our param raw data.  
        @param[in] funct - function to run  
-       @param[in/OPT] *args - arguments for funct  
-       @param[in/OPT] **kwargs - keyword args for funct  
+       @param[in/OPT] args - arguments for funct  
+       @param[in/OPT] kwargs - keyword args for funct  
        @note this will operate directly on the data of each parameter. the first input to funct must also be self.raw  
        '''
        for k in self.waves.keys(): #loop through each key we have
@@ -1039,8 +1039,8 @@ class TouchstoneParam:
        '''
        @brief run a function on each of our param raw data.  
        @param[in] funct - function to run  
-       @param[in/OPT] *args - arguments for funct  
-       @param[in/OPT] **kwargs - keyword args for funct  
+       @param[in/OPT] args - arguments for funct  
+       @param[in/OPT] kwargs - keyword args for funct  
        @note this will operate directly on self.raw. the first input to funct will be complex ndarray  
        '''
        self.raw = funct(self.raw,*args,**kwargs)
@@ -1265,7 +1265,7 @@ class MalformedSnpError(SnpError):
 def swap_ports(*args,**kwargs):
     '''
     @brief swap port n between just 2 2 port files (for now)  
-    @param[in] *args - the SnpEditor objects to swap  
+    @param[in] args - the SnpEditor objects to swap  
     '''
     #load in the data
     s1 = args[0]

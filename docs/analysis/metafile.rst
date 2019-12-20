@@ -43,7 +43,7 @@ the metafile using the ``MetaFileController.get_external_positions()`` method.
 
 Metafile Controller Class
 ---------------------------
-.. automodule:: analysis.support.MetafileController
+.. automodule:: analysis.support.MetaFileController
     :members:
 
 

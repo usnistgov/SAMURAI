@@ -57,8 +57,8 @@ class SamuraiMatlab:
         '''
         @brief call a matlab function given by name funct_name  
         @param[in] funct_name - name of function to call  
-        @param[in/OPT] *args - variable arguments to pass to matlab funciton  
-        @param[in/OPT] **kwargs - keyword args to pass to matlab function (all except nargout)  
+        @param[in/OPT] args - variable arguments to pass to matlab funciton  
+        @param[in/OPT] kwargs - keyword args to pass to matlab function (all except nargout)  
         '''
         funct = getattr(self.engine,funct_name)
         args,kwargs = self.args2matlab(*args,**kwargs)
@@ -86,8 +86,8 @@ class SamuraiMatlab:
         '''
         @brief convert variable number of arguments to matlab
             kwargs will also be converted to name/value pairs  
-        @param[in] *args - variable arguments  
-        @param[in/OPT] **kwargs - kwargs will be converted to name/value pairs  
+        @param[in] args - variable arguments  
+        @param[in/OPT] kwargs - kwargs will be converted to name/value pairs  
         @return tuple of variable args (*args) and dict for keyword arguments
             kwargs will just have special required keyword args like nargout  
         '''

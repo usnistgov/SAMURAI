@@ -17,11 +17,6 @@ This page also includes examples on how to work with this data using the SAMURAI
    :maxdepth: 2
    :caption: Contents:
 
-This is a fun graph
-====================
-
-.. raw:: html
-	:file: aperture_results_3d.html
 
 
 

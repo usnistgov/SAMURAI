@@ -29,8 +29,14 @@ dox_funct_dict = {
 	"note"   : lambda str: re.sub(' +',' ',".. note:"+str.strip().strip("note").replace('\n','')+'\n'),
     "warning": lambda str: re.sub(' +',' ',".. warning:"+str.strip().strip("warning").replace('\n','')+'\n'),
     "todo"   : lambda str: re.sub(' +',' ',".. todo::"+str.strip().strip("todo").replace('\n','')+'\n'),
-    "cite"   : lambda str: re.sub(' +',' ',".. seealso:: "+"*"+str.strip().strip("cite").replace('\n','')+"*+\n"),
+    "cite"   : lambda str: re.sub(' +',' ',".. seealso:: "+"*"+str.strip().strip("cite").replace('\n','')+"*\n"),
 }
+
+def docstring_preprocess(doc_str):
+    '''@brief preprocess our doc strings'''
+    doc_str = doc_str.replace('*','\*')
+    doc_str = doc_str.replace('"','\"')
+    return doc_str
 
 def doxygen2rst(dox_str):
     '''@brief take doxygen-like docstrings that are partially rst and make them restructured text'''
@@ -46,7 +52,7 @@ def doxygen2rst(dox_str):
 
 def docstring(app, what, name, obj, options, lines): #change this to not use markdown
     dox  = '\n'.join(lines)
-    rst = dox
+    rst = docstring_preprocess(dox)
     #ast = commonmark.Parser().parse(md)
     #rst = commonmark.ReStructuredTextRenderer().render(ast)
     lines.clear()
