@@ -9,11 +9,10 @@ SAMURAI Data Information
 
 Here we have information on each dataset stored at ??? measured using the SAMURAI system at the National Institute of Standards and Technology.
 
-This page also includes examples on how to work with this data using the SAMURAI libraries.
+For examples on utilizing the samurai data please see the :ref:`SAMURAI Data Analysis` section.
 
 .. toctree::
    data_readme.md
-   data_examples.md
    :maxdepth: 2
    :caption: Contents:
 

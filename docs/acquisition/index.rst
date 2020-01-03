@@ -6,64 +6,22 @@
 SAMURAI Data Acquisition
 =========================
 
-Running the SAMURAI System
------------------------------
+.. toctree::
+   running_samurai
+   :maxdepth: 2
+   :caption: Running a Measurement
 
 .. toctree::
-   README
+   samurai_config
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Configuration Information
+
+.. toctree::
+   acquisition_code
+   :maxdepth: 2
+   :caption: Code Reference
 
 	
-System Control Libraries
------------------------------
-
-.. automodule:: acquisition.SAMURAI_System
-    :members:
-    :undoc-members:
-
-Instrument Control Libraries
---------------------------------
-
-.. automodule:: acquisition.instrument_control
-		:members:
-
-
-Instrument Control Base
-++++++++++++++++++++++++
-.. automodule:: acquisition.instrument_control.InstrumentControl
-		:members:
-.. automodule:: acquisition.instrument_control.SamuraiPositionTrack
-		:members:
-
-Optitrack Interface
-++++++++++++++++++++++
-.. automodule:: acquisition.instrument_control.SamuraiMotive
-		:members:
-.. automodule:: acquisition.instrument_control.NatNetClient
-		:members:
-
-VNA Control 
-+++++++++++++++++++++
-.. automodule:: acquisition.instrument_control.PnaController
-		:members:
-
-Robot Control
-++++++++++++++
-.. automodule:: acquisition.instrument_control.Meca500
-		:members:
-
-
-Other Positioner Control Software
-++++++++++++++++++++++++++++++++++
-.. automodule:: acquisition.instrument_control.BislideController
-		:members:
-
-.. automodule:: acquisition.instrument_control.BlueTestChamber
-		:members:
-
-.. automodule:: acquisition.instrument_control.LindgrenTurnTableController
-		:members:
 
 
 
