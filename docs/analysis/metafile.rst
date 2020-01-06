@@ -33,17 +33,25 @@ The file paths of each measurement can be retrieved with ``MetaFileController.fi
 The position of the synthetic aperture from each measurement can be retrieved with the ``MetaFileController.positions`` property.
 The data from each of the files can be loaded as samurai.base.TouchstoneEditor.TouchstoneEditor objects using the ``MetaFileController.load_data()`` method.
 
-Loading external positoining information
+Loading external positioning information
 -----------------------------------------
 Later SAMURAI measurements use an Optitrack optical positioning system to provide positoning information on multiple points in the measurement such
 as the transmit and recieve antennas, and possible scatterers in the scene. A dictionary with data on each marker can quickly be extracted from the metafile using the 
 the metafile using the ``MetaFileController.get_external_positions()`` method.
 
 
+Loading with MATLAB
+----------------------
+Some of these functions have also been implemented in MATLAB with the SamuraiMetafile Class.
+
 
 Metafile Controller Class
 ---------------------------
 .. automodule:: analysis.support.MetaFileController
+    :members:
+
+.. mat:automodule:: analysis.support 
+.. mat:autoclass:: SamuraiMetafile 
     :members:
 
 

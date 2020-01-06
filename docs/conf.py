@@ -15,6 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
+matlab_src_dir = os.path.abspath('..')
 
 
 # -- Docstring Parsing -------------------------------------------------------
@@ -87,6 +88,7 @@ release = '0.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+	'sphinxcontrib.matlab',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
