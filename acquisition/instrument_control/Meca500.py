@@ -527,7 +527,13 @@ class MecaReturnMessage:
         re_c = re.compile('[%s]*'%strip_chars) #reg expression to replace
         msg_split = msg.split('][') #spit the first and second parts
         msg_split_clean = [re_c.sub('',v) for v in msg_split] #then strip our other characters
-        self.msg_num = int(msg_split_clean[0]) #save the message number
+        try: #this sometimes fails when the connection is wonky
+            self.msg_num = int(msg_split_clean[0]) #save the message number
+        except ValueError as ve:
+            raise ValueError(str(ve)+ ' \n '+
+                'This may be caused by a number of errors, but many times is caused by connection problems with the robot\n'+
+                    'Try to turn off the robot and back on again along with restarting the python terminal. \n'+
+                        'This should fully reset the connection to the robot and may remedy this problem')
         self.msg = msg_split_clean[1] #save the message
         #check if this is an error message
         if(self.msg_num in MecaReturnMessage.err_msg_nums): #if it is an error message
