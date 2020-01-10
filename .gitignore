@@ -3,5 +3,10 @@ test_docs
 #ignore vscode info
 */external/
 .vscode/
-*.pyc
 ~$*
+
+#ignore compiled python files
+*.pyc
+
+#ignore temporary matlab files
+*.asv
