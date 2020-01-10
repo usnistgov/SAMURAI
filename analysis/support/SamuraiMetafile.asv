@@ -45,7 +45,7 @@ classdef SamuraiMetafile < handle
         
         function meas_path_list = get_meas_path_list(obj)
             %@brief Get a list of relative paths to each measurement
-            %@note this returns stored relative file paths
+            %@note this returns stored realtive file paths
             %   from self.json_data.measurements(i).filename
             %@return An array of strings with relative file paths
             num_meas = obj.get_num_meas();
@@ -79,9 +79,7 @@ classdef SamuraiMetafile < handle
         
         function loc_list = get_location_list(obj)
             %@brief Get a list of locations from the metafile 
-            %   corresponding to each measurement in
-            %   self.get_meas_path_list
-            %@return Array with x,y,z,alpha,beta,gamma position/rotations
+            %   corresponding to each measurement in self.get_
             num_meas = obj.get_num_meas();
             num_pos  = length(obj.json_data.measurements(1).position);
             loc_list = zeros(num_meas,num_pos);

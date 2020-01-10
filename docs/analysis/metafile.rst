@@ -43,13 +43,28 @@ the metafile using the ``MetaFileController.get_external_positions()`` method.
 Loading with MATLAB
 ----------------------
 Some of these functions have also been implemented in MATLAB with the SamuraiMetafile Class.
+An example of how to load filepaths and positions in MATLAB is as follows:
+
+.. note:: The user must provide the correct loading of the data from the filepaths in this scenario.
+
+.. literalinclude:: ../test_scripts/metafile_test_script.m
+    :language: matlab 
+    :linenos:
 
 
-Metafile Controller Class
+Metafile Interface Classes
 ---------------------------
+Code information for both MetaFileController (Python) and SamuraiMetafile (MATLAB)
+
+Python 
++++++++++++++++++
+
 .. automodule:: analysis.support.MetaFileController
     :members:
 
+MATLAB
+++++++++++++
+    
 .. mat:automodule:: analysis.support 
 .. mat:autoclass:: SamuraiMetafile 
     :members:
