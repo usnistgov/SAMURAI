@@ -658,7 +658,7 @@ def update_wdir(metafile_path):
 #import copy
 def split_metafile(metafile_path,meas_split,label='split'):
     '''
-    @brief - This function provides the ability to split a metafile. The allows a single
+    @brief This function provides the ability to split a metafile. The allows a single
     measurement to be split into multiple (in the case of taking multiple 
     apertures in a single measurement).
     
@@ -692,12 +692,12 @@ def split_metafile(metafile_path,meas_split,label='split'):
 # Evenly split into N apertures
 def evenly_split_metafile(metafile_path,num_splits,label='split'):
     '''
-    @brief - evenly split .json metafile into num_splits different files. 
+    @brief Evenly split .json metafile into num_splits different files. 
         split files are named in the following form <name>_<label>_#.json.
         Files will be written to same diretory as json file
-    @param[in] - metafile_path - .json file with metafile information
-    @param[in] - num_splits - number of even splits to make
-    @param[in] - label - label to append to filename when written out
+    @param[in] metafile_path - .json file with metafile information
+    @param[in] num_splits    - number of even splits to make
+    @param[in] label         - label to append to filename when written out
     '''
     
     # First we get the number of measurements per split.

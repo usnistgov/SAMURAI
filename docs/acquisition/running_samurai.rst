@@ -13,11 +13,31 @@ This section shows how to run from a premade python script. This requires the lo
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
 #. Make a copy of :code:`meas_template` in the directory :code:`U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture`
+
 #. Rename the copy to the current date in the format :code:`mm-dd-yyyy`
     - From here on, this newly created directory will be referred to as :code:`<working-directory>`
+
 #. Copy and paste the correct comma separated value (CSV) file containing the positions into :code:`<working-directory>/synthetic_aperture/raw`
     - Some commonly used templates are contained in :code:`<working-directory>/synthetic_aperture/raw/position_templates` directory.
     - Once the desired CSV file has been copied, rename it :code:`positions.csv`
+
+.. note:: The layout for the :code:`meas_template` directory should look like:
+
+			 - /	
+				- cal/
+					- calibration_post/
+					- calibration_pre/
+				- channel_test/
+					- channel_test.py
+				- external_data/
+					- pictures/
+					- positions/
+					- temp/
+				- synthetic_aperture/
+					- raw/
+					- position_templates/
+					- run_script.py
+					- set_vna_params.py 
 
 
 2. Perform 2 Port VNA Calibration
@@ -51,179 +71,35 @@ run_script.py
 +++++++++++++++++++
 This is the script for running and configuring the samurai system.
 
-.. code-block:: python 
+.. module:: acquisition.script_templates.run_script
+.. data::   acquisition.script_templates.run_script
 
-	"""
-	Created on Fri May 17 14:08:56 2019
-	@author: ajw5
-	"""
-
-	from samurai.acquisition.SAMURAI_System import SAMURAI_System
-	from collections import OrderedDict
-
-	## configuration for motive
-	motive_dict = {}
-	motive_dict['meca_head'] = None
-	motive_dict['origin']    = None
-	motive_dict['tx_antenna'] = None
-	#labeled markers
-	motive_dict['vna_marker'] = 50716
-
-	position_file = './position_templates/samurai_planar_dp.csv'
-	output_dir = './'
-
-	#info to put into metafile
-	metafile_info_dict = {}
-	metafile_info_dict["experiment"] = None
-	metafile_info_dict["experiment_photo_path"] = "../external_data/pictures/"
-	rx_ant = OrderedDict()
-	rx_ant["name"]          = "Sage Millimeter 17dBi rectangular horn (SAR-1725-28-S2)"
-	rx_ant["txrx"]          = "rx"
-	rx_ant["location"]      = None
-	rx_ant["gain_dbi"]      = 17
-	rx_ant["beamwidth_e"]   = 23
-	rx_ant["beamwidth_h"]   = 24
-	rx_ant["serial_number"] = "14172-01"
-	tx_ant1 = OrderedDict()
-	tx_ant1["name"]          = "Sage Millimeter 17dBi rectangular horn (SAR-1725-28-S2)"
-	tx_ant1["txrx"]          = "tx"
-	tx_ant1["location"]      = None
-	tx_ant1["gain_dbi"]      = 17
-	tx_ant1["beamwidth_e"]   = 23
-	tx_ant1["beamwidth_h"]   = 24
-	tx_ant1["serial_number"] = "14172-02"
-	metafile_info_dict["antennas"] = [rx_ant,tx_ant1]
-	#metafile_info_dict["scatterers"] = "Active scatterers (sources) see \"antennas\" data" #[cyl_1,cyl_2]
-	metafile_info_dict["notes"] = None
-
-
-	mysam = SAMURAI_System()
-	mysam.connect_rx_positioner()
-	mysam.csv_sweep(output_dir,position_file,external_position_measurements=motive_dict,metafile_header_values=metafile_info_dict)
-	mysam.disconnect_rx_positioner()
+.. literalinclude:: /../acquisition/script_templates/run_script.py 
+	:language: python 
+	:linenos:
 
 set_vna_params.py 
 +++++++++++++++++++++
 
 This script is useful for repeatably setting many parameters of the VNA.
 
-.. code-block:: python 
+.. module:: acquisition.script_templates.set_vna_params
+.. data::   acquisition.script_templates.set_vna_params
 
-	"""
-	Created on Fri Aug  2 09:11:34 2019
-	@author: ajw5
-	"""
-
-	from samurai.acquisition.instrument_control.PnaController import PnaController
-
-	if_bw = 100
-	sweep_delay = 0.0005
-	dwell_time = 0.001
-	start_freq = 26.5e9
-	stop_freq = 40e9
-	num_pts = 1351
-	pow_dbm = 0
-
-	visa_addr = 'TCPIP0::192.168.0.2::inst0::INSTR'
-
-	mypna = PnaController(visa_addr)
-
-	mypna.setup_s_param_measurement([11,31,13,33]) #with comb on use port 3
-	mypna.set_continuous_trigger('ON')
-
-	mypna.write('if_bandwidth',if_bw)
-	mypna.write('sweep_delay_time',sweep_delay)
-	mypna.write('dwell_time',dwell_time)
-	mypna.write('power',pow_dbm)
-	mypna.set_freq_sweep(start_freq,stop_freq,num_pts= num_pts)
+.. literalinclude:: /../acquisition/script_templates/set_vna_params.py 
+	:language: python 
+	:linenos:
 
 channel_test.py 
 +++++++++++++++++
 This is a script that will take a quick sweep and generate beamformed data of a channel at 40 GHz.
 
-.. code-block:: python 
+.. module:: acquisition.script_templates.channel_test
+.. data::   acquisition.script_templates.channel_test
 
-	"""
-	Created on Tue Jul 30 11:32:39 2019
-	Script to test the approximate response of the channel
-	This will give a PDP at a single point, and a beamformed set at a signle frequency
-	@author: ajw5
-	"""
-	###############################################################################
-	gather_flg = True #whether or not to gather the data
-	process_flg = True #whether or not to process the data
-	aoa_flg = True #do we do aoa measurements
-	pdp_flg = True #do we do pdp measurements
-	###############################################################################
-
-	##############################################################################
-	#first lets gather the data
-	if gather_flg:
-		from samurai.acquisition.SAMURAI_System import SAMURAI_System
-		from samurai.acquisition.instrument_control.PnaController import PnaController
-
-		mysam = SAMURAI_System()
-		mysam.connect_rx_positioner()
-		
-		pna_visa_addr ='TCPIP0::192.168.0.2::inst0::INSTR'
-		mypna = PnaController(pna_visa_addr)
-		
-		if aoa_flg:
-			#start with the synthetic aperture at a single frequency
-			position_file = '../synthetic_aperture/raw/position_templates/samurai_planar_vp.csv'
-			#position_file = '../synthetic_aperture/raw/position_templates/samurai_planar_vp_short.csv'
-			#position_file = '../synthetic_aperture/raw/position_templates/samurai_planar_hp.csv'
-			output_dir = './'
-			meas_freq = 40e9;
-			
-			#info to put into metafile
-			metafile_info_dict = {}
-			metafile_info_dict["experiment"] = 'preliminary channel testing measurements'
-			metafile_info_dict["notes"] = None
-			
-			#setup the vna for single frequency sweep
-			mypna.setup_s_param_measurement([31])
-			mypna.set_freq_sweep(meas_freq,meas_freq,num_pts=1)
-			mypna.write('if_bandwidth',100)
-			mypna.write('power',0)
-			mypna.set_continuous_trigger('OFF')
-		
-			#now run the system
-			mysam.csv_sweep(output_dir,position_file,metafile_header_values=metafile_info_dict,external_meas_obj=PnaController,external_meas_obj_init_args=(pna_visa_addr,),external_meas_obj_meas_args=({3:2},))
-			
-		if pdp_flg:
-			mysam.set_position([0,80,60,0,0,0])
-			mypna.setup_s_param_measurement([31])
-			mypna.set_freq_sweep(26.5e9,40e9,num_pts=1351)
-			mypna.write('if_bandwidth',100)
-			mypna.measure_s_params('meas_all_freqs.s2p',{3:2})
-			
-		mysam.disconnect_rx_positioner()
-
-	#now lets process it
-	if process_flg:
-		from samurai.base.SamuraiPlotter import SamuraiPlotter
-		import numpy as np
-		
-		sp = SamuraiPlotter('matplotlib')
-
-		if aoa_flg:
-			from samurai.analysis.support.SamuraiBeamform import SamuraiBeamform
-			metafile_path = './metafile.json'
-		
-			mysp = SamuraiBeamform(metafile_path,verbose=True) 
-			mysp.set_cosine_sum_window_by_name('hamming')
-			mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),np.arange(-90,90,1),[40e9],verbose=True) #beamform
-			fig = mycsa.plot_3d()
-			fig.layout['scene']['aspectmode']='cube'
-			fig.show(renderer='browser')
-			
-		if pdp_flg:
-			from samurai.base.TouchstoneEditor import SnpEditor
-			file_path = './meas_all_freqs.s2p'
-			snp = SnpEditor(file_path)
-			times,td_data = snp.S[21].calculate_time_domain_data()
-			sp.plot(times,20.*np.log10(np.abs(td_data)))
+.. literalinclude:: /../acquisition/script_templates/channel_test.py 
+	:language: python 
+	:linenos:
 
 
 Running from python command line interface (CLI) (DEPRECATED)

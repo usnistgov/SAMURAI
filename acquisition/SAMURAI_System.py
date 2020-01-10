@@ -60,7 +60,7 @@ class SAMURAI_System():
         
     def connect_rx_positioner(self,run_simulation=None):
         '''
-        @brief connect and ready our rx positioner (Meca500) for movement  
+        @brief Connect and ready our rx positioner (Meca500) for movement  
         @param[in/OPT] run_simulation - whther to run in sim mode (defaults to NO)  
         @return list of Meca return values as follows:  
             - [set_sim_mode_rv,init_rx_pos_rv,set_wrf_rv,set_trf_rv,set_velocity_rv]  
@@ -91,9 +91,9 @@ class SAMURAI_System():
         
     def set_simulation_mode(self,on_off):
         """
-        @brief - set whether the robot operations in simulation mode.
+        @brief Set whether the robot operations in simulation mode.
             This can only be done when disconnected, so we will check that  
-        @param[in] **on_off** - True to turn on Simulation, False to turn off Simulation  
+        @param[in] on_off - True to turn on Simulation, False to turn off Simulation  
         @return 0 for success, -1 if value cannot be set (because we are connected currently)  
         """
         #if(self.is_connected):
