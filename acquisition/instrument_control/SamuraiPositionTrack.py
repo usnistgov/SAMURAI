@@ -16,8 +16,16 @@ class SamuraiPositionDataDict(SamuraiDict):
     '''@brief a class to hold a list of samurai position data'''
     def __init__(self,*args,**kwargs):
         '''@brief constructor'''
+        self.data_sets = [] #separately hold names of data sets
         super().__init__(*args,**kwargs)
         self['info'] = SamuraiDict() #location for any extra information
+        
+    def load(self,*args,**kwargs):
+        '''@brief load but change items to SamuraiPositionData'''
+        super().load(*args,**kwargs)
+        for k in self.keys(): #change to position data
+            if k in self.data_sets:
+                self[k] = SamuraiPositionData(self[k])
         
     def add_data_set(self,names):
         '''
@@ -28,6 +36,7 @@ class SamuraiPositionDataDict(SamuraiDict):
             names = [names] 
         for n in names:
             self[n] = SamuraiPositionData()
+            self.data_sets.append(n)
             
     def calculate_statistics(self,**arg_options):
         '''

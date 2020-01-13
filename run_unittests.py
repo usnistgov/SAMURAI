@@ -8,6 +8,10 @@ import unittest
 #%% initialize some things
 test_list = [] #classes of unittests to run
 
+#%% SamuraiDict Testing
+from samurai.base.SamuraiDict import TestSamuraiDict
+test_list.append(TestSamuraiDict)
+
 #%% Touchstone Editor unit testing
 from samurai.base.TouchstoneEditor import TestTouchstoneEditor
 test_list.append(TestTouchstoneEditor)

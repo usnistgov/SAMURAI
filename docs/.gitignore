@@ -1,2 +1,4 @@
 #ignore sphinx build dirs
 _build/
+#no shortcuts
+*.lnk 

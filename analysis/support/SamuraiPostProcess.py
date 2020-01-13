@@ -7,13 +7,16 @@ Created on Fri Mar 22 15:41:34 2019
 
 import numpy as np #import constants
 #import math #for vectorize math functions
-import scipy.constants as sp_consts #import constants for speed of light
+import scipy.special #for RectangularHorn
 #import scipy.interpolate as interp
 import six
 import os
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 #import json
 
 from samurai.analysis.support.MetaFileController import MetaFileController 
+from samurai.base.SamuraiDict import SamuraiDict
 #from samurai.analysis.support.generic import incomplete,deprecated,verified
 #from samurai.analysis.support.generic import round_arb
 #from samurai.analysis.support.snpEditor import SnpEditor
@@ -22,24 +25,27 @@ from samurai.analysis.support.MetaFileController import MetaFileController
 #from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
 #from samurai.acquisition.support.SamuraiPlotter import SamuraiPlotter
 
+SPEED_OF_LIGHT=299792458.
+
 #%% generic class for synthetic aperture algorithms
 class SamuraiSyntheticApertureAlgorithm:
-    '''
+    ''' 
     @brief this is a generic class for samurai aglorithms.
-    this should be completed and the rest of this restructured in the future
+    this should be completed and the rest of this restructured in the futur
     This will allow a more generic things to work with such as importing measured vs. simed values
     '''
+    SPEED_OF_LIGHT = 299792458.
     def __init__(self,metafile_path=None,**arg_options):
         '''
-        @brief initilaize the SamSynthApAlg class
-        @param[in/OPT] metafile_path - metafile for real measurements (defaults to None)
-        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit
-            verbose         - whether or not to be verbose (default False)
-            antenna_pattern - AntennaPattern Class parameter to include (default None)
-            measured_values_flg - are we using measurements, or simulated data (default True)
-            load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
-            load_data       - whether or not to load data on init (default true)
-            These are also passed to the load_metafile function
+        @brief initilaize the SamSynthApAlg class  
+        @param[in/OPT] metafile_path - metafile for real measurements (defaults to None)  
+        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to MetaFileController from which we inherit  
+            - verbose         - whether or not to be verbose (default False)  
+            - antenna_pattern - AntennaPattern Class parameter to include (default None)  
+            - measured_values_flg - are we using measurements, or simulated data (default True)  
+            - load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)  
+            - load_data       - whether or not to load data on init (default true)  
+            - These are also passed to the load_metafile function  
         '''
         #options for the class
         self.options = {}
@@ -640,7 +646,7 @@ def get_k_vectors(az_u,el_v,coord='azel',**arg_options):
     return k_vecs
 
 def get_k(freq,eps_r=1,mu_r=1):
-    cr = sp_consts.speed_of_light/np.sqrt(eps_r*mu_r)
+    cr = SPEED_OF_LIGHT/np.sqrt(eps_r*mu_r)
     lam = cr/freq
     k = 2*np.pi/lam
     return k
@@ -661,11 +667,254 @@ def vector_div_complex(num,denom):
     return num/denom
 
 
-#fig = plt.figure()
-#ax = fig.add_subplot(111, projection='3d')
-#ax.plot_surface(X,Y,np.angle(sv[:,1830].reshape(X.shape)))
-#ax.plot_surface(y.reshape((35,35)),z.reshape((35,35)),(np.angle(s21.reshape(X.shape))))
-# ax.plot_surface(y.reshape((35,35)),z.reshape((35,35)),dr[:,10000].reshape(35,35))
+#%% Class to utilize antennas
+class Antenna(SamuraiDict):
+    SPEED_OF_LIGHT=299792458.
+    Z0 = 376.7 #impedance of free space
+    '''
+    @brief class to hold antenna data. This is partially based on Ben's previous implementation
+        , and partially based on my original the AntennaPattern Class.
+    @note this is built as a dictionary containing all of the antenna patterns so things can be saved out
+    @cite John D. Kraus Antennas
+    @param[in] *args,**kwargs - all parameters passed to super().__init__
+    '''
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        
+    def write(self,fpath,**kwargs):
+        '''
+        @brief write antenna info to a file. This also adds self.eval_gain method to self['eval_gain']  
+        @param[in] fpath - file path for writing out  
+        @param[in/OPT] kwargs - keyword args passed to super().write
+        @todo get this to work correctly
+        '''
+        self['eval_gain'] = self.eval_gain #write out the method
+        super().write(fpath,**kwargs)
+        
+    def load(self,fpath,**kwargs):
+        '''
+        @brief read antenna info from a file. This also loads self['eval_gain'] to self.eval_gain
+        @param[in] fpath - path to file to load
+        @param[in/OPT] kwargs - keyword args passed to super().load
+        @todo get this to work correctly
+        '''
+        super().load(fpath,**kwargs)
+        #setattr(self,'eval_gain',self['eval_gain'])
+        
+    def writes(self,**kwargs):
+        '''
+        @brief write antenna info to a file. This also adds self.eval_gain method to self['eval_gain']  
+        @param[in/OPT] kwargs - keyword args passed to super().write
+        @todo get this to work correctly
+        '''
+        #self['get_efield'] = self.__class__.__dict__['get_efield']
+        return super().writes(**kwargs)
+        
+    def loads(self,mystr,**kwargs):
+        '''
+        @brief read antenna info from a file. This also loads self['eval_gain'] to self.eval_gain
+        @param[in] mystr - string to load from
+        @param[in/OPT] kwargs - keyword args passed to super().load
+        @todo get this to work correctly
+        '''
+        super().load(mystr,**kwargs)
+        setattr(self,'eval_gain',self['eval_gain'])
+        
+    def get_power(self,freqs,az,el,*args,**kwargs):
+        '''
+        @brief evaluate complex power at a specific azimuth/elevation angle with
+            a provided frequency. This needs to be overridden in subclasses
+        '''
+        raise NotImplementedError
+        
+    def get_efield(self,freqs,az,el,*args,**kwargs):
+        '''
+        @brief evaluate complex electric field at a specific azimuth/elevation angle with
+            a provided frequency. This needs to be overridden in subclasses. 
+        @return this should return a numpy array of [etheta,ephi] fields
+        '''
+        raise NotImplementedError
+        
+    def get_hfield(self,freqs,az,el,*args,**kwargs):
+        '''
+        @brief evaluate complex electric field at a specific azimuth/elevation angle with
+            a provided frequency. This needs to be overridden in subclasses
+        '''
+        raise NotImplementedError
+        
+    def get_pvec(self,freqs,az,el,r=1,**kwargs):
+        '''
+        @brief get the pointing vector at a given frequency, az and el
+        @cite Kraus p. 22
+        '''
+        if not hasattr(freqs,'__iter__'): #typically going to look for list of az,el
+            freqs = np.array([freqs])
+        pvals = []
+        for f in freqs:
+            efields = self.get_efield(f,az,el,r)
+            pvecs = np.sum(efields**2,axis=0)/self.Z0 #from kraus
+            pvals.append(pvecs)
+        return np.array(pvals)
+        
+    def get_directivity(self,freqs,az=None,el=None,r=10,**kwargs):
+        '''
+        @brief calculate the directivity for a given frequency. If az,el are not provided
+        @cite kraus p. 26
+        @note if az and el are not provided get the max directivity, otherwise provide pvec(az,el)/np.mean(pvec)
+        @todo comment better and add for 2D
+        '''
+        options = {}
+        options['search_angles'] = [np.linspace(0,2*np.pi,1000),
+                   np.zeros_like(np.linspace(0,2*np.pi,1000))] #[[az],[el]] sweep angle pairs
+        for k,v in kwargs.items():
+            options[k] = v
+        if not hasattr(freqs,'__iter__'): #typically going to look for list of az,el
+            freqs = np.array([freqs])
+        #now calculate pointing vectors
+        dvals = [] #directivity
+        dang = [] #maximum angle
+        for f in freqs:
+            pvecs = self.get_pvec(f,options['search_angles'][0],options['search_angles'][1],r)[0]
+            pavg = np.mean(pvecs)
+            if az is None and el is None:
+                pmaxidx = np.argmax(np.abs(pvecs))
+                pmax = pvecs[pmaxidx]
+                dang.append([options['search_angles'][0][pmaxidx],options['search_angles'][1][pmaxidx]])
+            else: #otherwise angles were provided
+                pmax = self.get_pvec(f,az,el,r)
+                dang.append([az,el])
+            dvals.append(pmax/pavg)
+        return [np.array(dvals),np.array(dang).transpose()]
+        
+    def plot_fields(self,freq,plane='e'):
+        '''
+        @brief plot the 2D fields from the antenna
+        '''
+        d = 0.05; nxy = 500
+        Y,X = np.meshgrid(np.linspace(-d,d,nxy),np.linspace(-d,d,nxy))
+        R = np.sqrt(X**2+Y**2)
+        PHI = np.arctan2(Y,X)
+        v = np.ndarray((PHI.size),dtype=np.cdouble)
+        for i,r,phi in zip(range(R.size),R.flatten(),PHI.flatten()):
+            #calculate the values
+            v[i] = self.eval_efield(phi,0,freq,r=r)[1]
+            
+        V = np.reshape(v,X.shape)
+        V[V>1.5] = np.nan
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        
+        ax.plot_surface(X, Y, (np.real(V)))
+        ax.set_title('Surface plot')
+        plt.show()
+        
+        
+class IsotropicAntenna(Antenna):
+    '''
+    @brief class for generating isotropic radiator data
+    @author ajw5
+    '''
+    def get_efield(self,freqs,az,el,r):
+        '''
+        @brief isotropic radiator value at a given distance r  
+        @param[in] az - azimuth angle (radians)    
+        @param[in] el - elevation angle (radians)  
+        @param[in] freqs - frequencies to calculate for (in hz)  
+        @return values based on isotropic radiator and free space loss
+        '''
+        #freqs = np.array(freqs)
+        lam = self.SPEED_OF_LIGHT/freqs
+        kVals = 2.0*np.pi*freqs/self.SPEED_OF_LIGHT
+        e_phi = np.sqrt(lam**2/((4*np.pi*r)**2))*np.exp(-1j*kVals*r) #this is not close but seems like the right eqn (sqrt(friis)))
+        e_theta = np.sqrt(lam**2/((4*np.pi*r)**2))*np.exp(-1j*kVals*r)
+        #e_theta = np.zeros_like(e_phi)
+        
+        #e_theta = np.sqrt(lam**2/(4*np.pi*r**2))*np.exp(-1j*kVals*r) #this is close but seems like the wrong eqn
+        #e_phi   = np.sqrt(lam**2/(4*np.pi*r**2))*np.exp(-1j*kVals*r)
+        return np.array([e_theta,e_phi])
+    
+    def get_power(self,freqs,az,el,r,**kwargs):
+        '''
+        @brief isotropic radiator value at a given distance r  
+        @param[in] az - azimuth angle (radians)    
+        @param[in] el - elevation angle (radians)  
+        @param[in] freqs - frequencies to calculate for (in hz)  
+        @return values based on isotropic radiator and free space loss
+        '''
+        lam = self.SPEED_OF_LIGHT/freqs
+        kVals = 2.0*np.pi*freqs/self.SPEED_OF_LIGHT
+        power = ((lam/(4*np.pi*r))**2)*np.exp(-1j*kVals*r)
+        return power
+    
+    
+
+class AnalyticalRectangularHornAntenna(Antenna):
+    '''
+    @brief class for generating a rectangular horn
+    @author bfj
+    @note this inherits from the previous Antenna class
+    '''
+    def get_efield(self, freqs, theta, phi, r=1):
+        """
+        @brief take in an angle of arrival and return an e field
+        @cite Balanis "Antenna Theory: ..."
+        @param[in] theta - theta angle to calculate (radians)
+        @param[in] phi - phi angle to caluclate (radians)
+        @param[in] freqs - ferquency in Hz.
+        """
+        if 'rho1' not in self:
+            self['rho1'] = 0.5*self['b1']/np.tan(np.pi/180*self['psie'])
+        if 'rho2' not in self:
+            self['rho2'] = 0.5*self['a1']/np.tan(np.pi/180*self['psih'])
+        
+        kVals = 2.0*np.pi*freqs/self.SPEED_OF_LIGHT
+        kyVals = kVals*np.sin(theta)*np.sin(phi)
+        kxpVals = kVals*np.sin(theta)*np.cos(phi) + np.pi/self['a1']
+        kxppVals = kVals*np.sin(theta)*np.cos(phi) - np.pi/self['a1']
+        
+        t1Vals = np.sqrt(1.0/(np.pi*kVals*self['rho1']))*(-kVals*self['b1']/2.0 - kyVals*self['rho1'])
+        t2Vals = np.sqrt(1.0/(np.pi*kVals*self['rho1']))*( kVals*self['b1']/2.0 - kyVals*self['rho1'])
+        
+        t1pVals = np.sqrt(1.0/(np.pi*kVals*self['rho2']))*(-kVals*self['a1']/2.0 - kxpVals*self['rho2'])
+        t2pVals = np.sqrt(1.0/(np.pi*kVals*self['rho2']))*( kVals*self['a1']/2.0 - kxpVals*self['rho2'])
+        
+        t1ppVals = np.sqrt(1.0/(np.pi*kVals*self['rho2']))*(-kVals*self['a1']/2.0 - kxppVals*self['rho2'])
+        t2ppVals = np.sqrt(1.0/(np.pi*kVals*self['rho2']))*( kVals*self['a1']/2.0 - kxppVals*self['rho2'])
+        # Evaluate sine and cosine Fresnel integrals
+        st1, ct1 = scipy.special.fresnel(t1Vals)
+        st1p, ct1p = scipy.special.fresnel(t1pVals)
+        st1pp, ct1pp = scipy.special.fresnel(t1ppVals)
+        st2, ct2 = scipy.special.fresnel(t2Vals)
+        st2p, ct2p = scipy.special.fresnel(t2pVals)
+        st2pp, ct2pp = scipy.special.fresnel(t2ppVals)
+        #do some more things
+        i1 = 0.5*np.sqrt(np.pi*self['rho2']/kVals)*( np.exp(1j*(kxpVals**2*self['rho2']/(2.0*kVals)))*((ct2p-ct1p) - 1j*(st2p - st1p)) \
+                                                + np.exp(1j*(kxppVals**2*self['rho2']/(2.0*kVals)))*((ct2pp-ct1pp) - 1j*(st2pp - st1pp)))
+
+        i2 = np.sqrt((np.pi*self['rho1'])/kVals)*np.exp(1j*(kyVals**2*self['rho1']/(2.0*kVals)))*((ct2 - ct1) - 1j*(st2-st1))
+        #print i1, i2
+        #nTheta = -1.0/self.eta*np.cos(theta)*np.sin(phi)*i1*i2
+        #nPhi = -1.0/self.eta*np.cos(phi)*i1*i2
+        
+        #lTheta = np.cos(theta)*np.cos(phi)*i1*i2
+        #lPhi = np.sin(phi)*i1*i2
+        
+        eFieldTheta = -1j*kVals*np.exp(-1j*kVals*r)/(4.0*np.pi*r)*(np.sin(phi)*(1+np.cos(theta))*i1*i2)
+        eFieldPhi = 1j*kVals*np.exp(-1j*kVals*r)/(4.0*np.pi*r)*(np.cos(phi)*(np.cos(theta)+1)*i1*i2)
+        
+        return np.array([eFieldTheta, eFieldPhi])
+    
+    def get_power(self,freqs,theta,phi,r,**kwargs):
+        """
+        @brief take in an angle of arrival and return a complex gain
+        @cite Balanis "Antenna Theory: ..."
+        @param[in] theta - theta angle to calculate (radians)
+        @param[in] phi - phi angle to caluclate (radians)
+        @param[in] freqs - ferquency in Hz.
+        """
+        ef = self.get_efield(theta, phi, freqs, r)
+        efm = np.sqrt(np.sum(ef**2))
+        return efm**2
 
 #%% Unit testing
 import unittest
@@ -707,7 +956,60 @@ class TestSamuraiPostProcess(unittest.TestCase):
 
 #%%
 if __name__=='__main__':
-    pass
+    myr = 100; az = 0; el= 0
+    freqs = np.array(np.arange(26e9,40e9,10e6))
+    #freqs = np.array([33.25])
+    #freqs = np.array([26.5e9])
+    #lets generate a horn antenna file for sage 17dbi horn (from ben)
+    sage17 = AnalyticalRectangularHornAntenna()
+    sage17["a"] =  7.112*10**(-3)
+    sage17["b"] =  3.556*10**(-3)
+    sage17["a1"] = 25.400*10**(-3)
+    sage17["b1"] = 19.812*10**(-3)
+    sage17["psie"] = 33.4
+    sage17["psih"] = 37.3
+    #vo = np.array(sage17.get_efield(az,el,freqs,r=myr))
+    #v = vo[1]
+    #vo = sage17.get_efield(freqs,np.linspace(0,np.pi,5),np.linspace(0,np.pi,5),r=myr)
+    #pv = np.sqrt(np.sum(vo**2))
+    
+    #isorad = IsotropicAntenna()
+    #vio = isorad.get_efield(freqs,az,el,r=myr) #just get ephi
+    #vi = vio[1]
+    #pi = np.sqrt(np.sum(vio**2))
+    #pr = sage17.get_power(freqs,az,el,r=myr)
+    #pi = isorad.get_power(freqs,az,el,r=myr)
+    azv = np.linspace(-np.pi,np.pi,361)
+    elv = np.zeros_like(azv)
+    #dsv ,dsa  = sage17.get_directivity(freqs,0,0,r=myr)
+    #dsva,dsaa = sage17.get_directivity(np.array([33.25e9]),azv,elv,r=myr)
+    
+    etsf = sage17.get_efield(freqs,0,0,r=myr)
+    etsa = sage17.get_efield(np.array([33.25e9]),azv,elv,r=myr)
+    
+    #di = isorad.get_directivity(freqs,r=myr)
+    
+    import matplotlib.pyplot as plt
+    #plt.figure()
+    #plt.plot(dsaa[:,0,0],10*np.log10(dsva[0,0,:]))
+    #plt.figure()
+    #plt.plot(freqs,10*np.log10(dsv))
+    plt.figure()
+    plt.plot(azv,10*np.log10(np.abs(etsa[1])))
+    plt.figure()
+    plt.plot(freqs,10*np.log10(np.abs(etsf[1])))
+    #plt.plot(freqs,10*np.log10(np.abs(pr/pi)),label='Magnitude')
+    #plt.plot(freqs,20*np.log10(np.angle(v/vi)),label='Phase')
+    #plt.plot(freqs,20*np.log10(np.real(v/vi)),label='Real')
+    #plt.plot(freqs,20*np.log10(np.imag(v/vi)),label='Imag')
+    #plt.legend()
+    
+    #o = 10*np.log10(np.abs(pv/pi))
+    
+    #def friis(freqs,r)
+    #isorad.plot_fields(30e9)
+    #sage17.plot_fields(30e9)
+    
     #test_ant_path = './data/test_ant_pattern.csv'
     #myant = Antenna(test_ant_path,dimension=1,plane='az')
     #myap = myant['pattern']
