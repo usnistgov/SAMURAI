@@ -264,10 +264,10 @@ class TouchstoneEditor(object):
          if self.options['header'] is None: #if we dont have a header here, set the default
              self.set_header(DEFAULT_HEADER)
              
-         self.freqs = raw_data[:,0]*self._get_freq_mult() #set our frequencies from the raw data
+         self._freqs = raw_data[:,0]*self._get_freq_mult() #set our frequencies from the raw data
          self.raw_data = raw_data #raw data before unpacking
          #this raw data will be of size (number_of_waves(e.g. 'S' or 'A','B'),num_keys(e.g. 11,21,12,22),num_freqs(num_measured_values))
-         self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(self.freqs)),dtype=np.cdouble)
+         self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(self._freqs)),dtype=np.cdouble)
          
          #file is good if we make it here so continue to unpacking
          self._extract_data(raw_data)
@@ -288,7 +288,7 @@ class TouchstoneEditor(object):
                 #extract to self._raw
                 self._raw[wi,ki,:] = data
                 #self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
-                self.waves[w][k] = self._param_class(self.freqs,self._raw[wi,ki,:],plotter=self.options['plotter'])
+                self.waves[w][k] = self._param_class(self._freqs,self._raw[wi,ki,:],plotter=self.options['plotter'])
         self.round_freq_list() #round when we load (remove numerical rounding error)
      
     def _load_text(self,file_path,**kwargs):
@@ -379,11 +379,11 @@ class TouchstoneEditor(object):
          if self.options['header'] is None: #allow override
              self.set_header(DEFAULT_EMPTY_HEADER) #set the default header
          #and pack the port data with 0s
-         self.freqs = np.array(freqs,dtype=np.double)*self._get_freq_mult()
+         self._freqs = np.array(freqs,dtype=np.double)*self._get_freq_mult()
          self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(freqs)),dtype=np.cdouble)
          for ki,k in enumerate(self.wave_dict_keys):
              for wi,wave in enumerate(self.waves.keys()):
-                 self.waves[wave][k] = self._param_class(self.freqs,self._raw[wi,ki,:],plotter=self.options['plotter'])
+                 self.waves[wave][k] = self._param_class(self._freqs,self._raw[wi,ki,:],plotter=self.options['plotter'])
          self.round_freq_list()
          
     def _set_num_ports(self,num_ports):
@@ -497,13 +497,28 @@ class TouchstoneEditor(object):
              
     def _verify_freq_lists(self):
         '''
-        @brief make sure all parameters of all waves point to self.freqs still
+        @brief make sure all parameters of all waves point to self._freqs still
+        @return False if warning is raised, True otherwise
         '''
         for k in self.wave_dict_keys:
             for w in self.waves.keys():
-                if not self.waves[w][k].freq_list is self.freqs:
-                    warnings.warn("Frequencies of {}[{}] does not point to self.freqs. Proceed with caution.".format(w,k))
-                    #raise SnpError("Frequencies of {}[{}] does not point to self.freqs".format(w,k))
+                if not self.waves[w][k].freq_list is self._freqs:
+                    warnings.warn("Frequencies of {}[{}] does not point to self._freqs. Proceed with caution.".format(w,k))
+                    return False
+        return True
+                    
+    def _verify_raw_data(self):
+        '''
+        @brief make sure our parameters share data with self._raw still
+        @return False if warning is raised, True otherwise
+        '''
+        for k in self.wave_dict_keys:
+            for w in self.waves.keys():
+                data = self.waves[w][k].raw
+                if not np.shares_memory(data,self._raw):
+                    warnings.warn(("{}[{}].raw does not share memory with self._raw".format(w,k)))
+                    return False
+        return True
                     
     def map_ports(self,port_map_dict):
         '''
@@ -643,21 +658,21 @@ class TouchstoneEditor(object):
         @param[in] funct - function to operate with. This should be able to work on whole numpy arrays  
         '''
         ret = copy.deepcopy(self)
-        #if isinstance(other,TouchstoneEditor): #if its a touchstoneEditor
-        for k in self.waves.keys(): #loop through each key we have
-            for w,v in self.waves[k].items(): #and multiply by the corresponding value
-                if type(other) == type(self): #cant use inherited classes
-                    other_val = self.waves[k].get(w,None)
-                    if other_val is None: #check if it didnt exist
-                        continue #skip to the next iteration
-                else: #we can use inherited classes here
-                    other_val = other
-                new_val = v._perform_arithmetic_operation(other_val,funct)
-                ret.waves[k][w].raw[:] = new_val.raw
-                ret.waves[k][w].freq_list = new_val.freq_list
-        return ret   
-        #else: #otherwise just try and perform the operation on the data
-        #   pass 
+        if isinstance(other,TouchstoneEditor) or isinstance(other,TouchstoneParam): #if its a touchstoneEditor
+            for k in self.waves.keys(): #loop through each key we have
+                for w,v in self.waves[k].items(): #and multiply by the corresponding value
+                    if type(other) == type(self): #cant use inherited classes
+                        other_val = self.waves[k].get(w,None)
+                        if other_val is None: #check if it didnt exist
+                            continue #skip to the next iteration
+                    else: #we can use inherited classes here
+                        other_val = other
+                    new_val = v._perform_arithmetic_operation(other_val,funct)
+                    ret.waves[k][w].raw[:] = new_val.raw
+                    ret.waves[k][w].freq_list = new_val.freq_list  
+        else: #otherwise just try and perform the operation on raw
+           ret.raw = funct(self.raw,other)
+        return ret
     
     def run_function_on_data(self,funct,*args,**kwargs):
         '''
@@ -673,13 +688,15 @@ class TouchstoneEditor(object):
   
     def __deepcopy__(self,memo):
         '''
-        @brief override deep copying of our data  
+        @brief override deep copying of our data
+        @note this is called by using copy.deepcopy
         '''
         ret = type(self)([self.num_ports,self.freqs],**self.options) #fix issues with SamuraiPlotter class deepcopy
+        skip_keys = ['options','waves','_freqs','_raw']
+        ret.raw = self.raw
         for k,v in self.__dict__.items():
-            if k=='options':
+            if k in skip_keys:
                 continue
-            #print(k)
             try:
                 setattr(ret,k,copy.deepcopy(v,memo))
             except Exception as e:
@@ -692,11 +709,15 @@ class TouchstoneEditor(object):
         '''
         @brief run if we dont have the attribute  
             1. try and find in waves  
+            2. see if its an attribute of raw data
         '''
         try:
             return self.waves[attr]
-        except:
-            raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
+        except AttributeError as ae:
+            try:
+                return getattr(self.raw,attr)
+            except AttributeError as ae:
+                raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
      
     @property
     def w1(self):
@@ -798,12 +819,22 @@ class TouchstoneEditor(object):
     @raw.setter
     def raw(self,val):
          '''@brief setter to not overwrite raw'''
-         self.raw[:] = val
+         self._raw[:] = val
+         
+    @property 
+    def freqs(self):
+        '''@brief abstract self._freqs to not edit the block data'''
+        return self._freqs
+    
+    @freqs.setter 
+    def freqs(self,val):
+        '''@brief setter to not overwrite freqs'''
+        self._freqs[:] = val
               
     @property
     def shape(self):
-         #shape of raw in self.v1
-         return self.v1.raw.shape
+         #shape of raw
+         return self.raw.shape
 
 class WnpEditor(TouchstoneEditor):
     '''
@@ -1377,6 +1408,29 @@ class TestTouchstoneEditor(unittest.TestCase):
         expected_keys = [11,21,12,22]
         new_keys = map_keys(keys,mapping)
         self.assertTrue(np.all(np.equal(expected_keys,new_keys)))
+        
+    def test_copy(self):
+        '''
+        @brief test shallow and deep copying
+        @note this mostly just verifies that our raw and freq pointers
+            were copied correctly.
+        '''
+        snp_bin_path  = os.path.join(self.dir_path,self.test_snp_bin)
+        snp_bin  = SnpEditor(snp_bin_path)
+        #insure the initial data is verified
+        self.assertTrue(snp_bin._verify_freq_lists())
+        self.assertTrue(snp_bin._verify_raw_data())
+        #test a shallow copy
+        shallow_copy = snp_bin
+        self.assertTrue(snp_bin is shallow_copy) #verify shallow copy
+        self.assertTrue(shallow_copy._verify_freq_lists())
+        self.assertTrue(shallow_copy._verify_raw_data())
+        #now test the deep copy
+        deep_copy = copy.deepcopy(snp_bin)
+        self.assertTrue(deep_copy._verify_freq_lists())
+        self.assertTrue(deep_copy._verify_raw_data())
+        #now ensure our raw and freq values are correct
+        
 		
     def test_2_port_swapping(self):
         '''
