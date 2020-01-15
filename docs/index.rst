@@ -14,10 +14,10 @@ Welcome to SAMURAI's documentation!
 - [I]ncidence
 
 .. toctree::
-   base/index
    acquisition/index
    analysis/index
    data/index
+   base/index
    :maxdepth: 2
    :caption: Contents:
 
