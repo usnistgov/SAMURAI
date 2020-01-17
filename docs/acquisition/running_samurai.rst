@@ -220,7 +220,7 @@ Now we can begin the sweep
     - This step assumes the robot has previously been connected and initialized (activated and homed)
     - This also assumes the `mysam` object has already been created
 
-.. code-block::
+.. code-block:: python 
 
     mysam.csv_sweep('./','./positions.csv',template_path='template.pnagrabber');disconnect_rx_positioner()
 
