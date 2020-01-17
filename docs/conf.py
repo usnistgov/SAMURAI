@@ -93,7 +93,19 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
 	'recommonmark',
+    'sphinx.ext.extlinks'
 ]
+
+#link root directories
+extlinks = {
+    'data_root': (r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\%s','SAMURAI Data '),
+    'git_repo': (r'https://gitlab.nist.gov/gitlab/uncertainteam/samurai/%s','Git Repository '),
+}
+
+#exclusions
+#exclude_patterns = [
+#    './README.md' #this is for how to build the docs
+#    ] 
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

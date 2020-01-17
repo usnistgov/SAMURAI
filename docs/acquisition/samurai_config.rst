@@ -73,6 +73,19 @@ Adapters
    - `WR-28 to K Female Adapter Datasheet <https://www.sagemillimeter.com/content/datasheets/SWC-28KF-R1.pdf>`_
    - `WR-28 to K Male Adapter Datasheet <https://www.sagemillimeter.com/content/datasheets/SWC-28KM-R1.pdf>`_
 
+Antenna Mounts
+-------------------------
+
+Custom mounts for antennas were also designed to attach a section of 2" WR-waveguide to the Meca500 robot. These mounts are designed with a number
+of constrictions in mind such as:
+
+- Ability to calibrate at WR-28
+- Repeatability of measurements
+- Ability to test cable drift (change antenna/standards without unmounting)
+
+These mounts are typically 3D printed with plastic, and 3 steel ball bearings are attached to provide a kinematic connection between the robot 
+mount and the waveguide mount. This mount also provides an absorber plate to attach absorber directly behind the antenna. These mounts were 
+created in a horn antenna and open ended waveguide configuration.
 
 Networking
 --------------

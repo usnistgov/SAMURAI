@@ -15,6 +15,7 @@ SAMURAI Base Libraries
 
 Generic functions
 -------------------
+
 .. automodule:: base.generic
 	:members:
 
