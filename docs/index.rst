@@ -25,6 +25,7 @@ Typically the system resides on an optical table which provides stability over t
 to repeatably reconfigure for a variety of different setups.    
 
 .. image:: ./external_data/samurai_dual_cyl.jpg
+
 *SAMURAI System Set up to test the scattering off of two cylinders. This test is used to test the angular resolution of different angle of arrival (AoA) algorithms.*
 
 This documentation describes how the system is run, the data is stored, and options on how it can be processed.

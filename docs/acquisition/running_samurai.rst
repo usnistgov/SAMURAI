@@ -15,9 +15,11 @@ This section shows how to run from a premade python script. This requires the lo
 #. Make a copy of :code:`meas_template` in the directory :code:`U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture`
 
 #. Rename the copy to the current date in the format :code:`mm-dd-yyyy`
+
     - From here on, this newly created directory will be referred to as :code:`<working-directory>`
 
 #. Copy and paste the correct comma separated value (CSV) file containing the positions into :code:`<working-directory>/synthetic_aperture/raw`
+
     - Some commonly used templates are contained in :code:`<working-directory>/synthetic_aperture/raw/position_templates` directory.
     - Once the desired CSV file has been copied, rename it :code:`positions.csv`
 
@@ -46,14 +48,18 @@ This section shows how to run from a premade python script. This requires the lo
 #. In the windows file explorer navigate to :code:`<working-directory>/cal/calibration_pre`
 #. double click on :code:'cal.pnagrabber' to start PNAGrabber for the calibration.
 #. Attach each of the standards to the calibration plane with the naming convention :code:`<standard-port-1>_<standard-port-2>.s2p`
+
     - (e.g. load_short.s2p is load on port 1 and short on port 2)
+
 #. When the calibration is completed, make a copy of each of the `.s2p` files generated and put them into the :code:`<working-directory>/cal/calibration_pre/raw` folder
 
 3. Open and update the script
 ++++++++++++++++++++++++++++++++++++++
 
 #. Open the file :code:`<working-directory>/synthetic_aperture/raw/run_script.py`
+
     - This contains the code to run the sweep along with metadata information and other input parameters
+
 #. Set the csv file path by changing the line :code:`position_file = './position_templates/samurai_planar_dp.csv'` to set `position_file` to the relative path to the csv file of positions
 #. Set the motive dictionary for camera tracking. For all rigid bodies create a new line with the entry :code:`motive_dict['<rigid-body-name>'] = None`. For each marker create a new line :code:`motive_dict['<marker-name>'] = <marker-id-number>`
 #. Add any experiment info and notes to :code:`metafile_info_dict['experiment']` and :code:`metafile_info_dict['notes']`
@@ -117,8 +123,11 @@ The following steps are to run a SAMURAI measurement from the python CLI. The st
 
 #. Make a copy of `meas_template` in the directory `U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture`
 #. Rename the copy to the current date in the format `mm-dd-yyyy`
+
     - From here on, this newly created directory will be referred to as `<working-directory>`
+
 #. Copy and paste the correct comma separated value (CSV) file containing the positions into `<working-directory>/synthetic_aperture/raw`
+
     - Some commonly used templates are contained in `<working-directory>/synthetic_aperture/raw/position_templates` directory.
     - Once the desired CSV file has been copied, rename it `positions.csv`
 
@@ -128,7 +137,9 @@ The following steps are to run a SAMURAI measurement from the python CLI. The st
 #. In the windows file explorer navigate to `<working-directory>/cal/calibration_pre`
 #. double click on 'cal.pnagrabber' to start PNAGrabber for the calibration.
 #. Attach each of the standards to the calibration plane with the naming convention `<standard-port-1>_<standard-port-2>.s2p`
+
     - (e.g. load_short.s2p is load on port 1 and short on port 2)
+
 #. When the calibration is completed, make a copy of each of the `.s2p` files generated and put them into the `<working-directory>/cal/calibration_pre/raw` folder
 
 3. Import the SAMURAI_System Module
@@ -142,7 +153,7 @@ The following steps are to run a SAMURAI measurement from the python CLI. The st
   from samurai.acquisition.SAMURAI_System import SAMURAI_System
 
  
-.. note:: FOR NEW COMPUTERS ONLY - the code must be cloned from the gitlab repo and the directory containing the cloned `samurai` directory must be added the systems `PYTHONPATH`.
+.. note:: FOR NEW COMPUTERS ONLY - the code must be cloned from the :git_repo:`/` and the directory containing the cloned `samurai` directory must be added the systems `PYTHONPATH`.
 
 c. Create a SAMURAI_System Object
 ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -171,6 +182,7 @@ c. Create a SAMURAI_System Object
 
 #. Mount the Tx Antenna (usually port 2) to the fixed holder
 #. Move the SAMURAI Robot to the mountain position using the commands below
+
     - The `mysam` object must exist for this step to work
     - Keep in mind, after this code the positioner is still connected and activated after these commands
 
@@ -199,9 +211,12 @@ d. In the pop-up window select 'Monitoring' and click 'Connect'
 Now we can begin the sweep
 
 #. Ensure the working directory is set to `<working-directory>/synthetic_aperture/raw` (see step 5)
+
     - Some editors/IDE's (e.g. spyder) show this in a top bar of the screen
     - The current directory can be found from a python CLI by typing `import os; os.getcwd()`
+	
 #. Type the following code and hit enter to begin the sweep
+
     - This step assumes the robot has previously been connected and initialized (activated and homed)
     - This also assumes the `mysam` object has already been created
 
@@ -319,5 +334,6 @@ In order to run the demo the following steps must be taken
 
 1. Open the Spyder IDE or the Anaconda command prompt
 2. Run the script `\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\demo\quick_beamform_demo\channel_test.py`
+
     - See the 'Running Python Scripts' section for instructions on how to run this file
 

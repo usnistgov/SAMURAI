@@ -8,7 +8,13 @@ To build the documentation, open a command prompt (I have only tested this with 
 
 This will build the docs into ./_build/html/
 
+## Setting the root directory to data
+
+In the sphinx `config.py` file, make sure to set the correct root directories for `extlinks` for data and other things. More info on this can be found at https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
+
 # Requirements
 
 - Sphinx - Run `conda install sphinx` or go to http://www.sphinx-doc.org/en/master/usage/installation.html
 - MATLAB Sphinx support - run `pip install sphinxcontrib-matlabdomain` or go to https://pypi.org/project/sphinxcontrib-matlabdomain/
+
+
