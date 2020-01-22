@@ -72,8 +72,8 @@ if process_flg:
 
                 mysp = SamuraiBeamform(metafile_path,verbose=True)
                 mysp.set_cosine_sum_window_by_name('hamming')
-                mycsa,_ = mysp.beamforming_farfield_azel(np.arange(-90,90,1),
-                                                         np.arange(-90,90,1),[40e9],
+                mycsa = mysp.beamforming_farfield_azel(np.arange(-90,90,1),
+                                                         np.arange(-90,90,1),[meas_freq],
                                                          verbose=True) #beamform
                 fig = mycsa.plot_3d()
                 fig.layout['scene']['aspectmode']='cube'
