@@ -578,9 +578,12 @@ if __name__=='__main__':
     combined_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_offset_planar3_cylinder1_vp.csv'
     myap.write(combined_out_path)
     '''
+    
+    planar_16_30Ghz_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_l2-30GHz_16x16_planar_vp.csv'
     samurai_center = [0,125,60,0,0,0]
-    lam = 3e8/30e9 #lambda over 2 at 30 GHz
+    lam = 3e8/30e9*1e3 #lambda over 2 at 30 GHz in mm
     myap.gen_planar_aperture_from_center(samurai_center,step=[lam/2,lam/2,lam/2],numel=[16,16,1])
+    myap.write(planar_16_30Ghz_out_path)
     
     
     
