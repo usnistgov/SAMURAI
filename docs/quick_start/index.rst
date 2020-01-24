@@ -10,7 +10,7 @@ The following steps explain how to download and install the SAMURAI python packa
 
 Download 
 --------------------
-Download from ???????
+The current code can be downloaded or cloned from the :git_repo:`/`
 
 Installation
 ------------------
