@@ -77,10 +77,10 @@ run_script.py
 +++++++++++++++++++
 This is the script for running and configuring the samurai system.
 
-.. module:: acquisition.script_templates.run_script
-.. data::   acquisition.script_templates.run_script
+.. module:: samurai.acquisition.script_templates.run_script
+.. data::   samurai.acquisition.script_templates.run_script
 
-.. literalinclude:: /../acquisition/script_templates/run_script.py 
+.. literalinclude:: /../samurai/acquisition/script_templates/run_script.py 
 	:language: python 
 	:linenos:
 
@@ -89,10 +89,10 @@ set_vna_params.py
 
 This script is useful for repeatably setting many parameters of the VNA.
 
-.. module:: acquisition.script_templates.set_vna_params
-.. data::   acquisition.script_templates.set_vna_params
+.. module:: samurai.acquisition.script_templates.set_vna_params
+.. data::   samurai.acquisition.script_templates.set_vna_params
 
-.. literalinclude:: /../acquisition/script_templates/set_vna_params.py 
+.. literalinclude:: /../samurai/acquisition/script_templates/set_vna_params.py 
 	:language: python 
 	:linenos:
 
@@ -100,10 +100,10 @@ channel_test.py
 +++++++++++++++++
 This is a script that will take a quick sweep and generate beamformed data of a channel at 40 GHz.
 
-.. module:: acquisition.script_templates.channel_test
-.. data::   acquisition.script_templates.channel_test
+.. module:: samurai.acquisition.script_templates.channel_test
+.. data::   samurai.acquisition.script_templates.channel_test
 
-.. literalinclude:: /../acquisition/script_templates/channel_test.py 
+.. literalinclude:: /../samurai/acquisition/script_templates/channel_test.py 
 	:language: python 
 	:linenos:
 
@@ -220,7 +220,7 @@ Now we can begin the sweep
     - This step assumes the robot has previously been connected and initialized (activated and homed)
     - This also assumes the `mysam` object has already been created
 
-.. code-block::
+.. code-block:: python
 
     mysam.csv_sweep('./','./positions.csv',template_path='template.pnagrabber');disconnect_rx_positioner()
 
