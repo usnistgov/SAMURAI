@@ -90,14 +90,14 @@ class BlueTestChamber:
          @Function that takes in an angle to go to, converts to steps, then calls run_chamber_command to move the turntable
          @param[in] desired_angle - angle, in degrees, the turntable needs to turn to
          '''
-         if desired_angle <= 339: #was 350.8, 338.705
+         if desired_angle <= 350: #was 339 350.8, 338.705
              #angle_in_steps = desired_angle * (70000/339)
             angle_in_steps = desired_angle * 207
             command_string ='goto:3:%d' % (angle_in_steps)
             self.run_chamber_command(command_string)
             self.run_chamber_command('wait')
 
-         elif desired_angle > 339: #was 339
+         elif desired_angle > 350: #was 339
             raise Exception("Turn table only turn from 0 to 339, %d exceeds this",desired_angle)
          #//FIXME ADD PADDLE CASE AND CHANGE TO set_position
      

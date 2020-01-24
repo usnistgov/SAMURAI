@@ -221,7 +221,8 @@ class PnaController(SCPIInstrument):
             if dd['parameter'][0].upper()=='S': #then its an s param measurement
                 s_key = int(dd['parameter'][1:])
                 #map ports if specified
-                s_key = map_keys([s_key],port_mapping)[0]
+                if port_mapping is not None:
+                    s_key = map_keys([s_key],port_mapping)[0]
                 snp.S[s_key].raw = dd['data']
         snp.write(out_path)
         return snp
