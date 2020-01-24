@@ -28,3 +28,5 @@ Installation
 .. note:: If The package will be changed or developed at any point in time (i.e. changes pushed to git), the original package should be placed somewhere where 
     it will not be deleted and the package should be installed with :code:`pip install -e .` after changing into the directory.
 
+.. see-also:: https://pip.pypa.io/en/latest/reference/pip_install/?highlight=editable#editable-installs
+
