@@ -10,3 +10,6 @@ test_docs
 
 #ignore temporary matlab files
 *.asv
+
+#do not commit files generated from pip
+*.egg-info
