@@ -1,4 +1,6 @@
 
+.. _running-samurai:
+
 Running the SAMURAI System
 =============================
 

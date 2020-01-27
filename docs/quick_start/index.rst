@@ -28,5 +28,13 @@ Installation
 .. note:: If The package will be changed or developed at any point in time (i.e. changes pushed to git), the original package should be placed somewhere where 
     it will not be deleted and the package should be installed with :code:`pip install -e .` after changing into the directory.
 
-.. see-also:: https://pip.pypa.io/en/latest/reference/pip_install/?highlight=editable#editable-installs
+.. seealso:: https://pip.pypa.io/en/latest/reference/pip_install/?highlight=editable#editable-installs
+
+Taking the first measurement
+------------------------------
+
+Assuming the setup and hardware is the same or close to that in the SAMURAI lab (more info should be added on this), 
+the first measurement can be taken using the steps on how to run from a script described in :ref:`running-samurai`
+
+.. todo:: More information on the hardware setup may be useful. Unless it is found to be described enough in :ref:`hardware-config`
 
