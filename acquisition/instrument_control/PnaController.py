@@ -32,8 +32,8 @@ class PnaController(SCPIInstrument):
     
     def __init__(self,visa_address=None,command_dict_path=command_set_path,**other_info):
         '''
-		@brief constructor for our class 
-		@param[in/OPT] visa_address - pna visa address to connect to. If not provided do not connect
+		@brief constructor for our class   
+		@param[in/OPT] visa_address - pna visa address to connect to. If not provided do not connect  
 		'''
         super().__init__(command_dict_path)
         
@@ -53,7 +53,7 @@ class PnaController(SCPIInstrument):
     #overrides superclass
     def _connect(self,address):
         '''
-        @brief this is the disconnect that is used in self.connect() defined in superclass
+        @brief this is the disconnect that is used in self.connect() defined in superclass  
         '''
         if(not self.is_connected):
             try:
@@ -66,8 +66,8 @@ class PnaController(SCPIInstrument):
             
     def write(self,msg,*args,**kwargs):
         '''
-        @brief write a message to the PNA
-        @param[in/OPT] *args,**kwargs - args for when commands from command_dict are used
+        @brief write a message to the PNA  
+        @param[in/OPT] *args,**kwargs - args for when commands from command_dict are used  
         '''
         super().write('*WAI')
         super().write(msg,*args,**kwargs)
@@ -76,7 +76,7 @@ class PnaController(SCPIInstrument):
     
     def _disconnect(self):
         '''
-        @brief this is the disconnect that is used in self.disconnect() defined in superclass
+        @brief this is the disconnect that is used in self.disconnect() defined in superclass  
         '''
         self.connection.close()
         self.is_connected = False
@@ -91,10 +91,10 @@ class PnaController(SCPIInstrument):
         
     def set(self,command,*args,**kwargs):
         '''
-        @brief set a value from self.setting_alias_dict or try command_dict
-        @param[in] command - can be an alias from setting_alias_dict, or command_dict
-        @param[in] *args - arguments for the commands
-        @param[in] **kwargs - keyword arguments for the command
+        @brief set a value from self.setting_alias_dict or try command_dict  
+        @param[in] command - can be an alias from setting_alias_dict, or command_dict  
+        @param[in] *args - arguments for the commands  
+        @param[in] **kwargs - keyword arguments for the command  
         '''
         com = self.setting_alias_dict.get(command,None)
         if com is None: #was not in the setting alias dict
@@ -120,9 +120,9 @@ class PnaController(SCPIInstrument):
         
     def setup_s_param_measurement(self,parameter_list):
         '''
-        @brief setup n port s parameter measurement
-        @param[in] parameter_list - which parameters to measure (e.g. [11,21,22,21])
-        @note help from http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm
+        @brief setup n port s parameter measurement  
+        @param[in] parameter_list - which parameters to measure (e.g. [11,21,22,21])  
+        @note help from http://na.support.keysight.com/vna/help/latest/Programming/GPIB_Example_Programs/Create_a_measurement_using_GPIB.htm  
         '''
         #first reset the vna
         self.write('SYST:FPR')
@@ -142,7 +142,7 @@ class PnaController(SCPIInstrument):
     
     def set_continuous_trigger(self,on_off):
         '''
-        @brief set continuous trigger on or off
+        @brief set continuous trigger on or off  
         '''
         self.write('INIT:CONT',on_off)
         if on_off.upper() is 'OFF':
@@ -151,11 +151,25 @@ class PnaController(SCPIInstrument):
             mode = 'CONT'
         self.write('SENS:SWE:MODE',mode)
         
-    def trigger(self,timeout=300000):
+    def set_sweep_sequence(self,sequence):
         '''
-        @brief trigger the vna when in manual mode. This will also wait for the sweep to complete
+        @brief set the sweep sequence found in Stimulus->Sweep->Sweep Setup-> Sweep Sequence  
+        @param[in] sequence - sequence to use. Valid inputs are 'standard' and 'point'
+            This could also be 'off' or 'on' for 'standard' and 'point' respectively  
+        '''
+        name_dict = {
+                'standard':'off',
+                'point'   :'on'
+                }
+        write_val = name_dict.get(sequence.lower(),sequence.lower())
+        self.write('SENS:SWE:GEN:POIN',write_val)
+        
+        
+    def trigger(self,timeout=900000):
+        '''
+        @brief trigger the vna when in manual mode. This will also wait for the sweep to complete  
         @param[in] timeout - timeout of visa. The OPC? command hangs until the sweep is finished in single mode
-            This default to 5 minutes. reset the timeout when were done
+            This default to 15 minutes. reset the timeout when were done  
         '''
         timeout_temp = self.connection.timeout
         self.connection.timeout = timeout
@@ -165,8 +179,8 @@ class PnaController(SCPIInstrument):
     
     def get_all_trace_data(self,binary_xfer=True):
         '''
-        @brief get data from all traces on a single channel
-        @return [frequency_list, {trace_name:{'parameter':param,'data':[values]}]
+        @brief get data from all traces on a single channel  
+        @return [frequency_list, {trace_name:{'parameter':param,'data':[values]}]  
         '''
         #self.write('FORM:DATA REAL,64'); #set the data format
         freq_list = self.get_freq_list(binary_xfer=binary_xfer)
@@ -179,9 +193,9 @@ class PnaController(SCPIInstrument):
     
     def get_trace_data(self,trace_name,binary_xfer=True):
         '''
-        @brief get the complex data from a single trace
-        @param[in] trace_name - name of trace to get the data from
-        @return complex data from the trace in a numpy array
+        @brief get the complex data from a single trace  
+        @param[in] trace_name - name of trace to get the data from  
+        @return complex data from the trace in a numpy array  
         '''
         self.write('CALC:PAR:SEL',"'{}'".format(trace_name)) #select the trace
         if not binary_xfer: #ascii transfer
@@ -201,9 +215,9 @@ class PnaController(SCPIInstrument):
     
     def measure_s_params(self,out_path,port_mapping=None,binary_xfer=True):
         '''
-        @brief measure s parameters of current traces and write out to out_path
-        @param[in] out_path - path to write out data to 
-        @param[in/OPT] port_mapping - optional dictionary of port mappings (e.g {3:2})
+        @brief measure s parameters of current traces and write out to out_path  
+        @param[in] out_path - path to write out data to   
+        @param[in/OPT] port_mapping - optional dictionary of port mappings (e.g {3:2})  
         '''
         #trigger the vna assume continuous trigger is off (self.set_continuous_trigger('off'))
         self.set_continuous_trigger('OFF')
@@ -229,7 +243,7 @@ class PnaController(SCPIInstrument):
     
     def measure(self,out_path,port_mapping=None):
         '''
-        @brief alias used to fit into SAMURAI_System with PNAGrabber code
+        @brief alias used to fit into SAMURAI_System with PNAGrabber code  
         '''
         out_path = clean_file_name(out_path)
         self.measure_s_params(out_path,port_mapping)
@@ -237,7 +251,7 @@ class PnaController(SCPIInstrument):
         
     def get_freq_list(self,binary_xfer=True):
         '''
-        @brief get a list of the frequencies from the vna
+        @brief get a list of the frequencies from the vna  
         '''
         if binary_xfer: #binary transfer
             orig_form = self.query('FORM')
@@ -269,8 +283,8 @@ class PnaController(SCPIInstrument):
     
     def get_traces(self):
         '''
-        @brief get trace name value pairs
-        @return dictionary with <measurement name>/<paramter> pairs
+        @brief get trace name value pairs  
+        @return dictionary with <measurement name>/<parameter> pairs  
         '''
         ret_str = self.query('CALC:PAR:CAT:EXT?')
         #remove quotes
@@ -322,10 +336,10 @@ class PnaController(SCPIInstrument):
         
     def set_segment_sweep(self,seg_table,arb = True,couple = True):
         '''
-        @brief setup a segment sweep on the vna bysetting the segment list
-        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
-        @param[in/OPT] arb - arbitrary segment sweep allowed (default True)
-        @param[in/OPT] couple - whether or not to couple the sources (default True)
+        @brief setup a segment sweep on the vna bysetting the segment list  
+        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]  
+        @param[in/OPT] arb - arbitrary segment sweep allowed (default True)  
+        @param[in/OPT] couple - whether or not to couple the sources (default True)  
         '''
         
         prev_form = self.query('FORM?')
@@ -349,8 +363,8 @@ class PnaController(SCPIInstrument):
         
     def set_segment_table(self,seg_table):
         '''
-        @brief set the segment table on the vna
-        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]
+        @brief set the segment table on the vna  
+        @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]  
         '''
         num_pts = len(seg_table)
         com = 'SENS:SEGM:LIST SSTOP,'+str(num_pts)+','
@@ -363,8 +377,8 @@ class PnaController(SCPIInstrument):
         
     def get_segment_table(self):
         '''
-        @brief get the segment table from the vna
-        @return list of dicts describing the segments as [{table0},...]
+        @brief get the segment table from the vna  
+        @return list of dicts describing the segments as [{table0},...]  
         '''
         #initial stuff
         num_segs = self.query('SENS:SEGM:COUN?')
@@ -424,7 +438,7 @@ class PnaController(SCPIInstrument):
         
     def set_seg_source_list_iterating(self,src_num,seg_table):
         '''
-        @TODO FIGURE OUT WHAT THIS CODE IS FOR!!!
+        @TODO FIGURE OUT WHAT THIS CODE IS FOR!!!  
         '''
         
         #turn on frequency offset mode
@@ -477,7 +491,7 @@ pnaController = PnaController
 
 def clean_file_name(fname):
     '''
-    @brief make sure the file name doesnt exist. If it does add an ending so it doesnt overwrite
+    @brief make sure the file name doesnt exist. If it does add an ending so it doesnt overwrite  
     '''
     fname_orig = fname
     i=1

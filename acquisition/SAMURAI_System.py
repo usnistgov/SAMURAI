@@ -10,7 +10,7 @@ from samurai.acquisition.instrument_control.PnaController import PnaController
 from samurai.acquisition.support import samurai_metaFile as smf     #for keeping track of data
 from samurai.acquisition.instrument_control.Meca500  import Meca500       #our posisioner
 import samurai.acquisition.support.samurai_support  as ss      #some other functions
-import samurai.acquisition.support.samurai_optitrack as samurai_optitrack  #import optitrack tracking
+import samurai.acquisition.instrument_control.SamuraiMotive as samurai_optitrack  #import optitrack tracking
 
 import six
 import json
@@ -22,8 +22,8 @@ import os
 
 #these are default values. These seem to change with the system realatively often so they are placed here at the top
 pnagrabber_template_path = './template.pnagrabber'
-vna_visa_addr = 'TCPIP0::10.0.0.2::inst0::INSTR'
-rx_positioner_address = '10.0.0.5'
+vna_visa_addr = 'TCPIP0::192.168.0.2::inst0::INSTR'
+rx_positioner_address = '192.168.0.5'
 
 class SAMURAI_System():
     """
@@ -33,12 +33,12 @@ class SAMURAI_System():
     #to run as simulation simply pass is_simualtion=true
     def __init__(self,is_simulation=False,**arg_options):
         '''
-        @brief initialize class to control SAMURAI measurement system
-        @param[in/OPT] is_simulation - whether or not to run the Meca500 in simultion mode (defaults to NO simulation)
-        @param[in/OPT] arg_options - optional keyword arguments as follows:
-            template_path - where the pnagrabber template is located
-            vna_visa_address - visa address of the VNA
-            rx_positioner_address - address of the rx positioner. for Meca500 this is a IP address
+        @brief initialize class to control SAMURAI measurement system  
+        @param[in/OPT] is_simulation - whether or not to run the Meca500 in simultion mode (defaults to NO simulation)  
+        @param[in/OPT] arg_options - optional keyword arguments as follows:  
+            - template_path - where the pnagrabber template is located  
+            - vna_visa_address - visa address of the VNA  
+            - rx_positioner_address - address of the rx positioner. for Meca500 this is a IP address  
         '''
         defaults = {'template_path':pnagrabber_template_path,'vna_visa_address':vna_visa_addr,'rx_positioner_address':rx_positioner_address}
         tool_length = 131 #length of tool off face in mm. Change for weird tools
@@ -55,15 +55,15 @@ class SAMURAI_System():
         self.is_connected = False
         self.set_simulation_mode(is_simulation)
         #self.connect_rx_positioner();
-        self.rx_positioner = Meca500() #meca500 positioner
+        self.rx_positioner = Meca500(rx_positioner_address) #meca500 positioner
 
         
     def connect_rx_positioner(self,run_simulation=None):
         '''
-        @brief connect and ready our rx positioner (Meca500) for movement
-        @param[in/OPT] run_simulation - whther to run in sim mode (defaults to NO)
-        @return list of Meca return values as follows
-            [set_sim_mode_rv,init_rx_pos_rv,set_wrf_rv,set_trf_rv,set_velocity_rv]
+        @brief Connect and ready our rx positioner (Meca500) for movement  
+        @param[in/OPT] run_simulation - whther to run in sim mode (defaults to NO)  
+        @return list of Meca return values as follows:  
+            - [set_sim_mode_rv,init_rx_pos_rv,set_wrf_rv,set_trf_rv,set_velocity_rv]  
         '''
         if not run_simulation:
             run_simulation = self.is_simulation #set to default unless overwritten
@@ -81,19 +81,20 @@ class SAMURAI_System():
         return [rv1,rv2,rv3,rv4,rv5]
         
     def get_rx_positioner_status(self):
-        #self.meca_status.update
+        '''@brief returns self.rx_positioner.get_status()'''
         return self.rx_positioner.get_status() #get the status list
     
     def disconnect_rx_positioner(self,zero_flg=True):
+        '''@brief run self.rx_positioner.close()'''
         self.rx_positioner.close(zero_flg)
         self.is_connected = False
         
     def set_simulation_mode(self,on_off):
         """
-        @brief - set whether the robot operations in simulation mode.
-            This can only be done when disconnected, so we will check that
-        @param[in] - on_off - True to turn on Simulation, False to turn off Simulation
-        @return - 0 for success, -1 if value cannot be set (because we are connected currently)
+        @brief Set whether the robot operations in simulation mode.
+            This can only be done when disconnected, so we will check that  
+        @param[in] on_off - True to turn on Simulation, False to turn off Simulation  
+        @return 0 for success, -1 if value cannot be set (because we are connected currently)  
         """
         #if(self.is_connected):
         #    return -1 #we can only change the flag while disconnected
@@ -102,33 +103,31 @@ class SAMURAI_System():
         return 0 #success
     
     def set_options(self,**arg_options):
-        '''
-        @brief easy way to set options
-        '''
+        '''@brief easy way to set options'''
         for key, value in six.iteritems(arg_options):
             self.options[key] = value
         
     def csv_sweep(self,data_out_dir,csv_path,run_vna=True,**arg_options):
         '''
-        @brief measure a synthetic aperture with the SAMURAI system using positions from a CSV (comma separated value) file
-        @param[in] data_out_dir - where the data will be output 
-        @param[in] csv_path - path to the comma separated value (CSV) file
-        @param[in/OPT] run_vna - whether or not to run the VNA when sweeping (default to true=run the vna)
-        @param[in/OPT] arg_options - keyword arguments as follows:
-            note - note to put in the metafile  (defaults to '')
-            output_name - name of the output files (defaults to 'meas')
-            template_path - location of pnagrabber template to run from (default './template.pnagrabber')
-            settling time - time in seconds to let robot settle (default 0.1s)
-            metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)
-            comment_character - character or list of characters for comments (default #)
-            external_position_measurements - configuration of external measurement device (e.g. optitrack)
-                OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
-                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
-                    For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
-            meas_obj - class to use as a measure tool just needs a .measure method
-            meas_obj_init_args - arguments for the class __init__() method
-            meas_obj_meas_args - arguments for the class .measure() method
-        @return sweep time
+        @brief measure a synthetic aperture with the SAMURAI system using positions from a CSV (comma separated value) file  
+        @param[in] data_out_dir - where the data will be output   
+        @param[in] csv_path - path to the comma separated value (CSV) file  
+        @param[in/OPT] run_vna - whether or not to run the VNA when sweeping (default to true=run the vna)  
+        @param[in/OPT] arg_options - keyword arguments as follows:  
+            - note - note to put in the metafile  (defaults to '')
+            - output_name - name of the output files (defaults to 'meas')  
+            - template_path - location of pnagrabber template to run from (default './template.pnagrabber')  
+            - settling time - time in seconds to let robot settle (default 0.1s)  
+            - metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)  
+            - comment_character - character or list of characters for comments (default #)  
+            - external_position_measurements - configuration of external measurement device (e.g. optitrack). 
+			@note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+				A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
+                For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+            - meas_obj - class to use as a measure tool just needs a .measure method  
+            - meas_obj_init_args - arguments for the class __init__() method  
+            - meas_obj_meas_args - arguments for the class .measure() method  
+        @return sweep time  
         '''
         if not self.is_connected:
             print("Positioner Not Connected")
@@ -211,22 +210,22 @@ class SAMURAI_System():
     
     def csv_position_sweep(self,out_dir,out_name,external_position_measurements,csv_path,num_reps=1,**arg_options):
         '''
-        @brief sweep positions and generate positional info on this data.
-            - this does not have the same data overwrite protection as the typical metafile
-        @param[in] out_dir - directory to write out to
-        @param[in] out_name - output name (no extension)
-        @param[in] csv_path - path to csv file
-        @param[in] external_position_measurements - configuration of external measurement device (e.g. optitrack)
-                OPTITRACK - provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
-                    A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
-                    For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
-        @param[in] num_reps - number of times to repeat the sweep (default to 1)
-        @param[in] arg_options - keyword arguments as follows:
-            settling_time - time for positioner to settle (default 0.1)
-            num_samples   - number of samples to take per marker per location
-            comment_character - character or list of characters for comments (default #)
-            Look at samurai_optitrack for more options
-        @return file path that the data is written to 
+        @brief sweep positions and generate positional info on this data.  
+            - this does not have the same data overwrite protection as the typical metafile  
+        @param[in] out_dir - directory to write out to  
+        @param[in] out_name - output name (no extension)  
+        @param[in] csv_path - path to csv file  
+        @param[in/OPT] external_position_measurements - configuration of external measurement device (e.g. optitrack)  
+        @note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
+				A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
+                For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+        @param[in/OPT] num_reps - number of times to repeat the sweep (default to 1)  
+        @param[in/OPT] arg_options - keyword arguments as follows:  
+            - settling_time - time for positioner to settle (default 0.1)  
+            - num_samples   - number of samples to take per marker per location  
+            - comment_character - character or list of characters for comments (default #)  
+            - Look at samurai_optitrack for more options
+        @return file path that the data is written to   
         '''
         options = {}
         options['settling_time'] = 0.1
@@ -282,10 +281,10 @@ class SAMURAI_System():
     #right is close to sink (BE CAREFUL NOT TO PULL CABLE ON RIGHT)
     def move_to_mounting_position(self,side='left',rotation=-120):
         '''
-        @brief move the Meca500 to a predetermined moutning position. 
-        @param[in/OPT] side - what side of the table to move to looking from behind the meca. (defaults 'left') CAUTION: 'right' MAY BE DANGEROUS
-        @param[in/OPT] rotation - how much to rotate the arm at the mounting position (default -120 degrees) CAUTION: UNTESTED ANGLES MAY BE DANGEROUS
-        @return the return of set_position() (I believe it is nothing right now)
+        @brief move the Meca500 to a predetermined moutning position.   
+        @param[in/OPT] side - what side of the table to move to looking from behind the meca. (defaults 'left') CAUTION: 'right' MAY BE DANGEROUS  
+        @param[in/OPT] rotation - how much to rotate the arm at the mounting position (default -120 degrees) CAUTION: UNTESTED ANGLES MAY BE DANGEROUS  
+        @return the return of set_position() (I believe it is nothing right now)  
         '''
         #check if connected
         if not self.is_connected:
@@ -305,10 +304,10 @@ class SAMURAI_System():
     #wrapper of rx_positioner set_position to check for bounds
     def set_position(self,pos_vals,software_limits=True):
         '''
-        @brief set the position of our Meca500 robot (or other positioner if changed)
-        @param[in] pos_vals - position of robot. For meca this is in [x,y,z,alpha,beta,gamma] in mm and degrees
-        @param[in/OPT] software_limits - whether or not to software limit the robot (defaults to true. These limits have been pre-tested and are hardcoded)
-        @return nothing
+        @brief set the position of our Meca500 robot (or other positioner if changed)  
+        @param[in] pos_vals - position of robot. For meca this is in [x,y,z,alpha,beta,gamma] in mm and degrees  
+        @param[in/OPT] software_limits - whether or not to software limit the robot (defaults to true. These limits have been pre-tested and are hardcoded)  
+        @return nothing  
         '''
         if(software_limits):
             np_pos_vals = np.array(pos_vals)
@@ -326,14 +325,14 @@ class SAMURAI_System():
     
     def get_positioner_status(self):
         '''
-        @brief get and print the status of the positioner
+        @brief get and print the status of the positioner  
         '''
         [_,_,s] = self.rx_positioner.get_status() #get the status string
         print(s)
         
     def zero(self):
         '''
-        @brief bring the rx_positioner to its zero position
+        @brief bring the rx_positioner to its zero position  
         '''
         self.rx_positioner.zero()
         
@@ -341,11 +340,11 @@ class SAMURAI_System():
         '''
         @brief verify that the file of positions is for the correct reference frames
                 just raise an exception if the file is not value for the current reference frame.
-                The verification looks for the following values to check against:
-                    #WRF (or world reference frame or with _) = [x,y,z,alpha,beta,gamma]
-                    #TRF (or tool reference frame or with _) = [x,y,z,alpha,beta,gamma]
-        @param[in] file_path - the path to the position file (e.g. *.csv,etc)
-        @param[in/OPT] comment_char - character or list of characters for comments
+                The verification looks for the following values to check against:  
+                    - #WRF (or world reference frame or with _) = [x,y,z,alpha,beta,gamma]  
+                    - #TRF (or tool reference frame or with _) = [x,y,z,alpha,beta,gamma]  
+        @param[in] file_path - the path to the position file (e.g. *.csv,etc)  
+        @param[in/OPT] comment_char - character or list of characters for comments  
         '''
         reference_value_strings = np.array(['X','Y','Z','ALPHA','BETA','GAMMA'])
         comment_lines = []

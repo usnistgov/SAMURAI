@@ -29,15 +29,17 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             measured_values - are we using measurements, or simulated data (default True)
             load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+            data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
+            data_meas_num   - which measurement of monte_carlo or perturbed to use
         '''
-        super(SamuraiBeamform,self).__init__(metafile_path,**arg_options)
+        super().__init__(metafile_path,**arg_options)
     
     def beamforming_farfield_azel(self,az_vals,el_vals,freq_list='all',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in azimuth elevation
             All locations will be pulled from the metafile positions
-        @param[in] az_vals - azimuth angles in elevation from x axis
-        @param[in] el_vals - elevation angles in azimuth from xy plane
+        @param[in] az_vals - azimuth angles in elevation from x axis (degrees)
+        @param[in] el_vals - elevation angles in azimuth from xy plane (degrees)
         @note - az and el vals will be meshgridded (only provide cross sections)
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
         @param[in/OPT] arg_options - keyword arguments as follows:
@@ -142,7 +144,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
         #now lets loop through each of our frequencies in freq_list
         if verbose: print("Beginning beamforming for %d frequencies" %(len(freq_list)))
-        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options,metafile = self.metafile)
+        mycsa = CalculatedSyntheticAperture(azimuth,elevation,**self.options)
         vc = ValueCounter(freq_list,'    Calculating for {:10G} Hz',update_period=10)
         for freq in freq_list:
             if verbose: vc.update(freq)
@@ -156,7 +158,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             else:
                 freq_idx = freq_idx[0]
             #if we make it here the frequency exists. now get our s params for the current frequency
-            s21_current = np.ascontiguousarray(s21_vals[...,freq_idx])
+            s21_current = np.ascontiguousarray(s21_vals[...,freq_idx,0])
             #now we can calculate the beam phases for each of the angles at each position
             k = get_k(freq)
             if options['use_vectorized']:
@@ -188,7 +190,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         else:
             ant_vals = None
 
-        return mycsa,ant_vals
+        return mycsa
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
 
 
@@ -198,7 +200,16 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
 ###############################################################################
 #this is a test case for when this file itself is run (not importing the module)
 if __name__=='__main__':
-    testa = True #synthetic and real data tests (commented out)
+    
+    fname = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\CUP_measurements\8-12-2019\aperture_vertical\metafile_split_0.json"        
+    #fname = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\CUP_measurements\8-12-2019\aperture_vertical\metafile_split_short.json"
+    fname = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2-4-2019\aperture_0\metaFile_split_0.json"
+    mybf = SamuraiBeamform(fname,verbose=True)
+    mybf.set_cosine_sum_window_by_name('hamming')
+    mycsa = mybf.beamforming_farfield_azel(np.linspace(-180,179,181),0,40e9)
+    mycsa.plot_3d(renderer='browser')
+    
+    testa = False #synthetic and real data tests (commented out)
     testb = False #data from usc 5-27-2019 (s2p padp output)
     testc = False
     testd = False

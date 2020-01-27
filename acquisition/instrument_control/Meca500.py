@@ -2,7 +2,7 @@
 """
 Created on Wed Sep 12 15:19:22 2018
 
--This is a library ot control the Meca500 positioner.
+-This is a library to control the Meca500 positioner.
 Currently all of the calls are blocking. This means that every sent command
 waits for the corresponding TCP response. This could be edited in the future
 to have a socket server listen for tcp responses, but this is really not needed
@@ -17,6 +17,7 @@ TCP/IP communication or not).
 -Errors from the meca are currently all just thrown as exceptions. No handling is done.
 Execution will terminate if an error message is recieved
 @author: ajw5
+@todo This should inherit from InstrumentControl
 """
 
 test_position = [50,0,200,0,0,0]
@@ -32,16 +33,15 @@ from samurai.base.generic import deprecated
 
 class Meca500:
     
-    def __init__(self,ip_addr='10.0.0.5',simulation_mode=False,**options):
+    def __init__(self,ip_addr,simulation_mode=False,**options):
         '''
-        @brief Initialize but do not connect the Meca500 positioner class
-
-        @param[in] ip_addr - ip address of Meca500 on the network
-        @param[in] simulation_mode - Whether to set the Meca500 to built in simulation mode on connection
-        @param[in] options - keyword args 
-                            'port' - port to connect
-                            'recbv_buf_size' - socket receive buffer
-        @return Class of type Meca500
+        @brief Initialize but do not connect the Meca500 positioner class  
+        @param[in] ip_addr - ip address of Meca500 on the network  
+        @param[in] simulation_mode - Whether to set the Meca500 to built in simulation mode on connection  
+        @param[in] options - keyword args as follows:  
+                    - 'port' - port to connect  
+                    - 'recbv_buf_size' - socket receive buffer  
+        @return Class of type Meca500  
         '''
         defaults = {'port':10000,'recv_buf_size':1024}
         self.options = {}
@@ -70,7 +70,7 @@ class Meca500:
     #just disconnect. do not deactivate.
     def __del__(self):
         '''
-        @brief what to do when the object is deleted
+        @brief what to do when the object is deleted  
         '''
         if(self.connected): #socket has been made
             try:
@@ -80,10 +80,10 @@ class Meca500:
         
     def connect(self,ip_addr=None,port=None):
         '''
-        @brief create the socket connection to the meca
-        @param[in] ip_addr - ip address of the meca (if none use the class default)
-        @param[in] port - port to connect on (if none use class default)
-        @return Recieved data after connection
+        @brief create the socket connection to the meca  
+        @param[in] ip_addr - ip address of the meca (if none use the class default)  
+        @param[in] port - port to connect on (if none use class default)  
+        @return Recieved data after connection  
         '''
         if self.connected: #return error if we already connected
             return -1
@@ -103,8 +103,8 @@ class Meca500:
     #wrapper for tcpip send. Will add null terminator if not there
     def send(self,msg):
         '''
-        @brief send data to meca. This will check for some errors and add null terminator
-        @param[in] msg - message to send
+        @brief send data to meca. This will check for some errors and add null terminator  
+        @param[in] msg - message to send  
         '''
         if(self.connected):
             if msg[-1]!='\0':
@@ -137,10 +137,10 @@ class Meca500:
     #send followed by recive
     def query(self,msg,buf_size=None):
         '''
-        @brief send a message then wait for a response
-        @param[in] msg - message to send
-        @param[in] buf_size - recieve buffer size (class default if none)
-        @return -1 for error, MecaReturnMessage on success
+        @brief send a message then wait for a response  
+        @param[in] msg - message to send  
+        @param[in] buf_size - recieve buffer size (class default if none)  
+        @return -1 for error, MecaReturnMessage on success  
         '''
         #check if were connected
         if(self.connected):
@@ -155,8 +155,8 @@ class Meca500:
     #wrapper of socket close
     def close(self,zero_flg=True):
         '''
-        @brief clear errors, zero, deactivate, and disconnect from robot
-        @param[in] zero_flg - Whether or not to zero the robot (defaults to True)
+        @brief clear errors, zero, deactivate, and disconnect from robot  
+        @param[in] zero_flg - Whether or not to zero the robot (defaults to True)  
         '''
         srv=None; crv=None; drv=None; zrv=None; smrv=None; dirv=None
         #zero,deactivate,close socket
@@ -180,8 +180,8 @@ class Meca500:
     #close socket
     def disconnect_socket(self):
         '''
-        @brief close the socket to the robot
-        @return 0 on success
+        @brief close the socket to the robot  
+        @return 0 on success  
         '''
         self.socket.shutdown(0)
         self.socket.close()
@@ -199,7 +199,7 @@ class Meca500:
     #will connect,activate, then home
     def initialize(self,ip_addr=None):
         '''
-        @brief initialize the robot. Connect, Activate, Home
+        @brief initialize the robot. Connect, Activate, Home  
         '''
         crv = None
         srv = None
@@ -223,8 +223,8 @@ class Meca500:
     #home the meca
     def home(self):
         '''
-        @brief Home the meca. Must be done after connecting and activating, but before moving
-        @return MecaReturnMessage
+        @brief Home the meca. Must be done after connecting and activating, but before moving  
+        @return MecaReturnMessage  
         '''
         rv = self.query('Home')
         self.homed = 1
@@ -233,8 +233,8 @@ class Meca500:
     #turn on motors and remove brakes
     def activate(self):
         '''
-        @brief activate the robots motors. Must be done after connecting but before homing and moving
-        @return MecaReturnMessage
+        @brief activate the robots motors. Must be done after connecting but before homing and moving  
+        @return MecaReturnMessage  
         '''
         rv = self.query('ActivateRobot')
         self.active = 1
@@ -242,8 +242,8 @@ class Meca500:
     
     def deactivate(self):
         '''
-        @brief Deactivate the robots motors
-        @return MecaReturnMessage
+        @brief Deactivate the robots motors  
+        @return MecaReturnMessage  
         '''
         rv = self.query('DeactivateRobot')
         self.active = 0
@@ -252,43 +252,43 @@ class Meca500:
         
     def get_joints(self):
         '''
-        @brief get the joint angles in degrees of the robot
-        @return floating point list of joint angles
+        @brief get the joint angles in degrees of the robot  
+        @return floating point list of joint angles  
         '''
         rv = self.query('GetJoints')
         return rv.get_float_list()
         
     def set_joints(self,joint_angle_list):
         '''
-        @brief set joints to specific angles
-        @param[in] joint_angle_list - list of joint angles to set to 
-        @return MecaReturnMessage
+        @brief set joints to specific angles  
+        @param[in] joint_angle_list - list of joint angles to set to   
+        @return MecaReturnMessage  
         '''
         return self.move_template('MoveJoints',joint_angle_list)
     
     def set_wrf(self,wrf_vals):
         '''
         @brief set the world reference frame
-            More information on reference frames can be found in the Meca500 User manual.
-        @param[in] wrf_vals - list of values to set the world reference frame to 
-        @return MecaReturnMessage
+            More information on reference frames can be found in the Meca500 User manual.  
+        @param[in] wrf_vals - list of values to set the world reference frame to   
+        @return MecaReturnMessage  
         '''
         return self.move_template('SetWRF',wrf_vals)
     
     def set_trf(self,trf_vals):
         '''
         @brief set the Tool reference frame with respect to the world reference frame.
-            More information on reference frames can be found in the Meca500 User manual.
-        @param[in] wrf_vals - list of values to set the tool reference frame to 
-        @return MecaReturnMessage
+            More information on reference frames can be found in the Meca500 User manual.   
+        @param[in] wrf_vals - list of values to set the tool reference frame to   
+        @return MecaReturnMessage  
         '''
         return self.move_template('SetTRF',trf_vals)
     
     #zero joints
     def zero(self):
         '''
-        @brief zero the robot
-        @return MecaReturnMessage
+        @brief zero the robot  
+        @return MecaReturnMessage  
         '''
         return self.set_joints([0,0,0,0,0,0])
     
@@ -297,9 +297,9 @@ class Meca500:
     #get to the desired position so BE CAREFUL
     def set_pose(self,com_list):
         '''
-        @brief set position ('pose') of robot in [x,y,z,alpha,beta,gamma] coordinates
-        @param[in] com_list - position of robot in  [x,y,z,alpha,beta,gamma]
-        @return MecaReturnMessage
+        @brief set position ('pose') of robot in [x,y,z,alpha,beta,gamma] coordinates  
+        @param[in] com_list - position of robot in  [x,y,z,alpha,beta,gamma]  
+        @return MecaReturnMessage  
         '''
         return self.move_template('MovePose',com_list)
     
@@ -308,8 +308,8 @@ class Meca500:
     
     def get_pose(self):
         '''
-        @brief get the positoin ('pose') in [x,y,z,alpha,beta,gamma] coordinates
-        @return List of floating point values for [x,y,z,alpha,beta,gamma] position
+        @brief get the positoin ('pose') in [x,y,z,alpha,beta,gamma] coordinates  
+        @return List of floating point values for [x,y,z,alpha,beta,gamma] position  
         '''
         rv = self.query('GetPose')
         return rv.get_float_list()
@@ -319,9 +319,9 @@ class Meca500:
     
     def set_velocity(self,percentage):
         '''
-        @brief set the joint velocity of the robot as a percentage
-        @param[in] percentage - joint velocity in percentage of maximum (10% usually used for SAMURAI)
-        @return MecaReturnMessage
+        @brief set the joint velocity of the robot as a percentage  
+        @param[in] percentage - joint velocity in percentage of maximum (10% usually used for SAMURAI)  
+        @return MecaReturnMessage  
         '''
         rv = self.query('SetJointVel(%3.1f)'%(percentage))
         return rv
@@ -337,10 +337,10 @@ class Meca500:
     #com_list is the arguments and command is the command (ie MovePose)
     def move_template(self,command,com_list):
         '''
-        @brief template for sending move commands
-        @param[in] command - string command to send to positioner
-        @param[in] com_list - list of values to send with command
-        @return MecaReturnMessage
+        @brief template for sending move commands  
+        @param[in] command - string command to send to positioner  
+        @param[in] com_list - list of values to send with command  
+        @return MecaReturnMessage  
         '''
         if(len(com_list)!=6): #they all seem to require 6 args
             print("ERROR: 6 positional arguments required")
@@ -354,8 +354,8 @@ class Meca500:
     def clear_errors(self,reset_motion=True):
         '''
         @brief Reset errors and motion on the robot. This can sometimes cause socket communication errors in the future
-                so test run robot after this command is used before synthetic apertures are taken
-        @param[in] reset_motion - OPTIONAL(True) whether or not to reset the motion
+                so test run robot after this command is used before synthetic apertures are taken  
+        @param[in] reset_motion - OPTIONAL(True) whether or not to reset the motion  
         '''
         crv=None; prv=None
         rv = self.query('ResetError')
@@ -379,8 +379,8 @@ class Meca500:
     
     def flush_com_buffer(self,send_and_flush=False):
         '''
-        @brief Flush communication buffer with robot if its in a weird state
-        @param[in] send_and_flush - do a query before flushing as needed after clearing errors for some reason
+        @brief Flush communication buffer with robot if its in a weird state  
+        @param[in] send_and_flush - do a query before flushing as needed after clearing errors for some reason  
         '''
         #This is a strange order of events, but the robot socket does not recover correctly without it
         self.socket.setblocking(False) #turn off non blocking
@@ -399,30 +399,30 @@ class Meca500:
     #activate simulation mode
     def activate_sim_mode(self):
         '''
-        @ brief Activate simulation mode. This must be done after ocnnection but before motors are activated
-        @return MecaReturnMessage
+        @brief Activate simulation mode. This must be done after ocnnection but before motors are activated  
+        @return MecaReturnMessage  
         '''
         return self.query('ActivateSim')
     
     #deactivate simulation mode
     def deactivate_sim_mode(self,activate_motors=True):
         '''
-        @ brief Activate simulation mode. This must be done after connection but before motors are activated
-        @return MecaReturnMessage
+        @brief Activate simulation mode. This must be done after connection but before motors are activated  
+        @return MecaReturnMessage  
         '''
         return self.query('DeactivateSim')
     
     def get_status(self):
         '''
-        @brief get the status of the robot as a list of flags and set flags in class. These values are: 
-            [0] - Activation state
-            [1] - Homing state
-            [2] - Simulation mode
-            [3] - Error status
-            [4] - Pause status
-            [5] - end of block?
-            [6] - end of movement
-        @return a copy of the list recieved
+        @brief get the status of the robot as a list of flags and set flags in class. These values are:   
+            - [0] - Activation state  
+            - [1] - Homing state  
+            - [2] - Simulation mode  
+            - [3] - Error status  
+            - [4] - Pause status  
+            - [5] - end of block?  
+            - [6] - end of movement  
+        @return a copy of the list recieved  
         '''
         rv = "NOT CONNECTED"
         if(self.connected):
@@ -450,7 +450,7 @@ class Meca500:
 
     def set_default_frames_and_velocity(self):
         '''
-        @brief this sets default values for the positioner
+        @brief this sets default values for the positioner  
         '''
         rv1=self.set_wrf(self.options['wrf_pos']) #set reference frames (VERY IMPORTANT)
         rv2=self.set_trf(self.options['trf_pos'])
@@ -460,9 +460,9 @@ class Meca500:
     def move_to_mounting_position(self,side='left',rotation=-120):
         '''
         @brief move our system to mounting position. Set default values first to ensure our frames and velocity are correct
-            This is the same as the function in SAMURAI_System.py
-        @param[in] side - whcih side of the robot to move to 
-        @param[in] rotation - how much to rotate the arm
+            This is the same as the function in SAMURAI_System.py  
+        @param[in] side - whcih side of the robot to move to   
+        @param[in] rotation - how much to rotate the arm  
         '''
         #check if connected
         if not self.connected:
@@ -483,6 +483,7 @@ class Meca500:
     @deprecated
     def demo(self):
         '''
+        @example
         #start_pos_1 = [250,-100,80,0,90,0];
         #with trf = [0,0,131,0,-90,0] and wrf=[321,0,0,0,0,0]
         #with trf at tool tip and wrf directly below tip at base level when zeroed
@@ -504,7 +505,7 @@ class Meca500:
 #automatically does some parsing and storage for us
 class MecaReturnMessage:
     '''
-    @brief class to hold and parse messages from Meca500 Positioner
+    @brief class to hold and parse messages from Meca500 Positioner  
     '''
     
     err_msg_nums = range(1000,1015) #these are the same over all instances
@@ -521,11 +522,18 @@ class MecaReturnMessage:
         
     #split the message to ge the message number and the message alone as a string
     def parse_raw_msg(self,msg):
+        '''@brief parse our raw meca message'''
         strip_chars = '][\0'
         re_c = re.compile('[%s]*'%strip_chars) #reg expression to replace
         msg_split = msg.split('][') #spit the first and second parts
         msg_split_clean = [re_c.sub('',v) for v in msg_split] #then strip our other characters
-        self.msg_num = int(msg_split_clean[0]) #save the message number
+        try: #this sometimes fails when the connection is wonky
+            self.msg_num = int(msg_split_clean[0]) #save the message number
+        except ValueError as ve:
+            raise ValueError(str(ve)+ ' \n '+
+                'This may be caused by a number of errors, but many times is caused by connection problems with the robot\n'+
+                    'Try to turn off the robot and back on again along with restarting the python terminal. \n'+
+                        'This should fully reset the connection to the robot and may remedy this problem')
         self.msg = msg_split_clean[1] #save the message
         #check if this is an error message
         if(self.msg_num in MecaReturnMessage.err_msg_nums): #if it is an error message
@@ -534,6 +542,7 @@ class MecaReturnMessage:
     
     #return the message as a list of floats 
     def get_float_list(self,delim=','):
+        '''@brief get the message as a list of floating point numbers'''
         return [float(val) for val in self.msg.strip().split(delim)] #separate out our measured values
     
     #have the representation be the message
@@ -546,6 +555,7 @@ class MecaReturnMessage:
     
 #exception could be made one for each but easier to just do one
 class MecaError(Exception):
+    '''Exception for Meca Errors'''
     def __init__(self,err_msg,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.err_msg = err_msg

@@ -10,20 +10,20 @@ from samurai.base.SamuraiDict import SamuraiDict,update_nested_dict
 
 class SamuraiPlotter:
     '''
-    @brief a class to abstract plotting between matplolib, matlab, and plotly, (and potentially others)
+    @brief a class to abstract plotting between matplolib, matlab, and plotly, (and potentially others)  
     '''
     def __init__(self,plot_program=None,*args,**arg_options):
         '''
-        @brief initializer for plotting class
+        @brief initializer for plotting class  
         @param[in/OPT] plot_program - What program to use to plot 
             ('matlab','matplotlib','plotly')
-            some plotting types may only be supported with some programs
-        @param[in/OPT] *args - arguments to pass to plot_program initailzer
-        @param[in/OPT] arg_options - keyword arguments as follows:
-            verbose - whether or not to be verbose
-            debug - extra verbose debug statements
-            matlab_engine - can pass an already running matlab engine if matlab 
-                is being used
+            some plotting types may only be supported with some programs  
+        @param[in/OPT] *args - arguments to pass to plot_program initailzer  
+        @param[in/OPT] arg_options - keyword arguments as follows:  
+            - verbose - whether or not to be verbose  
+            - debug - extra verbose debug statements  
+            - matlab_engine - can pass an already running matlab engine if matlab 
+                is being used  
         '''
         self.set_plot_program(plot_program)
         
@@ -41,10 +41,10 @@ class SamuraiPlotter:
         
     def _run_plot_function(self,plot_funct_name,*args,**kwargs):
         '''
-        @brief loop through each of our programs to try and plot
-        @param[in] plot_funct_name - name of plotting function (ie surf)
-        @params[in] args - variable arguments to pass to pltting funciton
-        @param[in] kwargs - keyword ags to pass to plotting funciton
+        @brief loop through each of our programs to try and plot  
+        @param[in] plot_funct_name - name of plotting function (ie surf)  
+        @params[in] args - variable arguments to pass to pltting funciton  
+        @param[in] kwargs - keyword ags to pass to plotting funciton  
         '''
         self._init_plot_program() #ensure we are initialized
         kwargs = {k.lower():v for k,v in kwargs.items()} #make all keys lowercase
@@ -65,16 +65,16 @@ class SamuraiPlotter:
     ########################################################################### 
     def surf(self,*args,**kwargs):
         '''
-        @brief abstracted surface plotting function
-        @param[in] args - arguments for the plot function (in MATLAB fasion)
+        @brief abstracted surface plotting function  
+        @param[in] args - arguments for the plot function (in MATLAB fasion)  
         @param[in] kwargs - keyword arguments will be used as name/value pairs
-            again in MATLAB format except for the following special keywords:
-                xlim,ylim,zlim - set the x,y,z limits on the plot
-                xlabel,ylable,zlabel - set the x,y,z labels on the plot
-                view - set the plot view
-                shading - set the shading (for matlab. usually 'interp')
-                title - title of the plot
-                colorbar - arguements (as a tuple) to pass to the colorbar function
+            again in MATLAB format except for the following special keywords:  
+                - xlim,ylim,zlim - set the x,y,z limits on the plot
+                - xlabel,ylable,zlabel - set the x,y,z labels on the plot
+                - view - set the plot view
+                - shading - set the shading (for matlab. usually 'interp')
+                - title - title of the plot
+                - colorbar - arguements (as a tuple) to pass to the colorbar function
         '''
         rv = self._run_plot_function('surf',*args,**kwargs)
         return rv
@@ -84,16 +84,16 @@ class SamuraiPlotter:
     ###########################################################################
     def plot(self,*args,**kwargs):
         '''
-        @brief abstracted 2D plotting function
-        @param[in] args - arguments for the plot function (in MATLAB fasion)
+        @brief abstracted 2D plotting function  
+        @param[in] args - arguments for the plot function (in MATLAB fasion)  
         @param[in] kwargs - keyword arguments will be used as name/value pairs
-            again in MATLAB format except for the following special keywords:
-                xlim,ylim,zlim - set the x,y,z limits on the plot
-                xlabel,ylable,zlabel - set the x,y,z labels on the plot
-                view - set the plot view
-                shading - set the shading (for matlab. usually 'interp')
-                title - title of the plot
-                colorbar - arguements (as a tuple) to pass to the colorbar function
+            again in MATLAB format except for the following special keywords:  
+                - xlim,ylim,zlim - set the x,y,z limits on the plot
+                - xlabel,ylable,zlabel - set the x,y,z labels on the plot
+                - view - set the plot view
+                - shading - set the shading (for matlab. usually 'interp')
+                - title - title of the plot
+                - colorbar - arguements (as a tuple) to pass to the colorbar function
         '''
         rv = self._run_plot_function('plot',*args,**kwargs)
         return rv
@@ -105,8 +105,8 @@ class SamuraiPlotter:
         '''
         @brief this function will be called when the attribute or method 
             is not found. The call will look in the first value of
-            self.options['plot_order'] for the method or property
-        @param[in] name - attribute name
+            self.options['plot_order'] for the method or property  
+        @param[in] name - attribute name  
         '''
         self._init_plot_program()
         plotter = self._get_plot_program_object()
@@ -119,8 +119,8 @@ class SamuraiPlotter:
     ###########################################################################    
     def _init_plot_program(self,*args,**kwargs):
         '''
-        @brief initialize the current device whos name is in self.plot_program
-        @param[in/OPT] *args,**kwargs - all input arguements passed to initializer
+        @brief initialize the current device whos name is in self.plot_program  
+        @param[in/OPT] *args,**kwargs - all input arguements passed to initializer  
         '''
         if self.plot_program is None:
             raise Exception("No plot program defined")
@@ -143,7 +143,7 @@ class SamuraiPlotter:
     ########################################################################### 
     def _get_plot_program_object(self):
         '''
-        @brief return the handle to the current plot program handle
+        @brief return the handle to the current plot program handle  
         '''
         plotter = self.options['plot_program_dict'][self.plot_program]
         return plotter
@@ -151,16 +151,16 @@ class SamuraiPlotter:
     @property
     def plotter(self):
         '''
-        @brief getter _get_plot_program_object
+        @brief getter _get_plot_program_object  
         '''
         return self._get_plot_program_object()
     
     def _check_arg_count(self,arg_count,min_args,max_args):
         '''
-        @brief check for a minimum and maximum *args count
-        @param[in] arg_count - number of arguemnts recieved
-        @param[in] min_args - minimum number of arguements required
-        @param[in] max_args - maximum number of arguments possible
+        @brief check for a minimum and maximum *args count  
+        @param[in] arg_count - number of arguemnts recieved  
+        @param[in] min_args - minimum number of arguements required  
+        @param[in] max_args - maximum number of arguments possible  
         '''
         if arg_count<min_args: 
             raise TypeError("At least 3 input arguments required")
@@ -176,7 +176,7 @@ class SamuraiPlotEngine:
     '''
     @brief superclass for defining a plot program
         The process of plotting here is figure(),(plot_function)(),show()
-        These three steps allow working with most plotting library flows
+        These three steps allow working with most plotting library flows  
     '''
     def __init__(self):
         self.options = {}
@@ -186,52 +186,52 @@ class SamuraiPlotEngine:
         
     def _set_translation_dict(self):
         '''
-        @brief dictionary translation between commands
+        @brief dictionary translation between commands  
         '''
         pass
         
     def __getattr__(self,attr):
         '''
-        @brief pass any nonexistant attributes to the engine
+        @brief pass any nonexistant attributes to the engine  
         '''
         return getattr(self.options['engine'],attr)
         
     def surf(self,*args,**kwargs):
         '''
-        @brief default function for surf
+        @brief default function for surf  
         '''
         raise NotImplementedError
         
     def plot(self,*args,**kwargs):
         '''
-        @brief default function for 2D plot
+        @brief default function for 2D plot  
         '''
         raise NotImplementedError
         
     def scatter(self,*args,**kwargs):
         '''
-        @brief default function for scatterplot
+        @brief default function for scatterplot  
         '''
         raise NotImplementedError
         
     def figure(self,*args,**kwargs):
         '''
-        @brief default function for creating a figure
+        @brief default function for creating a figure  
         '''
         fig = self.engine.figure()
         return fig
         
     def show(self,fig,*args,**kwargs):
         '''
-        @brief show the figure. in most cases this function wont do anything
+        @brief show the figure. in most cases this function wont do anything  
         '''
         pass
     
     def _translate_arguments(self,**kwargs):
         '''
-        @brief translate arguments dictionary based on our translation_dictionary
-        @param[in] kwargs - name/param arguements to translate
-        @note this can also translate to functions
+        @brief translate arguments dictionary based on our translation_dictionary  
+        @param[in] kwargs - name/param arguements to translate  
+        @note this can also translate to functions  
         '''
         #now get a list of the functions specified and remove from kwargs
         arg_dict = SamuraiDict()
@@ -245,11 +245,11 @@ class SamuraiPlotEngine:
         '''
         @brief take a list of input kwargs. If the object has that attribute, 
             run the function with the value of that function key and remove it from
-            the argument dictionary. Otherwise leave it
-        @param[in] obj - object to run functions on
-        @param[in] **kwargs - arguemenbt dictionary to find functions from
+            the argument dictionary. Otherwise leave it  
+        @param[in] obj - object to run functions on  
+        @param[in] **kwargs - arguemenbt dictionary to find functions from  
         '''
-        for k,v in kwargs.items():
+        for k in list(kwargs.keys()):
             if hasattr(obj,k):
                 funct_args = kwargs.pop(k) #get the arguemnts and remove the function
                 funct = getattr(obj,k)
@@ -260,28 +260,28 @@ class SamuraiPlotEngine:
     @property
     def engine(self):
         '''
-        @brief getter for self.options['engine']
+        @brief getter for self.options['engine']  
         '''
         return self.options['engine']
     
     @engine.setter
     def engine(self,val):
         '''
-        @brief setter for self.options['engine']
+        @brief setter for self.options['engine']  
         '''
         self.options['engine'] = val
         
         
 class MatplotlibPlotter(SamuraiPlotEngine):
     '''
-    @brief plotting class for matplotlib abstraction
-    '''
+    @brief plotting class for matplotlib abstraction  
+    '''  
     def __init__(self,*args,**kwargs):
         '''
-        @brief initialize the class
-        @param[in/OPT] args - currently no required arguments
-        @param[in/OPT] kwargs - keyword args as follows:
-            engine - matlab engine to use
+        @brief initialize the class  
+        @param[in/OPT] args - currently no required arguments  
+        @param[in/OPT] kwargs - keyword args as follows:  
+            - engine - matlab engine to use  
         '''
         import matplotlib.pyplot as plt
         from matplotlib import cm
@@ -293,7 +293,7 @@ class MatplotlibPlotter(SamuraiPlotEngine):
             
     def surf(self,*args,**kwargs):
         '''
-        @brief surface plot in matplotlib
+        @brief surface plot in matplotlib  
         '''
         if len(args)<3: raise Exception("At least 3 input arguments required")
         if len(args)>4: raise Exception("Too many arguments (3 or 4 expected, {} recieved)".format(len(args)))
@@ -330,7 +330,7 @@ class MatplotlibPlotter(SamuraiPlotEngine):
     
     def plot(self,*args,**kwargs):
         '''
-        @brief 1D plot in matplotlib
+        @brief 1D plot in matplotlib  
         '''
         #self._check_arg_count(len(args),2,2) #must have exactly 2 args
         #fig = self.matplotlib.figure()
@@ -342,7 +342,7 @@ class MatplotlibPlotter(SamuraiPlotEngine):
     
     def _set_translation_dict(self):
         '''
-        @brief set the dictionary for parameter translation
+        @brief set the dictionary for parameter translation  
         '''
         for d in ['x','y','z']:
             self._translation_dict.update({'{}lim'.format(d):'set_{}lim'.format(d)}) #limits
@@ -351,25 +351,28 @@ class MatplotlibPlotter(SamuraiPlotEngine):
         
 class PlotlyPlotter(SamuraiPlotEngine):
     '''
-    @brief plotting abstraction for plotly
+    @brief plotting abstraction for plotly  
     '''
     def __init__(self,*args,**kwargs):
         '''
-        @brief init the class
-        @param[in/OPT] args - currently no required arguments
-        @param[in/OPT] kwargs - keyword args as follows:
-            engine - matlab engine to use
+        @brief init the class  
+        @param[in/OPT] args - currently no required arguments  
+        @param[in/OPT] kwargs - keyword args as follows:  
+            - engine - matlab engine to use  
         '''
         import plotly.graph_objects as go
         from mpl_toolkits.mplot3d import Axes3D
+        import plotly.io as pio
         super().__init__(*args,**kwargs)
         self.options['engine'] = go
+        self.options['default_renderer'] = 'browser'
         for k,v in kwargs.items():
             self.options[k] = v
+        pio.renderers.default = self.options['default_renderer']
             
     def surf(self,*args,**kwargs):
         '''
-        @brief surface plot in plotly
+        @brief surface plot in plotly  
         '''
         if len(args)<3: raise Exception("At least 3 input arguments required")
         if len(args)>4: raise Exception("Too many arguments (3 or 4 expected, {} recieved)".format(len(args)))
@@ -401,12 +404,23 @@ class PlotlyPlotter(SamuraiPlotEngine):
         update_nested_dict(fig_dict,kwarg_trans,overwrite_values=True)
         fig = self.engine.Figure(fig_dict)
         #fig = self.engine.FigureWidget(fig)
-        self.show(fig)
+        self.show(fig,**kwargs)
+        return fig
+    
+    def plot(self,*args,**kwargs):
+        '''
+        @brief 2D plot in plotly  
+        '''
+        if len(args)==1: y=args[0]; x=np.arange(len(y))
+        if len(args)==2: y=args[1]; x=args[0]
+        myscat = self.engine.Scatter(x=x,y=y,mode='lines',**kwargs)
+        fig = self.engine.Figure(myscat)
+        self.show(fig,**kwargs)
         return fig
     
     def _set_translation_dict(self):
         '''
-        @brief set the dictionary for parameter translation
+        @brief set the dictionary for parameter translation  
         '''
         for d in ['x','y','z']:
             lab_name = '{}axis'.format(d)
@@ -416,15 +430,15 @@ class PlotlyPlotter(SamuraiPlotEngine):
     
     def show(self,fig,*args,**kwargs):
         '''
-        @brief show the plot. Currently this is done and saved out to 'filename'
-            kwarg
-        @param[in] *args,**kwargs - all passed to plotly.offline.plot() (self.engine.plot())d
+        @brief show the plot.  
+        @param[in] *args,**kwargs - all parameters are passed to fig.show():  
+            - renderer - 'browser' will plot in the browser  
         '''
-        fig.show()
+        fig.show(**kwargs)
         
     def write(self,fig,out_path,*args,**kwargs):
         '''
-        @brief write out the plot
+        @brief write out the plot  
         '''
         fig.write_html(out_path)
         return out_path
@@ -432,14 +446,14 @@ class PlotlyPlotter(SamuraiPlotEngine):
         
 class MatlabPlotter(SamuraiPlotEngine):
     '''
-    @brief further plotting abstraction for matlab
+    @brief further plotting abstraction for matlab  
     '''
     def __init__(self,*args,**kwargs):
         '''
         @brief init the class
-        @param[in/OPT] args - currently no required arguments
-        @param[in/OPT] kwargs - keyword args as follows:
-            engine - already initialized SamuraiMatlab class to use
+        @param[in/OPT] args - currently no required arguments  
+        @param[in/OPT] kwargs - keyword args as follows:  
+            - engine - already initialized SamuraiMatlab class to use  
         '''
         from samurai.base.SamuraiMatlab import SamuraiMatlab
         super().__init__(*args,**kwargs)
@@ -448,11 +462,14 @@ class MatlabPlotter(SamuraiPlotEngine):
             self.options[k] = v
         if self.engine is None: #do this so we dont start up the engine to early
             self.engine = SamuraiMatlab(**self.options)
+
+    def help(self,*args,**kwargs):
+        print(self.engine.help(*args,**kwargs))
         
     def surf(self,*args,**kwargs): 
         '''
         @brief surface plot in matlab
-            These inputs are the standard matlab inputs (except name/val pairs can be keyword args)
+            These inputs are the standard matlab inputs (except name/val pairs can be keyword args)  
         '''
         #extract some arguments that require separate commands
         kwargs,funct_dict = self._clean_kwargs(**kwargs)
@@ -462,7 +479,7 @@ class MatlabPlotter(SamuraiPlotEngine):
     
     def plot(self,*args,**kwargs):
         '''
-        @brief 2D plot in matlab
+        @brief 2D plot in matlab  
         '''
         #extract some arguments that require separate commands
         kwargs,funct_dict = self._clean_kwargs(**kwargs)
@@ -473,8 +490,8 @@ class MatlabPlotter(SamuraiPlotEngine):
     
     def _clean_kwargs(self,**kwargs):
         '''
-        @brief this will extract a set of kwargs to run when provided as input parameters (e.g. xlim)
-        @return normal kwargs, dictionary of extracted functions
+        @brief this will extract a set of kwargs to run when provided as input parameters (e.g. xlim)  
+        @return normal kwargs, dictionary of extracted functions  
         '''
           #extract some arguments that require separate commands
         funct_keys = ['xlim','ylim','zlim','xlabel','ylabel','zlabel','view','shading','title','colorbar']
@@ -484,34 +501,34 @@ class MatlabPlotter(SamuraiPlotEngine):
         
     def is_figure(self,obj):
         '''
-        @brief test whether an object is a figure
-        @param[in] obj - the object to test
-        @return true if is a figure, false otherwise
+        @brief test whether an object is a figure  
+        @param[in] obj - the object to test  
+        @return true if is a figure, false otherwise  
         '''
         return self.engine.get(obj,'type')=='figure'
     
     def is_axes(self,obj):
         '''
-        @brief test whether an object is an axis
-        @param[in] obj - the object to test
-        @return true if is an axis, false otherwise
+        @brief test whether an object is an axis  
+        @param[in] obj - the object to test  
+        @return true if is an axis, false otherwise  
         '''
         return self.engine.get(obj,'type')=='axes'
             
 if __name__=='__main__':
-    surf_test = True
-    plot_test = False
+    surf_test = False
+    plot_test = True
     translate_test = False
     if surf_test:
-        sp = SamuraiPlotter('plotly')
+        sp = SamuraiPlotter('matlab')
         [X,Y] = np.mgrid[1:10:0.5,1:20]
         Z = np.sin(X)+np.cos(Y)
-        fig = sp.surf(X,Y,Z,xlim=[0,20],zlabel='\lambda',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
+        fig = sp.surf(X,Y,Z,xlim=[0,20],zlabel='\lambda',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',[5,7]))
         #args = sp._translate_arguments(zlabel='X',shading='interp')
         #sp._surf_plotly(X,Y,Z,xlim=[0,20],zlabel='X',shading='interp',colorbar=('XTick',[-1,1],'XTickLabel',['A','B']))
         #sp._surf_matlab(X,Y,Z,xlim=[0.,20.],zlabel='X',shading='interp',colorbar=('XTick',[-1.,1.],'XTickLabel',['A','B']))
     if plot_test:
-        sp = SamuraiPlotter('matlab',verbose=True)
+        sp = SamuraiPlotter('plotly',verbose=True)
         x = np.linspace(0,2*np.pi,1000)
         y = np.sin(x*5)
         sp.plot(x,y,displayname='test')

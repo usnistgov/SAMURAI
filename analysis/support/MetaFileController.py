@@ -20,8 +20,9 @@ from samurai.analysis.support.MUFResult import MUFResult
 from samurai.base.generic import deprecated, ProgressCounter
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
-from samurai.acquisition.support.samurai_optitrack import MotiveInterface
+from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
 from samurai.acquisition.support.samurai_metaFile import metaFile
+from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
 class MetaFileController(SamuraiDict):
     '''
@@ -29,13 +30,16 @@ class MetaFileController(SamuraiDict):
     @todo combine this with samurai_metaFile acquisition code
     '''
 
-    def __init__(self,metafile_path,**arg_options):
+    def __init__(self,metafile_path=None,**arg_options):
         '''
         @brief initialize our class to control our metafile and the data within it
         @param[in] metafile_path - path to the metafile to load 
             This can also be passed as None. If this is done, a
             OrderedDict will be created from samurai_metaFile acquisition code
             with a blank measurements list
+        @param[in] arg_options - keyword arguments as follwos
+            None Yet!
+            -also passed to SamuraiPlotter constructor
         '''
         super().__init__(self) #initialize ordereddict
         if metafile_path is not None:
@@ -45,7 +49,11 @@ class MetaFileController(SamuraiDict):
             self.wdir = os.path.abspath('./') #get the current path
             self.update(SamuraiDict(metaFile(None,None)))
             
-        self.plotter = SamuraiPlotter()
+        plot_args = {}
+        plot_args['plot_program'] = 'matplotlib'
+        for k,v in arg_options.items():
+            plot_args[k] = v
+        self.plotter = SamuraiPlotter(**plot_args)
         
         self.unit_conversion_dict = { #dictionary to get to meters
                 'mm': 0.001,
@@ -92,23 +100,25 @@ class MetaFileController(SamuraiDict):
         @return list of snp or wnp classes
         '''
         options = {}
-        options['data_type'] = None
+        options['data_type'] = 'nominal'
         options['data_meas_num'] = 0
         for k,v in arg_options.items():
             options[k] = v
         snpData = []
         numLoadedMeas = 0
-        if verbose: pc = ProgressCounter(len(self.measurements),'Loading Metafile Data: ',update_period=5)
+        #String of what data type and meas num we are loading 
+        data_type_string = 'nominal' if options['data_type']=='nominal' else '{}[{}]'.format(options['data_type'],options['data_meas_num'])
+        if verbose: pc = ProgressCounter(len(self.measurements),'Loading {} Data: '.format(data_type_string),update_period=5)
         for meas in self.measurements:
             fname = os.path.join(self.wdir,meas['filename'].strip())
             #if options['data_type'] is None or options['data_type']=='nominal':
             #    snpData.append(snp(fname,read_header=read_header))
             if options['data_type']=='monte_carlo':
-                muf_res = MUFResult(fname,no_load=True)
-                fname = muf_res.get_monte_carlo_path(options['data_meas_num'])
+                muf_res = MUFResult(fname)
+                fname = muf_res.monte_carlo[options['data_meas_num']].filepath
             if options['data_type']=='perturbed':
-                muf_res = MUFResult(fname,no_load=True)
-                fname = muf_res.get_perturbed_path(options['data_meas_num'])
+                muf_res = MUFResult(fname)
+                fname = muf_res.perturbed[options['data_meas_num']].filepath
             snpData.append(TouchstoneEditor(fname,read_header=read_header))
             numLoadedMeas+=1
             #print(numLoadedMeas)
@@ -204,7 +214,7 @@ class MetaFileController(SamuraiDict):
     
     def get_external_positions(self,label=None,meas_num=-1):
         '''
-        @brief get externally measured positions. 
+        @brief get externally measured positions.
             If label is specified, a list of positional data for the data point
             or rigid body with that label will be returned. This return value
             will be a list of dictionaries with the entries various entries providing info on the measurements
@@ -384,6 +394,8 @@ class MetaFileController(SamuraiDict):
             fig = self.plotter.figure(); self.plotter.hold('on',nargout=0); ax = self.plotter.gca()
         for l in label_names:   
             pos = self.get_external_positions_mean(l)
+            if l!='meca_head':
+                pos = np.mean(pos,axis=0)
             self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
         self.plotter.legend(interpreter=None,nargout=0)
         return fig 
@@ -646,7 +658,7 @@ def update_wdir(metafile_path):
 #import copy
 def split_metafile(metafile_path,meas_split,label='split'):
     '''
-    @brief - This function provides the ability to split a metafile. The allows a single
+    @brief This function provides the ability to split a metafile. The allows a single
     measurement to be split into multiple (in the case of taking multiple 
     apertures in a single measurement).
     
@@ -680,12 +692,12 @@ def split_metafile(metafile_path,meas_split,label='split'):
 # Evenly split into N apertures
 def evenly_split_metafile(metafile_path,num_splits,label='split'):
     '''
-    @brief - evenly split .json metafile into num_splits different files. 
+    @brief Evenly split .json metafile into num_splits different files. 
         split files are named in the following form <name>_<label>_#.json.
         Files will be written to same diretory as json file
-    @param[in] - metafile_path - .json file with metafile information
-    @param[in] - num_splits - number of even splits to make
-    @param[in] - label - label to append to filename when written out
+    @param[in] metafile_path - .json file with metafile information
+    @param[in] num_splits    - number of even splits to make
+    @param[in] label         - label to append to filename when written out
     '''
     
     # First we get the number of measurements per split.
