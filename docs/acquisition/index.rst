@@ -8,6 +8,7 @@ SAMURAI Data Acquisition
 
 .. toctree::
    running_samurai
+   running_samurai_alt
    :maxdepth: 2
    :caption: Running a Measurement
 
@@ -20,6 +21,7 @@ SAMURAI Data Acquisition
    acquisition_code
    :maxdepth: 2
    :caption: Code Reference
+
 
 	
 

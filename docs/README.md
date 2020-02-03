@@ -14,7 +14,10 @@ In the sphinx `config.py` file, make sure to set the correct root directories fo
 
 # Requirements
 
-- Sphinx - Run `conda install sphinx` or go to http://www.sphinx-doc.org/en/master/usage/installation.html
+- Sphinx - Run `conda install sphinx` or go to http://www.sphinx-doc.org/en/master/usage/installation.html (this should already be included with anaconda)
+- commonmark - run `pip install commonmark`
+- recommonmark - run `pip install recommonmark`
+- sphinx_rtd_theme - run `pip install sphinx_rtd_theme` or `conda install -c anaconda sphinx_rtd_theme`
 - MATLAB Sphinx support - run `pip install sphinxcontrib-matlabdomain` or go to https://pypi.org/project/sphinxcontrib-matlabdomain/
 
 
