@@ -10,6 +10,7 @@ import time
 import json
 import re
 from numbers import Number #for testing if its an id
+from datetime import datetime #for timestamping
 
 from samurai.acquisition.instrument_control.NatNetClient import NatNetClient
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import quaternion_to_euler
@@ -101,6 +102,8 @@ class MotiveInterface(Instrument):
         #now pack into data struct
         for k in raw_data_dict.keys():
             raw_data_dict[k].calculate_statistics(**options)
+        #add timestamp
+        raw_data_dict['timestamp'] = str(datetime.now())
         return raw_data_dict
     
     #alias for backward compatability
@@ -345,23 +348,25 @@ class MotiveInterface(Instrument):
         rot[2] = -1.*rot_euler[2]
         return rot
     
-    def get_distance(self,marker_a,marker_b):
+    def get_distance(self,marker_a,marker_b,**kwargs):
         '''
         @brief calculate the distance between two markers (or rigid bodies)
         @param[in] marker_a - first marker to start measurement from
         @param[in] marker_b - second marker to measure too
+        @param[in/OPT] kwargs - passed to query calls
         @note This calculates marker_b-marker_a for location (no rotation)
         @return Dictionary with mean:[x,y,z] distances and euler:d (absolute euler distance)
         '''
         #first get the locations of our data
         distance_dict = SamuraiDict()
-        ma_pos = self.query(marker_a)[marker_a]['position']
-        mb_pos = self.query(marker_b)[marker_b]['position']
+        ma_pos = self.query(marker_a,**kwargs)[marker_a]['position']
+        mb_pos = self.query(marker_b,**kwargs)[marker_b]['position']
         
         #now lets get the x,y,z distances
         distance_dict['mean'] = mb_pos['mean']-ma_pos['mean']
         distance_dict['euler']  = np.sqrt(np.sum(distance_dict['mean']**2))
         distance_dict['standard_deviation'] = mb_pos['standard_deviation']+ma_pos['standard_deviation']
+        distance_dict['timestamp'] = str(datetime.now())
         return distance_dict
         
         
@@ -450,8 +455,8 @@ class TestMotiveInterface(unittest.TestCase):
 if __name__=='__main__':
     testa = False #print data to json
     
-    #suite = unittest.TestLoader().loadTestsFromTestCase(TestMotiveInterface)
-    #unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMotiveInterface)
+    unittest.TextTestRunner(verbosity=2).run(suite)
     
     mymot = MotiveInterface()
     #time.sleep(3)
