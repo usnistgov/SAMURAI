@@ -12,6 +12,8 @@ from samurai.acquisition.instrument_control.Meca500  import Meca500       #our p
 import samurai.acquisition.support.samurai_support  as ss      #some other functions
 import samurai.acquisition.instrument_control.SamuraiMotive as samurai_optitrack  #import optitrack tracking
 
+from samurai.base.SamuraiDict import SamuraiDict
+
 import six
 import json
 
@@ -200,7 +202,7 @@ class SAMURAI_System():
                 else:
                     pnaTime = -3.14159
                     newPath = 'VNA NOT USED'
-                mf.update(newPath,posn_vals,note='PNA Time : '+str(pnaTime),dict_data=meas_dict_data)
+                mf.update(newPath,posn_vals,note='PNA Time : '+str(pnaTime),dict_data=SamuraiDict(meas_dict_data))
                 ltr.end_point(pnaTime)
                 n+=1
             
