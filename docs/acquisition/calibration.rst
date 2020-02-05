@@ -3,7 +3,7 @@ Samurai calibration Procedure
 
 1. Turn off the VNA Power
 -----------------------------
-Go to :code:`Stimulus->Power->Power...` and unclick the checkbox :code:`Power On (All Channels)`
+If required to meet NIST safety standards, go to :code:`Stimulus->Power->Power...` and unclick the checkbox :code:`Power On (All Channels)` to turn off the VNA transmit power.
 
 .. note:: While this is not typically necessary, for high powers and high gain horns, not doing this may be dangerous.
 
@@ -123,7 +123,7 @@ Perform the waveguide calibration for each of these VNA settings in a different 
 need to be reordered to get :code:`short.s2p` and :code:`load.s2p`. To reorder the data, simply run the :code:`swap_script_s-params.py` in the calibration directory.
 The listing of this is as follows:
 
-.. code-listing:: python
+.. code-block:: python
 
     from samurai.base.TouchstoneEditor import SnpEditor
 
@@ -138,13 +138,17 @@ The listing of this is as follows:
     s = SnpEditor([2,sl.freq_list/1e9])
     l = SnpEditor([2,ls.freq_list/1e9])
 
-
     #swap the data
     l.S[11] = ls.S[11]; l.S[22] = sl.S[22]
     l.S[21] = ls.S[21]; l.S[12] = sl.S[12]
     s.S[11] = sl.S[11]; s.S[22] = ls.S[22]
     s.S[21] = sl.S[21]; s.S[12] = ls.S[12]
 
+    #set the header to write out GHz
+    s.set_header('#GHz S RI 50')
+    l.set_header('#GHz S RI 50')
+
+    #write out the new files
     s.write('short.s2p');
     l.write('load.s2p');
 

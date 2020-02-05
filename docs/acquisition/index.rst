@@ -8,7 +8,7 @@ SAMURAI Data Acquisition
 
 .. toctree::
    running_samurai
-   running_samurai_alt
+   calibration
    :maxdepth: 2
    :caption: Running a Measurement
 
