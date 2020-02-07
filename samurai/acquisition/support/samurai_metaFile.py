@@ -16,6 +16,8 @@ from datetime import datetime as dt
 import six
 import getpass
 
+from samurai.base.SamuraiDict import SamuraiDict
+
 #class for meta file with JSON and temp file
 #import directory and file name
 #also give the csv file where positions are running from to build JSON template
@@ -339,7 +341,7 @@ class metaFile(OrderedDict):
             - dict_data - dicitionary of extra data to write to the measurement piece  
         '''
         defaults = {'cal_file_path':self['cal_path'],'note':'none','measID':-1}
-        defaults['dict_data'] = None 
+        defaults['dict_data'] = SamuraiDict()
         options = {}
         for key, value in six.iteritems(defaults):
             options[key] = value
@@ -361,7 +363,7 @@ class metaFile(OrderedDict):
         #build the file line from our parameters
         with open(self.raw_path,writeType) as metafile:
             line = ('|   '+str(measID)+ "    |    "+os.path.relpath(file_path,self['working_directory'])+"    |    "+os.path.relpath(options['cal_file_path'],self['working_directory'])+'   |   '
-                    +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+"   |   "+json.dumps(options['dict_data'])+"   |\n")
+                    +str(dt.now())+"    |    "+str(position)+ "    |    "+options['note']+"   |   "+options['dict_data'].dumps(indent=None)+"   |\n")
             metafile.write(headerLine)
             metafile.write(line)
             

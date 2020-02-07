@@ -21,6 +21,9 @@ visa_addr = 'TCPIP0::192.168.0.2::inst0::INSTR'
 #connect to the VNA
 mypna = PnaController(visa_addr)
 
+#wait until the VNA is ready
+mypna.barrier()
+
 #setup an s parameter sweep on ports 1 and 3
 mypna.setup_s_param_measurement([11,31,13,33])
 mypna.set_continuous_trigger('ON')

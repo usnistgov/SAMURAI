@@ -45,7 +45,7 @@ class SamuraiPositionDataDict(SamuraiDict):
             - include_raw_data - whether or not to include raw data  
         '''
         for k in self.keys():
-            if k!='info':
+            if k!='info' and k!='units':
                 self[k].calculate_statistics(**arg_options)
             
     def add_sample(self,data,**kwargs):
@@ -58,7 +58,7 @@ class SamuraiPositionDataDict(SamuraiDict):
             - key_order - list of key orders to save the data. otherwise just get self.keys()
         '''
         options = {}
-        options['key_order'] = [k for k in self.keys() if k!='info']
+        options['key_order'] = [k for k in self.keys() if k!='info' and k!='units']
         for k,v in kwargs.items():
             options[k] = v
         #now add it to our sets

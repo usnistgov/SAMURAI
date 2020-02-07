@@ -163,8 +163,9 @@ class ApertureBuilder():
         '''
         @brief generate a planar aperture given an aperture center point,size, and step  
         @param[in] center point - [x,y,z,alpha,beta,gamma] position of center  
-        @param[in] size - total size of the aperture in input units (default mm) [x,y,z]  
-        @param[in] step - step size in input units (default mm) [x,y,z]  
+        @param[in/OPT] size - total size of the aperture in input units (default mm) [x,y,z]  
+        @param[in/OPT] step - step size in input units (default mm) [x,y,z]  
+        @param[in/OPT] numel - number of elements in each direction of the array [x,y,z]  
         @note overwrites self.positions  
         '''
         size_2 = np.zeros(6)
@@ -547,6 +548,7 @@ if __name__=='__main__':
     myap.positions = ap
     myap.write('sweep_files/azimuth_antenna_sweep_fine.csv')
     '''
+    
     planar_base_path = r"C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_planar_vp.csv"
     cylind_base_path = r"C:\SAMURAI\local_data\4-8-2019\synthetic_aperture\raw\position_templates\positions_SAMURAI_cylinder.csv"
     
@@ -554,6 +556,7 @@ if __name__=='__main__':
     #convert_v1_file_to_v2_file(cylind_base_path,cylind_out_path)
     
     planar_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_offset_l2_40G_planar_vp.csv'
+    
     '''
     ap_base = ApertureBuilder()
     ap_base.load(planar_base_path)
@@ -566,6 +569,7 @@ if __name__=='__main__':
     ap_base.concatenate(ap_offset)
     ap_base.write(planar_out_path)
     '''
+    '''
     myap = ApertureBuilder()
     myap.load(planar_out_path) #load offset planar
     myap2 = ApertureBuilder()
@@ -573,3 +577,13 @@ if __name__=='__main__':
     myap.concatenate(myap2) #add cylindrical
     combined_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_offset_planar3_cylinder1_vp.csv'
     myap.write(combined_out_path)
+    '''
+    
+    planar_16_30Ghz_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_l2-30GHz_16x16_planar_vp.csv'
+    samurai_center = [0,125,60,0,0,0]
+    lam = 3e8/30e9*1e3 #lambda over 2 at 30 GHz in mm
+    myap.gen_planar_aperture_from_center(samurai_center,step=[lam/2,lam/2,lam/2],numel=[16,16,1])
+    myap.write(planar_16_30Ghz_out_path)
+    
+    
+    

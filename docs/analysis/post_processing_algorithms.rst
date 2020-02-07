@@ -90,11 +90,11 @@ With this code we have the raw data that was taken which can then be utilized fo
 Algorithm code
 ----------------
 
-.. automodule:: analysis.support.SamuraiPostProcess
+.. automodule:: samurai.analysis.support.SamuraiPostProcess
 	:members:
 
-.. automodule:: analysis.support.SamuraiCalculatedSyntheticAperture
+.. automodule:: samurai.analysis.support.SamuraiCalculatedSyntheticAperture
 	:members:
 
-.. automodule:: analysis.support.SamuraiBeamform
+.. automodule:: samurai.analysis.support.SamuraiBeamform
 	:members:

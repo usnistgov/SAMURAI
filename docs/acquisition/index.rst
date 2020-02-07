@@ -7,7 +7,10 @@ SAMURAI Data Acquisition
 =========================
 
 .. toctree::
+   calibration
    running_samurai
+   running_samurai_cli
+   other_info
    :maxdepth: 2
    :caption: Running a Measurement
 
@@ -20,6 +23,7 @@ SAMURAI Data Acquisition
    acquisition_code
    :maxdepth: 2
    :caption: Code Reference
+
 
 	
 
