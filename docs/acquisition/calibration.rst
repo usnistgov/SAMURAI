@@ -217,7 +217,8 @@ Setting Up PNAGrabber
     * Under :code:`Options> IF Bandwidth Setting`, make sure this is set to the correct IF with unit of Hz (i.e 1000)
     * Dont forget to do a :code:`File> Save` as CTRL + S does not work!!
 
-.. note:: For measurements with very large numbers of points (5000+ VNA points) PNAGrabber may become slow to transfer the data from the VNA.
+.. note:: There is an alternate method to get VNA measurements rather than using PNAGrabber. 
+         For measurements with very large numbers of points (5000+ VNA points) PNAGrabber may become slow to transfer the data from the VNA.
          An alternate way of taking VNA data (not including switch terms) is to open Spyder, running :code:`set_vna_params.py` to set the parameters,
          and then in the Spyder Console type:
 
