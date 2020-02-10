@@ -222,7 +222,10 @@ def SamuraiJSONDecoder(o):
     @note if the above notes are not met, standard decoding will be done  
     '''
     custom_decoding_method = '_decode_json_'
-    first_key_name = list(o.keys())[0] #
+    if o.keys():
+        first_key_name = list(o.keys())[0] #
+    else:
+        first_key_name = ''
     if first_key_name.startswith('__') and first_key_name.endswith('__'): 
         #then assume its a special directive (e.g. class or operation)
         spec_dir = first_key_name.strip('__')
