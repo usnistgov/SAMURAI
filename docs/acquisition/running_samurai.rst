@@ -42,13 +42,10 @@ This section shows how to run from a premade python script. This requires the lo
 2. Perform 2 Port VNA Calibration
 ++++++++++++++++++++++++++++++++++++++++
 
-#. In the windows file explorer navigate to :code:`<working-directory>/cal/calibration_pre`
-#. double click on :code:'cal.pnagrabber' to start PNAGrabber for the calibration.
-#. Attach each of the standards to the calibration plane with the naming convention :code:`<standard-port-1>_<standard-port-2>.s2p`
+Follow the steps outlined in :ref:`Samurai Calibration Procedure`
 
-    - (e.g. load_short.s2p is load on port 1 and short on port 2)
 
-#. When the calibration is completed, make a copy of each of the `.s2p` files generated and put them into the :code:`<working-directory>/cal/calibration_pre/raw` folder
+.. _Update the Script:
 
 3. Open and update the script
 ++++++++++++++++++++++++++++++++++++++

@@ -1,4 +1,6 @@
 
+.. _Samurai Calibration Procedure:
+
 Samurai Calibration Procedure
 =================================
 
@@ -167,7 +169,7 @@ The listing of this is as follows:
 
         #. Drag the :code:`load.s2p` , :code:`open.s2p` , :code:`short.s2p` , and :code:`thru.s2p` into here so it looks like the following image
 
-        .. image:: ../external_data/cal_pre_duts.png
+        .. image:: ./external_data/cal_pre_duts.png
 
         If this still does not work, please see the MUF documentation.
 
@@ -194,4 +196,8 @@ The listing of this is as follows:
 
     mysam.zero()
     mysam.disconnect_rx_positioner()
+
+Next Steps for Running SAMURAI
+----------------------------------
+If this calibration has been performed as part of starting up the SAMURAI system with the standard procedure, please return to :ref:`Update the Script` to continue.
 

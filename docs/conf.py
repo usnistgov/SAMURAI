@@ -25,7 +25,7 @@ import re
 dox_funct_dict = {
     "brief"  : lambda str: re.sub(' +',' ',str.strip().strip("brief").replace('\n','').strip()),
     "param"  : lambda str: re.sub(' +',' ',':param '+' '.join(str.strip().split(' ')[1:]).replace(' -',':').replace('\n','')+'\n'),
-    "example": lambda str: re.sub(' +',' ',('.. code-block:: python\n'+str.strip().strip('example')).replace('\n','\n   ')+'\n'),
+    "example": lambda str: re.sub(' +',' ',('.. code-block:: python\n'+str.strip().strip('example')).replace('\n','\n   ')+'\n').lstrip(),
     "return" : lambda str: re.sub(' +',' ',":return: "+str.strip().strip("return").replace('\n','')+'\n'),
 	"note"   : lambda str: re.sub(' +',' ',".. note:"+str.strip().strip("note").replace('\n','')+'\n'),
     "warning": lambda str: re.sub(' +',' ',".. warning:"+str.strip().strip("warning").replace('\n','')+'\n'),
@@ -58,8 +58,13 @@ def docstring(app, what, name, obj, options, lines): #change this to not use mar
     #rst = commonmark.ReStructuredTextRenderer().render(ast)
     lines.clear()
     rst = doxygen2rst(rst)
+    if name=='samurai.base.generic':
+        print("")
+        print("{}:".format(name))
     for line in rst.splitlines():
         lines.append(line)
+        if name=='samurai.base.generic':
+            print("{}".format(line))
 
 def setup(app):
     app.connect('autodoc-process-docstring', docstring)

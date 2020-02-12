@@ -15,7 +15,7 @@ The current code can be downloaded or cloned from the :git_repo:`/`
 Installation
 ------------------
 
-#. Change into the downloaded SAMURAI package directory.
+#. Change into the downloaded SAMURAI package directory (e.g., :code:`cd <download_directory>/samurai/`).
     
     - This should contain a script called :code:`setup.py`
 
@@ -26,9 +26,10 @@ Installation
 #. The original package can then be deleted
 
 .. note:: If The package will be changed or developed at any point in time (i.e. changes pushed to git), the original package should be placed somewhere where 
-    it will not be deleted and the package should be installed with :code:`pip install -e .` after changing into the directory.
+    it will not be deleted and the package should be installed with :code:`pip install -e .` after changing into the directory. 
+    This will allow edits to the code to immediatly be utilized in python.
 
-.. seealso:: https://pip.pypa.io/en/latest/reference/pip_install/?highlight=editable#editable-installs
+    .. seealso:: https://pip.pypa.io/en/latest/reference/pip_install/?highlight=editable#editable-installs
 
 Taking the first measurement
 ------------------------------
