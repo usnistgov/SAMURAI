@@ -58,7 +58,7 @@ class PnaController(SCPIInstrument):
         if(not self.is_connected):
             try:
                 self.connection = self.vrm.open_resource(address)
-                self.connection.timeout = 10000 #timeout wasnt working at 3 or 10
+                self.connection.timeout = 300000 #set to 5 minutes
             except:
                 raise IOError("Unable to connect to PNA")
             #if it worked were connected;

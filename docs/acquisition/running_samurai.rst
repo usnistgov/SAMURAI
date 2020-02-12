@@ -20,6 +20,11 @@ This section shows how to run from a premade python script. This requires the lo
     - Some commonly used templates are contained in :code:`<working-directory>/synthetic_aperture/raw/position_templates` directory.
     - Once the desired CSV file has been copied, rename it :code:`positions.csv`
 
+.. note:: If the \*.csv file has never been used before:
+		It is recommended to run a test sweep and watch the robot move to ensure nothing will get damaged. 
+		This can be performed by adding the optional argument :code:`run_vna=False` to the mysam.csv_sweep() command in the :code:`<working_directory>/synthetic_aperture/raw/run_script.py`
+		file. Although make sure to remove this command or set :code:`run_vna=True` when performing a measurement with the VNA.
+
 .. note:: The layout for the :code:`meas_template` directory should look like:
 
 			 - /	
