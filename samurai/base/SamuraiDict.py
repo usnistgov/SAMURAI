@@ -11,6 +11,7 @@ import json
 import numpy as np
 from functools import reduce
 import operator
+import textwrap
 
 class SamuraiDict(OrderedDict):
     '''
@@ -107,6 +108,39 @@ class SamuraiDict(OrderedDict):
         return mystr
     
     dumps=writes #alias to match json names
+    
+    def get_rst_str(self,alt_names={},parse_functs={},rst_format_str='- **{0}** - {1}'):
+        '''
+        @brief Get a nicely formatted ReStructuredText string (for sphinx)
+        @param[in/OPT] alt_names - Dictionary with mapping of alternative names for the keys ({key:alt_name,...})
+        @param[in/OPT] parse_functs - Dictionary to parse data. Keys should be types and values should be functions (e.g., {str:parse_string})
+        @param[in/OPT] rst_format_str - format string for each line. This defaults to '**{0}** - {1}'. Requires 2 inputs to format (name,val).
+        @return String formatted for rst usage
+        '''
+        #default parsing function
+        def default_parse(val):
+            if isinstance(val,type(self)): #if its also a dict, prettyprint
+                formatted_val = val.get_rst_str(alt_names,parse_functs,rst_format_str)
+                textwrap.indent(formatted_val, '   ')
+            else:
+                formatted_val = '{}'.format(val).replace('\n','') #remove any extraneous newlines
+            return formatted_val
+        
+        lines = []
+        for k,v in self.items(): #loop through each item
+            #get alternative name otherwise use the key name
+            name_str = alt_names.get(k,k) 
+            #now parse the value
+            parse_fun = parse_functs.get(type(v),default_parse)
+            val_str = parse_fun(v)
+            #now lets format
+            line = rst_format_str.format(name_str,val_str)
+            lines.append(line)
+        
+        #now combine our lines  
+        lines_str = ' \n\n'.join(lines)
+        return lines_str
+    
     
     def set_from_path(self,key_list,value,**kwargs):
         '''

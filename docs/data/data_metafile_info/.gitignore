@@ -1,0 +1,5 @@
+# ignore auto generated rst files
+*.auto.rst
+
+#ignore copied images
+images/

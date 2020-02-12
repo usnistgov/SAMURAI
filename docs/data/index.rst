@@ -12,7 +12,7 @@ Here we have information on each dataset stored at - :data_root:`./` measured us
 For examples on utilizing the samurai data please see the :ref:`SAMURAI Data Analysis` section.
 
 .. toctree::
-   data_readme.md
+   data_readme.rst
    :maxdepth: 2
    :caption: Contents:
 

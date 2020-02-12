@@ -3,8 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-	
-Interacting with the metafile
+.. _metafile_info:
+
+Interacting with the Metafile
 ====================================
 Interaction with the metafile can easily be performed using the samurai.analysis.support.MetaFileController.MetafileController.
 
