@@ -23,6 +23,8 @@ Installing Anaconda and Dependencies
     1. Type into the windows search 'anaconda prompt' and run the program
     2. In the terminal run `conda install -c conda-forge pyvisa` to install pyvisa
 
+.. _hardware-config:
+
 System Hardware Configuration
 ==============================
 

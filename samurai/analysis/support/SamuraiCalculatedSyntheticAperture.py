@@ -221,10 +221,14 @@ class CalculatedSyntheticAperture:
         plot_arg_dict.update({'xlabel':'X','ylabel':'Z','zlabel':'Y'})
         plot_arg_dict.update({'xlim':[-db_range,db_range],'ylim':[0,db_range*2],'zlim':[-db_range,db_range]})
         plot_arg_dict.update({'shading':'interp'})
-        plot_arg_dict.update({'colorbar':('XTick',[0,db_range/2,db_range],'XTickLabel',[str(caxis_min),str(caxis_min+db_range/2),str(caxis_max)])})
+        plot_arg_dict.update({'colorbar':('XTick',[0,db_range/2,db_range],'XTickLabel',['{:6.2f}'.format(caxis_min),'{:6.2f}'.format(caxis_min+db_range/2),'{:6.2f}'.format(caxis_max)])})
         for k,v in arg_options.items():
             plot_arg_dict[k] = v
         #plot_arg_dict.update({'colorbar':('XTick',[caxis_min,caxis_max],'XTickLabel',[str(caxis_min),str(caxis_max)])})
+        plot_arg_dict['data'] = []; plot_arg_dict['data'].append({})
+        #plot_arg_dict['data'][0]['hovertext'] = np.array(['AZ = {:4f}\n EL = {:4f}\n MAG={:4f}'.format(az,el,mag) for az,el,mag in zip(self.azimuth.flatten(),self.elevation.flatten(),plot_data.flatten())]).reshape(X.shape)
+        plot_arg_dict['data'][0]['hovertext'] = np.array(['AZ = {:4f}\n EL = {:4f}'.format(az,el) for az,el in zip(self.azimuth.flatten(),self.elevation.flatten())]).reshape(X.shape)
+        plot_arg_dict['data'][0]['hoverinfo']='text'
         rv = self.plotter.surf(X,Z,Y,plot_data,**plot_arg_dict)
         return rv
         

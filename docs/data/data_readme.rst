@@ -208,37 +208,38 @@ This data was taken at the the central Utility Plant (CUP) at the NIST boulder s
 
 8-7-2019
 +++++++++++++
-First day of real measurements in CUP. THis was taken without the rack in a high multipath environement
+First day of real measurements in CUP. THis was taken without the rack in a high multipath environement. Both Tx and Rx in this case were pointed toward the control panel. 
+The transmitter for this day was slightly angled upward toward the control panel whereas the aperture was about level with the control panel.
 
 - :data_root:`Central_Utility_Plant/8-7-2019/`
 
 8-8-2019
 +++++++++++
-Second day. Large metal rack to left when looking from behind the aperture
+Second day. Large metal rack to left when looking from behind the aperture. Antennas here are at the same angles as 8-7-2019.
 
 - :data_root:`Central_Utility_Plant/8-8-2019/`
 
 8-9-2019
 ++++++++++++
-Third day. Weekend measurement with 5 repeats of the same measurement with TX pointed upward.
+Third day. Weekend measurement with 5 repeats of a channel with TX pointed upward toward the large tank. No metal rack was in the scene during these measurements.
 
 - :data_root:`Central_Utility_Plant/8-9-2019/`
 
 8-12-2019
 +++++++++++++
-After weekend. Today we measured with large rack in the center of the work space (blocking the control panel)
+After weekend. Today we measured with large rack in the center of the work space (blocking the control panel). The antenna was again pointed toward the control panel.
 
 - :data_root:`Central_Utility_Plant/8-12-2019/`
 
 8-13-2019
 +++++++++++++
-Again the rack was removed to test the channel
+Again the rack was removed to test the channel with the new pointing of antennas toward the control panel.
 
 - :data_root:`Central_Utility_Plant/8-13-2019/`
 
 8-16-2019
 ++++++++++++
-Last day. We measured 3 offset planes (offset by lambda/2 @ 40GHz) and a cylindrical cut of the same channel
+Last day. We measured 3 offset planes (offset by lambda/2 @ 40GHz) and a cylindrical cut of the same channel as seen on 8-13-2019.
 
 - :data_root:`Central_Utility_Plant/8-16-2019/`
 

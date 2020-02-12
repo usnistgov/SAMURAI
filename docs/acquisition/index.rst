@@ -8,18 +8,21 @@ SAMURAI Data Acquisition
 
 .. toctree::
    running_samurai
+   calibration
    :maxdepth: 2
    :caption: Running a Measurement
 
 .. toctree::
    samurai_config
+   other_info
    :maxdepth: 2
-   :caption: Configuration Information
+   :caption: Configuration and Extra Information
 
 .. toctree::
    acquisition_code
    :maxdepth: 2
    :caption: Code Reference
+
 
 	
 

@@ -400,11 +400,15 @@ class PlotlyPlotter(SamuraiPlotEngine):
             autosize=True,
         )
         fig_dict = dict({'data':plotly_surf,'layout':layout})
+        data_kwargs = kwargs.pop('data',None)
         kwarg_trans = self._translate_arguments(**kwargs)
         update_nested_dict(fig_dict,kwarg_trans,overwrite_values=True)
+        if data_kwargs is not None:
+            for di,d in enumerate(data_kwargs): #should be a list of dicts
+                fig_dict['data'][di].update(d)
         fig = self.engine.Figure(fig_dict)
         #fig = self.engine.FigureWidget(fig)
-        self.show(fig,**kwargs)
+        #self.show(fig,**kwargs)
         return fig
     
     def plot(self,*args,**kwargs):

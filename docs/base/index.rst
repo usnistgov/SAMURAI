@@ -16,32 +16,33 @@ SAMURAI Base Libraries
 Generic functions
 -------------------
 
-.. automodule:: base.generic
+.. automodule:: samurai.base.generic
 	:members:
 
 Extended Dictionary Implementation
 ------------------------------------
-.. automodule:: base.SamuraiDict
+.. automodule:: samurai.base.SamuraiDict
 	:members:
 
 MATLAB Abstraction
 --------------------
-.. automodule:: base.SamuraiMatlab
+.. automodule:: samurai.base.SamuraiMatlab
 	:members:
 
-Plotting Abstraction
----------------------
-.. automodule:: base.SamuraiPlotter
-	:members:
+..
+	Plotting Abstraction
+	---------------------
+	.. automodule:: samurai.base.SamuraiPlotter
+		:members:
 
 Extended XML Implementation
 ------------------------------
-.. automodule:: base.SamuraiXML
+.. automodule:: samurai.base.SamuraiXML
 	:members:
 
 Touchstone File Editor
 -----------------------
-.. automodule:: base.TouchstoneEditor
+.. automodule:: samurai.base.TouchstoneEditor
 	:members:
 
 

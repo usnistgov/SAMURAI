@@ -81,7 +81,7 @@ string_types = (type(b''), type(u''))
 def deprecated(reason):
     """
     @brief decorator for deprecating old functions  
-    @author laurent laporte https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically  
+    @cite laurent laporte https://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically  
     @param[in] reason - why its deprecated and what to do  
     """
     if isinstance(reason, string_types):

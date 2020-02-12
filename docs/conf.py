@@ -22,17 +22,66 @@ matlab_src_dir = os.path.abspath('..')
 import commonmark
 import re
 
-dox_funct_dict = {
-    "brief"  : lambda str: re.sub(' +',' ',str.strip().strip("brief").replace('\n','').strip()),
-    "param"  : lambda str: re.sub(' +',' ',':param '+' '.join(str.strip().split(' ')[1:]).replace(' -',':').replace('\n','')+'\n'),
-    "example": lambda str: re.sub(' +',' ',('.. code-block:: python\n'+str.strip().strip('example')).replace('\n','\n   ')+'\n'),
-    "return" : lambda str: re.sub(' +',' ',":return: "+str.strip().strip("return").replace('\n','')+'\n'),
-	"note"   : lambda str: re.sub(' +',' ',".. note:"+str.strip().strip("note").replace('\n','')+'\n'),
-    "warning": lambda str: re.sub(' +',' ',".. warning:"+str.strip().strip("warning").replace('\n','')+'\n'),
-    "todo"   : lambda str: re.sub(' +',' ',".. todo::"+str.strip().strip("todo").replace('\n','')+'\n'),
-    "cite"   : lambda str: re.sub(' +',' ',".. seealso:: "+"*"+str.strip().strip("cite").replace('\n','')+"*\n"),
-}
+def clean_parse_input(str):
+    '''@brief clean the input from splitting on \@ character'''
+    #remove leading/trailing characters and replace newline with space
+    str = str.strip().replace('\n',' ')
+    return str
 
+def clean_parse_output(str):
+    '''@brief clean the output after formatting for adding things like newlines'''
+    #remove excess whitespace and add newlines
+    str = '\n\n'+re.sub(' +',' ',str)+'  \n\n'
+    return str
+
+def param_parse_fun(str):
+    '''
+    @brief function to parse our parameters and kwargs
+    @note kwargs should be of the following form 
+    @param[in/OPT] kwargs - keyword args as follows:
+        - kwarg1 - keyword argument 1
+        - kwarg2 - keyword argument 2
+    '''
+    #clean the input
+    str = clean_parse_input(str)
+    #first change @param[in] name - blah blah blah to :param name: blah blah blah
+    str = ':param '+' '.join(str.strip().split(' ')[1:]).replace(' -',':',1)
+    #now lets try and parse a list of arguments 
+    splits = str.split('-') #split on '-' and assume [0] is empty
+    split_names = splits[1::2]
+    split_vals = splits[2::2]
+    #now have each a separate split argument
+    split_args = ['\n\n         - *'+name.strip()+'*->'+val.strip() for name,val in zip(split_names,split_vals)]
+    str = ' '.join([splits[0]]+split_args)
+    #remove excess whitespace
+    str =  clean_parse_output(str)
+    return str
+
+def brief_parse_fun(str):
+    '''@brief Function to parse the brief of each docstring'''
+    #clean the input
+    str = clean_parse_input(str)
+    #remove 'brief' keyword and any newlines
+    str = str.lstrip("brief")
+    #capitalize first letter
+    str = str.lstrip().capitalize() 
+    str = re.sub(' +',' ',str)
+    str = clean_parse_output(str)
+    return str
+
+dox_funct_dict = {
+    "brief"  : brief_parse_fun,#lambda str: re.sub(' +',' ','\n'+str.strip().strip("brief").replace('\n','').strip()),
+    "param"  : param_parse_fun,
+    "example": lambda str: re.sub(' ',' ',('\n.. code-block:: python\n'+str.strip().lstrip('example')).replace('\n','\n   ')+'\n'),
+    "return" : lambda str: re.sub(' +',' ',"\n:return: "+str.strip().lstrip("return").replace('\n','')+'\n'),
+    "note"   : lambda str: re.sub(' +',' ',"\n.. note:"+str.strip().lstrip("note").replace('\n','')+'\n'),
+    "warning": lambda str: re.sub(' +',' ',"\n.. warning:"+str.strip().lstrip("warning").replace('\n','')+'\n'),
+    "todo"   : lambda str: re.sub(' +',' ',"\n.. todo::"+str.strip().lstrip("todo").replace('\n','')+'\n'),
+    "cite"   : lambda str: re.sub(' +',' ',"\n.. seealso:: "+"*"+str.strip().lstrip("cite").replace('\n','')+"*\n"),
+    "date"   : lambda str: re.sub(' +',' ',"\nDate - "+str.strip().lstrip("date").replace('\n','')+'\n'),
+    "author" : lambda str: re.sub(' +',' ',"\nAuthor - "+str.strip().lstrip("author").replace('\n','').strip(':')+'\n'),
+}
+    
 def docstring_preprocess(doc_str):
     '''@brief preprocess our doc strings'''
     doc_str = doc_str.replace('*','\*')
@@ -45,9 +94,9 @@ def doxygen2rst(dox_str):
     dox_lines = dox_str.split('@')[1:] #split lines on ampersand and remove first empty bit
     rst_str_list = []
     for dl in dox_lines: #loop through each split line
-        for k in dox_funct_dict.keys(): #look for the key 
+        for k in dox_funct_dict.keys(): #look for the key
             if dl.startswith(k):
-                dl = dox_funct_dict[k](dl) #format the line 
+                dl = dox_funct_dict[k](dl) #format the line
         rst_str_list.append(dl) #add the line to the lines
     return ' \n'.join(rst_str_list)
 
@@ -58,6 +107,14 @@ def docstring(app, what, name, obj, options, lines): #change this to not use mar
     #rst = commonmark.ReStructuredTextRenderer().render(ast)
     lines.clear()
     rst = doxygen2rst(rst)
+    
+    #write output to log file for inspection
+    log_path = './docstring_rst.log'
+    with open(log_path,'a+') as log:
+        log.write('\n\n---------- {} ----------\n'.format(name))
+        log.write(rst)
+
+    #now make a list for rst usage
     for line in rst.splitlines():
         lines.append(line)
 
@@ -68,7 +125,13 @@ def setup(app):
 # -- Project information -----------------------------------------------------
 
 project = 'SAMURAI'
-copyright = '2019, NIST'
+copyright = ('This software was developed by employees of the National Institute of Standards and Technology (NIST),'+
+              ' an agency of the Federal Government and is being made available as a public service.'+
+              ' Pursuant to title 17 United States Code Section 105, works of NIST employees are not subject to copyright protection in the United States.'+
+              ' This software may be subject to foreign copyright.  Permission in the United States and in foreign countries, to the extent that NIST may hold copyright,'+
+              ' to use, copy, modify, create derivative works, and distribute this software and its documentation without fee is hereby granted on a non-exclusive basis,'+
+              ' provided that this notice and disclaimer of warranty appears in all copies.'+
+              ' See the `Copyright Notice` section on the home page for more information.')
 author = 'NIST'
 
 # The short X.Y version
