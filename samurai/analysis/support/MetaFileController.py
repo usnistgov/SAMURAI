@@ -160,15 +160,15 @@ class MetaFileController(SamuraiDict):
         '''
         @brief add a measurement to the measurements list
         @param[in] filename - path to the file to add
-        @param[in/OPT] **kwargs - keyword arguements as follows
-            ID - id of the measurement
-            units - units for the positions
-            position - position of the SA
-            position_key - how to use the positions
-            notes - notes on the measurement
-            timestamp - time of measurement
-            calibration_file - file used to calibrate
-            calibrated - flag on whether we are calibrated
+        @param[in/OPT] kwargs - keyword arguements as follows:
+            - ID - id of the measurement
+            - units - units for the positions
+            - position - position of the SA
+            - position_key - how to use the positions
+            - notes - notes on the measurement
+            - timestamp - time of measurement
+            - calibration_file - file used to calibrate
+            - calibrated - flag on whether we are calibrated
         '''
         self['total_measurements']+=1 #add a measurement
         
@@ -315,8 +315,8 @@ class MetaFileController(SamuraiDict):
         @param[in/OPT] res_data - data for the residual (just 1 number)
         @param[in/OPT] units - units of the input data
         @param[in/OPT] arg_options - keyword arguments as follows:
-            sample_wait_time - time between samples
-            id - id of the tag 
+            - sample_wait_time - time between samples
+            - id - id of the tag 
         '''
         pos_meas = {}
         pos_meas['id'] = None

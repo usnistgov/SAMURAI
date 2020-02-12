@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Oct 31 13:47:17 2018
-Full High level system controls for samurai
+@date Wed Oct 31 13:47:17 2018
+@brief Full High level system controls for samurai
 @author: ajw5
 """
 
@@ -29,7 +29,7 @@ rx_positioner_address = '192.168.0.5'
 
 class SAMURAI_System():
     """
-    @brief - Class to control the entire SAMURAI system
+    @brief Class to control the entire SAMURAI system
     """
     
     #to run as simulation simply pass is_simualtion=true

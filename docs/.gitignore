@@ -2,3 +2,5 @@
 _build/
 #no shortcuts
 *.lnk 
+#no log files
+*.log

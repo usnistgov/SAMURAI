@@ -31,7 +31,7 @@ SPEED_OF_LIGHT=299792458.
 class SamuraiSyntheticApertureAlgorithm:
     ''' 
     @brief this is a generic class for samurai aglorithms.
-    this should be completed and the rest of this restructured in the futur
+    This should be completed and the rest of this restructured in the futur
     This will allow a more generic things to work with such as importing measured vs. simed values
     '''
     SPEED_OF_LIGHT = 299792458.
@@ -80,7 +80,7 @@ class SamuraiSyntheticApertureAlgorithm:
         @brief function to load in our metafile and S parameter data from it
         @param[in] metafile_path - path to the metafile to load measurement from
         @param[in/OPT] freq_mult - how much to multiply the freq by to get hz (e.g. 1e9 for GHz)
-        @param[in/OPT] keyword arguments passed to MetaFileController init and MetaFileController.load_data
+        @param[in/OPT] arg_options -keyword arguments passed to MetaFileController.__init__ and MetaFileController.load_data
         '''
         self.metafile = MetaFileController(metafile_path,**arg_options)
         if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
