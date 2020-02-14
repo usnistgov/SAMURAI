@@ -15,6 +15,9 @@ from shutil import copyfile,copy
 import numpy as np
 from datetime import datetime #for timestamps
 
+#plotly import
+import plotly.graph_objects as go
+
 from samurai.base.TouchstoneEditor import TouchstoneEditor
 from samurai.analysis.support.MUFResult import MUFResult
 from samurai.base.generic import deprecated, ProgressCounter
@@ -211,6 +214,16 @@ class MetaFileController(SamuraiDict):
         @return numpy array of our positions
         '''
         return self.get_positions()
+    
+    def plot_aperture(self):
+        '''@brief plot the current aperture positions in the metafile'''
+        pos = self.positions
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=pos[:,0],y=pos[:,1],mode='markers'))  
+        fig.update_layout(
+            xaxis_title='X position (mm)',
+            yaxis_title='Y position (mm)')
+        return fig
     
     def get_external_positions(self,label=None,meas_num=-1):
         '''
@@ -741,15 +754,17 @@ def copy_s_param_measurement_to_binary(metafile_path,output_directory):
             
             
 if __name__=='__main__':
-    metafile_path = r'./metafile_v2.json'
+    #metafile_path = r'./metafile_v2.json'
+    metafile_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\3-20-2019\metafile.json"
     #maturo_metafile_path = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\processed\synthetic_aperture\metaFile.json'
     mf = MetaFileController(metafile_path)
+    fig = mf.plot_aperture()
     #mmf = MetaFileController(maturo_metafile_path)
     #5-17-2019 data
-    beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
-    beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
-    mf.add_external_marker('beam-3',beam3_loc,units='m')
-    mf.add_external_marker('beam-2',beam2_loc,units='m')
+    #beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
+    #beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
+    #mf.add_external_marker('beam-3',beam3_loc,units='m')
+    #mf.add_external_marker('beam-2',beam2_loc,units='m')
     #mf.plot_external_positions()
     
     

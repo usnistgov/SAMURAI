@@ -41,7 +41,7 @@ image_format_str = '''
 Setup Image
 ^^^^^^^^^^^^^^^^^^
 
-.. image:: {}
+.. image:: {0}
 
 
 '''
@@ -54,29 +54,29 @@ Extra Information
 
 Extra plots and information on the measurement and its data can be found at the link below.
 
-- :ref:`data_{}_extra_info`
+- :ref:`data_{0}_extra_info`
 
 '''
 
 #format with (data_dir_name)
 extra_info_page_str = '''
 
-.. _data_{}_extra_info:
+.. _data_{0}_extra_info:
 
 #############################################################
-Additional Information for :code:`{}`
+Additional Information for :code:`{0}`
 #############################################################
 
 Aperture Positions
 ---------------------------
 
-.. image:: {}
+.. image:: {1}
 
 
 Beamformed 3D Data Plot at highest frequency
 ----------------------------------------------------
 
-.. image:: {}
+.. image:: {2}
 
 '''
 
@@ -92,9 +92,10 @@ extra_info_toctree_str = '''
 #%% constant settings
 data_root = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated'
 
+sphinx_root = '../../'
 mf_name = 'metafile.json'
 image_template_path = 'external_data/pictures/setup.png' #with respect to metafile dir
-local_image_dir = 'images/'
+local_image_dir = '/data/data_metafile_info/images/' #relative to sphinx root
 
 mf_dir_list = []
 
@@ -123,6 +124,7 @@ mf_dir_list = [os.path.join(data_root,mfd) for mfd in mf_dir_list] #add root dir
 out_dir = './' #output directory of files
 
 #%% now loop through each file
+dname_list = []
 for mfd in mf_dir_list:
     mf_path = os.path.join(mfd,mf_name)
     print("Extracting info for {}".format(mf_path))
@@ -134,6 +136,7 @@ for mfd in mf_dir_list:
     vna_info_str = mfc['vna_info'].get_rst_str()
     
     data_name = os.path.split(mfd)[1]
+    dname_list.append(data_name)
     
     #and add it to the rst file
     rst_str = meas_str.format(experiment,notes,vna_info_str)
@@ -143,27 +146,32 @@ for mfd in mf_dir_list:
 
     
     #copy the image from the network drive to local
-    image_local_path = os.path.join(local_image_dir,data_name+'.png')
+    image_local_path = os.path.join(local_image_dir,mfd+'.png')
     image_path = shutil.copy(image_path,image_local_path)
     #the image path in the rst file must be relative to sphinx root because we
     #are using the include directive on this auto generated file.
-    rst_image_path = os.path.join('/data/data_metafile_info/',image_path)
+    rst_image_path = image_path
 
     if True: #add the image on if it exists
         image_str = image_format_str.format(rst_image_path.replace(os.sep,'/'))
         rst_str+=image_str
 
-
-    #%% extra information with plots and whatnot
-    
-
         
     #%% Now lets create and add a plot of the aperture
     ap_fig = mfc.plot_aperture()
+    ap_fig_path = os.path.join(local_image_dir,'{}_aperture'.format(data_name)+'.html')
+    ap_fig.write_html(os.path.join(sphinx_root,ap_fig_path.lstrip('/')))
     
+    #%% extra information with plots and whatnot
+    #add the link to rst_str
+    rst_str += extra_info_link_str.format(data_name)
+    
+    extra_page = extra_info_page_str.format(data_name,ap_fig_path,'N/A')
+    
+    #save out the extra info
+    out_file_path = os.path.join(out_dir,data_name+'_extra.auto.rst')
         
-        
-    #%% now save out
+    #%% now save out the regular page
     out_file_path = os.path.join(out_dir,data_name+'.auto.rst')
     with open(out_file_path,'w+') as f:
         f.write(rst_str)
