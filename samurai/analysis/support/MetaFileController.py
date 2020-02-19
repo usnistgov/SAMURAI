@@ -73,13 +73,31 @@ class MetaFileController(SamuraiDict):
         '''
         @brief load a json metafile
         @param[in] metafile_path - path to the metafile to load
-        '''        
+        '''
+        #ensure the metafile exists and provide a better meassage if it doesnt
+        if not os.path.exists(metafile_path):
+            raise FileNotFoundError("The supplied path to the metafile is not valid: \n\n {}".format(mf_path))
         super().load(metafile_path)
-            #here we assume the working directory is the location of our metafile
-        [wdir,metafile]= os.path.split(metafile_path)
+        [in_wdir,metafile]= os.path.split(metafile_path)
         self.metafile = metafile
-        self.wdir = wdir
         self.update_format() #update if the format is bad
+        #now lets check to see if it is valid (measurements exist)
+        for i,fpath in enumerate(self.get_filename_list(True)): #
+            if not os.path.exists(fpath): #then raise an error with some help
+                rel_fpath = self.get_filename(i,False) #get relative filename of the measurement
+                raise FileNotFoundError(
+                                 ("Measurement {} not found. This could be due to a few errors:\n\n"+
+                                  "------------------------------------------------------------------------\n"+
+                                  "    WORKING DIRECTORY = \'{}\'\n\n"+
+                                  "    RELATIVE PATH = \'{}\'\n\n"+
+                                  "------------------------------------------------------------------------\n"+
+                                  "       1. The working directory is in correct\n"+
+                                  "           - If the working directory is incorrect it can be corrected\n"+
+                                  "                 by manually changing this value in the metafile.\n\n"+
+                                  "       2. The relative path is incorrect\n\n"+
+                                  "------------------------------------------------------------------------\n"
+                                  ).format(i,self.wdir,rel_fpath)
+                                  )
                 
     def write(self,outPath=None):
         '''
