@@ -586,9 +586,11 @@ class MetaFileController(SamuraiDict):
                 raise ValueError("Filename list length does not match number of measurements in metafile")
                 return -1
             for i in range(num_meas):
-                self['measurements'][i]['filename'] = os.path.relpath(fnames[i],self.wdir) #set the filename from the list
+                fname = os.path.join(self.wdir,fnames[i]) #this is a precaution to allow absolute paths and relative paths of the metafile
+                self['measurements'][i]['filename'] = os.path.relpath(fname,self.wdir) #set the filename from the list
         else: #its a meas index then
-            self['measurements'][meas_num]['filename'] = os.path.relpath(fnames,self.wdir) #should just be one name here
+            fname = os.path.join(self.wdir,fnames[i]) #this is a precaution to allow absolute paths and relative paths of the metafile
+            self['measurements'][meas_num]['filename'] = os.path.relpath(fname,self.wdir) #should just be one name here
         return 0
     
     def set_calibration_file(self,calfile,measNum=-1,set_calibrated_flg=True):
@@ -672,10 +674,9 @@ def copy_touchstone_from_muf(metafile,out_dir='./touchstone'):
             print("\b"*11+"{:5}/{:5}".format(i,len(nominal_paths)),end='')
     print('') #newline
     #now update our metafile with the new paths and working directory
-    cur_wdir
-    mf.set_wdir(out_dir)
+    mf.set_wdir('./')
     mf.filenames = out_file_paths
-    mf.write()
+    mf.write(os.path.join(out_dir,'metafile.json'))
     
         
         

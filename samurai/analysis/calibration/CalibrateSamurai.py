@@ -125,10 +125,11 @@ class CalibrateSamurai:
         @param[in] subdir - subdirectory passed from self.move_calibrated_results
         @return path to written metafile
         '''
+        mf_out_path = os.path.join(self.out_dir,subdir,'metafile.json')
         self.mfc.set_calibration_file(self.in_cal_path)
         self.mfc.wdir = './'
         self.mfc.set_filename(filename_list) #set list to metafile
-        return self.mfc.write() #write out
+        return self.mfc.write(mf_out_path) #write out
     
     def move_calibrated_results(self,subdir='.'):
         '''
@@ -156,7 +157,7 @@ class CalibrateSamurai:
             #now we actually copy
             meas_out_name = copy(copy_src,copy_dst)
             #make list of output file names
-            fname_out_list.append(meas_out_name)
+            fname_out_list.append(os.path.split(meas_out_name)[-1])
         #now update the metafile entry
         #this assumes that all of the files have been read and written in order
         return self._update_metafile(fname_out_list,subdir)
