@@ -141,6 +141,8 @@ Information for Measurements Conducted on :code:`6-17-2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Line of sight on optical table with new mount and no absorber fence behind rx
 
+.. include:: data_metafile_info/6-17-2019.auto.rst
+
 - :data_root:`2019/6-17-2019/`
 
 |
@@ -150,7 +152,9 @@ Line of sight on optical table with new mount and no absorber fence behind rx
 
 Information for Measurements Conducted on :code:`6-18-2019` 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Line of sight on optical table with new mount and absorber fence behind rx
+Line of sight on optical table with new mount and absorber fence behind rx. 
+
+.. todo:: Provide more information on this measurement.
 
 - :data_root:`2019/6-18-2019/`
 
@@ -162,6 +166,8 @@ Line of sight on optical table with new mount and absorber fence behind rx
 Information for Measurements Conducted on :code:`6-19-2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Measurement of milk crate for CUP mount
+
+.. include:: data_metafile_info/6-19-2019.auto.rst
 
 - :data_root:`2019/6-19-2019/`
 
@@ -186,7 +192,7 @@ Line of Sight measurement with new spiked absorber on most of optical table
 
 Information for Measurements Conducted on :code:`7-8-2019_cable_test` 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-cable bending measurement with newest SAMURAI setup. 1 Port Cal run on robotic arm (SOL)
+Cable bending measurement with newest SAMURAI setup. 1 Port Cal run on robotic arm (SOL) repeated multiple times.
 
 - :data_root:`2019/7-8-2019_cable_test/`
 
