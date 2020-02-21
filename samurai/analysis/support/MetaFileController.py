@@ -2,8 +2,9 @@
 """
 Created on Mon May 14 08:34:24 2018
 
-This script edits our metafile and moves our data and new copy of metafile to outDir
-This assumes our data has been calibrated with the MUF and DUTs are within that output directory form the MUF
+@brief This script edits our metafile and moves our data and new copy of metafile to outDir.
+This assumes our data has been calibrated with the MUF and DUTs are within that output directory form the MUF.
+Relative working directories (e.g., ./) will be relative to directory of loaded metafile
 
 @author: ajw5
 """
@@ -46,10 +47,12 @@ class MetaFileController(SamuraiDict):
         '''
         super().__init__(self) #initialize ordereddict
         if metafile_path is not None:
+            [self._in_dir,_]= os.path.split(metafile_path) #get the input directory for relative paths
             self.load(metafile_path)
         else:
+            self._in_dir = './' #directory of metafile for relative pathing
             self.metafile = 'metafile.json'
-            self.wdir = os.path.abspath('./') #get the current path
+            self.set_wdir('./') #set to current path (relative)
             self.update(SamuraiDict(metaFile(None,None)))
             
         plot_args = {}
@@ -78,7 +81,7 @@ class MetaFileController(SamuraiDict):
         if not os.path.exists(metafile_path):
             raise FileNotFoundError("The supplied path to the metafile is not valid: \n\n {}".format(mf_path))
         super().load(metafile_path)
-        [in_wdir,metafile]= os.path.split(metafile_path)
+        [in_dir,metafile]= os.path.split(metafile_path)
         self.metafile = metafile
         self.update_format() #update if the format is bad
         #now lets check to see if it is valid (measurements exist)
@@ -421,14 +424,15 @@ class MetaFileController(SamuraiDict):
             label_names = self.get_external_positions_labels()
         elif type(label_names)!=list or type(label_names)!=tuple:
             label_names = [label_names] #check in case we got a single value
-        if ax is None:
-            fig = self.plotter.figure(); self.plotter.hold('on',nargout=0); ax = self.plotter.gca()
+        fig = go.Figure() #create the figure
         for l in label_names:   
             pos = self.get_external_positions_mean(l)
             if l!='meca_head':
                 pos = np.mean(pos,axis=0)
-            self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
-        self.plotter.legend(interpreter=None,nargout=0)
+            #self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
+            fig.add_trace(go.Scatter(x=pos[:,0],y=pos[:,1],z=pos[:,2],name=l))
+            
+        #self.plotter.legend(interpreter=None,nargout=0)
         return fig 
     
     ###########################################################################
@@ -448,7 +452,9 @@ class MetaFileController(SamuraiDict):
         @brief property to return working directory
         @return the working directory
         '''
-        return self['working_directory'].strip()
+        wdir = self['working_directory'].strip()
+        wdir = os.path.join(self._in_dir,wdir)
+        return os.path.abspath(wdir)
     
     @wdir.setter
     def wdir(self,path):
@@ -463,7 +469,6 @@ class MetaFileController(SamuraiDict):
         @brief set the working directory
         @param[in/OPT] wdir - the new working directory to set. if '' use the directory the file was opened from
         '''
-        wdir = os.path.abspath(wdir)
         self.saved=0
         # Update the name and working directory
         self.update({'working_directory':wdir})
