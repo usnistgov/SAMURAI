@@ -12,6 +12,7 @@ to the *.rst file
 import os
 import shutil
 import plotly.graph_objs as go
+import glob
 
 from samurai.analysis.support.MetaFileController import MetaFileController
 from samurai.base.TouchstoneEditor import TouchstoneEditor
@@ -22,20 +23,20 @@ import numpy as np
 
 #%% Strings for different parts of the rst file
 
-#format with (experiment,notes,vna_info)
+#format with (**metafile_kwargs)
 meas_str = '''
 Experiment Information
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-{0}
+{experiment}
 
-*{1}*
+*{notes}*
 
 
 VNA Sweep Settings
 ^^^^^^^^^^^^^^^^^^^^^
 
-{2}
+{vna_info}
 
 
 '''
@@ -51,7 +52,7 @@ Setup Image
 
 '''
 
-#format with (data_dir_name)
+#format with ('- :ref:`<data_dir_name_1>\n- :ref:`<data_dir_name_2>,...)
 extra_info_link_str = '''
 
 Extra Information
@@ -59,12 +60,14 @@ Extra Information
 
 Extra plots and information on the measurement and its data can be found at the link below.
 
-- :ref:`data_{0}_extra_info`
+.. - :ref:`data_{0}_extra_info`
+
+{0}
 
 '''
 
-#format with (data_dir_name,aperture_pos_html_path,bf_3d_path)
-extra_info_page_str = '''
+#format with (data_dir_name,**plot_path_dict,**metafile_kwargs)
+extra_info_page_str = ('''
 
 .. _data_{0}_extra_info:
 
@@ -72,43 +75,57 @@ extra_info_page_str = '''
 Additional Information for :code:`{0}`
 #############################################################
 
+Experiment Information
+----------------------------
+
+{experiment}
+
+*{notes}*
+
+
+VNA Sweep Settings
+--------------------------
+
+{vna_info}
+
+
 Aperture Positions
 ---------------------------
 
 .. raw:: html
-   :file: {1}
+   :file: {aperture}
 
 Measurement at first position
 ----------------------------------
 
 .. raw:: html
-    :file: {2}
+    :file: {fd_meas}
     
 Time Domain Result
 -----------------------------
 
 .. raw:: html
-    :file: {3}
+    :file: {td_meas}
     
 Azimuth cut at 0 Degrees Elevation
 --------------------------------------
 
 .. raw:: html
-    :file: {4}
+    :file: {az_cut}
 
 Beamformed 3D Data Plot at highest frequency
 ----------------------------------------------------
 
 .. raw:: html
-    :file: {5}
+    :file: {bf_3d}
     
 Externally Measured Positions
 ---------------------------------------------
 
 .. raw:: html
-    :file: {6}
+    :file: {ext_pos}
 
-'''
+''')
 
 #format with ('\n   data_extra_1\n   data_extra_2'...)
 extra_info_toctree_str = '''
@@ -119,6 +136,16 @@ extra_info_toctree_str = '''
 
 '''
 
+#%% function for finding metafiles
+def find_metafiles(mydir):
+    '''
+    @brief take an input directory and search with a depth of 2 to find metafiles.
+    Also remove anything with 'touchstone' in it. and only find 'metafile.json'
+    '''
+    d1 = glob.glob(os.path.join(mydir,'./metafile.json'))
+    d2 = glob.glob(os.path.join(mydir,'./*/metafile.json'))
+    return d1+d2
+
 #%% constant settings
 data_root = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated'
 
@@ -127,7 +154,7 @@ mf_name = 'metafile.json'
 image_template_path = 'external_data/pictures/setup.png' #with respect to metafile dir
 local_image_dir = '/data/data_metafile_info/images/' #relative to sphinx root
 
-mf_dir_list = []
+meas_dirs = []
 
 #%% 2019 Data
 #this should be only be a single folder (no dir1/dir2 only dir1) for nameing ease in docs. copy first of the multiple measurements metafile into root and rename to 
@@ -142,11 +169,12 @@ mf_dir_list_2019  = []
 #mf_dir_list_2019+= ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
 ## TEST
 mf_dir_list_2019 += ['6-17-2019']
+#mf_dir_list_2019 += ['7-8-2019']
 
 mf_dir_list_2019 = [os.path.join('2019',mfd) for mfd in mf_dir_list_2019]
 
 #COMMENT THIS LINE BELOW OUT TO NOT GENERATE 2019 THINGS
-mf_dir_list  += mf_dir_list_2019
+meas_dirs += mf_dir_list_2019
 
 #%% 2020 Data
 
@@ -154,8 +182,12 @@ out_dir = './' #output directory of files
 
 #%% now loop through each file
 dname_list = []
-for mfd in mf_dir_list:
-    mfd_full = os.path.join(data_root,mfd)
+for meas_dir in meas_dirs:
+    mfd_full = os.path.join(data_root,meas_dir)
+    mf_names = find_metafiles(mfd_full) #get all 'metafile.json' from the current directory
+    for mf_name in mf_names:
+        pass
+    
     mf_path = os.path.join(mfd_full,mf_name)
     print("Extracting info for {}".format(mf_path))
     mfc = MetaFileController(mf_path)
@@ -165,7 +197,7 @@ for mfd in mf_dir_list:
     notes = mfc['notes']
     vna_info_str = mfc['vna_info'].get_rst_str()
     
-    data_name = os.path.split(mfd)[1]
+    data_name = os.path.split(mfd_full)[1]
     dname_list.append(data_name)
     
     #and add it to the rst file
