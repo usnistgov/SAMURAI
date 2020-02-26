@@ -1,10 +1,10 @@
 from setuptools import setup,find_packages
 
 setup(name='samurai',
-      version='0.1',
+      version='0.1.0',
       description='Synthetic aperture measurements with uncertainty and angle of incidence (SAMURAI) code.',
-      author='Alec Weiss, Ben Jamroz, Rob Jones, NIST',
-      author_email='alec.weiss@nist.gov',
+      author='Alec Weiss, Ben Jamroz, Rob Jones, Peter Vouras, Jeanne Quimby, Rodney Leonhardt, Kate Remley, Dylan Williams, NIST SAMURAI Team',
+      author_email=['{}@nist.gov'.format(name) for name in ['alec.weiss','benjamin.jamroz','robert.jones','peter.vouras','rodney.leonhardt','kate.remley','dylan.williams']],
       packages=find_packages(),
       python_requires='>3.3,<4',
      )

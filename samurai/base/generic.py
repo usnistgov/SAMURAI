@@ -287,6 +287,11 @@ class ProgressCounter(ValueCounter):
         if self.options['print_zero']:
             self.update(0) #set first value to 0
             self.i = 0 #reset count to 0
+            
+            
+#%% function to nicely write metafile info to word
+#this requires python-docx
+#metafile2word()
         
 import numpy as np
 import time

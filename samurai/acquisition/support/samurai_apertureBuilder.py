@@ -470,12 +470,13 @@ def gen_repeat_csv(csv_in_path,csv_out_path,num_reps):
     @brief - create a repeats of a single csv and place in a new csv  
     @param[in] csv_in_path - path of csv to repeat  
     @param[in] csv_out_path - path of where to write out the csv  
+    @param[in] num_reps - number of repeats to have in file. (concatenate n-1 times)
     '''
     myap1 = ApertureBuilder()
     myap2 = ApertureBuilder()
     myap1.load(csv_in_path)
     myap2.load(csv_in_path)
-    for i in range(num_reps):
+    for i in range(num_reps-1):
         myap1.concatenate(myap2) #concatenate n times
     myap1.write(csv_out_path) #write out
 
@@ -594,7 +595,9 @@ if __name__=='__main__':
     myap.concatenate(myap2)
     myap.write(planar_16_28Ghz_dp_out_path)
     
-    
+    planar_16_28Ghz_dp_4rep_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_l2-28GHz_16x16_planar_dp_4rep.csv'
+
+    gen_repeat_csv(planar_16_28Ghz_dp_out_path,planar_16_28Ghz_dp_4rep_out_path,4)
     
     
     
