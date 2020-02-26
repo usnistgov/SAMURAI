@@ -29,10 +29,11 @@ MATLAB Abstraction
 .. automodule:: samurai.base.SamuraiMatlab
 	:members:
 
-Plotting Abstraction
----------------------
-.. automodule:: samurai.base.SamuraiPlotter
-	:members:
+..
+	Plotting Abstraction
+	---------------------
+	.. automodule:: samurai.base.SamuraiPlotter
+		:members:
 
 Extended XML Implementation
 ------------------------------

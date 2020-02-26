@@ -2,12 +2,6 @@
 Other Useful Acquisition Information
 +++++++++++++++++++++++++++++++++++++++
 
-Running from Python Command Line Interface (CLI) (DEPRECATED)
-------------------------------------------------------------------
-
-.. include:: running_samurai_cli.rst
-
-
 Other Calibration Information 
 ===============================
 Other information on setting up things like files for the calibration are provided here.
@@ -19,7 +13,7 @@ Setting Up PNAGrabber
 #. Make sure your in :code:`<working-directory>/cal/calibration_pre` , from step 2.
 #. Double click on :code:`cal.pnagrabber` to start PNA Grabber for the calibration.
 
- .. image:: ../external_data/cal_pre_pna_grabber_front_page.PNG
+ .. image:: ./external_data/cal_pre_pna_grabber_front_page.PNG
 
 #. Verify that the front panel has the 5 different (assuming 2.4mm cal) .s2p files with the correct name and type as shown in the above figure. Make sure the Working Directory looks the same as in the picture. This is to ensure that all files are saved at the same level as PNAGrabber.
 #. Change the settings on PNA Grabber:

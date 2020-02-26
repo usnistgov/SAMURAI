@@ -109,7 +109,6 @@ class CalibrateSamurai:
         
         print("Moving calibrated results")
         new_mf_path = self.move_calibrated_results() #this now also updates and writes the metafile
-        #new_mf_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\antennas\Measurements\calibrated\6-25-TEST\metafile.json"
         print("Metafile at {}".format(new_mf_path))
         print("Copying results to touchstone")
         self.move_calibrated_nominal_results_touchstone(new_mf_path)
@@ -127,7 +126,7 @@ class CalibrateSamurai:
         @return path to written metafile
         '''
         self.mfc.set_calibration_file(self.in_cal_path)
-        self.mfc.wdir = os.path.join(self.out_dir,subdir) #update the output directory
+        self.mfc.wdir = './'
         self.mfc.set_filename(filename_list) #set list to metafile
         return self.mfc.write() #write out
     

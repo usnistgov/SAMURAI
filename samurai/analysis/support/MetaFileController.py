@@ -2,8 +2,9 @@
 """
 Created on Mon May 14 08:34:24 2018
 
-This script edits our metafile and moves our data and new copy of metafile to outDir
-This assumes our data has been calibrated with the MUF and DUTs are within that output directory form the MUF
+@brief This script edits our metafile and moves our data and new copy of metafile to outDir.
+This assumes our data has been calibrated with the MUF and DUTs are within that output directory form the MUF.
+Relative working directories (e.g., ./) will be relative to directory of loaded metafile
 
 @author: ajw5
 """
@@ -14,6 +15,9 @@ import os
 from shutil import copyfile,copy
 import numpy as np
 from datetime import datetime #for timestamps
+
+#plotly import
+import plotly.graph_objects as go
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor
 from samurai.analysis.support.MUFResult import MUFResult
@@ -43,10 +47,12 @@ class MetaFileController(SamuraiDict):
         '''
         super().__init__(self) #initialize ordereddict
         if metafile_path is not None:
+            [self._in_dir,_]= os.path.split(metafile_path) #get the input directory for relative paths
             self.load(metafile_path)
         else:
+            self._in_dir = './' #directory of metafile for relative pathing
             self.metafile = 'metafile.json'
-            self.wdir = os.path.abspath('./') #get the current path
+            self.set_wdir('./') #set to current path (relative)
             self.update(SamuraiDict(metaFile(None,None)))
             
         plot_args = {}
@@ -70,13 +76,31 @@ class MetaFileController(SamuraiDict):
         '''
         @brief load a json metafile
         @param[in] metafile_path - path to the metafile to load
-        '''        
+        '''
+        #ensure the metafile exists and provide a better meassage if it doesnt
+        if not os.path.exists(metafile_path):
+            raise FileNotFoundError("The supplied path to the metafile is not valid: \n\n {}".format(mf_path))
         super().load(metafile_path)
-            #here we assume the working directory is the location of our metafile
-        [wdir,metafile]= os.path.split(metafile_path)
+        [in_dir,metafile]= os.path.split(metafile_path)
         self.metafile = metafile
-        self.wdir = wdir
         self.update_format() #update if the format is bad
+        #now lets check to see if it is valid (measurements exist)
+        for i,fpath in enumerate(self.get_filename_list(True)): #
+            if not os.path.exists(fpath): #then raise an error with some help
+                rel_fpath = self.get_filename(i,False) #get relative filename of the measurement
+                raise FileNotFoundError(
+                                 ("Measurement {} not found. This could be due to a few errors:\n\n"+
+                                  "------------------------------------------------------------------------\n"+
+                                  "    WORKING DIRECTORY = \'{}\'\n\n"+
+                                  "    RELATIVE PATH = \'{}\'\n\n"+
+                                  "------------------------------------------------------------------------\n"+
+                                  "       1. The working directory is in correct\n"+
+                                  "           - If the working directory is incorrect it can be corrected\n"+
+                                  "                 by manually changing this value in the metafile.\n\n"+
+                                  "       2. The relative path is incorrect\n\n"+
+                                  "------------------------------------------------------------------------\n"
+                                  ).format(i,self.wdir,rel_fpath)
+                                  )
                 
     def write(self,outPath=None):
         '''
@@ -160,15 +184,15 @@ class MetaFileController(SamuraiDict):
         '''
         @brief add a measurement to the measurements list
         @param[in] filename - path to the file to add
-        @param[in/OPT] **kwargs - keyword arguements as follows
-            ID - id of the measurement
-            units - units for the positions
-            position - position of the SA
-            position_key - how to use the positions
-            notes - notes on the measurement
-            timestamp - time of measurement
-            calibration_file - file used to calibrate
-            calibrated - flag on whether we are calibrated
+        @param[in/OPT] kwargs - keyword arguements as follows:
+            - ID - id of the measurement
+            - units - units for the positions
+            - position - position of the SA
+            - position_key - how to use the positions
+            - notes - notes on the measurement
+            - timestamp - time of measurement
+            - calibration_file - file used to calibrate
+            - calibrated - flag on whether we are calibrated
         '''
         self['total_measurements']+=1 #add a measurement
         
@@ -211,6 +235,16 @@ class MetaFileController(SamuraiDict):
         @return numpy array of our positions
         '''
         return self.get_positions()
+    
+    def plot_aperture(self):
+        '''@brief plot the current aperture positions in the metafile'''
+        pos = self.positions
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=pos[:,0],y=pos[:,1],mode='markers'))  
+        fig.update_layout(
+            xaxis_title='X position (mm)',
+            yaxis_title='Y position (mm)')
+        return fig
     
     def get_external_positions(self,label=None,meas_num=-1):
         '''
@@ -315,8 +349,8 @@ class MetaFileController(SamuraiDict):
         @param[in/OPT] res_data - data for the residual (just 1 number)
         @param[in/OPT] units - units of the input data
         @param[in/OPT] arg_options - keyword arguments as follows:
-            sample_wait_time - time between samples
-            id - id of the tag 
+            - sample_wait_time - time between samples
+            - id - id of the tag 
         '''
         pos_meas = {}
         pos_meas['id'] = None
@@ -390,14 +424,15 @@ class MetaFileController(SamuraiDict):
             label_names = self.get_external_positions_labels()
         elif type(label_names)!=list or type(label_names)!=tuple:
             label_names = [label_names] #check in case we got a single value
-        if ax is None:
-            fig = self.plotter.figure(); self.plotter.hold('on',nargout=0); ax = self.plotter.gca()
+        fig = go.Figure() #create the figure
         for l in label_names:   
             pos = self.get_external_positions_mean(l)
             if l!='meca_head':
                 pos = np.mean(pos,axis=0)
-            self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
-        self.plotter.legend(interpreter=None,nargout=0)
+            #self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
+            fig.add_trace(go.Scatter(x=pos[:,0],y=pos[:,1],z=pos[:,2],name=l))
+            
+        #self.plotter.legend(interpreter=None,nargout=0)
         return fig 
     
     ###########################################################################
@@ -417,7 +452,9 @@ class MetaFileController(SamuraiDict):
         @brief property to return working directory
         @return the working directory
         '''
-        return self['working_directory'].strip()
+        wdir = self['working_directory'].strip()
+        wdir = os.path.join(self._in_dir,wdir)
+        return os.path.abspath(wdir)
     
     @wdir.setter
     def wdir(self,path):
@@ -432,7 +469,6 @@ class MetaFileController(SamuraiDict):
         @brief set the working directory
         @param[in/OPT] wdir - the new working directory to set. if '' use the directory the file was opened from
         '''
-        wdir = os.path.abspath(wdir)
         self.saved=0
         # Update the name and working directory
         self.update({'working_directory':wdir})
@@ -741,15 +777,17 @@ def copy_s_param_measurement_to_binary(metafile_path,output_directory):
             
             
 if __name__=='__main__':
-    metafile_path = r'./metafile_v2.json'
+    #metafile_path = r'./metafile_v2.json'
+    metafile_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\3-20-2019\metafile.json"
     #maturo_metafile_path = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\processed\synthetic_aperture\metaFile.json'
     mf = MetaFileController(metafile_path)
+    fig = mf.plot_aperture()
     #mmf = MetaFileController(maturo_metafile_path)
     #5-17-2019 data
-    beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
-    beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
-    mf.add_external_marker('beam-3',beam3_loc,units='m')
-    mf.add_external_marker('beam-2',beam2_loc,units='m')
+    #beam3_loc = [-0.001949,0.747873,-0.1964127] #in meters
+    #beam2_loc = [1.234315,0.864665,-0.2195737] #in meters
+    #mf.add_external_marker('beam-3',beam3_loc,units='m')
+    #mf.add_external_marker('beam-2',beam2_loc,units='m')
     #mf.plot_external_positions()
     
     

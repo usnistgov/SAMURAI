@@ -60,7 +60,7 @@ This section shows how to run from a premade python script. This requires the lo
 #. Make sure your in :code:`<working-directory>/cal/calibration_pre` , from step 2.
 #. Double click on :code:`cal.pnagrabber` to start PNA Grabber for the calibration.
 
- .. image:: ../external_data/cal_pre_pna_grabber_front_page.PNG
+ .. image:: ./external_data/cal_pre_pna_grabber_front_page.PNG
 
 #. Verify that the front panel has the 5 different (assuming 2.4mm cal) .s2p files with the correct name and type as shown in the above figure. Make sure the Working Directory looks the same as in the picture. This is to ensure that all files are saved at the same level as PNAGrabber.
 #. Change the settings on PNA Grabber:
@@ -81,17 +81,17 @@ This section shows how to run from a premade python script. This requires the lo
 #. Open :code:`cal_pre.vnauncert`
 #. In :code:`cal_pre.vnauncert`, click on the :code:`Main calibration` tab and you should be greeted with the following:
 
-.. image:: ../external_data/cal_vna_uncert_calc.png
+.. image:: ./external_data/cal_vna_uncert_calc.png
 
 #. The actual location of the .s2p files that will be used for the definition is hidden. To unhide this location hover your cursor to the header dividing line to the right of :code:`Measurement`, moving the cursor around till it turns into a parallel line. Once it does, expand the headers: :code:`P2`, :code:`P1` , and :code:`Location` . It should look like the following:
 
-.. image:: ../external_data/cal_vna_uncert_expanded.png
+.. image:: ./external_data/cal_vna_uncert_expanded.png
 
 #. Verify that the file location/name under :code:`Location` is pointing to the folder that :code:`cal_pre.vnauncert` is in. If not, you will need to drag each of  the .s2p files into the :code:`Location` block. This should update the path.
 #. Switch to the :code:`DUTs` tabs on :code:`cal_pre.vnauncert` .
 #. Drag the :code:`load.s2p` , :code:`open.s2p` , :code:`short.s2p` , and :code:`thru.s2p` into here so it looks like the following image
 
-.. image:: ../external_data/cal_pre_duts.png
+.. image:: ./external_data/cal_pre_duts.png
 
 #. In :code:`cal_pre.vnauncert` , go to :code:`Run> Override default results directory` and make sure that there is a checkmark to the left of it and is pointing towards the directory you are in (aka the same directory that :code:`cal_pre.vnauncert`)
 #. Go to :code:`Run` and click :code:`Calibrate`
@@ -126,7 +126,7 @@ This is the script for running and configuring the samurai system.
 .. module:: acquisition.script_templates.run_script
 .. data::   acquisition.script_templates.run_script
 
-.. literalinclude:: /../acquisition/script_templates/run_script.py 
+.. literalinclude:: /../samurai/acquisition/script_templates/run_script.py 
 	:language: python 
 	:linenos:
 
@@ -138,7 +138,7 @@ This script is useful for repeatably setting many parameters of the VNA.
 .. module:: acquisition.script_templates.set_vna_params
 .. data::   acquisition.script_templates.set_vna_params
 
-.. literalinclude:: /../acquisition/script_templates/set_vna_params.py 
+.. literalinclude:: /../samurai/acquisition/script_templates/set_vna_params.py 
 	:language: python 
 	:linenos:
 
@@ -149,7 +149,7 @@ This is a script that will take a quick sweep and generate beamformed data of a 
 .. module:: acquisition.script_templates.channel_test
 .. data::   acquisition.script_templates.channel_test
 
-.. literalinclude:: /../acquisition/script_templates/channel_test.py 
+.. literalinclude:: /../samurai/acquisition/script_templates/channel_test.py 
 	:language: python 
 	:linenos:
 

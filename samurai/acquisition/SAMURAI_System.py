@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Oct 31 13:47:17 2018
-Full High level system controls for samurai
+@date Wed Oct 31 13:47:17 2018
+@brief Full High level system controls for samurai
 @author: ajw5
 """
 
@@ -29,7 +29,7 @@ rx_positioner_address = '192.168.0.5'
 
 class SAMURAI_System():
     """
-    @brief - Class to control the entire SAMURAI system
+    @brief Class to control the entire SAMURAI system
     """
     
     #to run as simulation simply pass is_simualtion=true
@@ -62,10 +62,9 @@ class SAMURAI_System():
         
     def connect_rx_positioner(self,run_simulation=None):
         '''
-        @brief Connect and ready our rx positioner (Meca500) for movement  
-        @param[in/OPT] run_simulation - whther to run in sim mode (defaults to NO)  
-        @return list of Meca return values as follows:  
-            - [set_sim_mode_rv,init_rx_pos_rv,set_wrf_rv,set_trf_rv,set_velocity_rv]  
+        @brief Connect and initialize the rx positioner (Meca500) for movement
+        @param[in/OPT] run_simulation - whether to run in simulation mode (default: False)  
+        @return list of Meca return values [set_sim_mode_rv,init_rx_pos_rv,set_wrf_rv,set_trf_rv,set_velocity_rv]  
         '''
         if not run_simulation:
             run_simulation = self.is_simulation #set to default unless overwritten
@@ -83,7 +82,7 @@ class SAMURAI_System():
         return [rv1,rv2,rv3,rv4,rv5]
         
     def get_rx_positioner_status(self):
-        '''@brief returns self.rx_positioner.get_status()'''
+        '''@brief Alias for self.rx_positioner.get_status()'''
         return self.rx_positioner.get_status() #get the status list
     
     def disconnect_rx_positioner(self,zero_flg=True):
@@ -129,7 +128,7 @@ class SAMURAI_System():
             - meas_obj - class to use as a measure tool just needs a .measure method  
             - meas_obj_init_args - arguments for the class __init__() method  
             - meas_obj_meas_args - arguments for the class .measure() method  
-        @return sweep time  
+        @return sweep time
         '''
         if not self.is_connected:
             print("Positioner Not Connected")
