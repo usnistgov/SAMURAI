@@ -229,8 +229,9 @@ class CalculatedSyntheticAperture:
         #plot_arg_dict['data'][0]['hovertext'] = np.array(['AZ = {:4f}\n EL = {:4f}\n MAG={:4f}'.format(az,el,mag) for az,el,mag in zip(self.azimuth.flatten(),self.elevation.flatten(),plot_data.flatten())]).reshape(X.shape)
         plot_arg_dict['data'][0]['hovertext'] = np.array(['AZ = {:4f}\n EL = {:4f}'.format(az,el) for az,el in zip(self.azimuth.flatten(),self.elevation.flatten())]).reshape(X.shape)
         plot_arg_dict['data'][0]['hoverinfo']='text'
-        rv = self.plotter.surf(X,Z,Y,plot_data,**plot_arg_dict)
-        return rv
+        fig = self.plotter.surf(X,Z,Y,plot_data,**plot_arg_dict)
+        fig['layout']['scene']['aspectratio'] = dict(x=1,y=1,z=1)
+        return fig
         
     def plot_scatter_3d(self,plot_type='mag_db',out_name='test',**arg_options):
         '''
