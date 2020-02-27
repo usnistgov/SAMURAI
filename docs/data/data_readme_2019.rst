@@ -22,6 +22,8 @@ No info?
 
 - :data_root:`2019/1-30-2019/`
 
+.. include:: data_metafile_info/1-30-2019.auto.rst
+
 |
 |
 
@@ -141,9 +143,9 @@ Information for Measurements Conducted on :code:`6-17-2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Line of sight on optical table with new mount and no absorber fence behind rx
 
-.. include:: data_metafile_info/6-17-2019.auto.rst
-
 - :data_root:`2019/6-17-2019/`
+
+.. include:: data_metafile_info/6-17-2019.auto.rst
 
 |
 |

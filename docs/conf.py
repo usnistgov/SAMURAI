@@ -166,9 +166,9 @@ extlinks = {
 }
 
 #exclusions
-#exclude_patterns = [
-#    './README.md' #this is for how to build the docs
-#    ] 
+exclude_patterns = [
+    'README.md' #this is for how to build the docs
+    ] 
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

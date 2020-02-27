@@ -240,7 +240,7 @@ class MetaFileController(SamuraiDict):
         '''@brief plot the current aperture positions in the metafile'''
         pos = self.positions
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=pos[:,0],y=pos[:,1],mode='markers'))  
+        fig.add_trace(go.Scatter3d(x=pos[:,0],y=pos[:,1],z=pos[:,2],mode='markers',marker={'size':2}))  
         fig.update_layout(
             xaxis_title='X position (mm)',
             yaxis_title='Y position (mm)')
