@@ -16,7 +16,7 @@ class Instrument(SamuraiDict):
     '''
     @brief class for instrument control abstraction  
     '''
-    def __init__(self,command_dict_path):
+    def __init__(self,command_dict_path,**kwargs):
         '''
         @brief constructor  
         @param[in] command_dict -json file of all the commands if none don't load  
@@ -27,6 +27,11 @@ class Instrument(SamuraiDict):
         self.load_command_dict(command_dict_path)
         
         self.setting_params = ['info'] #list of settings to read from vna
+        
+        self.options = {}
+        self.options['verbose'] = True
+        for k,v in kwargs.items():
+            self.options[k] = v
 
     def load_command_dict(self,command_dict_path):
         '''
@@ -124,12 +129,12 @@ class Instrument(SamuraiDict):
         '''
         @brief internal function abstracting connection.write() function  
         '''
-        print(msg)
+        if self.options['verbose']: print(msg)
         self.connection.write(msg)
         
     def _write_binary(self,msg,*args,**kwargs):
         '''@brief internal function for abstracting connection.write_binary()'''
-        print(msg)
+        if self.options['verbose']: print(msg)
         return self.connection.write_binary_values(msg,*args,**kwargs) #consistent with visa
     
     def query(self,msg,*args,cast=False,**kwargs):
@@ -155,7 +160,7 @@ class Instrument(SamuraiDict):
     
     def _query(self,msg,**kwargs):
         '''@brief internal function abstracting connection.query() function'''
-        print(msg)
+        if self.options['verbose']: print(msg)
         return self.connection.query(msg)
     
     def _query_binary(self,msg,*args,**kwargs):
@@ -225,12 +230,12 @@ class SCPIInstrument(Instrument):
     '''
     @brief class for scpi instrument control  
     '''
-    def __init__(self,command_dict_path):
+    def __init__(self,command_dict_path,**kwargs):
         '''
         @brief constructor  
         @param[in] command_dict -json file of all the commands  
         '''
-        super().__init__(command_dict_path)
+        super().__init__(command_dict_path,**kwargs)
     
     #override from superclass
     def load_command_dict(self,command_dict_path):

@@ -60,7 +60,16 @@ def moving_average(data,n=5,domain='magphase'):
         ret[-n:] = data[-n:]
         return ret
 
-
+def count_lines_in_file(filePointer,comments='#'):
+    '''@brief count the number of lines in a file '''
+    cnt = 0
+    for line in filePointer:
+        if(line.strip()):
+            if(any(line.strip()[0]==np.array([comments]))):
+                continue #then pass the line (dont count it)
+            cnt=cnt+1
+    filePointer.seek(0)
+    return cnt
 
 
 
@@ -287,6 +296,11 @@ class ProgressCounter(ValueCounter):
         if self.options['print_zero']:
             self.update(0) #set first value to 0
             self.i = 0 #reset count to 0
+            
+            
+#%% function to nicely write metafile info to word
+#this requires python-docx
+#metafile2word()
         
 import numpy as np
 import time
