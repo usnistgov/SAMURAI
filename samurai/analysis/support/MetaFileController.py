@@ -79,7 +79,7 @@ class MetaFileController(SamuraiDict):
         '''
         #ensure the metafile exists and provide a better meassage if it doesnt
         if not os.path.exists(metafile_path):
-            raise FileNotFoundError("The supplied path to the metafile is not valid: \n\n {}".format(mf_path))
+            raise FileNotFoundError("The supplied path to the metafile is not valid: \n\n {}".format(metafile_path))
         super().load(metafile_path)
         [in_dir,metafile]= os.path.split(metafile_path)
         self.metafile = metafile
