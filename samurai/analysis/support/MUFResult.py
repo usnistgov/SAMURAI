@@ -2,7 +2,7 @@
 """
 Created on Mon Jun 24 16:02:04 2019
 
-@author: ajw5
+@author: ajw5, bfj
 """
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
@@ -27,11 +27,23 @@ def mufPathVerify(inPath):
     return sys.path.exists(inPath)
 
 def mufPathFind(inPath, refPoint):
+    '''
+    @brief find the path of a measurement relative to a reference point
+    @param[in] inPath - path of the file that we are looking to find
+    @param[in] refPoint - directory where the \*.meas file lives
+    @return String of Adjusted path to inPath
+    '''
     inPath = inPath.replace('\\\\', '/').replace('\\', '/')
     return mufPathFindR(inPath, refPoint)
 
 # Recursive
 def mufPathFindR(inPath, refPoint, level = 0):
+    '''
+    @brief find the path of a measurement relative to a reference point
+    @param[in] inPath - path of the file that we are looking to find
+    @param[in] refPoint - directory where the \*.meas file lives
+    @return String of Adjusted path to inPath
+    '''
     #print("Level {0}".format(level))
     if level > 3 or level < 0:
         print("Error: file: {0} not found".format(inPath))
@@ -55,6 +67,30 @@ def mufPathFindR(inPath, refPoint, level = 0):
         return constructPath
     else:
         return mufPathFindR(inPath, refPoint, level = level+1)
+    
+def set_meas_path_relative(meas_path,out_path=None):
+    '''
+    @brief change all paths in a \*.meas file to relative paths and save.
+    The paths will assume all paths are relative to the \*.meas file.
+    @param[in] meas_path - path to \*.meas file
+    @param[in/OPT] out_path - path to write out to. If not provided, overwrite the input
+    @note This will overwrite the provided file if a new path is not provided
+    @return return the updated MUFResult
+    '''
+    if out_path is None:
+        out_path = meas_path
+    #first open the xml file
+    meas = MUFResult(meas_path,load_nominal=False,load_statistics=False)
+    #change all the paths
+    meas_types = ['nominal','monte_carlo','perturbed']
+    for mt in meas_types:
+        meas_obj = getattr(meas,mt) #get the object
+        fpaths = meas_obj.filepaths #get the paths 
+        meas_obj.clear_items() #remove the objects with the old paths
+        rel_paths = [os.path.relpath(p,os.path.split(meas_path)[0]) for p in fpaths]
+        meas_obj.add_items(rel_paths) #add the filepaths back
+    return meas
+    
 
 class MUFResult(MUFModuleController):
     '''
