@@ -199,16 +199,6 @@ Line of Sight measurement with new spiked absorber on most of optical table
 
 ----
 
-Information for Measurements Conducted on :code:`7-8-2019_cable_test` 
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Cable bending measurement with newest SAMURAI setup. 1 Port Cal run on robotic arm (SOL) repeated multiple times.
-
-- :data_root:`2019/7-8-2019_cable_test/`
-
-|
-|
-
-----
 
 Conference Room Data
 -----------------------------
