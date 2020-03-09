@@ -71,7 +71,7 @@ class MetaFileController(SamuraiDict):
     ###########################################################################
     ### File IO methods
     ###########################################################################
-    def load(self,metafile_path,verify=True):
+    def load(self,metafile_path,verify=True,**kwargs):
         '''
         @brief load a json metafile
         @param[in] metafile_path - path to the metafile to load
@@ -94,18 +94,19 @@ class MetaFileController(SamuraiDict):
             if not os.path.exists(fpath): #then raise an error with some help
                 rel_fpath = self.get_filename(i,False) #get relative filename of the measurement
                 raise FileNotFoundError(
-                                 ("Measurement {} not found. This could be due to a few errors:\n\n"+
-                                  "------------------------------------------------------------------------\n"+
-                                  "    WORKING DIRECTORY = \'{}\'\n\n"+
-                                  "    RELATIVE PATH = \'{}\'\n\n"+
-                                  "------------------------------------------------------------------------\n"+
-                                  "       1. The working directory is in correct\n"+
-                                  "           - If the working directory is incorrect it can be corrected\n"+
-                                  "                 by manually changing this value in the metafile.\n\n"+
-                                  "       2. The relative path is incorrect\n\n"+
-                                  "------------------------------------------------------------------------\n"
-                                  ).format(i,self.wdir,rel_fpath)
-                                  )
+                             ("Measurement {} not found. This could be due to a few errors:\n\n"+
+                              "------------------------------------------------------------------------\n"+
+                              "    WORKING DIRECTORY = \'{}\'\n\n"+
+                              "    RELATIVE PATH = \'{}\'\n\n"+
+                              "------------------------------------------------------------------------\n"+
+                              "       1. The working directory is in correct\n"+
+                              "           - If the working directory is incorrect it can be corrected\n"+
+                              "                 by manually changing this value in the metafile\n"+
+                              "                 (maybe try './'?).\n\n"+
+                              "       2. The relative path is incorrect\n\n"+
+                              "------------------------------------------------------------------------\n"
+                              ).format(i,self.wdir,rel_fpath)
+                              )
     
     def write(self,outPath=None):
         '''
