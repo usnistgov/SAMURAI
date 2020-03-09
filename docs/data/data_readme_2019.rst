@@ -18,9 +18,11 @@ Optical Table Measurements
 
 Information for Measurements Conducted on :code:`1-30-2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-No info?
+
 
 - :data_root:`2019/1-30-2019/`
+
+.. include:: data_metafile_info/1-30-2019.auto.rst
 
 |
 |
@@ -29,9 +31,11 @@ No info?
 
 Information for Measurements Conducted on :code:`2-1-2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-3 Planar Apertures offset in the X direction by lambda/4 @ 30GHz (2.5mm)
+3 Cylindrical Apertures offset in the X direction by lambda/4 @ 30GHz (2.5mm)
 
 - :data_root:`2019/2-1-2019/`
+
+.. include:: data_metafile_info/2-1-2019.auto.rst
 
 |
 |
@@ -44,6 +48,8 @@ Information for Measurements Conducted on :code:`2-4-2019`
 
 - :data_root:`2019/2-4-2019/`
 
+.. include:: data_metafile_info/2-4-2019.auto.rst
+
 |
 |
 
@@ -54,6 +60,8 @@ Information for Measurements Conducted on :code:`2-6-2019`
 This measurement had the small spiked absorber placed in between the Tx and Rx at the ground bounce location. There was also the large aluminum (~6" ducting) cylinder placed ~10 degrees to the right when looking at the Tx from behind the Rx.
  
 - :data_root:`2019/2-6-2019/`
+
+.. include:: data_metafile_info/2-6-2019.auto.rst
 
 |
 |
@@ -66,6 +74,8 @@ This is the same as 2-6-2019 but with the small steel pipe used as a cylinder at
 
 - :data_root:`2019/2-7-2019/`
 
+.. include:: data_metafile_info/2-7-2019.auto.rst
+
 |
 |
 
@@ -76,6 +86,8 @@ Information for Measurements Conducted on :code:`2-13-2019`
 4" aluminum Cylinder (ducting with LOS blocked and TX antenna pointed directly at cylinder)
 
 - :data_root:`2019/2-13-2019/`
+
+.. include:: data_metafile_info/2-13-2019.auto.rst
 
 |
 |
@@ -88,6 +100,8 @@ Same as 2-13-2019 but with small cylinder (steel pipe)
 
 - :data_root:`2019/2-14-2019/`
 
+.. include:: data_metafile_info/2-14-2019.auto.rst
+
 |
 |
 
@@ -98,6 +112,8 @@ Information for Measurements Conducted on :code:`2-20-2019`
 Same as 2-13-2019 and 2-14-2019, but without a cylinder
 
 - :data_root:`2019/2-20-2019/`
+
+.. include:: data_metafile_info/2-20-2019.auto.rst
 
 |
 |
@@ -110,6 +126,8 @@ measured two 4" cylinders (ducting) with one on bislide at different locations
 
 - :data_root:`2019/3-1-2019/`
 
+.. include:: data_metafile_info/3-1-2019.auto.rst
+
 |
 |
 
@@ -121,16 +139,7 @@ measured two 1" steel cylinders (same as 3-1-2019 with 1" cylinders)
 
 - :data_root:`2019/3-4-2019/`
 
-|
-|
-
-----
-
-Information for Measurements Conducted on :code:`3/20/2019`
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-first measurement with active scatterers (3 horns) at bislide=340 and 520 mm
-
-- :data_root:`2019/3-20-2019/`
+.. include:: data_metafile_info/3-4-2019.auto.rst
 
 |
 |
@@ -141,9 +150,9 @@ Information for Measurements Conducted on :code:`6-17-2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Line of sight on optical table with new mount and no absorber fence behind rx
 
-.. include:: data_metafile_info/6-17-2019.auto.rst
-
 - :data_root:`2019/6-17-2019/`
+
+.. include:: data_metafile_info/6-17-2019.auto.rst
 
 |
 |
