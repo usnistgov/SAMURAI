@@ -19,6 +19,9 @@ from samurai.base.SamuraiDict import SamuraiDict
 from samurai.base.generic import deprecated
 from samurai.base.generic import moving_average
 
+#hamming window
+import scipy.signal.windows
+
 DEFAULT_HEADER = 'GHz S RI 50'
 DEFAULT_EMPTY_HEADER = 'Hz S RI 50'
 DEFAULT_COMMENTS = []
@@ -1042,13 +1045,25 @@ class TouchstoneParam:
         fm = np.abs(freq-self.freq_list)
         return self.raw[np.argmin(fm)]
         
-    def calculate_time_domain_data(self):
+    def calculate_time_domain_data(self,window=None):
         '''
         @brief calculate the time domain data  
-        @todo. Verify the lack of ifftshift here is correct for phases...  
+        @todo. Verify the lack of ifftshift here is correct for phases... 
+        @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
+            squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
+            or a callable with input (len(self.raw))
         @return [time domain values,ifft complex values]  
         '''
-        ifft_vals = np.fft.ifft(self.raw)
+        if window is None:
+            wvals = np.ones_like(self.raw)
+        elif window == 'sinc2': #apply a sinc^2 window (0 at edges)
+            wvals = np.linspace(-1,1,len(self.raw))
+            wvals = np.sinc(wvals)**2
+        elif callable(window):
+            wvals = window(len(self.raw))
+        else: #assume its a call to scipy.signal.windows.get_window
+            wvals = scipy.signal.windows.get_window(window,len(self.raw))
+        ifft_vals = np.fft.ifft(self.raw*wvals)
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])
         #myw = WaveformEditor(None)
