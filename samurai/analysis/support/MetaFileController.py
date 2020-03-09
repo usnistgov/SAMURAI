@@ -42,24 +42,23 @@ class MetaFileController(SamuraiDict):
             OrderedDict will be created from samurai_metaFile acquisition code
             with a blank measurements list
         @param[in] arg_options - keyword arguments as follwos
-            None Yet!
-            -also passed to SamuraiPlotter constructor
+            verify - verify that all measurement paths in the metafile exist (default True)
         '''
+        
+        options = {}
+        options['verify'] = True
+        for k,v in arg_options.items():
+            options[k] = v
+        
         super().__init__(self) #initialize ordereddict
         if metafile_path is not None:
             [self._in_dir,_]= os.path.split(metafile_path) #get the input directory for relative paths
-            self.load(metafile_path)
+            self.load(metafile_path,**options)
         else:
             self._in_dir = './' #directory of metafile for relative pathing
             self.metafile = 'metafile.json'
             self.set_wdir('./') #set to current path (relative)
             self.update(SamuraiDict(metaFile(None,None)))
-            
-        plot_args = {}
-        plot_args['plot_program'] = 'matplotlib'
-        for k,v in arg_options.items():
-            plot_args[k] = v
-        self.plotter = SamuraiPlotter(**plot_args)
         
         self.unit_conversion_dict = { #dictionary to get to meters
                 'mm': 0.001,
@@ -72,10 +71,11 @@ class MetaFileController(SamuraiDict):
     ###########################################################################
     ### File IO methods
     ###########################################################################
-    def load(self,metafile_path):
+    def load(self,metafile_path,verify=True):
         '''
         @brief load a json metafile
         @param[in] metafile_path - path to the metafile to load
+        @param[in/OPT] verify - should we verify
         '''
         #ensure the metafile exists and provide a better meassage if it doesnt
         if not os.path.exists(metafile_path):
@@ -85,6 +85,11 @@ class MetaFileController(SamuraiDict):
         self.metafile = metafile
         self.update_format() #update if the format is bad
         #now lets check to see if it is valid (measurements exist)
+        if verify:
+            self._verify_paths()
+    
+    def _verify_paths(self):
+        '''@brief Verify all of the paths for the measurements listed in the metafile'''
         for i,fpath in enumerate(self.get_filename_list(True)): #
             if not os.path.exists(fpath): #then raise an error with some help
                 rel_fpath = self.get_filename(i,False) #get relative filename of the measurement
@@ -101,7 +106,7 @@ class MetaFileController(SamuraiDict):
                                   "------------------------------------------------------------------------\n"
                                   ).format(i,self.wdir,rel_fpath)
                                   )
-                
+    
     def write(self,outPath=None):
         '''
         @brief write out edited metafile
@@ -429,10 +434,7 @@ class MetaFileController(SamuraiDict):
             pos = self.get_external_positions_mean(l)
             if l!='meca_head':
                 pos = np.mean(pos,axis=0)
-            #self.plotter.scatter3(ax,*tuple(pos.transpose()),DisplayName=l)
             fig.add_trace(go.Scatter(x=pos[:,0],y=pos[:,1],z=pos[:,2],name=l))
-            
-        #self.plotter.legend(interpreter=None,nargout=0)
         return fig 
     
     ###########################################################################
