@@ -75,21 +75,26 @@ def set_meas_path_relative(meas_path,out_path=None):
     @param[in] meas_path - path to \*.meas file
     @param[in/OPT] out_path - path to write out to. If not provided, overwrite the input
     @note This will overwrite the provided file if a new path is not provided
+    @note This assumes that all Monte Carlo are in the same folder as are Perturbed
     @return return the updated MUFResult
     '''
     if out_path is None:
         out_path = meas_path
     #first open the xml file
     meas = MUFResult(meas_path,load_nominal=False,load_statistics=False)
+    meas_dir = os.path.dirname(meas_path)
     #change all the paths
     meas_types = ['nominal','monte_carlo','perturbed']
     for mt in meas_types:
         meas_obj = getattr(meas,mt) #get the object
         fpaths = meas_obj.filepaths #get the paths 
-        meas_obj.clear_items() #remove the objects with the old paths
-        rel_paths = [os.path.relpath(p,os.path.split(meas_path)[0]) for p in fpaths]
-        meas_obj.add_items(rel_paths) #add the filepaths back
-    return meas
+        if fpaths: # if there are values
+            meas_obj.clear_items() #remove the objects with the old paths
+            new_path = mufPathFind(fpaths[0], meas_dir) #find first object with respect to the *.meas file
+            new_rel_dir = os.path.dirname(os.path.relpath(new_path,meas_dir)) #get the relative path
+            rel_paths = [os.path.join('./',new_rel_dir,os.path.basename(p)) for p in fpaths]
+            meas_obj.add_items(rel_paths) #add the filepaths back
+    return meas.write_xml(out_path)
     
 
 class MUFResult(MUFModuleController):
@@ -299,12 +304,12 @@ class MUFResult(MUFModuleController):
     
     def _load_nominal(self):
         '''@brief load the nominal path value into self.nominal'''
-        self.nominal.load_data()
+        self.nominal.load_data(**self.options)
         
     def _load_statistics(self):
         '''@brief load in all of the data for all of our statistics'''
-        self.monte_carlo.load_data()
-        self.perturbed.load_data()
+        self.monte_carlo.load_data(**self.options)
+        self.perturbed.load_data(**self.options)
     
     def _load_xml(self):
         '''
@@ -500,7 +505,7 @@ class MUFStatistic(MUFItemList):
     def add_item(self,item):
         '''@brief extend super().add_item to allow adding Touchstone params'''
         if isinstance(item,str): #if its a path then add that
-            mi = MUFItem([get_name_from_path(item),os.path.realpath(item)])
+            mi = MUFItem([get_name_from_path(item),item])
             item = mi
         if isinstance(item,TouchstoneEditor):#then make a MUFItem and set the value as the data
             mi = MUFItem(['name','path'])
@@ -508,10 +513,10 @@ class MUFStatistic(MUFItemList):
             item = mi
         super().add_item(item)
         
-    def load_data(self):
+    def load_data(self,**kwargs):
         '''@brief load in all of the data from each of the files'''
         for it in self.muf_items:
-            it.load_data(TouchstoneEditor,**self.options)
+            it.load_data(TouchstoneEditor,**kwargs,**self.options)
     
     def _extract_data_dict(self,tnp_list):
         '''
@@ -790,13 +795,14 @@ class TestMUFResult(unittest.TestCase):
 #%%
 if __name__=='__main__':
     
+    unittest.main()
     #from samurai.base.SamuraiPlotter import SamuraiPlotter
-    meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
+    #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
     #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
-    res = MUFResult(meas_path)
-    mr = MUFResult(os.path.join(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Documents\papers\URSI_2020\CUP_paper\figs\touchstone','beamformed_regular_0.meas'))
-    mr.calculate_statistics()
-    mr.plot(21,'all')
+    #res = MUFResult(meas_path)
+    #mr = MUFResult(os.path.join(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Documents\papers\URSI_2020\CUP_paper\figs\touchstone','beamformed_regular_0.meas'))
+    #mr.calculate_statistics()
+    #mr.plot(21,'all')
     #res2 = MUFResult(meas_path)
     #mil = MUFStatistic(res2._xml_monte_carlo)
     #mil.file_paths

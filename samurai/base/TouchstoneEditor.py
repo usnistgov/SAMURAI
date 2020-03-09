@@ -1288,11 +1288,13 @@ class WaveformParam(TouchstoneParam):
 #sl = s2pEditor('U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Cable_Drift/5-18-2018_stretchRepeats/processed/preCal/short_load.s2p')
 #get unperturbed result from .meas file
 def get_unperturbed_meas(fname):
+    wdir = os.path.dirname(fname)
     dom = parse(fname)
     msp = dom.getElementsByTagName('MeasSParams').item(0)
     unpt = msp.getElementsByTagName('Item').item(0)
     unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
-    return unpt_name
+    unpt_path = os.path.join(wdir,unpt_name)
+    return unpt_path
 
 class TouchstoneError(Exception):
     '''
