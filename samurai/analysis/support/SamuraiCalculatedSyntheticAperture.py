@@ -29,7 +29,7 @@ class CalculatedSyntheticAperture:
         It also contains methods to nicely plot each of these values.
         This will be a single beamformed setup
     '''
-    def __init__(self,AZIMUTH,ELEVATION,complex_values=np.array([]),freqs=np.array([]),**arg_options):
+    def __init__(self,AZIMUTH,ELEVATION,complex_values=np.array([],dtype=np.cdouble),freqs=np.array([]),**arg_options):
         '''
         @brief intializer for the class. This can be initialized without any data and 
                         just use the self.add_frequency_data() method
@@ -196,7 +196,7 @@ class CalculatedSyntheticAperture:
             raise Exception("Program %s not recognized" %(options['plot_program']))
             
         
-    def plot_3d(self,plot_type='mag_db',**arg_options):
+    def plot_3d(self,plot_type='mag_db',freqs='all',**arg_options):
         '''
         @brief plot calculated data in 3d space (radiation pattern)
         @param[in/OPT] plot_type - data to plot. can be 'mag','phase','phase_d','real','imag'
@@ -213,7 +213,7 @@ class CalculatedSyntheticAperture:
         for key,val in six.iteritems(arg_options):
             options[key] = val
             
-        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type,translation=options['translation'],rotation=options['rotation'])
+        [X,Y,Z,plot_data,caxis_min,caxis_max] = self.get_3d_data(plot_type,freqs=freqs,translation=options['translation'],rotation=options['rotation'])
         X = -X #this is dependent on the robot reference frame. required for V2 reference frame
         db_range = caxis_max-caxis_min
         
@@ -638,7 +638,7 @@ class CalculatedSyntheticAperture:
             pass
         return tuple(out_vals)
     
-    def get_3d_data(self,data_type='mag_db',**arg_options):
+    def get_3d_data(self,data_type='mag_db',freqs='all',mean_flg=True,**arg_options):
         '''
         @brief get 3D data values X,Y,Z for 3D plotting
         @param[in/OPT] data_type - the type data to get. can be 'mag','phase','phase_d','real','imag' (default mag_db)
@@ -657,7 +657,7 @@ class CalculatedSyntheticAperture:
         for k,v in arg_options.items():
             options[k] = v
         
-        plot_data = self.get_data(data_type,mean_flg=True)
+        plot_data = self.get_data(data_type,freqs=freqs,mean_flg=mean_flg)
         [plot_data_adj,caxis_min,caxis_max,db_range] = self.adjust_caxis(plot_data,data_type,60)
         Z = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.cos(np.deg2rad(self.azimuth))
         X = plot_data_adj*np.cos(np.deg2rad(self.elevation))*np.sin(np.deg2rad(self.azimuth))
