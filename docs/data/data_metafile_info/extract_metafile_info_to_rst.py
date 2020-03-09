@@ -21,7 +21,8 @@ from samurai.analysis.support.SamuraiBeamform import SamuraiBeamform
 import numpy as np
 
 #%% Some flags for running
-run_beamforming = True
+run_beamforming = False
+gen_figs = False
 build_extra = True
 
 #%% Strings for different parts of the rst file
@@ -155,8 +156,9 @@ meas_dirs = []
 #this should be only be a single folder (no dir1/dir2 only dir1) for nameing ease in docs. copy first of the multiple measurements metafile into root and rename to 
 ## optical table
 mf_dir_list_2019  = []
-#mf_dir_list_2019 += ['1-3-2019','2-1-2019','2-4-2019','2-6-2019','2-7-2019','2-13-2019']
-#mf_dir_list_2019 += ['2-14-2019','2-20-2019','3-1-2019','3-4-2019','3-20-2019']
+#mf_dir_list_2019 += ['1-3-2019']
+#mf_dir_list_2019 += ['2-1-2019','2-4-2019','2-6-2019','2-7-2019','2-13-2019','2-14-2019','2-20-2019']
+mf_dir_list_2019 += ['3-1-2019','3-4-2019']
 #mf_dir_list_2019 += ['6-17-2019','6-19-2019','7-8-2019']
 ## Conference Room
 #mf_dir_list_2019+= ['5-17-2019','5-24-2019','5-31-2019']
@@ -165,7 +167,10 @@ mf_dir_list_2019  = []
 ## TEST ##
 #mf_dir_list_2019 += ['6-17-2019']
 #mf_dir_list_2019 += ['7-8-2019']
-mf_dir_list_2019 += ['1-30-2019']
+#mf_dir_list_2019 += ['1-30-2019']
+#mf_dir_list_2019 += ['2-1-2019','2-4-2019']
+
+#mf_dir_list_2019 += ['2-13-2019']
 ##########
 
 mf_dir_list_2019 = [os.path.join('2019',mfd) for mfd in mf_dir_list_2019]
@@ -219,75 +224,91 @@ for meas_dir in meas_dirs:
         for i,mf_path in enumerate(mf_paths):
             
             mf_name = os.path.relpath(mf_path,os.path.join(mfd_full,'../')) #name relative to directory
+            mfc = MetaFileController(mf_path)
                 
             #%% Plot creation
             fig_path_dict = {}
                 
             #%% Now lets create and add a plot of the aperture
-            print("Generating Aperture Position Plots")
-            ap_fig = mfc.plot_aperture()
+            
+            #update paths
             ap_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_aperture_{}'.format(data_name,i)+'.html')
-            ap_fig.write_html(ap_fig_path)
             ap_fig_path_sphinx = os.path.abspath(ap_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'aperture':ap_fig_path_sphinx})
             
+            #and plot
+            if gen_figs:
+                print("Generating Aperture Position Plots")
+                ap_fig = mfc.plot_aperture()
+                ap_fig.write_html(ap_fig_path)
+            
             #%% now lets plot the freq domain and time domain of the first measurement
-            print("Generating Frequency and Time domain Plots")
-            sparam_data = TouchstoneEditor(mfc.get_filename(1,True))
-            fd_fig = go.Figure()
-            fd_fig.add_trace(go.Scatter(x=sparam_data.freqs,y=sparam_data.S[21].mag_db))
-            fd_fig.update_layout(xaxis_title='Frequency (GHz)',yaxis_title='Magnitude (dB)')
+            
+            #update the paths
             fd_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_fd_{}'.format(data_name,i)+'.html')
-            fd_fig.write_html(fd_fig_path)
             fd_fig_path_sphinx = os.path.abspath(fd_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'fd_meas':fd_fig_path_sphinx})
-            #and time domain
-            td_fig = go.Figure()
-            td_times,td_vals = sparam_data.S[21].calculate_time_domain_data()
-            td_fig.add_trace(go.Scatter(x=td_times*1e9,y=10*np.log10(np.abs(td_vals))))
-            td_fig.update_layout(xaxis_title='Time (ns)',yaxis_title='Magnitude (dB)')
             td_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_td_{}'.format(data_name,i)+'.html')
-            td_fig.write_html(td_fig_path)
             td_fig_path_sphinx = os.path.abspath(td_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'td_meas':td_fig_path_sphinx})
             
+            #and plot
+            if gen_figs:
+                print("Generating Frequency and Time domain Plots")
+                sparam_data = TouchstoneEditor(mfc.get_filename(1,True))
+                fd_fig = go.Figure()
+                fd_fig.add_trace(go.Scatter(x=sparam_data.freqs/1e9,y=sparam_data.S[21].mag_db))
+                fd_fig.update_layout(xaxis_title='Frequency (GHz)',yaxis_title='Magnitude (dB)')
+                fd_fig.write_html(fd_fig_path)
+    
+                #and time domain
+                td_fig = go.Figure()
+                td_times,td_vals = sparam_data.S[21].calculate_time_domain_data(window='sinc2')
+                td_fig.add_trace(go.Scatter(x=td_times*1e9,y=10*np.log10(np.abs(td_vals))))
+                td_fig.update_layout(xaxis_title='Time (ns)',yaxis_title='Magnitude (dB)')
+                td_fig.write_html(td_fig_path)
+            
+            
             #%% and a beamformed data at the max freq
-            if run_beamforming:
-                print("Generating Beamforming Plots")
-                #create our beamforming class
-                my_samurai_beamform = SamuraiBeamform(mf_path,verbose=True)
+            #now save out to the paths #doesnt need beamforming to run
+            bf2d_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_2d_beamformed_{}'.format(data_name,i)+'.html')
+            bf2d_fig_path_sphinx = os.path.abspath(bf2d_fig_path).replace(os.sep,'/')
+            fig_path_dict.update({'az_cut':bf2d_fig_path_sphinx})
+            
+            bf3d_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_3d_beamformed_{}'.format(data_name,i)+'.html')
+            bf3d_fig_path_sphinx = os.path.abspath(bf3d_fig_path).replace(os.sep,'/')
+            fig_path_dict.update({'bf_3d':bf3d_fig_path_sphinx}) 
+            
+            
+            if gen_figs:
+                if run_beamforming:
+                    print("Generating Beamforming Plots")
+                    #create our beamforming class
+                    my_samurai_beamform = SamuraiBeamform(mf_path,verbose=True)
+                    
+                    #add a hamming window to reduce sidelobes
+                    my_samurai_beamform.set_cosine_sum_window_by_name('hamming')
+                    
+                    #calulcation frequency
+                    calc_freq = my_samurai_beamform.all_s_parameter_data[0].freqs[-1]
+                    
+                    #perform beamforming 3d
+                    calc_synthetic_aperture = my_samurai_beamform.beamforming_farfield_azel(
+                                                    np.arange(-90,90,1),np.arange(-90,90,1),freq_list=[calc_freq])
+                    
+                    #plot azimuth cut at 0 elevation
+                   
+                    az2d,v2d = calc_synthetic_aperture.get_azimuth_cut(0,calc_freq)
+                    bf2d_fig = go.Figure()
+                    bf2d_fig.add_trace(go.Scatter(x=az2d,y=v2d[:,0]))
+                    bf2d_fig.update_layout(xaxis_title='Azimuth Angle (degrees)',yaxis_title='Magnitude dB')
+                    bf2d_fig.write_html(bf2d_fig_path)
+                    
+                    #plot our data in 3D
+                    bf3d_fig = calc_synthetic_aperture.plot_3d()
+                    bf3d_fig.write_html(bf3d_fig_path)
                 
-                #add a hamming window to reduce sidelobes
-                my_samurai_beamform.set_cosine_sum_window_by_name('hamming')
                 
-                #calulcation frequency
-                calc_freq = my_samurai_beamform.all_s_parameter_data[0].freqs[-1]
-                
-                #perform beamforming 3d
-                calc_synthetic_aperture = my_samurai_beamform.beamforming_farfield_azel(
-                                                np.arange(-90,90,1),np.arange(-90,90,1),freq_list=[calc_freq])
-                
-                #plot azimuth cut at 0 elevation
-               
-                az2d,v2d = calc_synthetic_aperture.get_azimuth_cut(0,calc_freq)
-                bf2d_fig = go.Figure()
-                bf2d_fig.add_trace(go.Scatter(x=az2d,y=v2d[:,0]))
-                bf2d_fig.update_layout(xaxis_title='Azimuth Angle (degrees)',yaxis_title='Magnitude dB')
-                bf2d_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_2d_beamformed_{}'.format(data_name,i)+'.html')
-                bf2d_fig.write_html(bf2d_fig_path)
-                bf2d_fig_path_sphinx = os.path.abspath(bf2d_fig_path).replace(os.sep,'/')
-                fig_path_dict.update({'az_cut':bf2d_fig_path_sphinx})
-                
-                #plot our data in 3D
-                bf3d_fig = calc_synthetic_aperture.plot_3d()
-                bf3d_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_3d_beamformed_{}'.format(data_name,i)+'.html')
-                bf3d_fig.write_html(bf3d_fig_path)
-                bf3d_fig_path_sphinx = os.path.abspath(bf3d_fig_path).replace(os.sep,'/')
-                fig_path_dict.update({'bf_3d':bf3d_fig_path_sphinx}) 
-                
-            else:
-                fig_path_dict.update({'bf_3d':"N/A"}) 
-                fig_path_dict.update({'az_cut':"N/A"})
             
             
             #%% External position plots
