@@ -213,18 +213,24 @@ def floor_arb(value,multiple):
 #%% Some useful counter classes
 class ValueCounter:
     '''
-    @brief class to print a set of values and delete the previous (like when printing frequencies for calculations)  
+    @brief constructor for the class  
+    @note Nothing else should be printed between init and finalization  
+    @param[in] value_list - total number of values being processed  
+    @param[in/OPT] string_value - formattable string to place values into (should contain a {:#} type number format for consistency)  
+    @param[in/OPT] arg_options - keyword values as follows  
+        - update_period - how often to print (default=1 every value)
+        - delete_on_finalize - should we delete everything on finalize (default False)
+    @example
+        #count through letters in a list
+        values = ['a','b','c','d','e','f','g']
+        myvc = ProgressCounter(values,'We are on {}')
+        for letter in values
+            do_a_thing(letter)
+            myvc.update()
+        myvc.finalize()
     '''
     def __init__(self,value_list,string_value,**arg_options):
-        '''
-        @brief constructor for the class  
-        @note Nothing else should be printed between init and finalization  
-        @param[in] value_list - total number of values being processed  
-        @param[in/OPT] string_value - formattable string to place values into (should contain a {:#} type number format for consistency)  
-        @param[in/OPT] arg_options - keyword values as follows  
-            - update_period - how often to print (default=1 every value)
-            - delete_on_finalize - should we delete everything on finalize (default False)
-        '''
+        '''@brief Constructor'''
         self.value_list = value_list
         self.string_value = string_value
         self.options = {}
@@ -265,18 +271,24 @@ class ValueCounter:
 
 class ProgressCounter(ValueCounter):
     '''
-    @brief class to provid a printed counter of progress (like a progress bar)  
+    @brief Class to provide a printed counter of progress (like a progress bar) 
+    @note Nothing else should be printed between init and finalization  
+    @note Inherits from ValueCounter
+    @param[in] - total_count - total number of values being processed  
+    @param[in/OPT] string_value - value to be printed as a descriptor  
+    @param[in/OPT] arg_options - keyword values as follows  
+            - update_period - how often to print (default=10)
+            - print_zero - do we print 0/#?
+    @example
+    #count to 100 by 10
+        mypc = ProgressCounter(100,'Current Count = ',update_period=10)
+        for i in range(100):
+            mypc.update()
+            do_a_thing()
+        mypc.finalize()
     '''
     def __init__(self,total_count,string_value='',**arg_options):
-        '''
-        @brief constructor for the class  
-        @note Nothing else should be printed between init and finalization  
-        @param[in] - total_count - total number of values being processed  
-        @param[in/OPT] string_value - value to be printed as a descriptor  
-        @param[in/OPT] arg_options - keyword values as follows  
-                - update_period - how often to print (default=10)
-                - print_zero - do we print 0/#?
-        '''
+        '''@brief Constructor'''
         #some important things
         self.total_count = total_count
         num_digs = len(str(total_count))
