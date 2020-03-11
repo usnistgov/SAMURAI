@@ -1,6 +1,6 @@
 
 Frequently Asked Questions (FAQ)
-============================
+=====================================
 
 Here are some of the frequently asked questions (FAQ) along with some not so frequently asked questions (NSFAQ) with answers.
 
