@@ -304,12 +304,12 @@ class MUFResult(MUFModuleController):
     
     def _load_nominal(self):
         '''@brief load the nominal path value into self.nominal'''
-        self.nominal.load_data(**self.options)
+        self.nominal.load_data()
         
     def _load_statistics(self):
         '''@brief load in all of the data for all of our statistics'''
-        self.monte_carlo.load_data(**self.options)
-        self.perturbed.load_data(**self.options)
+        self.monte_carlo.load_data()
+        self.perturbed.load_data()
     
     def _load_xml(self):
         '''
@@ -513,10 +513,10 @@ class MUFStatistic(MUFItemList):
             item = mi
         super().add_item(item)
         
-    def load_data(self,**kwargs):
+    def load_data(self):
         '''@brief load in all of the data from each of the files'''
         for it in self.muf_items:
-            it.load_data(TouchstoneEditor,**kwargs,**self.options)
+            it.load_data(TouchstoneEditor,**self.options)
     
     def _extract_data_dict(self,tnp_list):
         '''
