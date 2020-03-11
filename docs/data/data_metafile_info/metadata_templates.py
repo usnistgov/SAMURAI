@@ -177,7 +177,7 @@ MATLAB
     % import the x,y data (and z if its available) from the first trace
     x_data = fig_struct.data(1).x;
     y_data = fig_struct.data(1).y;
-    #z_data = fig_struct.data(1).z; %if its a 3D plot
+    %z_data = fig_struct.data(1).z; %if its a 3D plot
     
     % Plot the data (for 2D plots)
     fig = plot(x_data,y_data);
