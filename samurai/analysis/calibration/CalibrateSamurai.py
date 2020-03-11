@@ -17,6 +17,7 @@ import os
 
 #from samurai.analysis.support.snpEditor import s2pEditor as s2p
 from samurai.analysis.support.MetaFileController import MetaFileController as mfc
+from samurai.analysis.support.MetaFileController import set_metafile_meas_relative
 #from samurai.analysis.support.metaFileController import update_wdir
 from samurai.analysis.support.MUF.PostProcPy import PostProcPy as pppy
 from samurai.base.generic import deprecated
@@ -103,7 +104,9 @@ class CalibrateSamurai:
         self.ppc.run()
         print("Calibration Complete. Updating MetaFile and Moving Data...")
         #update metafile and move data
-        return self.update_metafile_and_move()      
+        mf_out_path = self.update_metafile_and_move() 
+        set_metafile_meas_relative(mf_out_path)
+        return mf_out_path
         
     def update_metafile_and_move(self):
         
