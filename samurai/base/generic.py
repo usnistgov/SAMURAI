@@ -213,7 +213,7 @@ def floor_arb(value,multiple):
 #%% Some useful counter classes
 class ValueCounter:
     '''
-    @brief constructor for the class  
+    @brief Class to provide a generic showing of progress and deleting it after updating
     @note Nothing else should be printed between init and finalization  
     @param[in] value_list - total number of values being processed  
     @param[in/OPT] string_value - formattable string to place values into (should contain a {:#} type number format for consistency)  
@@ -224,7 +224,7 @@ class ValueCounter:
         #count through letters in a list
         values = ['a','b','c','d','e','f','g']
         myvc = ProgressCounter(values,'We are on {}')
-        for letter in values
+        for letter in values:
             do_a_thing(letter)
             myvc.update()
         myvc.finalize()
@@ -280,11 +280,11 @@ class ProgressCounter(ValueCounter):
             - update_period - how often to print (default=10)
             - print_zero - do we print 0/#?
     @example
-    #count to 100 by 10
+        #count to 100 by 10
         mypc = ProgressCounter(100,'Current Count = ',update_period=10)
         for i in range(100):
-            mypc.update()
             do_a_thing()
+            mypc.update()
         mypc.finalize()
     '''
     def __init__(self,total_count,string_value='',**arg_options):
