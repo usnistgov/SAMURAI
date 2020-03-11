@@ -72,7 +72,7 @@ def brief_parse_fun(str):
 dox_funct_dict = {
     "brief"  : brief_parse_fun,#lambda str: re.sub(' +',' ','\n'+str.strip().strip("brief").replace('\n','').strip()),
     "param"  : param_parse_fun,
-    "example": lambda str: re.sub(' ',' ',('\n.. code-block:: python\n'+str.strip().lstrip('example')).replace('\n','\n   ')+'\n'),
+    "example": lambda str: re.sub(' ',' ',('**Usage**\n\n.. code-block:: python\n'+str.strip().lstrip('example')).replace('\n','\n   ')+'\n'),
     "return" : lambda str: re.sub(' +',' ',"\n:return: "+str.strip().lstrip("return").replace('\n','')+'\n'),
     "note"   : lambda str: re.sub(' +',' ',"\n.. note:"+str.strip().lstrip("note").replace('\n','')+'\n'),
     "warning": lambda str: re.sub(' +',' ',"\n.. warning:"+str.strip().lstrip("warning").replace('\n','')+'\n'),
