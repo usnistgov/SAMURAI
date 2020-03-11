@@ -1,6 +1,7 @@
 # ignore auto generated rst files
 *.auto.rst
 *.auto
+*.auto.json
 
 #ignore copied images
 images/

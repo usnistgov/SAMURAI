@@ -16,120 +16,17 @@ import glob
 
 from samurai.analysis.support.MetaFileController import MetaFileController
 from samurai.base.TouchstoneEditor import TouchstoneEditor
+from samurai.base.SamuraiDict import SamuraiDict
 
 from samurai.analysis.support.SamuraiBeamform import SamuraiBeamform
 import numpy as np
 
+from metadata_templates import meas_str,image_format_str,extra_info_link_str,extra_info_page_str,fig_how_to,ext_pos_str
+
 #%% Some flags for running
-run_beamforming = False
-gen_figs = False
+run_beamforming = True
+gen_figs = True
 build_extra = True
-
-#%% Strings for different parts of the rst file
-
-#format with (**metafile_kwargs)
-meas_str = '''
-Experiment Information
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-{experiment}
-
-*{notes}*
-
-
-VNA Sweep Settings
-^^^^^^^^^^^^^^^^^^^^^
-
-{vna_info}
-
-
-'''
-
-#format with (image_location)
-image_format_str = '''
-
-Setup Image
-^^^^^^^^^^^^^^^^^^
-
-.. image:: {0}
-
-
-'''
-
-#format with ('- :ref:`<data_dir_name_1>\n- :ref:`<data_dir_name_2>,...)
-extra_info_link_str = '''
-
-Extra Information
-^^^^^^^^^^^^^^^^^^^^
-
-Extra plots and information on each of the specific sweeps take during the measurement and their data can be found at the link below.
-
-{0}
-
-'''
-
-#format with (data_dir_name,enumerated value,**plot_path_dict,**metafile_kwargs)
-extra_info_page_str = ('''
-                       
-:orphan:
-
-.. _data_{0}_extra_info_{1}:
-
-#####################################################################################
-Additional Information for :code:`{name}`
-#####################################################################################
-
-Experiment Information
-----------------------------
-
-{experiment}
-
-*{notes}*
-
-
-VNA Sweep Settings
---------------------------
-
-{vna_info}
-
-
-Aperture Positions (mm)
----------------------------
-
-.. raw:: html
-   :file: {aperture}
-
-Measurement at first position
-----------------------------------
-
-.. raw:: html
-    :file: {fd_meas}
-    
-Time Domain Result
------------------------------
-
-.. raw:: html
-    :file: {td_meas}
-    
-Azimuth cut at 0 Degrees Elevation
---------------------------------------
-
-.. raw:: html
-    :file: {az_cut}
-
-Beamformed 3D Data Plot at highest frequency
-----------------------------------------------------
-
-.. raw:: html
-    :file: {bf_3d}
-    
-Externally Measured Positions
----------------------------------------------
-
-.. raw:: html
-    :file: {ext_pos}
-
-''')
 
 
 #%% function for finding metafiles
@@ -140,7 +37,11 @@ def find_metafiles(mydir):
     '''
     d1 = glob.glob(os.path.join(mydir,'./metafile.json'))
     d2 = glob.glob(os.path.join(mydir,'./*/metafile.json'))
-    return d1+d2
+    d = d1+d2
+    for v in d: # remove touchstone directory
+        if 'touchstone' in v:
+            d.remove(v)
+    return d
 
 #%% constant settings
 data_root = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated'
@@ -153,17 +54,24 @@ local_image_dir = '/data/data_metafile_info/images/' #relative to sphinx root
 meas_dirs = []
 
 #%% 2019 Data
-#this should be only be a single folder (no dir1/dir2 only dir1) for nameing ease in docs. copy first of the multiple measurements metafile into root and rename to 
-## optical table
+
 mf_dir_list_2019  = []
-#mf_dir_list_2019 += ['1-3-2019']
-#mf_dir_list_2019 += ['2-1-2019','2-4-2019','2-6-2019','2-7-2019','2-13-2019','2-14-2019','2-20-2019']
+#mf_dir_list_2019 += ['1-30-2019']
+#mf_dir_list_2019 += ['2-1-2019','2-4-2019','2-6-2019','2-7-2019']
+mf_dir_list_2019 += ['2-13-2019','2-14-2019','2-20-2019']
 mf_dir_list_2019 += ['3-1-2019','3-4-2019']
-#mf_dir_list_2019 += ['6-17-2019','6-19-2019','7-8-2019']
+mf_dir_list_2019 += ['6-17-2019','6-19-2019']
+mf_dir_list_2019 += ['7-8-2019']
+mf_dir_list_2019 = [os.path.join('2019',mfd) for mfd in mf_dir_list_2019]
+
 ## Conference Room
-#mf_dir_list_2019+= ['5-17-2019','5-24-2019','5-31-2019']
+mf_dir_list_conf = ['5-17-2019','5-24-2019','5-31-2019']
+mf_dir_list_conf = [os.path.join('Conference_Room',mfd) for mfd in mf_dir_list_conf]
+
 # CUP Data
-#mf_dir_list_2019+= ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
+mf_dir_list_cup  = ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
+mf_dir_list_cup  = [os.path.join('Central_Utility_Plant',mfd) for mfd in mf_dir_list_cup]
+
 ## TEST ##
 #mf_dir_list_2019 += ['6-17-2019']
 #mf_dir_list_2019 += ['7-8-2019']
@@ -173,10 +81,8 @@ mf_dir_list_2019 += ['3-1-2019','3-4-2019']
 #mf_dir_list_2019 += ['2-13-2019']
 ##########
 
-mf_dir_list_2019 = [os.path.join('2019',mfd) for mfd in mf_dir_list_2019]
-
 #COMMENT THIS LINE BELOW OUT TO NOT GENERATE 2019 THINGS
-meas_dirs += mf_dir_list_2019
+meas_dirs += mf_dir_list_2019 + mf_dir_list_conf + mf_dir_list_cup
 
 #%% 2020 Data
 
@@ -235,12 +141,17 @@ for meas_dir in meas_dirs:
             ap_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_aperture_{}'.format(data_name,i)+'.html')
             ap_fig_path_sphinx = os.path.abspath(ap_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'aperture':ap_fig_path_sphinx})
+            ap_json_path = os.path.splitext(ap_fig_path)[0]+'.auto.json'
+            ap_json_path_sphinx = os.path.join('/',os.path.relpath(ap_json_path,sphinx_root)).replace(os.sep,'/')
+            fig_path_dict.update({'aperture_data':ap_json_path_sphinx})
             
             #and plot
             if gen_figs:
                 print("Generating Aperture Position Plots")
                 ap_fig = mfc.plot_aperture()
                 ap_fig.write_html(ap_fig_path)
+                ap_json = SamuraiDict(); ap_json.update({'how_to':fig_how_to})
+                ap_json.update(ap_fig.to_dict());  ap_json.write(ap_json_path)
             
             #%% now lets plot the freq domain and time domain of the first measurement
             
@@ -248,9 +159,15 @@ for meas_dir in meas_dirs:
             fd_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_fd_{}'.format(data_name,i)+'.html')
             fd_fig_path_sphinx = os.path.abspath(fd_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'fd_meas':fd_fig_path_sphinx})
+            fd_json_path = os.path.splitext(fd_fig_path)[0]+'.auto.json'
+            fd_json_path_sphinx = os.path.join('/',os.path.relpath(fd_json_path,sphinx_root)).replace(os.sep,'/')
+            fig_path_dict.update({'fd_meas_data':fd_json_path_sphinx})
             td_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_td_{}'.format(data_name,i)+'.html')
             td_fig_path_sphinx = os.path.abspath(td_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'td_meas':td_fig_path_sphinx})
+            td_json_path = os.path.splitext(fd_fig_path)[0]+'.auto.json'
+            td_json_path_sphinx = os.path.join('/',os.path.relpath(td_json_path,sphinx_root)).replace(os.sep,'/')
+            fig_path_dict.update({'td_meas_data':td_json_path_sphinx})
             
             #and plot
             if gen_figs:
@@ -260,6 +177,8 @@ for meas_dir in meas_dirs:
                 fd_fig.add_trace(go.Scatter(x=sparam_data.freqs/1e9,y=sparam_data.S[21].mag_db))
                 fd_fig.update_layout(xaxis_title='Frequency (GHz)',yaxis_title='Magnitude (dB)')
                 fd_fig.write_html(fd_fig_path)
+                fd_json = SamuraiDict(); fd_json.update({'how_to':fig_how_to})
+                fd_json.update(fd_fig.to_dict());  fd_json.write(fd_json_path)
     
                 #and time domain
                 td_fig = go.Figure()
@@ -267,6 +186,8 @@ for meas_dir in meas_dirs:
                 td_fig.add_trace(go.Scatter(x=td_times*1e9,y=10*np.log10(np.abs(td_vals))))
                 td_fig.update_layout(xaxis_title='Time (ns)',yaxis_title='Magnitude (dB)')
                 td_fig.write_html(td_fig_path)
+                td_json = SamuraiDict(); td_json.update({'how_to':fig_how_to})
+                td_json.update(td_fig.to_dict());  td_json.write(td_json_path)
             
             
             #%% and a beamformed data at the max freq
@@ -274,10 +195,16 @@ for meas_dir in meas_dirs:
             bf2d_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_2d_beamformed_{}'.format(data_name,i)+'.html')
             bf2d_fig_path_sphinx = os.path.abspath(bf2d_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'az_cut':bf2d_fig_path_sphinx})
+            bf2d_json_path = os.path.splitext(bf2d_fig_path)[0]+'.auto.json'
+            bf2d_json_path_sphinx = os.path.join('/',os.path.relpath(bf2d_json_path,sphinx_root)).replace(os.sep,'/')
+            fig_path_dict.update({'az_cut_data':bf2d_json_path_sphinx})
             
             bf3d_fig_path = os.path.join(sphinx_root,local_image_dir.lstrip('/'),'{}_3d_beamformed_{}'.format(data_name,i)+'.html')
             bf3d_fig_path_sphinx = os.path.abspath(bf3d_fig_path).replace(os.sep,'/')
             fig_path_dict.update({'bf_3d':bf3d_fig_path_sphinx}) 
+            bf3d_json_path = os.path.splitext(bf3d_fig_path)[0]+'.auto.json'
+            bf3d_json_path_sphinx = os.path.join('/',os.path.relpath(bf3d_json_path,sphinx_root)).replace(os.sep,'/')
+            fig_path_dict.update({'bf_3d_data':bf3d_json_path_sphinx})
             
             
             if gen_figs:
@@ -303,17 +230,25 @@ for meas_dir in meas_dirs:
                     bf2d_fig.add_trace(go.Scatter(x=az2d,y=v2d[:,0]))
                     bf2d_fig.update_layout(xaxis_title='Azimuth Angle (degrees)',yaxis_title='Magnitude dB')
                     bf2d_fig.write_html(bf2d_fig_path)
+                    bf2d_json = SamuraiDict(); bf2d_json.update({'how_to':fig_how_to})
+                    bf2d_json.update(bf2d_fig.to_dict());  bf2d_json.write(bf2d_json_path)
                     
                     #plot our data in 3D
                     bf3d_fig = calc_synthetic_aperture.plot_3d()
                     bf3d_fig.write_html(bf3d_fig_path)
+                    bf3d_json = SamuraiDict(); bf3d_json.update({'how_to':fig_how_to})
+                    bf3d_json.update(bf3d_fig.to_dict());  bf3d_json.write(bf3d_json_path)
                 
                 
             
             
             #%% External position plots
             #dont add for now
-            fig_path_dict.update({'ext_pos':"Not Available for this Measurement"})
+            if False: #make conditional for adding external position plots
+                ext_pos = ext_pos_str.format(ext_pos='path/to/plot.html',ext_pos_data='path/to/data.json')
+            else:
+                ext_pos = "Not Available for this Measurement"
+            fig_path_dict.update({'ext_pos_str':ext_pos})
             
             #%% add metafile info to extra info page
             fig_path_dict.update(mf_dict)
