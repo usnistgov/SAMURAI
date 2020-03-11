@@ -68,7 +68,7 @@ def mufPathFindR(inPath, refPoint, level = 0):
     else:
         return mufPathFindR(inPath, refPoint, level = level+1)
     
-def set_meas_path_relative(meas_path,out_path=None):
+def set_meas_relative(meas_path,out_path=None):
     '''
     @brief change all paths in a \*.meas file to relative paths and save.
     The paths will assume all paths are relative to the \*.meas file.

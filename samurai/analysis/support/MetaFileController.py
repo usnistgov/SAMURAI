@@ -20,7 +20,7 @@ from datetime import datetime #for timestamps
 import plotly.graph_objects as go
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor
-from samurai.analysis.support.MUFResult import MUFResult
+from samurai.analysis.support.MUFResult import MUFResult,set_meas_relative
 from samurai.base.generic import deprecated, ProgressCounter
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
@@ -28,6 +28,27 @@ from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
 from samurai.acquisition.support.samurai_metaFile import metaFile
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
+#%% Function to set all *.meas files in a metafile to use paths relative to the *.meas file
+def set_metafile_meas_relative(metafile_path,verbose=True):
+    '''
+    @brief Change all \*.meas file paths to be relative to the \*.meas file.
+        This will be done for all \*.meas files in the metafile
+    @param[in] metafile_path - metafile pointing to measurements
+    @param[in/OPT] verbose - whether to be verbose or not when changing the paths
+    @return The list of file paths that have been edited
+    '''
+    mf = MetaFileController(metafile_path,verify=True)
+    fpaths = mf.filenames #get the filenames
+    fpaths = [fpath for fpath in fpaths if '.meas' in fpath] #only get *.meas files
+    if verbose: mypc = ProgressCounter(len(fpaths),'    Correcting Path - ')
+    for i,fpath in enumerate(fpaths): #now loop through each meas file
+        set_meas_relative(fpath)
+        if verbose: mypc.update()
+    if verbose: mypc.finalize()
+    return fpaths
+
+
+#%% Class for working with the Metafiles
 class MetaFileController(SamuraiDict):
     '''
     @brief class to control metafile to get and change values

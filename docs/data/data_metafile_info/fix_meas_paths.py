@@ -10,8 +10,8 @@ Currently they use absolute paths that are pointing to the wrong location
 import os
 import glob
 
-from samurai.analysis.support.MetaFileController import MetaFileController
-from samurai.analysis.support.MUFResult import MUFResult,set_meas_path_relative
+from samurai.analysis.support.MetaFileController import MetaFileController,set_metafile_meas_relative
+from samurai.analysis.support.MUFResult import MUFResult
 from samurai.base.generic import ProgressCounter
 
 #%% function for finding our metafiles
@@ -31,14 +31,15 @@ wdir = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Me
 test_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\7-8-2019\meas_relative.meas"
 
 mf_dirs = []
-#mf_2019 = [os.path.join(wdir,'2019',d) for d in 
-#                  ['7-8-2019']]
-mf_cup = [os.path.join(wdir,'Central_Utility_Plant',d) for d in 
-                  ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']]
-mf_conf= [os.path.join(wdir,'Conference_Room',d) for d in 
-                  ['5-17-2019','5-24-2019','5-31-2019']]
-mf_dirs += mf_cup   #CUP
-mf_dirs += mf_conf  #Conference room
+mf_2019 = [os.path.join(wdir,'2019',d) for d in 
+                  ['7-8-2019']]
+#mf_cup = [os.path.join(wdir,'Central_Utility_Plant',d) for d in 
+#                  ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']]
+#mf_conf= [os.path.join(wdir,'Conference_Room',d) for d in 
+#                  ['5-17-2019','5-24-2019','5-31-2019']]
+#mf_dirs += mf_cup   #CUP
+#mf_dirs += mf_conf  #Conference room
+mf_dirs += mf_2019
 
 for mf_dir in mf_dirs: #go through each directory
     print("Correcting {}".format(mf_dir))
@@ -46,6 +47,8 @@ for mf_dir in mf_dirs: #go through each directory
     for i,mf_path in enumerate(mf_paths): #go through each metafile found
         print("   Metafile {}".format(i))
         # Load the metafile without loading any data
+        set_metafile_meas_relative(mf_path)
+        '''
         mf = MetaFileController(mf_path,verify=True)
         fpaths = mf.filenames #get the filenames
         fpaths = [fpath for fpath in fpaths if '.meas' in fpath]
@@ -54,5 +57,6 @@ for mf_dir in mf_dirs: #go through each directory
             set_meas_path_relative(fpath)
             mypc.update()
         mypc.finalize()
+        '''
     
     
