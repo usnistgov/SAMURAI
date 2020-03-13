@@ -215,6 +215,8 @@ Information for Measurements Conducted on :code:`5/17/2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Measurement in the conference room. Both Tx and Rx on opposite ends of the table facing the outside wall. 
 
+.. include:: data_metafile_info/5-17-2019.auto.rst
+
 - :data_root:`Conference_Room/5-17-2019/`
 
 |
@@ -226,6 +228,8 @@ Information for Measurements Conducted on :code:`5/24/2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Second conference room measurement. Tx and Rx pointed at one another through the window
 
+.. include:: data_metafile_info/5-24-2019.auto.rst
+
 - :data_root:`Conference_Room/5-24-2019/`
 
 |
@@ -236,6 +240,8 @@ Second conference room measurement. Tx and Rx pointed at one another through the
 Information for Measurements Conducted on :code:`5/31/2019`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Third and final conference room measurement. Tx at glancing angle through glass pointed toward whiteboard. Rx aperture pointing toward whiteboard inside room
+
+.. include:: data_metafile_info/5-31-2019.auto.rst
 
 - :data_root:`Conference_Room/5-31-2019/`
 
@@ -305,6 +311,17 @@ Information for Measurements Conducted on :code:`8-13-2019`
 Again the rack was removed to test the channel with the new pointing of antennas toward the control panel.
 
 - :data_root:`Central_Utility_Plant/8-13-2019/`
+
+|
+|
+
+----
+
+Information for Measurements Conducted on :code:`8-14-2019`
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Short frequency step sweep performed
+
+- :data_root:`Central_Utility_Plant/8-14-2019/`
 
 |
 |
