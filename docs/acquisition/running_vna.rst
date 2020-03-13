@@ -1,3 +1,6 @@
+
+.. _running-the-vna:
+
 Remotely Controlling the VNA
 ====================================
 
@@ -5,7 +8,45 @@ The VNA is typically controlled remotely from a connected computer.
 In the SAMURAI lab, this is typically connected over ethernet. Communication is performed using the VISA protocol.
 The current IP address for the VNA in the SAMURAI lab is given in :ref:`hardware-config`.
 
-There are two methods for remotely running the VNA from the computer using the SAMURAI software. The first is using a PNAGrabber template (the NIST microwave uncertainty framework must be installed) and the second is using :class:`samurai.acquisition.support.PnaController.PnaController`.
+There are two methods for remotely running the VNA from the computer using the SAMURAI software. The first is using :class:`samurai.acquisition.support.PnaController.PnaController` and the second is using PNAGrabber (the NIST microwave uncertainty framework must be installed).
+
+Using PnaController 
+--------------------------
+
+While this method cannot yet do wave parameters, it is faster to measure than PnaGrabber for s-parameter measurements (especially when a sweep contains thousands of points).
+This class also does not in any way alter the state of the VNA (PNAGrabber will overwrite some settings).
+An example of how this class can be used is as follows:
+
+.. code-block:: python 
+
+    # Import the library
+    from samurai.acquisition.instrument_control.PnaController import PnaController
+    
+    # Create the object
+    mypna = PnaController()
+
+    # Take a measurement
+    mypna.measure('path/to/file.s2p')
+
+    OR when a port mapping is required, something like the following:
+
+.. code-block:: python 
+
+    # Import the library
+    from samurai.acquisition.instrument_control.PnaController import PnaController
+    
+    # Create the object
+    mypna = PnaController()
+
+    # Take a measurement and map port 3 data to port 2 in *.snp file 
+    mypna.measure('path/to/file.s2p',{3:2})
+
+This class can also be used to repeatably setup the VNA for a certain sweep. An example script showing this functionality is given below
+
+.. literalinclude:: /../samurai/acquisition/script_templates/set_vna_params.py 
+	:language: python 
+	:linenos:
+
 
 Using PNAGrabber
 ---------------------
@@ -14,6 +55,9 @@ This works for s-parameters and wave-parameters with an arbitrary number of port
 
 To gather a measurement using PNAGrabber, first make a template pnagrabber menu. This is what will be run each time.
 This menu should have only a single measurement with the correct extension (e.g. \*.s2p,\*.s4p,\*.w2p).
+
+
+.. _Setting Up PNAGrabber:
 
 Setting up PNAGrabber 
 ++++++++++++++++++++++++++++++
@@ -40,7 +84,7 @@ Once this has all been setup, PNAGrabber can be used to measure with the followi
 .. code-block:: python 
 
     #import the library
-    from samurai.acquisition.support.autoPnaGrabber import PnaGrabber 
+    from samurai.acquisition.support.autoPNAGrabber import PnaGrabber 
 
     # Create an object
     mypna = PnaGrabber()
@@ -52,14 +96,35 @@ Once this has all been setup, PNAGrabber can be used to measure with the followi
     mypna.measure(output_path)
 
 
-Using PnaController 
---------------------------
+Using different methods with SAMURAI_System.csv_sweep()
+--------------------------------------------------------------
 
-While this method cannot yet do wave parameters, it is faster to measure than PnaGrabber for s-parameter measurements (especially when a sweep contains thousands of points).
-This class also does not in any way alter the state of the VNA (PNAGrabber will overwrite some settings).
+When running a typical SAMURAI Sweep using the :method:`samurai.acquisition.SAMURAI_System.SAMURAI_System.csv_sweep` method,
+the system will default to using the PnaController class and using ports 1 and 3.
+This can be changed with the optional input arguments :code:`meas_obj`,:code:`meas_obj_init_args`,:code:`meas_obj_meas_args`
 
-This class can also be used to repeatably setup the VNA for a certain sweep. An example script showing this functionality is given below
+To utilize PnaController without any port mapping, the following keywork arguments should be passed into the csv_sweep method:
+
+.. code-block:: python 
+
+    # This code only demonstrates what flags to set, not how to use the csv_sweep method 
+    SAMURAI_System.csv_sweep(...,meas_obj_meas_args=())
+
+In order to use PNAGrabber with the sweep, the following keyword arguments can be used:
+
+.. code-block:: python 
+
+    # This code only demonstrates what flags to set, not how to use the csv_sweep method 
+    from samurai.acquisition.support.autoPNAGrabber import PnaGrabber
+    SAMURAI_System.csv_sweep(...,meas_obj=PnaGrabber,meas_obj_init_args=(),meas_obj_meas_args=())
 
 
 
+VNA Control Classes
+-------------------------
 
+.. automodule:: samurai.acquisition.instrument_control.PnaController
+		:members:
+
+.. automodule:: samurai.acquisition.support.autoPNAGrabber.PnaGrabber
+        :members:
