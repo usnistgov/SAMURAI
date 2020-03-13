@@ -25,7 +25,7 @@ In this documentation, we provide a getting started documentation, software for 
 
 
 
-.. image:: ./external_data/samurai_dual_cyl.jpg
+.. image:: ./external_data/image_authors.jpg
 
 *SAMURAI System Set up to test the scattering off of two cylinders. This test is used to test the angular resolution of different angle of arrival (AoA) algorithms.*
 
