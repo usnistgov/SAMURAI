@@ -28,7 +28,7 @@ An example of how this class can be used is as follows:
     # Take a measurement
     mypna.measure('path/to/file.s2p')
 
-    OR when a port mapping is required, something like the following:
+OR when a port mapping is required, something like the following:
 
 .. code-block:: python 
 

@@ -7,13 +7,49 @@ Getting Started
 =========================
 The following steps explain how to download and install the SAMURAI python package.
 
+Installing Python
+---------------------------
+
+Installing Python
+++++++++++++++++++++++++++++++++++++++++++
+
+While any python 3.X distribution should work, Anaconda has typically been used with this package as it provides many pre-installed dependencies.
+
+- Installing Anaconda  
+    #. Go to the anaconda `download page <https://www.anaconda.com/distribution/#download-section>`_
+    #. Select the correct operating system and installer
+    #. Download and run the executable and follow the installer to install Anaconda 3.X
+    #. Install depedencies through either :code:`conda install <package>` or :code:`pip install <package>`
+
+- Installing Python 
+    #. Download the base python interpreter at `https://www.python.org/downloads/`_
+    #. install dependencies through :code:`pip install <package>`
+
+dependencies
+++++++++++++++++++++++++
+
+The following dependencies are some that are required for usage of certain modules in the system.
+Not all are required for all modules and therefore it may be best to install them on a as needed basis as opposed to all at once.
+
+- Python 3.X
+- Numpy 
+- Scipy 
+- pyvisa
+- pyserial (for bislide usage)
+- plotly (for plotting)
+
+
+Installing SAMRURAI Package 
+------------------------------
+
+Here are instructions on how to install the SAMURAI software package.
 
 Download 
---------------------
++++++++++++++++
 The current code can be downloaded or cloned from the :git_repo:`/`
 
 Installation
-------------------
+++++++++++++++++++++++
 
 #. Change into the downloaded SAMURAI package directory (e.g., :code:`cd <download_directory>/samurai/`).
     
