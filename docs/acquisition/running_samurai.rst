@@ -9,7 +9,7 @@ This section shows how to run from a premade python script. This requires the lo
 1. Create a new SAMURAI measurement directory
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
-#. Make a copy of :code:`meas_template` in the directory :code:`
+#. Make a copy of :code:`meas_template` in the desired working directory.
 
 .. note:: For measurements taken directly to the network drive use the directory :code:`C:\SAMURAI\local_data`. This will save all of the data locally to the SAMURAI computer to prevent failure due to intermittent network drive connections.
 

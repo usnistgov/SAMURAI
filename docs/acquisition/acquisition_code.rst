@@ -39,11 +39,6 @@ Optitrack Interface
 .. automodule:: samurai.acquisition.instrument_control.NatNetClient
 		:members:
 
-VNA Control 
-+++++++++++++++++++++
-.. automodule:: samurai.acquisition.instrument_control.PnaController
-		:members:
-
 Robot Control
 ++++++++++++++
 .. automodule:: samurai.acquisition.instrument_control.Meca500

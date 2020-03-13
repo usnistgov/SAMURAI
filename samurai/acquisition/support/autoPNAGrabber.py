@@ -28,7 +28,12 @@ class PnaGrabber:
 			- pnagrabber_template_path - where to get the template for pnagrabber  
 			- pnagrabber_exe_path - where the executable is (defaults to typical install location)  
 			- pnagrabber_output_path - the path of the output from pnagrabber (defaults to the first measurement from the template)  
-    '''
+    @example
+		# construct the object
+		mypna = PnaGrabber()
+		# measure using PNAGrabber
+		meas_path = mypna.measure('output/path/file.s2p')
+	'''
 
     def __init__(self,**options):
         self.options = {}
