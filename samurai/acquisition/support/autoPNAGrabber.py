@@ -16,6 +16,8 @@ import six
 import subprocess
 import xml.etree.ElementTree as et
 
+from samurai.acquisition.instrument_control.PnaController import clean_file_name
+
 #pnagrabber_exe_path_default = r'U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Software\SAMURAI_Control\edited_pnagrabber\PNAGrabber\bin\Debug\PNAGrabber.exe'
 #default pnagrabber path for windows from pnagrabber installer
 pnagrabber_exe_path_default = r'C:\\Program Files (x86)\\NIST\\Uncertainty Framework\\PNAGrabber.exe'
@@ -62,7 +64,7 @@ class PnaGrabber:
         '''
         @brief run pnagrabber from the template file and rename to newPath  
         @param[in] newPath - name to move the output to  
-        @param[in/OPT] clean - append this value to the output. If -1 it will auto increment (reccomended)  
+        @param[in/OPT] clean - Doesn't do anything. Kept to adhere to old script usage
         '''
         #get file and time
         ts = time.time()
@@ -82,7 +84,7 @@ class PnaGrabber:
             newPath = newPath+'.'+old_file_split[-1]
         
         #first check if exists and change name
-        [newPath,_]= cleanFileName(newPath,clean)
+        newPath = clean_file_name(newPath)
         
         os.rename(self.options['pnagrabber_output_path'],newPath)
         #return runtime and new filename if changed
@@ -163,31 +165,6 @@ def clean_dir_name(dir_name):
 #alias for working with old code
 cleanDirName=clean_dir_name
 
-def clean_file_name(file_name,num=-1):
-    '''
-    @brief clean a file name. if the directory exists increment until it doesnt (appends '(#)')  
-    @param[in] file_name - name of the file to clean  
-    @return name for cleaned file  
-    '''
-    fout=file_name
-    i=0
-    if(num==-1):
-        while(os.path.isfile(fout)==True):
-            i+=1
-            #remove number if there was one
-            fout = fout.split('/')[-1]
-            if(len(fout.split('('))>1):
-                fout = fout.split('(')[0]+fout.split(')')[-1]
-            fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-            fout = '/'.join(file_name.split('/')[0:-1])+'/'+fout
-    elif(num==0):#no need to add thing on
-        fout = file_name
-    else:
-        i=num
-        fout = fout.split('/')[-1]
-        fout = fout = fout.split('.')[0]+'('+str(i)+').'+fout.split('.')[1]
-        fout = '/'.join(file_name.split('/')[0:-1])+'/'+fout
-    return fout,i
 #function alias to work with old code
 cleanFileName = clean_file_name
 
