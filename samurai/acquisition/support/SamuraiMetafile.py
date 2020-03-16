@@ -22,15 +22,17 @@ from samurai.base.SamuraiDict import SamuraiDict
 #import directory and file name
 #also give the csv file where positions are running from to build JSON template
 #Written by Alec Weiss 2018
-class metaFile(OrderedDict):
+class SamuraiMetafile(OrderedDict):
     '''
 	@brief class to create a metafile and add measurements to it during a full measurement sweep  
+    @note This is aliased with both samurai.acquisition.support.samurai_metaFile.metaFile and 
+        samurai.acquisition.support.SamuraiMetafile.MetaFile for backward compatability
 	@param[in] csv_path - path to file for positions of measurement (used to generate json template)  
 	@param[in] pna_addr - visa address of pna to get information from  
 	@param[in/OPT] arg_options - keyword arguments will replace any input key with provided value  
 	'''
     def __init__(self,csv_path,pna_addr,**arg_options):
-
+        '''@brief Constructor'''
         #input options
         super().__init__() #initialize ordereddict
 
@@ -436,6 +438,9 @@ class metaFile(OrderedDict):
             #get id from last line
             return int(line.split('|')[1])
 
+#alias
+metaFile = SamuraiMetafile
+MetaFile = metaFile
 
 import re
 #check if file exists and change name if it does
@@ -459,9 +464,6 @@ def clean_file_name(file_path,num=-1):
         fname = re.sub('(\([0-9+]\))*\.','('+str(i)+').',fname) 
     fout = os.path.join(mydir,fname)
     return fout,i
-
-#alias
-MetaFile = metaFile
 
 def finalize_metafile(metafile_path,raw_path,**kwargs):
     '''

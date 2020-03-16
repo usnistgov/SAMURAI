@@ -25,6 +25,7 @@ pnagrabber_exe_path_default = r'C:\\Program Files (x86)\\NIST\\Uncertainty Frame
 class PnaGrabber:
     '''
     @brief a class to run pnagrabber from python. This relies on using the executable with a -r option  
+    @note Aliased to samurai.acquisition.support.autoPNAGrabber.PnaGrabber for backward compatability.
     @param[in] **options - options for the class are as follows:  
 			- wdir - working directory for the run (usually './')  
 			- pnagrabber_template_path - where to get the template for pnagrabber  

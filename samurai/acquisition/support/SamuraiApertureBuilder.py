@@ -29,16 +29,24 @@ v1_to_v2_convert = np.array([[0,1,0,0,0,0],
 class ApertureBuilder():
     '''
     @brief class to help build apertures for use with samurai system  
+    @note This is also aliased to samurai.acquisition.support.samurai_apertureBuilder.ApertureBuilder
+        for backward compatability.
+    @param[in/OPT] arg_options - keyword arguments as follows:  
+        - trf_pos - position of tool reference frame (default is typical)  
+        - wrf_pos - position of world reference frame (default is typical)  
+        - comment_character - character to use for comments and header (default '#')  
+    @example
+        # Generate a 16x16 planar aperture with 5.35mm spacing in all dimensions
+        out_path = 'path/to/file.csv'
+        samurai_center = [0,125,60,0,0,0]
+        step = 5.35 # in mm
+        myap.gen_planar_aperture_from_center(samurai_center,step=[step,step,step],numel=[16,16,1])
+        myap.flip_alternate_rows(row_length=16) #flip the rows to speed up sweep
+        myap.write(out_path) #write out
     '''
     
     def __init__(self,**arg_options):
-        '''
-        @brief initializer for the class  
-        @param[in/OPT] arg_options - keyword arguments as follows:  
-            - trf_pos - position of tool reference frame (default is typical)  
-            - wrf_pos - position of world reference frame (default is typical)  
-            - comment_character - character to use for comments and header (default '#')  
-        '''
+        '''@brief Constructor'''
         #parse input arguments
         tool_length = 131 #length of tool off face in mm. Change for weird tools (or mounts)
         self.options = {}
@@ -167,6 +175,14 @@ class ApertureBuilder():
         @param[in/OPT] step - step size in input units (default mm) [x,y,z]  
         @param[in/OPT] numel - number of elements in each direction of the array [x,y,z]  
         @note overwrites self.positions  
+        @example
+            # Generate a 16x16 planar aperture with 5.35mm spacing in all dimensions
+            out_path = 'path/to/file.csv'
+            samurai_center = [0,125,60,0,0,0]
+            step = 5.35 # in mm
+            myap.gen_planar_aperture_from_center(samurai_center,step=[step,step,step],numel=[16,16,1])
+            myap.flip_alternate_rows(row_length=16) #flip the rows to speed up sweep
+            myap.write(out_path) #write out
         '''
         size_2 = np.zeros(6)
         if np.array(size)==None:

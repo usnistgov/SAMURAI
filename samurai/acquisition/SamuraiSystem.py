@@ -27,21 +27,20 @@ pnagrabber_template_path = './template.pnagrabber'
 vna_visa_addr = 'TCPIP0::192.168.0.2::inst0::INSTR'
 rx_positioner_address = '192.168.0.5'
 
-class SAMURAI_System():
-    """
-    @brief Class to control the entire SAMURAI system
-    """
+class SamuraiSystem():
+    '''
+    @brief initialize class to control SAMURAI measurement system  
+    @note This class is also aliased as samurai.analysis.SAMURAI_System.SAMURAI_System
+    @param[in/OPT] is_simulation - whether or not to run the Meca500 in simultion mode (defaults to NO simulation)  
+    @param[in/OPT] arg_options - optional keyword arguments as follows:  
+        - template_path - where the pnagrabber template is located  
+        - vna_visa_address - visa address of the VNA  
+        - rx_positioner_address - address of the rx positioner. for Meca500 this is a IP address  
+    '''
     
     #to run as simulation simply pass is_simualtion=true
     def __init__(self,is_simulation=False,**arg_options):
-        '''
-        @brief initialize class to control SAMURAI measurement system  
-        @param[in/OPT] is_simulation - whether or not to run the Meca500 in simultion mode (defaults to NO simulation)  
-        @param[in/OPT] arg_options - optional keyword arguments as follows:  
-            - template_path - where the pnagrabber template is located  
-            - vna_visa_address - visa address of the VNA  
-            - rx_positioner_address - address of the rx positioner. for Meca500 this is a IP address  
-        '''
+        '''@brief Constructor'''
         defaults = {'template_path':pnagrabber_template_path,'vna_visa_address':vna_visa_addr,'rx_positioner_address':rx_positioner_address}
         tool_length = 131 #length of tool off face in mm. Change for weird tools
         #THIS IS A NEW REFERENCE FRAME AS OF 5/10/2019
@@ -381,7 +380,9 @@ class SAMURAI_System():
             raise(Exception("World reference frame does not match at %s" 
                             %('['+','.join(reference_value_strings[self.options['wrf_pos']!=wrf_read])+']')))
         
-        
+# Alias for backward compatability
+SAMURAI_System = SamuraiSystem
+
     
 if __name__=='__main__':
     #csv_path = r"C:\SAMURAI\software\samurai\acquisition\support\sweep_files\positions_sparse.csv"

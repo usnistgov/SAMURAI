@@ -51,21 +51,20 @@ def set_metafile_meas_relative(metafile_path,verbose=True):
 #%% Class for working with the Metafiles
 class MetaFileController(SamuraiDict):
     '''
-    @brief class to control metafile to get and change values
-    @todo combine this with samurai_metaFile acquisition code
+    @brief Class to control metafile to get and change values
+    @note This is also aliased to samurai.analysis.support.MetaFileController.MetaFileController for backward compatability.
+    @param[in] metafile_path - path to the metafile to load 
+        This can also be passed as None. If this is done, a
+        OrderedDict will be created from samurai_metaFile acquisition code
+        with a blank measurements list
+    @param[in] arg_options - keyword arguments as follwos
+        verify - verify that all measurement paths in the metafile exist (default True)
     '''
 
     def __init__(self,metafile_path=None,**arg_options):
         '''
-        @brief initialize our class to control our metafile and the data within it
-        @param[in] metafile_path - path to the metafile to load 
-            This can also be passed as None. If this is done, a
-            OrderedDict will be created from samurai_metaFile acquisition code
-            with a blank measurements list
-        @param[in] arg_options - keyword arguments as follwos
-            verify - verify that all measurement paths in the metafile exist (default True)
+        @brief Initialize our class to control our metafile and the data within it
         '''
-        
         options = {}
         options['verify'] = True
         for k,v in arg_options.items():
@@ -657,10 +656,11 @@ class MetaFileController(SamuraiDict):
         return self.metafile.split('.')[-2]
         
 #alias
+MetaFileController = MetafileController
 metaFileController = MetaFileController         
 
 ###########################################################################
-### various useful functions
+#%% various useful functions
 ###########################################################################
 from samurai.analysis.support.MUFResult import MUFResult
 
