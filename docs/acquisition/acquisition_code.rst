@@ -14,7 +14,7 @@ Acquisition Code
 System Control Libraries
 -----------------------------
 
-.. automodule:: samurai.acquisition.SAMURAI_System
+.. automodule:: samurai.acquisition.SamuraiSystem
     :members:
     :undoc-members:
 

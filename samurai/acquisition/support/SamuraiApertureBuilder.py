@@ -37,6 +37,8 @@ class ApertureBuilder():
         - comment_character - character to use for comments and header (default '#')  
     @example
         # Generate a 16x16 planar aperture with 5.35mm spacing in all dimensions
+        from samurai.acquisition.support.SamuraiApertureBuilder import ApertureBuilder
+        myap = ApertureBuilder()
         out_path = 'path/to/file.csv'
         samurai_center = [0,125,60,0,0,0]
         step = 5.35 # in mm
