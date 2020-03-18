@@ -37,7 +37,7 @@ class SamuraiMetafile(OrderedDict):
         super().__init__() #initialize ordereddict
 
         #Some default values
-        self['working_directory'] = os.path.abspath('./')
+        self['working_directory'] = './'
         self['csv_path'] = csv_path
         self['metafile_name'] = 'metafile'
         self['pna_address'] = pna_addr
