@@ -60,7 +60,7 @@ Code information for both MetaFileController (Python) and SamuraiMetafile (MATLA
 Python 
 +++++++++++++++++
 
-.. automodule:: samurai.analysis.support.MetaFileController
+.. automodule:: samurai.analysis.support.MetafileController
     :members:
 
 MATLAB

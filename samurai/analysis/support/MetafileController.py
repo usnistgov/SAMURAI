@@ -49,7 +49,7 @@ def set_metafile_meas_relative(metafile_path,verbose=True):
 
 
 #%% Class for working with the Metafiles
-class MetaFileController(SamuraiDict):
+class MetafileController(SamuraiDict):
     '''
     @brief Class to control metafile to get and change values
     @note This is also aliased to samurai.analysis.support.MetaFileController.MetaFileController for backward compatability.

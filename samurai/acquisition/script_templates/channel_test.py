@@ -15,10 +15,10 @@ pdp_flg = True     #do we do pdp measurements (if process_flag=True)
 ##############################################################################
 #first lets gather the data
 if gather_flg:
-        from samurai.acquisition.SAMURAI_System import SAMURAI_System
+        from samurai.acquisition.SamuraiSystem import SamuraiSystem
         from samurai.acquisition.instrument_control.PnaController import PnaController
 
-        mysam = SAMURAI_System()
+        mysam = SamuraiSystem()
         mysam.connect_rx_positioner()
 
         pna_visa_addr ='TCPIP0::192.168.0.2::inst0::INSTR'

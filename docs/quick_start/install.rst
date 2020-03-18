@@ -38,12 +38,16 @@ Here are instructions on how to install the SAMURAI software package.
 
 Download 
 +++++++++++++++
-The current code can be downloaded or cloned from the :git_repo:`/`
+The current code can be downloaded or cloned from the :git_repo:`/` or will be directly provided in a *.zip file.
+
+- The repository can be cloned from git when inside the git network using the command :code:`git clone https: https://gitlab.nist.gov/gitlab/uncertainteam/samurai.git`.
+
+- If using a *.zip file, the files must be extracted before installation 
 
 Installation
 ++++++++++++++++++++++
 
-#. Change into the downloaded SAMURAI package directory (e.g., :code:`cd <download_directory>/samurai/`).
+#. Change the current directory the downloaded SAMURAI package directory (e.g., :code:`cd <download_directory>/samurai/`).
     
     - This should contain a script called :code:`setup.py`
 

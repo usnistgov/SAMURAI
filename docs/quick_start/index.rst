@@ -9,6 +9,8 @@ The following steps explain how to download and install the SAMURAI python packa
 
 .. toctree::
    install.rst
+   taking_measurement.rst 
+   viewing_data.rst
    :maxdepth: 2
    :caption: Getting Started
 
@@ -18,5 +20,5 @@ Taking the first measurement
 Assuming the setup and hardware is the same or close to that in the SAMURAI lab (more info should be added on this), 
 the first measurement can be taken using the steps on how to run from a script described in :ref:`running-samurai`
 
-.. todo:: More information on the hardware setup may be useful. Unless it is found to be described enough in :ref:`hardware-config`
+.. note:: More in depth information on how the SAMURAI system at NIST is configured can be found in :ref:`hardware-config`
 

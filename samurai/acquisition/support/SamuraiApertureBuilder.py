@@ -598,7 +598,7 @@ if __name__=='__main__':
     myap.write(combined_out_path)
     '''
     
-    planar_16_28Ghz_out_path = r'C:\SAMURAI\local_data\meas_template\synthetic_aperture\raw\position_templates\samurai_l2-28GHz_16x16_planar_vp.csv'
+    planar_16_28Ghz_out_path = r'./samurai_l2-28GHz_16x16_planar_vp.csv'
     samurai_center = [0,125,60,0,0,0]
     step = 5.35 #5.35mm to match tuens phased array (Eindhoven)
     myap.gen_planar_aperture_from_center(samurai_center,step=[step,step,step],numel=[16,16,1])

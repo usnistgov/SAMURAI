@@ -24,8 +24,8 @@ import numpy as np
 from metadata_templates import meas_str,image_format_str,extra_info_link_str,extra_info_page_str,fig_how_to,ext_pos_str
 
 #%% Some flags for running
-run_beamforming = True
-gen_figs = True
+run_beamforming = False
+gen_figs = False
 build_extra = True
 
 
@@ -74,8 +74,8 @@ meas_dirs += mf_dir_list_conf
 '''
 
 # CUP Data
-#mf_dir_list_cup  = ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
-mf_dir_list_cup  = ['8-9-2019']
+mf_dir_list_cup  = ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
+#mf_dir_list_cup  = ['8-9-2019']
 mf_dir_list_cup  = [os.path.join('Central_Utility_Plant',mfd) for mfd in mf_dir_list_cup]
 meas_dirs += mf_dir_list_cup
 
@@ -105,6 +105,9 @@ for meas_dir in meas_dirs:
     
     #%% lets get the information on the measurement
     mf_dict = {k:mfc[k] for k in ['experiment','notes','vna_info']}
+    unused_vna_keys = ['command_dictionary_path','connection_address']
+    for k in unused_vna_keys: #remove unneeded info
+        mf_dict['vna_info'].pop(k,None) 
     mf_dict['vna_info'] = mf_dict['vna_info'].get_rst_str()
     
     data_name = os.path.split(mfd_full)[1]
