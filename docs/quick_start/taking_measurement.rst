@@ -2,20 +2,23 @@
 Taking a Measurement
 =========================
 
-#. Create a working directory
+Create a working directory
+--------------------------------
 
     The first step for a new measurement is to create a new directory that will store all of the files for the measurement and all the data from the measurement.
     This directory will be refered to from here on as :code:`<working_directory>`. 
     The typical layout for the NIST measurement directory structure is given in :ref:`running-samurai-wdir` although it is not necessary to follow this layout.
 
-#. Define an Aperture
+Define an Aperture
+--------------------------------
 
     A comma separated value (CSV) file must then be created or downloaded that describes the positions for the sweep.
     Examples sweep files and more information on generating custom sweeps can be found in :ref:`creating-apertures`. 
     The planar apertures can be downloaded and moved into :code:`<working_directory>`. For this example lets assume it is placed at
     :code:`<working_directory>/position_templates/samurai_planar_dp.csv`.
 
-#. Calibrate the System
+Calibrate the System
+--------------------------------
 
     At or before this point in time, the system should be calibrated.
     This will be system and measurement dependent. 
@@ -25,7 +28,8 @@ Taking a Measurement
     If, for example, a normal VNA calibration is being performed using the on-board software, no post-processing of the data is required.
     The calibration can be performed once at this point in time and not again until the next measurement.
 
-#. Mount the Antennas
+Mount the Antennas
+--------------------------------
 
     After calibration, it is likely the user will have to then mount the antennas onto the robotic positioner. 
     In many situations it is likely to be difficult to mount the antennas when the robot is zeroed, therefore a predefined mounting position was defined.
@@ -53,7 +57,8 @@ Taking a Measurement
         # Disconnect
         mysam.disconnect_rx_positioner()
 
-#. Run a Sweep 
+Run a Sweep 
+--------------------------------
 
     With the system set up, calibrated, mounted, and the sweep defined we can then begin the synthetic aperture measurement. Each of the commands described in this section
     will be assumed to be run in :code:`<working_directory>`.
