@@ -30,8 +30,9 @@ from samurai.analysis.support.MetaFileController import copy_touchstone_from_muf
 from shutil import copy
 
 #default paths
-default_pp_cal_template     = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template.post')
-default_pp_cal_template_wnp = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template_wave_param.post')
+file_dir = os.path.dirname(os.path.abspath(__file__))
+default_pp_cal_template     = os.path.join(file_dir,'templates/cal_template.post')
+default_pp_cal_template_wnp = os.path.join(file_dir,'templates/cal_template_wave_param.post')
 #this default is for s2p_files not w2p calibration (theyre different)
 
 class CalibrateSamurai:
@@ -45,6 +46,8 @@ class CalibrateSamurai:
         @param[in] metaFile - path to metafile of measurement to calibrate
         @param[in] out_dir  - output directory to place the calibrated measurements
         @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
+        @param[in/OPT] gthru_file_path - path to gthru file (switch terms)
+        @param[in/OPT] post_proc_template_override - path to a template to override defaults.
         @param[in/OPT] kwargs - keyword arguments for the class options. these are also forwarded to PostProcPy
         '''
         #options dictionaruy
