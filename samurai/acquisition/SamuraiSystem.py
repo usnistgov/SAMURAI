@@ -32,26 +32,25 @@ class SamuraiSystem():
     @brief initialize class to control SAMURAI measurement system  
     @note This class is also aliased as samurai.analysis.SAMURAI_System.SAMURAI_System
     @param[in/OPT] is_simulation - whether or not to run the Meca500 in simultion mode (defaults to NO simulation)  
-    @param[in/OPT] arg_options - optional keyword arguments as follows:  
-        - template_path - where the pnagrabber template is located  
+    @param[in/OPT] arg_options - optional keyword arguments as follows:   
         - vna_visa_address - visa address of the VNA  
         - rx_positioner_address - address of the rx positioner. for Meca500 this is a IP address  
+        - trf_pos - Tool reference frame position of the robot. This is automatically set on connection to the Meca and checked against the CSV file header
+        - wrf_pos - World reference frame position of the robot. This is automatically set on connection to the Meca and checked against the CSV file header
     '''
-    
     #to run as simulation simply pass is_simualtion=true
     def __init__(self,is_simulation=False,**arg_options):
         '''@brief Constructor'''
-        defaults = {'template_path':pnagrabber_template_path,'vna_visa_address':vna_visa_addr,'rx_positioner_address':rx_positioner_address}
         tool_length = 131 #length of tool off face in mm. Change for weird tools
-        #THIS IS A NEW REFERENCE FRAME AS OF 5/10/2019
-        defaults['trf_pos'] = [0,0,tool_length,0,0,90] #tool reference frame (-90 to align axes with wrf). THE frame here is different and seems to be in ([z,y,z,gamma,beta,alpha]) compared to world frame
-        defaults['wrf_pos'] = [tool_length+190,0,0,0,90,90] #world reference frame at robot base z but x of tool (+190 for base to tip at zeroed postiion)
+        #THIS IS A NEW REFERENCE FRAME AS OF 5/10/2019. This is checked to match in the csv file
+        #this reference frame makes x left/right, y up/down, and z in/out (propogation direction) when looking from behind the robot
         self.options = {}
-        for key, value in six.iteritems(defaults):
-            self.options[key] = value
+        self.options['vna_visa_address'] = vna_visa_addr
+        self.options['rx_positioner_address'] = rx_positioner_address
+        self.options['trf_pos'] = [0,0,tool_length,0,0,90] #tool reference frame (-90 to align axes with wrf). THE frame here is different and seems to be in ([z,y,z,gamma,beta,alpha]) compared to world frame
+        self.options['wrf_pos'] = [tool_length+190,0,0,0,90,90] #world reference frame at robot base z but x of tool (+190 for base to tip at zeroed postiion)
         for key, value in six.iteritems(arg_options):
             self.options[key] = value
-        self.pnagrabber_template_path = self.options['template_path']
         self.vna_visa_addr = self.options['vna_visa_address']
         self.is_connected = False
         self.set_simulation_mode(is_simulation)
@@ -116,7 +115,6 @@ class SamuraiSystem():
         @param[in/OPT] arg_options - keyword arguments as follows:  
             - note - note to put in the metafile  (defaults to '')
             - output_name - name of the output files (defaults to 'meas')  
-            - template_path - location of pnagrabber template to run from (default './template.pnagrabber')  
             - settling time - time in seconds to let robot settle (default 0.1s)  
             - metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)  
             - comment_character - character or list of characters for comments (default #)  
@@ -134,18 +132,16 @@ class SamuraiSystem():
             return
 
         #output_file_type should match that of pnagrabber
-        defaults = {'note':'none','output_directory':'./','output_name':'meas','output_file_type':'s2p','template_path':'./template.pnagrabber'}
-        defaults['settling_time'] = .1 #settling time in seconds
-        defaults['info_string_var'] = None #be able to set outside stringvar for update info
-        defaults['metafile_header_values'] = {}
-        defaults['external_position_measurements'] = None
-        defaults['comment_character'] = '#'
-        defaults['meas_obj'] = PnaController #object for measurement besides pnagrabber
-        defaults['meas_obj_init_args'] = (self.options['vna_visa_address'],) #tuple of args for __init__ of external_measure_obj
-        defaults['meas_obj_meas_args'] = ({3:2},) #tuple of args for __init__ of external_measure_obj (default port map 3 to 2)
-        options = {}
-        for key, value in six.iteritems(defaults):
-            options[key] = value
+        options = {'note':'none','output_directory':'./','output_name':'meas','output_file_type':'s2p',}
+        options['settling_time'] = .1 #settling time in seconds
+        options['info_string_var'] = None #be able to set outside stringvar for update info
+        options['metafile_header_values'] = {}
+        options['external_position_measurements'] = None
+        options['comment_character'] = '#'
+        options['meas_obj'] = PnaController #object for measurement besides pnagrabber
+        options['meas_obj_init_args'] = (self.options['vna_visa_address'],) #tuple of args for __init__ of external_measure_obj
+        options['meas_obj_meas_args'] = ({3:2},) #tuple of args for __init__ of external_measure_obj (default port map 3 to 2)
+
         for key, value in six.iteritems(arg_options):
             options[key] = value
          
@@ -155,8 +151,8 @@ class SamuraiSystem():
         mf = smf.metaFile(csv_path,self.options['vna_visa_address'],root_dir=data_out_dir)
         mf.init(**options['metafile_header_values'])
         
-        if(defaults['info_string_var']):
-            defaults['info_string_var'].set('Metafile Initilialized')
+        if(options['info_string_var']):
+            options['info_string_var'].set('Metafile Initilialized')
         
         #zero positioner (always start from zero positoin to ensure everything is safe)
         self.rx_positioner.zero()
