@@ -25,7 +25,7 @@ from samurai.base.generic import deprecated, ProgressCounter
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
-from samurai.acquisition.support.samurai_metaFile import metaFile
+from samurai.acquisition.support.SamuraiMetafile import metaFile
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
 #%% Function to set all *.meas files in a metafile to use paths relative to the *.meas file
