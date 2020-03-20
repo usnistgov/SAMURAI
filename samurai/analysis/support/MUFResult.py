@@ -304,12 +304,12 @@ class MUFResult(MUFModuleController):
     
     def _load_nominal(self):
         '''@brief load the nominal path value into self.nominal'''
-        self.nominal.load_data()
+        self.nominal.load_data(working_directory=self.working_directory)
         
     def _load_statistics(self):
         '''@brief load in all of the data for all of our statistics'''
-        self.monte_carlo.load_data()
-        self.perturbed.load_data()
+        self.monte_carlo.load_data(working_directory=self.working_directory)
+        self.perturbed.load_data(working_directory=self.working_directory)
     
     def _load_xml(self):
         '''
@@ -336,9 +336,10 @@ class MUFResult(MUFModuleController):
         options['load_stats'] = False
         for k,v in kwargs.items():
             options[k] = v
+        if meas_path is None: #if starting from empty, then dont load
+            options['load_nominal'] = False
+            options['load_stats'] = False
         self.meas_path = meas_path
-        if meas_path is not None:
-            self.meas_path_dirname = os.path.dirname(self.meas_path)
         #make a *.meas if a wnp or snp file was provided
         #if self.meas_path is not None and os.path.exists(self.meas_path):
         if self.meas_path is not None:
@@ -455,6 +456,12 @@ class MUFResult(MUFModuleController):
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
         self.write_xml(out_path)
+        
+    @property
+    def working_directory(self):
+        '''@brief getter for the directory of the *.meas file'''
+        return os.path.dirname(self.meas_path)
+        
     
 #%%    
 class MUFStatistic(MUFItemList):
@@ -513,10 +520,13 @@ class MUFStatistic(MUFItemList):
             item = mi
         super().add_item(item)
         
-    def load_data(self):
+    def load_data(self,**kwargs):
         '''@brief load in all of the data from each of the files'''
+        options = self.options
+        for k,v in kwargs.items():
+            options[k] = v
         for it in self.muf_items:
-            it.load_data(TouchstoneEditor,**self.options)
+            it.load_data(TouchstoneEditor,**options)
     
     def _extract_data_dict(self,tnp_list):
         '''

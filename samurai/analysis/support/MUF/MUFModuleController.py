@@ -238,18 +238,29 @@ class MUFItem(MUFItemList):
             - working_directory - root point for relative paths. Typically should be the menu file directory
             - - The rest of the results will be passed to load_funct
         '''
+        options['working_directory'] = ''
+        for k,v in kwargs.items():
+            options[k] = v
+        fpath = self.get_filepath(working_directory=options['working_directory'])
+        self.data = load_funct(fpath,**kwargs)
+    
+    def get_filepath(self,**kwargs):
+        '''
+        @brief getter for filepath
+        @param[in/OPT] kwargs - keyword arguements as follows:
+            - working_directory - working directory for relative paths (default '')
+        '''
         options = {}
         options['working_directory'] = ''
         for k,v in kwargs.items():
             options[k] = v
         fpath = self[self._filepath_subitem_idx]
-        os.path.join(options['working_directory'],fpath)
-        self.data = load_funct(fpath,**kwargs)
-        
+        return os.path.join(options['working_directory'],fpath)
+    
     @property
     def filepath(self):
-        '''@brief getter for filepath'''
-        return self[self._filepath_subitem_idx]
+        '''@brief getter for filepath (not always absolute)'''
+        return self.get_filepath()
     
     @filepath.setter
     def filepath(self,val):
