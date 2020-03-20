@@ -10,14 +10,6 @@ Acquisition Code
    :maxdepth: 2
    :caption: Contents:
 
-	
-System Control Libraries
------------------------------
-
-.. automodule:: samurai.acquisition.SamuraiSystem
-    :members:
-    :undoc-members:
-
 Instrument Control Libraries
 --------------------------------
 
