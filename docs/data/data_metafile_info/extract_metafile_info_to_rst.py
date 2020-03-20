@@ -24,8 +24,8 @@ import numpy as np
 from metadata_templates import meas_str,image_format_str,extra_info_link_str,extra_info_page_str,fig_how_to,ext_pos_str
 
 #%% Some flags for running
-run_beamforming = False
-gen_figs = False
+run_beamforming = True
+gen_figs = True
 build_extra = True
 
 
@@ -55,7 +55,6 @@ meas_dirs = []
 
 #%% 2019 Data
 
-'''
 mf_dir_list_2019  = []
 mf_dir_list_2019 += ['1-30-2019']
 mf_dir_list_2019 += ['2-1-2019','2-4-2019','2-6-2019','2-7-2019']
@@ -65,17 +64,14 @@ mf_dir_list_2019 += ['6-17-2019','6-19-2019']
 mf_dir_list_2019 += ['7-8-2019']
 mf_dir_list_2019 = [os.path.join('2019',mfd) for mfd in mf_dir_list_2019]
 meas_dirs += mf_dir_list_2019
-'''
-'''
+
 ## Conference Room
 mf_dir_list_conf = ['5-17-2019','5-24-2019','5-31-2019']
 mf_dir_list_conf = [os.path.join('Conference_Room',mfd) for mfd in mf_dir_list_conf]
 meas_dirs += mf_dir_list_conf
-'''
 
 # CUP Data
 mf_dir_list_cup  = ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
-#mf_dir_list_cup  = ['8-9-2019']
 mf_dir_list_cup  = [os.path.join('Central_Utility_Plant',mfd) for mfd in mf_dir_list_cup]
 meas_dirs += mf_dir_list_cup
 

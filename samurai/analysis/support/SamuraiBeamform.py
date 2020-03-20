@@ -17,21 +17,18 @@ import six #backward compatability
 
 class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
     '''
-    @brief samurai synthetic aperture using beamforming
+    @brief  Class to perform beamforming on SAMURAI data
+    @param[in] metafile_path - metafile if we want to load one now
+    @param[in/OPT] arg_options - keyword arguments as follows. Also passed to inherited class so look at those options
+        verbose         - whether or not to be verbose (default False)
+        antenna_pattern - AntennaPattern Class parameter to include (default None)
+        measured_values - are we using measurements, or simulated data (default True)
+        load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+        data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
+        data_meas_num   - which measurement of monte_carlo or perturbed to use
     '''
     def __init__(self,metafile_path=None,**arg_options):
-        '''
-        @brief initilization for class. We can load our metafile here or not
-            This inherits from a generic SamuraiPostProcess class providing easy access to the data
-        @param[in] metafile_path - metafile if we want to load one now
-        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to inherited class so look at those options
-            verbose         - whether or not to be verbose (default False)
-            antenna_pattern - AntennaPattern Class parameter to include (default None)
-            measured_values - are we using measurements, or simulated data (default True)
-            load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
-            data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
-            data_meas_num   - which measurement of monte_carlo or perturbed to use
-        '''
+        '''@brief Constructor for class. We can load our metafile here or not'''
         super().__init__(metafile_path,**arg_options)
     
     def beamforming_farfield_azel(self,az_vals,el_vals,freq_list='all',**arg_options):

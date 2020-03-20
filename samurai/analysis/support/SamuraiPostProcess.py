@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 #import json
 
-from samurai.analysis.support.MetaFileController import MetaFileController 
+from samurai.analysis.support.MetafileController import MetafileController 
 from samurai.base.SamuraiDict import SamuraiDict
 #from samurai.analysis.support.generic import incomplete,deprecated,verified
 #from samurai.analysis.support.generic import round_arb
@@ -82,9 +82,9 @@ class SamuraiSyntheticApertureAlgorithm:
         @param[in/OPT] freq_mult - how much to multiply the freq by to get hz (e.g. 1e9 for GHz)
         @param[in/OPT] arg_options -keyword arguments passed to MetaFileController.__init__ and MetaFileController.load_data
         '''
-        self.metafile = MetaFileController(metafile_path,**arg_options)
+        self.metafile = MetafileController(metafile_path,**arg_options)
         if arg_options.get('load_data',True): #dont load if arg_options['load_data'] is False
-            self.load_data('nominal',**arg_options)
+            self.load_data(**arg_options)
             self.all_positions = self.metafile.get_positions()
         
     def load_data(self,data_type='nominal',data_meas_num=None,**arg_options):

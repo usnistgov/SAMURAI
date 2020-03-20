@@ -164,10 +164,10 @@ class MetafileController(SamuraiDict):
             #if options['data_type'] is None or options['data_type']=='nominal':
             #    snpData.append(snp(fname,read_header=read_header))
             if options['data_type']=='monte_carlo':
-                muf_res = MUFResult(fname)
+                muf_res = MUFResult(fname,load_nominal=False)
                 fname = muf_res.monte_carlo[options['data_meas_num']].filepath
             if options['data_type']=='perturbed':
-                muf_res = MUFResult(fname)
+                muf_res = MUFResult(fname,load_nominal=False)
                 fname = muf_res.perturbed[options['data_meas_num']].filepath
             snpData.append(TouchstoneEditor(fname,read_header=read_header))
             numLoadedMeas+=1

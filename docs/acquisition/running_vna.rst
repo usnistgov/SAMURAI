@@ -126,5 +126,5 @@ VNA Control Classes
 .. automodule:: samurai.acquisition.instrument_control.PnaController
 		:members:
 
-.. automodule:: samurai.acquisition.support.autoPNAGrabber.PnaGrabber
+.. automodule:: samurai.acquisition.instrument_control.AutoPnaGrabber.PnaGrabber
         :members:
