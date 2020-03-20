@@ -14,6 +14,8 @@ SAMURAI Data Acquisition
 
 .. toctree::
    samurai_config
+   running_vna
+   creating_apertures
    other_info
    :maxdepth: 2
    :caption: Configuration and Extra Information

@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. _post-process:
 	
 SAMURAI Post Processing Algorithms
 ========================================
@@ -43,6 +44,9 @@ beamforming on SAMURAI data using this class at a single measured frequency (40 
    
    #plot our data in 3D
    myplot = calc_synthetic_aperture.plot_3d()
+
+   #show the plot in a browser
+   myplot.show(renderer='browser')
 
 `myplot` then produces the following 3D representation of measured data at the synthetic aperture:
 

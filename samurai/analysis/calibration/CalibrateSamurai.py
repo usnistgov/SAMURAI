@@ -17,6 +17,7 @@ import os
 
 #from samurai.analysis.support.snpEditor import s2pEditor as s2p
 from samurai.analysis.support.MetaFileController import MetaFileController as mfc
+from samurai.analysis.support.MetaFileController import set_metafile_meas_relative
 #from samurai.analysis.support.metaFileController import update_wdir
 from samurai.analysis.support.MUF.PostProcPy import PostProcPy as pppy
 from samurai.base.generic import deprecated
@@ -29,8 +30,9 @@ from samurai.analysis.support.MetaFileController import copy_touchstone_from_muf
 from shutil import copy
 
 #default paths
-default_pp_cal_template     = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template.post')
-default_pp_cal_template_wnp = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template_wave_param.post')
+file_dir = os.path.dirname(os.path.abspath(__file__))
+default_pp_cal_template     = os.path.join(file_dir,'templates/cal_template.post')
+default_pp_cal_template_wnp = os.path.join(file_dir,'templates/cal_template_wave_param.post')
 #this default is for s2p_files not w2p calibration (theyre different)
 
 class CalibrateSamurai:
@@ -44,6 +46,8 @@ class CalibrateSamurai:
         @param[in] metaFile - path to metafile of measurement to calibrate
         @param[in] out_dir  - output directory to place the calibrated measurements
         @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
+        @param[in/OPT] gthru_file_path - path to gthru file (switch terms)
+        @param[in/OPT] post_proc_template_override - path to a template to override defaults.
         @param[in/OPT] kwargs - keyword arguments for the class options. these are also forwarded to PostProcPy
         '''
         #options dictionaruy
@@ -103,13 +107,14 @@ class CalibrateSamurai:
         self.ppc.run()
         print("Calibration Complete. Updating MetaFile and Moving Data...")
         #update metafile and move data
-        return self.update_metafile_and_move()      
+        mf_out_path = self.update_metafile_and_move() 
+        set_metafile_meas_relative(mf_out_path)
+        return mf_out_path
         
     def update_metafile_and_move(self):
         
         print("Moving calibrated results")
         new_mf_path = self.move_calibrated_results() #this now also updates and writes the metafile
-        #new_mf_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\antennas\Measurements\calibrated\6-25-TEST\metafile.json"
         print("Metafile at {}".format(new_mf_path))
         print("Copying results to touchstone")
         self.move_calibrated_nominal_results_touchstone(new_mf_path)
@@ -126,10 +131,11 @@ class CalibrateSamurai:
         @param[in] subdir - subdirectory passed from self.move_calibrated_results
         @return path to written metafile
         '''
+        mf_out_path = os.path.join(self.out_dir,subdir,'metafile.json')
         self.mfc.set_calibration_file(self.in_cal_path)
-        self.mfc.wdir = os.path.join(self.out_dir,subdir) #update the output directory
+        self.mfc.wdir = './'
         self.mfc.set_filename(filename_list) #set list to metafile
-        return self.mfc.write() #write out
+        return self.mfc.write(mf_out_path) #write out
     
     def move_calibrated_results(self,subdir='.'):
         '''
@@ -157,7 +163,7 @@ class CalibrateSamurai:
             #now we actually copy
             meas_out_name = copy(copy_src,copy_dst)
             #make list of output file names
-            fname_out_list.append(meas_out_name)
+            fname_out_list.append(os.path.split(meas_out_name)[-1])
         #now update the metafile entry
         #this assumes that all of the files have been read and written in order
         return self._update_metafile(fname_out_list,subdir)

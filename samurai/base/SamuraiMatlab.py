@@ -93,14 +93,20 @@ class SamuraiMatlab:
         '''
         args_out = []
         for arg in args: #loop through each argument.
-            if np.isscalar(arg) and type(arg)!=str: arg = np.array([arg],dtype='double') #put into a list if its not a string or already a list
+            if np.isscalar(arg) or (type(arg)==list and np.isscalar(arg[0])): #get complex or not
+                if np.any(np.iscomplex(arg)): mydtype = np.cdouble
+                else: mydtype = np.double
+            if np.isscalar(arg) and type(arg)!=str: arg = np.array([arg],dtype=mydtype)
             if arg is None     :    arg = 'none' #replace None with text none for matlab
             if type(arg)==tuple:    arg = list(arg)
-            if type(arg)==list :    arg = np.array(arg,dtype='double') #alwyas have nparray to get dtype
+            if type(arg)==list :    arg = np.array(arg,dtype=mydtype)
+                
             #now convert lists to matlab
             if type(arg)==np.ndarray: #this assumes consistent values across list
                 if arg.dtype==np.float64 or arg.dtype==np.float32:
                     args_out.append(matlab.double(arg.tolist()))
+                elif arg.dtype==np.complex128 or arg.dtype==np.complex64:
+                    args_out.append(matlab.double(arg.tolist(),is_complex=True))
                 #if arg.dtype==np.float32:
                 #    args_out.append(matlab.single(arg.tolist()))
                 #elif arg.dtype==np.int32:

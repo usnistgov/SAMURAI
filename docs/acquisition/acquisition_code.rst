@@ -10,14 +10,6 @@ Acquisition Code
    :maxdepth: 2
    :caption: Contents:
 
-	
-System Control Libraries
------------------------------
-
-.. automodule:: samurai.acquisition.SAMURAI_System
-    :members:
-    :undoc-members:
-
 Instrument Control Libraries
 --------------------------------
 
@@ -37,11 +29,6 @@ Optitrack Interface
 .. automodule:: samurai.acquisition.instrument_control.SamuraiMotive
 		:members:
 .. automodule:: samurai.acquisition.instrument_control.NatNetClient
-		:members:
-
-VNA Control 
-+++++++++++++++++++++
-.. automodule:: samurai.acquisition.instrument_control.PnaController
 		:members:
 
 Robot Control

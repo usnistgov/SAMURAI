@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<PostProcessor FileName="C:\SAMURAI\git\samurai\samurai\analysis\calibration\templates\cal_template_100mc.post" CreationTime="3/18/2020 3:44:14 PM" AssemblyVersion="1.4.30.23016" UserName="ajw5">
+  <MenuStripItems>
+    <MatLabToolStripMenuItem Enabled="True" Checked="False" />
+    <SelectResultsDirectory Enabled="True" Checked="False" />
+    <SavemeasFilesInSubdirectories Enabled="True" Checked="False" />
+    <Binary Enabled="True" Checked="True" />
+    <SupressSensitivityAnalysis Enabled="True" Checked="True" />
+    <DoNotRecalculateExistingResultsToolStripMenuItem Enabled="True" Checked="False" />
+    <FrequenciesToolStripMenuItem Enabled="True" Checked="False" />
+    <SetTimesToolStripMenuItem Enabled="True" Checked="False" />
+    <CloseCalculators Enabled="True" Checked="True" />
+    <RunCalculationsInParallel Enabled="True" Checked="True" />
+    <CalibrateToolStripMenuItem Enabled="False" Checked="False" />
+    <AddToInputListToolStripMenuItem Enabled="False" Checked="False" />
+    <CreateMatLabTemplateToolStripMenuItem Enabled="False" Checked="False" />
+    <RunMatLabPostProcessor Enabled="False" Checked="False" />
+    <EstimateUncertaintyFromResiduals Enabled="True" Checked="False" />
+  </MenuStripItems>
+  <MenuStripTextBoxes>
+    <ResultsDirectory Enabled="True" Text="" />
+    <NumberMonteCarloSimulations Enabled="True" Text="100" />
+    <ExperimentName Enabled="True" Text="" />
+    <GaussianLimit Enabled="True" Text="3.0" />
+    <StartFrequency Enabled="True" Text="1" />
+    <StopFrequency Enabled="True" Text="50" />
+    <StepFrequency Enabled="True" Text="1" />
+    <StartTime Enabled="True" Text="0" />
+    <StopTime Enabled="True" Text="10" />
+    <StepTime Enabled="True" Text="1" />
+    <EpsEffR Enabled="True" Text="1" />
+    <EpsEffI Enabled="True" Text="0" />
+    <GradientStoppingCondition Enabled="True" Text="0.000001" />
+    <NormStoppingCondition Enabled="True" Text="0.0" />
+    <DeltaxStoppingCondition Enabled="True" Text="0.0" />
+    <maxits Enabled="True" Text="0" />
+  </MenuStripTextBoxes>
+  <MenuStripComboBoxes>
+    <MagnitudePhaseInterpolationMethod Enabled="True" SelectedIndex="-1" />
+  </MenuStripComboBoxes>
+  <Controls>
+    <ErrorReportTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_ErrorReportTextBox" Enabled="True" Visible="False" />
+    <ModelOrigin ControlType="System.Windows.Forms.ComboBox" ControlText="NIST" FullName="Me_TableLayoutPanel1_GroupBox2_ModelOrigin" Enabled="True" Visible="False" SelectedIndex="0" Count="1">
+      <Item Index="0" Text="NIST" />
+    </ModelOrigin>
+    <ModelType ControlType="System.Windows.Forms.ComboBox" ControlText="Correct UnCalibrated S-Parameter Data" FullName="Me_TableLayoutPanel1_GroupBox2_ModelType" Enabled="True" Visible="True" SelectedIndex="5" Count="29">
+      <Item Index="0" Text="Fit Measured Data With a Physical Model" />
+      <Item Index="1" Text="Correct or Add Uncertainties to Calibrated Data" />
+      <Item Index="2" Text="Calibration Comparison" />
+      <Item Index="3" Text="Scattering-Parameter Errors" />
+      <Item Index="4" Text="Convert .s4p calibration to error boxes" />
+      <Item Index="5" Text="Correct UnCalibrated S-Parameter Data" />
+      <Item Index="6" Text="Interpolate data to a common grid" />
+      <Item Index="7" Text="Adjust phase of calibration cross-talk terms" />
+      <Item Index="8" Text="Translate conventional One-Port NIST Sparams" />
+      <Item Index="9" Text="Translate conventional Two-Port NIST Sparams" />
+      <Item Index="10" Text="Apply impedance transformation to corrected RWG measurements" />
+      <Item Index="11" Text="Apply impedance transformation with loss correction to corrected RWG measurements" />
+      <Item Index="12" Text="Remove extrinsic transistor parasitics" />
+      <Item Index="13" Text="Extract pad and T-line from SOLT transistor or inductor measurement" />
+      <Item Index="14" Text="Call ICCAP to develop a model and ADS to evalutate the results" />
+      <Item Index="15" Text="Improved: Fit measured data With a physical model" />
+      <Item Index="16" Text="Obsolete: Use ADS to perform nonlinear device de-embeding" />
+      <Item Index="17" Text="Improved: ADS post processor" />
+      <Item Index="18" Text="Obsolete: Use Extact .s1p or .w1p file from .snp or .wnp file instead" />
+      <Item Index="19" Text="Convert .wnp measurements to .snp measurement" />
+      <Item Index="20" Text="Estimate transmission-line capacitance from load" />
+      <Item Index="21" Text="Merge two .s2p error boxes into a .s4p calibration" />
+      <Item Index="22" Text="Cascade a .s4p adapter with a .s4p calibration" />
+      <Item Index="23" Text="Apply impedance transformation from frequency-dependent impedance to fixed impedance, or vice versa" />
+      <Item Index="24" Text="Extact .s1p or .w1p file from .snp or .wnp file" />
+      <Item Index="25" Text="Calibrate source or HPR from .wnp file" />
+      <Item Index="26" Text="Roll reference planes using known Z0 and Gamma" />
+      <Item Index="27" Text="Merge two .s4p calibrations into a single .s4p calibration" />
+      <Item Index="28" Text="Merge two .s1p files into a .s2p with zero transmission" />
+    </ModelType>
+    <ModelName ControlType="System.Windows.Forms.TextBox" ControlText="Correct uncalibrated scattering-parameter data" FullName="Me_TableLayoutPanel1_GroupBox2_ModelName" Enabled="True" Visible="True" />
+    <ModelGroup ControlType="System.Windows.Forms.ComboBox" ControlText="VNA measurements" FullName="Me_TableLayoutPanel1_GroupBox2_ModelGroup" Enabled="True" Visible="True" SelectedIndex="0" Count="9">
+      <Item Index="0" Text="VNA measurements" />
+      <Item Index="1" Text="Adapter removal" />
+      <Item Index="2" Text="Material characterization" />
+      <Item Index="3" Text="Power measurements" />
+      <Item Index="4" Text="Noise measurements" />
+      <Item Index="5" Text="Scope measurements" />
+      <Item Index="6" Text="Antenna measurements" />
+      <Item Index="7" Text="Generic" />
+      <Item Index="8" Text="User post processor" />
+    </ModelGroup>
+    <MultipleMeasurements ControlType="System.Windows.Forms.GroupBox" ControlText="Measurements to be corrected (.s2p)" FullName="Me_TableLayoutPanel1_GroupBox1_MultipleMeasurements" Enabled="True" Visible="True" />
+    <UserTextInput ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox1_UserTextInput" Enabled="True" Visible="False" />
+    <UserTextInputLabel ControlType="System.Windows.Forms.Label" ControlText="Location of model or cascade" FullName="Me_TableLayoutPanel1_GroupBox1_UserTextInputLabel" Enabled="True" Visible="False" />
+    <ComboBox1 ControlType="System.Windows.Forms.ComboBox" ControlText="Two-Tier Interior Crosstalk Calibration Model" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox1" Enabled="True" Visible="True" SelectedIndex="0" Count="2">
+      <Item Index="0" Text="Two-Tier Interior Crosstalk Calibration Model" />
+      <Item Index="1" Text="Conventional Calibration Model" />
+    </ComboBox1>
+    <ComboBox2 ControlType="System.Windows.Forms.ComboBox" ControlText="Gradient stopping condition" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox2" Enabled="True" Visible="False" SelectedIndex="-1" Count="5">
+      <Item Index="0" Text="Add uncertainties to calibrated data" />
+      <Item Index="1" Text="Correct uncalibrated data and add uncertainties" />
+      <Item Index="2" Text="Uncorrect calibrated data and add uncertainties" />
+      <Item Index="3" Text="Add uncertainties to uncalibrated data" />
+      <Item Index="4" Text="Do not correct or add uncertainties" />
+    </ComboBox2>
+    <ComboBox3 ControlType="System.Windows.Forms.ComboBox" ControlText="Fit over all frequencies." FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox3" Enabled="True" Visible="False" SelectedIndex="-1" Count="3">
+      <Item Index="0" Text="Don't normalize phase of .wnp fundamentals to zero" />
+      <Item Index="1" Text="Normalize phase of .wnp fundamentals to zero" />
+      <Item Index="2" Text="Convert .wnp files to .snp files" />
+    </ComboBox3>
+    <DescriptionTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox3_DescriptionTextBox" Enabled="True" Visible="True" />
+    <getAllMultipleMeasurementsAtOnceCheckBox ControlType="System.Windows.Forms.CheckBox" ControlText="getAllMultipleMeasurementsAtOnce" FullName="Me_TableLayoutPanel1_GroupBox3_getAllMultipleMeasurementsAtOnceCheckBox" Enabled="True" Visible="False" Checked="False" />
+    <ModelDescription ControlType="System.Windows.Forms.TextBox" ControlText="This post processor corrects uncorrected 2-port scattering-parameter data that must be corrected with switch terms. Corrected measurements may have been calibrated by conventional calibration software packages that do not support uncertainty estimates. The uncertainties are taken from the solution.meas file containing the .s4p scattering-parameter matrix defining the VNA calibration and its uncertainties. The corrected data files to which the uncertainties are added are put in the lower box.&#xD;&#xA;&#xD;&#xA;The uncertainties are captured as the difference between a set of perturbed calibrations and the nominal calibration. The solution.meas file may be created with a single run of the VNA Uncertainty Calculator, or by combining a set of second-tier calibrations generated in combine with the &quot;Run&gt;Estimate error in single measurement&quot; option set. The uncertainties are usually valid only for a particular calibration approach and setup that has already been modeled in the uncertainty framework. See the help file for more information. The default frequency list is determined from the data to be corrected in the lower input box of this post processor.&#xD;&#xA;&#xD;&#xA;Written by Dylan Williams." FullName="Me_TableLayoutPanel1_GroupBox3_ModelDescription" Enabled="True" Visible="True" />
+    <MultipleMeasurementsList ControlType="CustomFormControls.FLV_VariableDetailsList" ControlText="Expandable list of the multiple inputs to be processed by the Post Processor" FullName="Me_TableLayoutPanel1_GroupBox1_MultipleMeasurements_MultipleMeasurementsList" Enabled="True" Visible="True" Count="1">
+      <Item Index="0" Text="meas0" Count="2">
+        <SubItem Index="0" Text="meas0" />
+        <SubItem Index="1" Text="U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\5-31-2018_CabBounceLarge\processed\meas\syntheticAperture\meas0.s2p" />
+      </Item>
+    </MultipleMeasurementsList>
+    <PostProcessorMechanisms ControlType="CustomFormControls.FLV_FixedDetailsList" ControlText="List of the input parameters used in the Post Processor" FullName="Me_TableLayoutPanel1_GroupBox1_Panel4_PostProcessorMechanisms" Enabled="True" Visible="True" Count="2">
+      <Item Index="0" Text="Calibration matrix scattering-parameter (.s4p)" Count="3">
+        <SubItem Index="0" Text="Calibration matrix scattering-parameter (.s4p)" />
+        <SubItem Index="1" Text="" />
+        <SubItem Index="2" Text="" />
+      </Item>
+      <Item Index="1" Text="Switch terms (.switch)" Count="3">
+        <SubItem Index="0" Text="Switch terms (.switch)" />
+        <SubItem Index="1" Text="U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\12-12-2018\cal\precal\gthru.s2p" />
+        <SubItem Index="2" Text="" />
+      </Item>
+    </PostProcessorMechanisms>
+  </Controls>
+</PostProcessor>

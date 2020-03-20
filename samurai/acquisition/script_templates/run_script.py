@@ -8,7 +8,7 @@ Motive MUST be running and rigid bodies must be defined before running this scri
 @author: ajw5
 """
 
-from samurai.acquisition.SAMURAI_System import SAMURAI_System
+from samurai.acquisition.SamuraiSystem import SamuraiSystem
 from collections import OrderedDict
 
 ## configuration for motive
@@ -47,7 +47,7 @@ metafile_info_dict["antennas"] = [rx_ant,tx_ant1]
 metafile_info_dict["notes"] = None
 
 
-mysam = SAMURAI_System()
+mysam = SamuraiSystem()
 mysam.connect_rx_positioner()
 mysam.csv_sweep(output_dir,position_file,external_position_measurements=motive_dict,
                                             metafile_header_values=metafile_info_dict)

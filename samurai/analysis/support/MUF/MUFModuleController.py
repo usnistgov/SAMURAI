@@ -21,13 +21,18 @@ class MUFModuleController(SamuraiXML):
         @brief default constructor
         @param[in] menu_path - path to menu to load
         @param[in/OPT] kwargs - keyword args as follows:
-            exe_path - executable path of the module for running
-            except_no_menu - throw an exception if no menu provided
+            - exe_path - executable path of the module for running
+            - except_no_menu - throw an exception if no menu provided
+            - working_directory - directory that relative paths will be respect to. Defaults to menu directory
         '''
         super().__init__()
         self.options = {}
         self.options['exe_path'] = None
         self.options['except_no_menu'] = True
+        if menu_path is not None:
+            self.options['working_directory'] = os.path.dirname(menu_path) #wdir is the menu dir by default
+        else:
+            self.options['working_directory'] = ''
         for k,v in kwargs.items():
             self.options[k] = v
         if menu_path is not None:
@@ -227,11 +232,19 @@ class MUFItem(MUFItemList):
     def load_data(self,load_funct,**kwargs):
         '''
         @brief load the data from the path subitem to self.data
-        @param[in] load_class - function to load the data (can also be a class constructor)
+        @param[in] load_funct - function to load the data given a file path (can also be a class constructor)
         @param[in] subitem_idx - which index the path is to load (typically its self[0])
-        @param[in] **kwargs - keyword arguments to pass to load_funct
+        @param[in] kwargs - keyword arguements as follows
+            - working_directory - root point for relative paths. Typically should be the menu file directory
+            - - The rest of the results will be passed to load_funct
         '''
-        self.data = load_funct(self[self._filepath_subitem_idx],**kwargs)
+        options = {}
+        options['working_directory'] = ''
+        for k,v in kwargs.items():
+            options[k] = v
+        fpath = self[self._filepath_subitem_idx]
+        os.path.join(options['working_directory'],fpath)
+        self.data = load_funct(fpath,**kwargs)
         
     @property
     def filepath(self):

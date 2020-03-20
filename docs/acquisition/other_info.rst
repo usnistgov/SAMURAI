@@ -6,10 +6,12 @@ Other Calibration Information
 ===============================
 Other information on setting up things like files for the calibration are provided here.
 
-.. _Setting Up PNAGrabber:
+.. _Setting Up PNAGrabber for Calibration:
 
-Setting Up PNAGrabber
--------------------------
+Setting Up PNAGrabber for Calibration
+------------------------------------------
+For more information on basic measurements with the VNA, see :ref:`running-the-vna`
+
 #. Make sure your in :code:`<working-directory>/cal/calibration_pre` , from step 2.
 #. Double click on :code:`cal.pnagrabber` to start PNA Grabber for the calibration.
 

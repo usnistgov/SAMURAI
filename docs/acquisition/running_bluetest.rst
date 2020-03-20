@@ -1,3 +1,5 @@
+:orphan:
+
 Running the SAMURAI System in the RTS60 BlueTest chamber
 =========================================================
 

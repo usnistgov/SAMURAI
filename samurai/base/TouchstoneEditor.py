@@ -19,6 +19,9 @@ from samurai.base.SamuraiDict import SamuraiDict
 from samurai.base.generic import deprecated
 from samurai.base.generic import moving_average
 
+#hamming window
+import scipy.signal.windows
+
 DEFAULT_HEADER = 'GHz S RI 50'
 DEFAULT_EMPTY_HEADER = 'Hz S RI 50'
 DEFAULT_COMMENTS = []
@@ -494,7 +497,23 @@ class TouchstoneEditor(object):
         for w in waves:
             for k in keys:
                self.waves[w][k].plot(data_type,**arg_options)
-             
+    
+    def _update_param_freq_lists(self):
+        '''
+        @brief update the pointer for the frequency lists in each param
+        '''
+        for k in self.wave_dict_keys:
+            for w in self.waves.keys():
+                self.waves[w][k].freq_list = self.freqs
+                
+    def _update_param_raw_data(self):
+        '''
+        @brief update the pointer for the raw_data in each param
+        '''
+        for ik,k in enumerate(self.wave_dict_keys):
+            for iw,w in enumerate(self.waves.keys()):
+                self.waves[w][k]._raw = self.raw[iw,ik,:]
+    
     def _verify_freq_lists(self):
         '''
         @brief make sure all parameters of all waves point to self._freqs still
@@ -780,15 +799,27 @@ class TouchstoneEditor(object):
         
     def crop(self,lo_freq=0,hi_freq=1e60):
         '''
-        @brief remove values outside a window  
+        @brief remove values outside a window (lo<=freqs<=hi)
+        @param[in] lo_freq - lower part of window (Hz)
+        @param[in] hi_freq - upper part of window (Hz)
         '''
-        self._call_param_funct('crop',lo_freq,hi_freq)
+        idx = np.logical_and(self.freqs>=lo_freq,self.freqs<=hi_freq)
+        #raw data must be overwritten here
+        self._freqs = self.freqs[...,idx]
+        self._raw = self.raw[...,idx]
+        self._update_param_freq_lists()
+        self._update_param_raw_data()
         
     def cut(self,lo_freq=0,hi_freq=1e60):
         '''
-        @brief remove values inside a window  
+        @brief remove values inside a window (lo>=freqs or hi<=freqs)
+        @param[in] lo_freq - lower part of window (Hz)
+        @param[in] hi_freq - upper part of window (Hz)
         '''
-        self._call_param_funct('cut',lo_freq,hi_freq)
+        idx = np.logical_or(self.freqs<=lo_freq,self.freqs>=hi_freq)
+        #raw data must be overwritten here
+        self._freqs = self.freqs[...,idx]
+        self._raw = self.raw[...,idx]
             
     def round_freq_list(self):
         '''
@@ -1042,13 +1073,25 @@ class TouchstoneParam:
         fm = np.abs(freq-self.freq_list)
         return self.raw[np.argmin(fm)]
         
-    def calculate_time_domain_data(self):
+    def calculate_time_domain_data(self,window=None):
         '''
         @brief calculate the time domain data  
-        @todo. Verify the lack of ifftshift here is correct for phases...  
+        @todo. Verify the lack of ifftshift here is correct for phases... 
+        @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
+            squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
+            or a callable with input (len(self.raw))
         @return [time domain values,ifft complex values]  
         '''
-        ifft_vals = np.fft.ifft(self.raw)
+        if window is None:
+            wvals = np.ones_like(self.raw)
+        elif window == 'sinc2': #apply a sinc^2 window (0 at edges)
+            wvals = np.linspace(-1,1,len(self.raw))
+            wvals = np.sinc(wvals)**2
+        elif callable(window):
+            wvals = window(len(self.raw))
+        else: #assume its a call to scipy.signal.windows.get_window
+            wvals = scipy.signal.windows.get_window(window,len(self.raw))
+        ifft_vals = np.fft.ifft(self.raw*wvals)
         total_time = 1/np.diff(self.freq_list).mean()
         times = np.linspace(0,total_time,self.freq_list.shape[0])
         #myw = WaveformEditor(None)
@@ -1110,7 +1153,7 @@ class TouchstoneParam:
     @raw.setter
     def raw(self,val):
         '''@brief setter to not overwrite raw'''
-        self.raw[:] = val
+        self._raw[:] = val
     
     @property
     def bandwidth(self):
@@ -1273,11 +1316,13 @@ class WaveformParam(TouchstoneParam):
 #sl = s2pEditor('U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Cable_Drift/5-18-2018_stretchRepeats/processed/preCal/short_load.s2p')
 #get unperturbed result from .meas file
 def get_unperturbed_meas(fname):
+    wdir = os.path.dirname(fname)
     dom = parse(fname)
     msp = dom.getElementsByTagName('MeasSParams').item(0)
     unpt = msp.getElementsByTagName('Item').item(0)
     unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
-    return unpt_name
+    unpt_path = os.path.join(wdir,unpt_name)
+    return unpt_path
 
 class TouchstoneError(Exception):
     '''

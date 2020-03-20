@@ -1,28 +1,4 @@
 
-Acquisition Software
-=====================
-
-This information pertains to data acquisition using the SAMURAI system. The code has been tested lately with python 3.7. 
-This set of libraries uses some common python libraries. The code can be cloned from the NIST internal Gitlab server.
-
-dependencies
-------------------
-
-- Anaconda with python 3.X
-- pyvisa
-- cannot remember the last one
-
-Installing Anaconda and Dependencies
---------------------------------------
-
-- Install Anaconda
-    1. Go to the anaconda `download page <https://www.anaconda.com/distribution/#download-section>`_
-    2. Select the correct operating system and installer
-    3. Download and run the executable and follow the installer to install Anaconda 3.X
-- Install pyvisa
-    1. Type into the windows search 'anaconda prompt' and run the program
-    2. In the terminal run `conda install -c conda-forge pyvisa` to install pyvisa
-
 .. _hardware-config:
 
 System Hardware Configuration

@@ -6,10 +6,15 @@ Running from script
 
 This section shows how to run from a premade python script. This requires the lowest amount of user input and is therefore the recommended method of control.
 
+
+.. _running-samurai-wdir:
+
 1. Create a new SAMURAI measurement directory
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
-#. Make a copy of :code:`meas_template` in the directory :code:`U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture`
+#. Make a copy of :code:`meas_template` in the desired working directory.
+
+.. note:: For measurements taken directly to the network drive use the directory :code:`C:\SAMURAI\local_data`. This will save all of the data locally to the SAMURAI computer to prevent failure due to intermittent network drive connections.
 
 #. Rename the copy to the current date in the format :code:`mm-dd-yyyy`
 
@@ -27,22 +32,29 @@ This section shows how to run from a premade python script. This requires the lo
 
 .. note:: The layout for the :code:`meas_template` directory should look like:
 
-			 - /	
-				- cal/
-					- calibration_post/
-					- calibration_pre/
-				- channel_test/
-					- channel_test.py
-				- external_data/
-					- pictures/
-					- positions/
-					- temp/
-				- synthetic_aperture/
-					- raw/
-					- position_templates/
-					- run_script.py
-					- set_vna_params.py 
+	.. code-block::
 
+			-- /	
+			    -- cal/
+				    -- calibration_pre/
+				    -- calibration_post/
+			    -- channel_test/
+					-- channel_test.py
+				-- external_data/
+					-- pictures/
+					-- temp/
+				- synthetic_aperture/
+					-- raw/
+						-- position_templates/
+						-- run_script.py
+						-- set_vna_params.py 
+
+	where 
+
+		- :code:`position_templates/` contains template CSV sweeps that are commonly used
+		- :code:`calibration_pre/`, :code:`calibration_post/` contain microwave uncertainty framework (MUF) menus for calibration 
+		- :code:`pictures/` contains pictures from the measurement (if applicable)
+		- :code:`temp/` contains temperature and humidity data from the measurement (if applicable)
 
 2. Perform 2 Port VNA Calibration
 ++++++++++++++++++++++++++++++++++++++++
@@ -67,7 +79,7 @@ Follow the steps outlined in :ref:`Samurai Calibration Procedure`
 4. Run the script
 +++++++++++++++++++++
 
-Run the newly updated `run_script.py` using the directions listed in section 'Running Python Scripts'. This will save all data into the same directory as the run script.
+Run the newly updated :code:`run_script.py` using the directions listed in section 'Running Python Scripts'. This will save all data into the same directory as the run script.
 
 Measurement Scripts
 -------------------------
@@ -76,12 +88,15 @@ run_script.py
 +++++++++++++++++++
 This is the script for running and configuring the samurai system.
 
+.. todo:: Add more information on the settings in this script
+
 .. module:: samurai.acquisition.script_templates.run_script
 .. data::   samurai.acquisition.script_templates.run_script
 
 .. literalinclude:: /../samurai/acquisition/script_templates/run_script.py 
 	:language: python 
 	:linenos:
+
 
 set_vna_params.py 
 +++++++++++++++++++++
@@ -105,4 +120,10 @@ This is a script that will take a quick sweep and generate beamformed data of a 
 .. literalinclude:: /../samurai/acquisition/script_templates/channel_test.py 
 	:language: python 
 	:linenos:
+
+Code 
+-----------
+
+.. automodule:: samurai.acquisition.SamuraiSystem
+    :members:
 
