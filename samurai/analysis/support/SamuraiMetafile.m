@@ -113,13 +113,13 @@ end
 fpath = '\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2020\2-5-2020\aperture_vertical\metafile.json';
 mysm = SamuraiMetafile(fpath); %load the metafile
 mylabels = mysm.get_external_position_labels();
-#for rigid body
+%for rigid body
 ext_pos_meca = mysm.get_external_positions('meca_head',1) %get the 'meca_head' rigid body
 ext_pos_meca.position.mean %mean of x,y,z positions
 ext_pos_meca.rotation.mean %mean of alpha,beta,gamma rotations
-#for rigid body markers
+%for rigid body markers
 ext_pos_cyl = mysm.get_external_positions('cylinders_markers',1)
-ext_pos_cyl.data(1).position.mean #mean of 1st marker in rigid body
+ext_pos_cyl.data(1).position.mean %mean of 1st marker in rigid body
 %}
 
 
