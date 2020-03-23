@@ -238,6 +238,7 @@ class MUFItem(MUFItemList):
             - working_directory - root point for relative paths. Typically should be the menu file directory
             - - The rest of the results will be passed to load_funct
         '''
+        options = {}
         options['working_directory'] = ''
         for k,v in kwargs.items():
             options[k] = v
