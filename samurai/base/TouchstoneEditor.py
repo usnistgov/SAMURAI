@@ -22,14 +22,22 @@ from samurai.base.generic import moving_average
 #hamming window
 import scipy.signal.windows
 
-DEFAULT_HEADER = 'GHz S RI 50'
 DEFAULT_EMPTY_HEADER = 'Hz S RI 50'
+DEFAULT_HEADER       = 'GHz S RI 50'
+DEFAULT_HEADER_TIME  = 'ns S RI 50'
+DEFAULT_HEADER_ANG   = 'deg S RI 50'
 DEFAULT_COMMENTS = []
 HEADER_FREQ_REGEX = '[KMGT]*[Hh][Zz]' #regex to get GHz, Hz, THz, KHz, MHz
+HEADER_TIME_REGEX = '[NnUuMm]*[Ss]' #ns,us,ms,s
+HEADER_ANG_REGEX = '([Rr][Aa][Dd]|[Dd][Ee][Gg])' #rad,deg
+HEADER_REGEX = '({}|{}|{})'.format(HEADER_FREQ_REGEX,HEADER_TIME_REGEX,HEADER_ANG_REGEX)
 
 
 FREQ_MULT_DICT = {'HZ':1,'KHZ':1e3,'MHZ':1e6,'GHZ':1e9,'THZ':1e12}
-INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse of frequency multiplier dictionary
+TIME_MULT_DICT = {'NS':1e-9,'US':1e-6,'MS':1e-3,'S':1} #time domain for waveforms always convert to seconds
+ANG_MULT_DICT  = {'DEG':1,'RAD':180/np.pi} #angular conversion
+MULT_DICT = dict(**FREQ_MULT_DICT,**TIME_MULT_DICT,**ANG_MULT_DICT) #combine the dictionaries
+INV_MULT_DICT = {val:key for key,val in MULT_DICT.items()}  #inverse of frequency multiplier dictionary
 
 #%% Class for parsing files with more ports than 2 (e.g. *.s4p)
 class MultilineFileParser(object):
@@ -363,9 +371,9 @@ class TouchstoneEditor(object):
         '''
         if header_str is None:
             header_str = self.options['header']
-        unit_strs = re.findall(HEADER_FREQ_REGEX,header_str)
+        unit_strs = re.findall(HEADER_REGEX,header_str)[0]
         if unit_strs:
-            mult = FREQ_MULT_DICT.get(unit_strs[0].upper(),None) #assume 1 match if any
+            mult = MULT_DICT.get(unit_strs[0].upper(),None) #assume 1 match if any
         else:
             mult = None
         return mult
@@ -941,6 +949,7 @@ class WaveformEditor(SnpEditor):
             self.freqs[:] = np.array(args[0])
         else:
             super().__init__(*args,**kwargs)
+        self.set_header(DEFAULT_HEADER_TIME)
     
     def _gen_dict_keys(self):
         return [21] #always only have a single key for waveform
@@ -968,6 +977,23 @@ class WaveformEditor(SnpEditor):
                    return self.waves[attr]
                except:
                    raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
+
+class BeamformEditor(WaveformEditor):
+    '''
+    @brief Extension of WaveformEditor for beamformed data (only for 1D right now)
+    @todo Extend to 2D (Az,El)
+    @param[in] args - variable arguements. If 2 args are passed, its assumed we have angles,data (xaxis,yaxis)
+                otherwise pass parsing to TouchstoneParameter parsing
+    '''
+    def __init__(self,*args,**kwargs):
+        if 'default_extension' not in kwargs.keys():
+            kwargs['default_extension'] = 'beamform'
+        super().__init__(*args,**kwargs)
+        self.set_header(DEFAULT_HEADER_ANG)
+        
+    @property
+    def angles(self):
+        return self._freqs
 
 #acutally is the same as snpParam
 class TouchstoneParam:
