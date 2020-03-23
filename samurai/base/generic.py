@@ -253,7 +253,7 @@ class ValueCounter:
             cur_value = self.value_list[self.i]
         else:
             cur_value = value
-        if (self.i+1)%self.options['update_period']==0:
+        if (self.i)%self.options['update_period']==0:
             backspace_str = "\b"*self.prev_str_len #remove the old values
             cur_string = self.string_value.format(cur_value)
             print(backspace_str+cur_string,end='')
