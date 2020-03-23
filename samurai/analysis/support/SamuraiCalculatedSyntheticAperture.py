@@ -79,11 +79,11 @@ class CalculatedSyntheticAperture:
         cv = np.array(complex_values)
         #now sort and add dimensions
         if cv.ndim<3:
-            cv = cv[:,:,np.newaxis]
+            cv = cv[...,np.newaxis]
         #sort the input
         sort_ord = np.argsort(freqs)
         freqs = freqs[sort_ord]
-        cv = cv[:,:,sort_ord]
+        cv = cv[...,sort_ord]
         #now insert in sorted order
         in_ord = np.searchsorted(self.freq_list,freqs)
         if cv.shape[:2] != self.elevation.shape: #ensure shaping is correct

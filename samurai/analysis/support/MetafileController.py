@@ -147,19 +147,26 @@ class MetafileController(SamuraiDict):
         @param[in/OPT] arg_options -keyword arguments as follows
             data_type - nominal,monte_carlo,perturbed,etc. If none do nominal
             data_meas_num - which measurement of monte_carlo or perturbed to use
+            data_idx - which indices to load in (default to 'all')
         @return list of snp or wnp classes
         '''
         options = {}
         options['data_type'] = 'nominal'
         options['data_meas_num'] = 0
+        options['data_idx'] = 'all'
         for k,v in arg_options.items():
             options[k] = v
         snpData = []
         numLoadedMeas = 0
+        #which measurements to load 
+        if isinstance(options['data_idx'],str) and options['data_idx'] == 'all':
+            load_measurements = self.measurements 
+        else:
+            load_measurements = [self.measurements[i] for i in options['data_idx']] #list not numpy array
         #String of what data type and meas num we are loading 
         data_type_string = 'nominal' if options['data_type']=='nominal' else '{}[{}]'.format(options['data_type'],options['data_meas_num'])
-        if verbose: pc = ProgressCounter(len(self.measurements),'Loading {} Data: '.format(data_type_string),update_period=5)
-        for meas in self.measurements:
+        if verbose: pc = ProgressCounter(len(load_measurements),'Loading {} Data: '.format(data_type_string),update_period=5)
+        for meas in load_measurements:
             fname = os.path.join(self.wdir,meas['filename'].strip())
             #if options['data_type'] is None or options['data_type']=='nominal':
             #    snpData.append(snp(fname,read_header=read_header))
