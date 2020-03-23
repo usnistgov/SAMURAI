@@ -311,7 +311,8 @@ class CalculatedSyntheticAperture:
             'phase_d':self.phase_d,
             'real':self.real,
             'imag':self.imag,
-            'complex':self.complex_values
+            'complex':self.complex_values,
+            'raw':self.complex_values
             }
         freq_idx = self.get_freq_idx(freqs)
         data = data_dict[data_str]
@@ -578,11 +579,12 @@ class CalculatedSyntheticAperture:
             bw_out.append((az_bw,el_bw))
         return bw_out
     
-    def get_elevation_cut(self,az_angle,freqs='all',**arg_options):
+    def get_elevation_cut(self,az_angle,freqs='all',dtype='mag_db',**arg_options):
         '''
         @brief get an elevation cut from our data at azimuth
         @param[in] az_angle - azimuth angle to make cut in degrees 
         @param[in/OPT] freqs - frequencies to get output values for
+        @param[in/OPT] dtype - type of data to get. Passed to self.get_data
         @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
                     None Yet!
         @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
@@ -590,14 +592,15 @@ class CalculatedSyntheticAperture:
         flat_idx = np.argmin(np.abs(self.azimuth-az_angle))
         idx = np.unravel_index(flat_idx,self.azimuth.shape)[1]
         el_vals = self.elevation[:,idx]
-        vals = self.get_data('mag_db',freqs,**arg_options)[:,idx]
+        vals = self.get_data(dtype,freqs,**arg_options)[:,idx]
         return el_vals,vals
         
-    def get_azimuth_cut(self,el_angle,freqs='all',**arg_options):
+    def get_azimuth_cut(self,el_angle,freqs='all',dtype='mag_db',**arg_options):
         '''
         @brief get an azimuth cut from our data at elevation index
         @param[in] el_angle - elevation angle to make cut in degrees 
         @param[in/OPT] freqs - frequencies to get output values for
+        @param[in/OPT] dtype - type of data to get. Passed to self.get_data
         @param[in/OPT] arg_options - keyword args. passed to other methods. For this method as follows
                     None Yet!
         @return elevation_values,[mag_db_val1,mag_db_val2,etc...](freq along axis 1)
@@ -605,7 +608,7 @@ class CalculatedSyntheticAperture:
         flat_idx = np.argmin(np.abs(self.elevation-el_angle))
         idx = np.unravel_index(flat_idx,self.elevation.shape)[0]
         az_vals = self.azimuth[idx,:]
-        vals = self.get_data('mag_db',freqs,**arg_options)[idx,:]
+        vals = self.get_data(dtype,freqs,**arg_options)[idx,:]
         return az_vals,vals
     
     def get_data_from_azel(az,el,data_type='mag_db'):
