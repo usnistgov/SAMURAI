@@ -143,9 +143,19 @@ class MUFResult(MUFModuleController):
         return self._xml_nominal[0][1].attrib['Text'] if self.nominal.count else None
     
     @property
+    def nominal_post_value_path(self):
+        '''@brief property to return the path of the nominal value'''
+        return self._xml_nominal_post[0][1].attrib['Text'] if self.nominal.count else None
+    
+    @property
     def _xml_nominal(self):
         '''@brief link to nominal xml path value'''
         return self.controls.find('MeasSParams')
+    
+    @property
+    def _xml_nominalpost(self):
+        '''@brief link to nominal xml path value'''
+        return self.controls.find('MeasSParamsPost')
     
     @property
     def _xml_monte_carlo(self):
@@ -236,13 +246,19 @@ class MUFResult(MUFModuleController):
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
+        #now create our nominal for post cal
+        ET.SubElement(self._controls,'MeasSParamsPost')
+        self._xml_nominalpost.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
+        self._xml_nominalpost.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParamsPost")
+        self._xml_nominalpost.set('Count',str(0))
+        self.nominal_post = MUFNominalValue(self._xml_nominalpost,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
         self._xml_monte_carlo.set('FullName',"Me_SplitContainer2__GroupBox3_Panel2_MonteCarloPerturbedSParams")
         self._xml_monte_carlo.set('Count',str(0))
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options)
-        #and monte carlo
+        #and perturbed
         ET.SubElement(self._controls,'PerturbedSParams')
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
@@ -256,9 +272,18 @@ class MUFResult(MUFModuleController):
         '''
         self.nominal.clear_items()
         self.nominal.add_item(nom_path)
+        
+    def set_nominal_post(self,nom_path):
+        '''
+        @brief add a nominal path to the xml *.meas file
+        @param[in] nom_path - nominal path
+        '''
+        self.nominal.clear_items()
+        self.nominal.add_item(nom_path)
     
     #alias
     set_nominal_path = set_nominal
+    set_nominal_post_path = set_nominal_post
         
     def set_monte_carlo(self,mc_path_list):
         '''
@@ -381,8 +406,26 @@ class MUFResult(MUFModuleController):
         else:
             fname = self.nominal[0].data.write(out_file)
         fname = os.path.abspath(fname)
-        self.set_nominal_path(fname)
+        self.nominal[0][0] = get_name_from_path(fname)
+        self.nominal[0][1] = fname
             
+    def _write_nominal_post(self,out_dir,out_name='nominal_post'):
+        '''
+        @brief write out our nominal data
+        @param[in] out_dir - directory to write out to
+        @param[in/OPT] out_name - name to write out (default 'nominal')
+        '''
+        out_file = os.path.join(out_dir,out_name)
+        if self.nominal_post[0].data is None: #then copy the file
+            fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
+            nom_path = self.nominal_post_value_path
+            fname+=os.path.splitext(nom_path)[-1]
+            fname = shutil.copy(nom_path,fname)
+        else:
+            fname = self.nominal_post[0].data.write(out_file)
+        fname = os.path.abspath(fname)
+        self.nominal_post[0][0] = get_name_from_path(fname)
+        self.nominal_post[0][1] = fname
         
     def _write_statistic(self,stat_class,format_out_path):
         '''
@@ -407,18 +450,25 @@ class MUFResult(MUFModuleController):
                 fname_out = dat.write(fname)
                 fname_out = os.path.abspath(fname_out)
                 out_list.append(fname_out)
+                
+        for i,path in enumerate(out_list):
+            stat_class[i][0] = get_name_from_path(path)
+            stat_class[i][1] = path
+            
         return out_list
     
     def _write_statistics(self,out_dir):
-        '''
-        @brief write out monte carlo and perturbed data
-        '''
+        '''@brief write out monte carlo and perturbed data'''
+        #make the directories
         mc_dir = os.path.join(out_dir,'MonteCarlo')
         if not os.path.exists(mc_dir):
             os.makedirs(mc_dir)
         pt_dir = os.path.join(out_dir,'Perturbed')
         if not os.path.exists(pt_dir):
             os.makedirs(pt_dir)
+        #write the data
+        self._write_statistic(self.monte_carlo, os.path.join(mc_dir,'mc_{}'))
+        self._write_statistic(self.perturbed, os.path.join(pt_dir,'pt_{}'))
         
     def _write_data(self,out_dir,**kwargs):
         '''
@@ -426,17 +476,21 @@ class MUFResult(MUFModuleController):
         @param[in] out_dir - what directory to write the data out to
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
+            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
         @note if the data is not loaded in we will simply copy the files
         '''
         options = {}
         options['write_nominal'] = True
+        options['write_nominal_post'] = True
         options['write_stats'] = True
         for k,v in kwargs.items():
             options[k] = v
         #load our nominal and statistics if specified
         if options['write_nominal']:
             self._write_nominal(out_dir)
+        if options['write_nominal']:
+            self._write_nominal_post(out_dir)
         if options['write_stats']:
             self._write_statistics(out_dir)
         
@@ -448,6 +502,7 @@ class MUFResult(MUFModuleController):
             all other data will be stored in a similar structure to the MUF in here
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
+            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
         '''
         out_dir = os.path.splitext(out_path)[0]

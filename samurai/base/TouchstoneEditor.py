@@ -123,6 +123,8 @@ class TouchstoneEditor(object):
                     out_cls = SnpEditor
                 elif re.findall('waveform',ext):
                     out_cls = WaveformEditor
+                elif re.findall('beamform',ext):
+                    out_cls = BeamformEditor
                 elif re.findall('switch',ext):
                     out_cls = SnpEditor
                 else:
@@ -422,10 +424,10 @@ class TouchstoneEditor(object):
              options[k] = v
          
          if(ftype=='default'):
-             if(re.findall('binary',os.path.splitext(out_file)[-1])):
-                 ftype='binary'
-             else:
+             if not (re.findall('binary',os.path.splitext(out_file)[-1])):
                  ftype='text'
+             else:
+                 ftype='binary'
        
          #round frequencies to nearest Hz
          self.round_freq_list() 
