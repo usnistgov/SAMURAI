@@ -354,9 +354,10 @@ class MUFResult(MUFModuleController):
         '''
         super().load(self.meas_path)  #load xml
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options) # parse nominal
-        self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options) # parse nominal
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
+        if self._xml_nominal_post is not None:  # parse nominal post if it exists
+            self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options)
         
     def load(self,meas_path,**kwargs):
         '''
@@ -420,7 +421,7 @@ class MUFResult(MUFModuleController):
             fname+=os.path.splitext(nom_path)[-1]
             fname = shutil.copy(nom_path,fname)
         else:
-            fname = self.nominal[0].data.write(out_file)
+            fname = self.nominal[0].data.write(out_file,ftype='binary')
         fname = os.path.abspath(fname)
         self.nominal[0][0] = get_name_from_path(fname)
         self.nominal[0][1] = fname
@@ -438,7 +439,7 @@ class MUFResult(MUFModuleController):
             fname+=os.path.splitext(nom_path)[-1]
             fname = shutil.copy(nom_path,fname)
         else:
-            fname = self.nominal_post[0].data.write(out_file)
+            fname = self.nominal_post[0].data.write(out_file,ftype='binary')
         fname = os.path.abspath(fname)
         self.nominal_post[0][0] = get_name_from_path(fname)
         self.nominal_post[0][1] = fname
@@ -463,7 +464,7 @@ class MUFResult(MUFModuleController):
         else:
             for i,dat in enumerate(stat_class.data): #loop through all of our data
                 fname = os.path.splitext(format_out_path.format(i))[0]
-                fname_out = dat.write(fname)
+                fname_out = dat.write(fname,ftype='binary')
                 fname_out = os.path.abspath(fname_out)
                 out_list.append(fname_out)
                 
@@ -520,8 +521,10 @@ class MUFResult(MUFModuleController):
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
             write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
+            verbose - be verbose when writing (default False)
         '''
         out_dir = os.path.splitext(out_path)[0]
+        if kwargs.get('verbose',False): print("Writing to : {}".format(out_path))
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         #write out the data first so we update the paths

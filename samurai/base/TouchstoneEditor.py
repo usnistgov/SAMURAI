@@ -450,8 +450,8 @@ class TouchstoneEditor(object):
          #pack into correct data list
          #assume all parameters are same length
          if(ftype=='binary'):
-             num_rows = len(self.w1[11].freq_list)
-             temp_list = [self.w1[11].freq_list/freq_mult]
+             num_rows = len(self.freqs)
+             temp_list = [self.freqs/freq_mult]
              for k in self.wave_dict_keys:
                  for w in self.waves:
                      temp_list += [self.waves[w][k].raw.real,self.waves[w][k].raw.imag]
