@@ -948,27 +948,21 @@ class WaveformEditor(SnpEditor):
             data_len = len(args[0]) #length of our frequencies
             super().__init__([1,np.arange(data_len)],**kwargs) #create correct size
             self.waves['S'][21].raw[:] = np.array(args[1],dtype=np.cdouble)
-            self.freqs[:] = np.array(args[0])
+            self.freqs = np.array(args[0])
         else:
             super().__init__(*args,**kwargs)
         self.set_header(DEFAULT_HEADER_TIME)
     
     def _gen_dict_keys(self):
         return [21] #always only have a single key for waveform
+
+    @property
+    def raw(self):
+        return np.squeeze(super().raw)
     
-    def _extract_data(self,raw_data):
-       '''
-       @brief class to extract data from raw data. This can be overriden for special cases  
-       @note this is overriden here because originally we were not reading complex. Now we are though 
-       '''
-       freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
-       #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
-       for ki,k in enumerate(self.wave_dict_keys):
-           for wi,w in enumerate(self.waves):
-               idx = ki*len(self.waves)*2+(1+2*wi)
-               data = raw_data[:,idx]
-               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
-       self.round_freq_list() #round when we load (remove numerical rounding error)
+    @property
+    def times(self):
+        return super().freqs
 
     def __getattr__(self,attr):
            '''@brief try and find in S[21] if not part of WaveformEditor'''
@@ -995,7 +989,7 @@ class BeamformEditor(WaveformEditor):
         
     @property
     def angles(self):
-        return self._freqs
+        return self.freqs
 
 #acutally is the same as snpParam
 class TouchstoneParam:

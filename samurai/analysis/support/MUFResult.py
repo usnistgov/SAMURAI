@@ -12,6 +12,7 @@ from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.base.generic import complex2magphase, magphase2complex
 from samurai.base.generic import get_name_from_path
 from samurai.base.generic import moving_average
+from samurai.base.generic import ProgressCounter
 
 import shutil
 
@@ -116,8 +117,8 @@ class MUFResult(MUFModuleController):
             if a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
             file will be created with the loaded measurement as the nominal result
         @param[in/OPT] arg_options - keyword arguments as follows:
-            None yet!
-            all arguments also passed to MUFModuleController constructor
+            - - all arguments passed to MUFResult.load() method
+            - - all arguments also passed to MUFModuleController constructor
         '''
         super().__init__(None,except_no_menu=False,**arg_options)
         #uncertainty statistics
@@ -153,7 +154,7 @@ class MUFResult(MUFModuleController):
         return self.controls.find('MeasSParams')
     
     @property
-    def _xml_nominalpost(self):
+    def _xml_nominal_post(self):
         '''@brief link to nominal xml path value'''
         return self.controls.find('MeasSParamsPost')
     
@@ -248,10 +249,10 @@ class MUFResult(MUFModuleController):
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
         #now create our nominal for post cal
         ET.SubElement(self._controls,'MeasSParamsPost')
-        self._xml_nominalpost.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
-        self._xml_nominalpost.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParamsPost")
-        self._xml_nominalpost.set('Count',str(0))
-        self.nominal_post = MUFNominalValue(self._xml_nominalpost,**self.options)
+        self._xml_nominal_post.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
+        self._xml_nominal_post.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParamsPost")
+        self._xml_nominal_post.set('Count',str(0))
+        self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
@@ -327,14 +328,22 @@ class MUFResult(MUFModuleController):
         self.plotter.legend()
         return fig
     
-    def _load_nominal(self):
+    def _load_nominal(self,verbose=False):
         '''@brief load the nominal path value into self.nominal'''
-        self.nominal.load_data(working_directory=self.working_directory)
+        if verbose: print("Loading Nominal")
+        self.nominal.load_data(working_directory=self.working_directory,verbose=False)
         
-    def _load_statistics(self):
+    def _load_nominal_post(self,verbose=False):
+        '''@brief load the nominal (post-calibrated) path value into self.nominal_post'''
+        if verbose: print("Loading Nominal Post")
+        self.nominal_post.load_data(working_directory=self.working_directory,verbose=False)
+        
+    def _load_statistics(self,verbose=False):
         '''@brief load in all of the data for all of our statistics'''
-        self.monte_carlo.load_data(working_directory=self.working_directory)
-        self.perturbed.load_data(working_directory=self.working_directory)
+        if verbose: print("Loading Monte Carlo:")
+        self.monte_carlo.load_data(working_directory=self.working_directory,verbose=verbose)
+        if verbose: print("Loading Perturbed:")
+        self.perturbed.load_data(working_directory=self.working_directory,verbose=verbose)
     
     def _load_xml(self):
         '''
@@ -345,6 +354,7 @@ class MUFResult(MUFModuleController):
         '''
         super().load(self.meas_path)  #load xml
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options) # parse nominal
+        self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options) # parse nominal
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
         
@@ -353,17 +363,22 @@ class MUFResult(MUFModuleController):
         @brief load our meas file and its corresponding data
         @param[in/OPT] meas_path - path to *.meas file to load in. This will overwrite self.meas_path
         @param[in/OPT] kwargs - keyword arguments as follows:
-            load_nominal - load our nominal value file in a subfolder of meas_path (default True)
-            load_stats - load our statistics to a subfolder of meas_path (default False)
+            load_nominal - load our data from the pre-calibrated nominal solution (default True)
+            load_nominal_post - load data from the post-calibrated nominal solution (default True)
+            load_statistics - load our statistics (monte carlo and perturbed) (default False)
+            verbose - be verbose when loading data (default False)
         '''
         options = {}
         options['load_nominal'] = True
-        options['load_stats'] = False
+        options['load_nominal_post'] = False
+        options['load_statistics'] = False
+        options['verbose'] = False
         for k,v in kwargs.items():
             options[k] = v
         if meas_path is None: #if starting from empty, then dont load
             options['load_nominal'] = False
-            options['load_stats'] = False
+            options['load_nominal_post'] = False
+            options['load_statistics'] = False
         self.meas_path = meas_path
         #make a *.meas if a wnp or snp file was provided
         #if self.meas_path is not None and os.path.exists(self.meas_path):
@@ -379,10 +394,11 @@ class MUFResult(MUFModuleController):
             self.create_meas()
         #load our nominal and statistics if specified
         if options['load_nominal']:
-            self._load_nominal()
-
-        if options['load_stats']:
-            self._load_statistics()
+            self._load_nominal(verbose=options['verbose'])
+        if options['load_nominal_post']:
+            self._load_nominal_post(verbose=options['verbose'])
+        if options['load_statistics']:
+            self._load_statistics(verbose=options['verbose'])
             
     def write_xml(self,out_path):
         '''
@@ -580,8 +596,11 @@ class MUFStatistic(MUFItemList):
         options = self.options
         for k,v in kwargs.items():
             options[k] = v
+        if options.get('verbose',False): pc = ProgressCounter(len(self.muf_items))
         for it in self.muf_items:
             it.load_data(TouchstoneEditor,**options)
+            if options.get('verbose',False): pc.update()
+        if options.get('verbose',False): pc.finalize()
     
     def _extract_data_dict(self,tnp_list):
         '''
