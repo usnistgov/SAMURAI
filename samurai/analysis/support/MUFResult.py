@@ -384,6 +384,8 @@ class MUFResult(MUFModuleController):
         #make a *.meas if a wnp or snp file was provided
         #if self.meas_path is not None and os.path.exists(self.meas_path):
         if self.meas_path is not None:
+            if not os.path.exists(self.meas_path): #check if the file exists
+                raise FileNotFoundError('{} does not exist'.format(self.meas_path))
             _,ext = os.path.splitext(self.meas_path) #get our extension
             if not os.path.exists(self.meas_path) or '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
@@ -843,14 +845,15 @@ class MUFNominalValue(MUFStatistic):
 import unittest
 class TestMUFResult(unittest.TestCase):
     
-    wdir = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements"
+    wdir = os.path.dirname(__file__)
+    unittest_dir = os.path.join(self.wdir,'unittest_data/MUFResult')
     
     def test_load_xml(self):
         '''
         @brief in this test we will load a xml file with uncertainties and try
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
-        meas_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas")
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
         res = MUFResult(meas_path)
         nvp = res.nominal_value_path #try getting our nominal value
         
@@ -858,7 +861,7 @@ class TestMUFResult(unittest.TestCase):
         '''
         @brief this test will create a *.meas file for a given *.snp or *.wnp file
         '''
-        snp_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\touchstone\meas_cal_template.s2p")
+        snp_path = os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')
         res = MUFResult(snp_path)
         nvp = res.nominal_value_path #try getting our nominal value
         self.assertEqual(nvp,snp_path)
