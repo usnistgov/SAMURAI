@@ -13,6 +13,7 @@ from samurai.base.SamuraiDict import SamuraiDict
 import json
 import os
 from shutil import copyfile,copy
+import shutil
 import numpy as np
 from datetime import datetime #for timestamps
 
@@ -25,7 +26,7 @@ from samurai.base.generic import deprecated, ProgressCounter
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
-from samurai.acquisition.support.SamuraiMetafile import metaFile
+from samurai.acquisition.support.SamuraiMetafile import SamuraiMetafile,extract_data_from_raw
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
 #%% Useful functions for Metafiles
@@ -47,17 +48,66 @@ def set_metafile_meas_relative(metafile_path,verbose=True):
     if verbose: mypc.finalize()
     return fpaths
 
-def combine_split_measurements(out_dir,metafile,raw_list,copy_data=True,**kwargs):
+def combine_split_measurements(out_dir,metafile_path,raw_list,copy_data=True,**kwargs):
     '''
     @brief Combine measurements that have been split across days into a single metafile
     @param[in] out_dir - directory to output metafile (and possibly data)
     @param[in] metafile - metafile that we are filling (should have space for all the measurements)
     @param[in] raw_list - list of paths to the measurement \*.raw files to combine
-    @param[in/OPT] copy_data - copy the data into out_dir (default True)
+    @param[in/OPT] copy_data - copy the data into out_dir (default True). If false metafile will use absolute paths
     @param[in/OPT] kwargs - keyword arguments as follows
-        - - None Yet!
+        - copy_format_name - formattable name to copy data to (default 'meas_{}')
+        - verbose - be verbose when running (default False)
+    @note this will delete and rebuild 'measurements' key in metafile using data info 
+    @example
+        # combine 2 measurements into a single metafile and copy data to out_dir
+        raw_path_1 = './path1/to/metafile.raw'
+        raw_path_2 = './path2/to/metafile.raw'
+        meta_path  = './path1/to/metafile.json'
+        out_dir    = './output_directory'
+        combine_split_measurements(out_dir,meta_path,[raw_path_1,raw_path_2])
     '''
+    options = {}
+    options['copy_format_name'] = 'meas_{}' #formattable name to copy data to
+    options['verbose'] = False
+    for k,v in kwargs.items():
+        options[k] = v
     
+    #load in the metafile
+    if options['verbose']: print("Loading Metafile")
+    mymf = MetafileController(metafile_path,verify=False) #its has no measurements so dont verify
+    mymf['working_directory'] = './' #set the wdir to wherever the file is placed
+    
+    #first lets extract all the measurement data from *.raw files
+    if options['verbose']: print("Extracting data from raw files")
+    meas_data = []
+    for raw_path in raw_list:
+        cur_data = extract_data_from_raw(raw_path) #extract the data
+        raw_dir = os.path.dirname(raw_path) #directory of *.raw file
+        for meas in cur_data: #make absolute paths
+            meas['filename'] = os.path.join(raw_dir,meas['filename'].strip())
+        meas_data += cur_data # lets make the paths absolute
+    
+    #fix the indices
+    for i,meas in enumerate(meas_data): meas['ID'] = i
+    
+    #now lets copy the data and rename (if the flag is set)
+    if copy_data:
+        if options['verbose']: 
+            print("Copying Measurement Files")
+            mypc = ProgressCounter(len(meas_data))
+        for i,meas in enumerate(meas_data):
+            new_fname = (options['copy_format_name'].format(i)
+                         +os.path.splitext(meas['filename'])[-1]) #build the new name
+            shutil.copy(meas['filename'],os.path.join(out_dir,new_fname)) #copy the file to the new location
+            meas['filename'] = new_fname #change the name in the meas data
+            if options['verbose']: mypc.update()
+        if options['verbose']: mypc.finalize()
+    
+    #now lets put the data back in the metafile
+    if options['verbose']: print('Writing out Metafile')
+    mymf['measurements'] = meas_data
+    return mymf.write(os.path.join(out_dir,'metafile.json'))
 
 
 #%% Class for working with the Metafiles
@@ -90,7 +140,7 @@ class MetafileController(SamuraiDict):
             self._in_dir = './' #directory of metafile for relative pathing
             self.metafile = 'metafile.json'
             self.set_wdir('./') #set to current path (relative)
-            self.update(SamuraiDict(metaFile(None,None)))
+            self.update(SamuraiDict(SamuraiMetafile(None,None)))
         
         self.unit_conversion_dict = { #dictionary to get to meters
                 'mm': 0.001,

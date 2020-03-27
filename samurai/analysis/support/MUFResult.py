@@ -432,17 +432,18 @@ class MUFResult(MUFModuleController):
         @param[in] out_dir - directory to write out to
         @param[in/OPT] out_name - name to write out (default 'nominal')
         '''
-        out_file = os.path.join(out_dir,out_name)
-        if self.nominal_post[0].data is None: #then copy the file
-            fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
-            nom_path = self.nominal_post_value_path
-            fname+=os.path.splitext(nom_path)[-1]
-            fname = shutil.copy(nom_path,fname)
-        else:
-            fname = self.nominal_post[0].data.write(out_file,ftype='binary')
-        fname = os.path.abspath(fname)
-        self.nominal_post[0][0] = get_name_from_path(fname)
-        self.nominal_post[0][1] = fname
+        if len(self.nominal_post): #only write if data is available
+            out_file = os.path.join(out_dir,out_name)
+            if self.nominal_post[0].data is None: #then copy the file
+                fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
+                nom_path = self.nominal_post_value_path
+                fname+=os.path.splitext(nom_path)[-1]
+                fname = shutil.copy(nom_path,fname)
+            else:
+                fname = self.nominal_post[0].data.write(out_file,ftype='binary')
+            fname = os.path.abspath(fname)
+            self.nominal_post[0][0] = get_name_from_path(fname)
+            self.nominal_post[0][1] = fname
         
     def _write_statistic(self,stat_class,format_out_path):
         '''
@@ -506,7 +507,7 @@ class MUFResult(MUFModuleController):
         #load our nominal and statistics if specified
         if options['write_nominal']:
             self._write_nominal(out_dir)
-        if options['write_nominal']:
+        if options['write_nominal_post']:
             self._write_nominal_post(out_dir)
         if options['write_stats']:
             self._write_statistics(out_dir)

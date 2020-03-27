@@ -38,7 +38,7 @@ DEFAULT_ANTENNA = SamuraiDict({
     'beamwidth_h':'N/A',
     'serial_number':'N/A'
     })
-DEFAULT ANTENNAS = [DEFAULT_ANTENNA]*2
+DEFAULT_ANTENNAS = [DEFAULT_ANTENNA]*2
 
 DEFAULT_METADATA_DICT = SamuraiDict({
     'working_directory':'./',
@@ -73,6 +73,34 @@ DEFAULT_METADATA_DICT = SamuraiDict({
     'completed_measurements':0,
     'measurements':[]
     })
+
+#%% Some useful functions
+def extract_data_from_raw(raw_path):
+    '''
+    @brief extract a list of dictionary data from a \*.raw file
+    @param[in] raw_path - path to the \*.raw file to get data from
+    @return List of dictionaries for each entry in the file
+    '''
+    meas_list = []
+    with open(raw_path,'r') as raw_fp:
+        next(raw_fp) #skip the first line
+        for line in raw_fp:
+            line_split = line.split('|')[1:] #skip initial whitespace
+            #names of the data
+            data_names = ['ID','filename','calibration_file',
+                          'timestamp','position','notes','extra_data']
+            data_dict = SamuraiDict()
+            for data_name,line_val in zip(data_names,line_split):
+                data_dict[data_name] = line_val  
+            data_dict['ID'] = int(data_dict['ID']) #change to int
+            data_dict['position'] = eval(data_dict['position']) #change to actual list
+            #now get and add any additional data
+            extra_data = SamuraiDict()
+            extra_data.loads(data_dict.pop('extra_data'))
+            for k,v in extra_data.items():
+                data_dict[k] = v
+            meas_list.append(data_dict) #add it to the list of measurements
+    return meas_list
 
 
 #%% The actual class
