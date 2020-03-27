@@ -28,7 +28,7 @@ from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
 from samurai.acquisition.support.SamuraiMetafile import metaFile
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
-#%% Function to set all *.meas files in a metafile to use paths relative to the *.meas file
+#%% Useful functions for Metafiles
 def set_metafile_meas_relative(metafile_path,verbose=True):
     '''
     @brief Change all \*.meas file paths to be relative to the \*.meas file.
@@ -46,6 +46,18 @@ def set_metafile_meas_relative(metafile_path,verbose=True):
         if verbose: mypc.update()
     if verbose: mypc.finalize()
     return fpaths
+
+def combine_split_measurements(out_dir,metafile,raw_list,copy_data=True,**kwargs):
+    '''
+    @brief Combine measurements that have been split across days into a single metafile
+    @param[in] out_dir - directory to output metafile (and possibly data)
+    @param[in] metafile - metafile that we are filling (should have space for all the measurements)
+    @param[in] raw_list - list of paths to the measurement \*.raw files to combine
+    @param[in/OPT] copy_data - copy the data into out_dir (default True)
+    @param[in/OPT] kwargs - keyword arguments as follows
+        - - None Yet!
+    '''
+    
 
 
 #%% Class for working with the Metafiles

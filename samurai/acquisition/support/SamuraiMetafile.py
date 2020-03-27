@@ -18,10 +18,64 @@ import getpass
 
 from samurai.base.SamuraiDict import SamuraiDict
 
-#class for meta file with JSON and temp file
-#import directory and file name
-#also give the csv file where positions are running from to build JSON template
-#Written by Alec Weiss 2018
+#%% Default values
+DEFAULT_SAGE_WR28_PHORN_17DBI = SamuraiDict({
+    'name':"Sage Millimeter 17dBi rectangular horn",
+    'txrx':'N/A',
+    'location':'N/A',
+    'gain_dbi':17,
+    'beamwidth_e':23,
+    'beamwidth_h':24,
+    'serial_number':'14172-0[1,2]'
+    })
+
+DEFAULT_ANTENNA = SamuraiDict({
+    'name':"N/A",
+    'txrx': 'N/A',
+    'location': "N/A",
+    'gain_dbi':'N/A',
+    'beamwidth_e':'N/A',
+    'beamwidth_h':'N/A',
+    'serial_number':'N/A'
+    })
+DEFAULT ANTENNAS = [DEFAULT_ANTENNA]*2
+
+DEFAULT_METADATA_DICT = SamuraiDict({
+    'working_directory':'./',
+    'metafile_name':'metafile',
+    'csv_delimiter':',',
+    'cal_path':'./calibration.s4p', #default calibration path
+    
+    'metafile_version':2.01,
+    'metafile_changelog':{
+                1.03: ["Added new defaults and heavily updated the code to be more user friendly"],
+                2.00: ["(5/10/2019) Updated reference frame. THIS IS VERY IMPORTANT FOR ALL USES OF MEAUSUREMENTS.\\n" 
+                       "New reference frame is as follows when looking from behind the robot: \\n"
+                       "      X - left/right\\n"
+                       "      Y - up/down\\n"
+                       "      Z - in/out (i.e. propogation direction)\\n"
+                       "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"],
+                2.01: ["external positions now have units property and all 'position_mm' changed to 'position' and 'residual_mm' changed to 'residual'"]      
+                }, 
+    'experiment':'SAMURAI Measurements',
+    'experiment_version':1.0,
+    
+    #some system info
+    'positioner':'Meca500',
+    'positioner_rotation_format':"X\'Y\'Z\'",
+    'user':getpass.getuser(),
+    'units':'mm',
+    'position_key':['X','Y','Z','alpha','beta','gamma'],
+    'vna_info':{'info':'NO VNA QUERIED'},
+    'antennas': DEFAULT_ANTENNAS,
+    
+    'total_measurements':0,
+    'completed_measurements':0,
+    'measurements':[]
+    })
+
+
+#%% The actual class
 class SamuraiMetafile(OrderedDict):
     '''
 	@brief class to create a metafile and add measurements to it during a full measurement sweep  
@@ -35,78 +89,22 @@ class SamuraiMetafile(OrderedDict):
         '''@brief Constructor'''
         #input options
         super().__init__() #initialize ordereddict
+        
+        #add default values
+        for k,v in DEFAULT_METADATA_DICT.items():
+            self[k] = v
 
-        #Some default values
-        self['working_directory'] = './'
+        #Some other input values
         self['csv_path'] = csv_path
-        self['metafile_name'] = 'metafile'
         self['pna_address'] = pna_addr
-        self['csv_delimiter'] = ','
-        
-        #default calPath
-        self['cal_path'] = './calibration.s4p'
-        
-        #1.02 added relative paths to working directory in metafile
-        #1.03 changed most inputs to dictionary for easy setting from outside
-        
-        #some info about the system
-        #defaults
-        self['metafile_version']   = 2.01
-        self['metafile_changelog'] = {
-                1.03: ["Added new defaults and heavily updated the code to be more user friendly"],
-                2.00: ["(5/10/2019) Updated reference frame. THIS IS VERY IMPORTANT FOR ALL USES OF MEAUSUREMENTS.\\n" 
-                       "New reference frame is as follows when looking from behind the robot: \\n"
-                       "      X - left/right\\n"
-                       "      Y - up/down\\n"
-                       "      Z - in/out (i.e. propogation direction)\\n"
-                       "      converting from pre 2.00 we get X=Y,Y=Z,Z=X"],
-                2.01: ["external positions now have units property and all 'position_mm' changed to 'position' and 'residual_mm' changed to 'residual'"]      
-                }
-        self['experiment']         = 'SAMURAI Measurements'
-        self['experiment_version'] = 1.0
-        self['positioner']         = 'Meca500'
-        self['positioner_rotation_format'] = "X\'Y\'Z\'"
-        self['user']               = getpass.getuser()
-        self['units']              = 'mm'
-        self['position_key']       = ['X','Y','Z','alpha','beta','gamma']
-        self['vna_info']           = {'info':'NO VNA QUERIED'}
-        self['antennas']           = []
         
         #get our vna information if possible
         if pna_addr is not None:
-            self.get_vna_params(pna_addr=pna_addr)
-
-        #this is an example. should allow user to add in antenna
-        antenna1 = OrderedDict()
-        antenna1["name"]          = "Sage Millimeter 17dBi rectangular horn"
-        antenna1["txrx"]          = "tx"
-        antenna1["location"]      = "Far end of table on optical post"
-        antenna1["gain_dbi"]      = 17
-        antenna1["beamwidth_e"]   = 23
-        antenna1["beamwidth_h"]   = 24
-        antenna1["serial_number"] = "14172-02"
-        antenna2 = OrderedDict()
-        antenna2["name"]          = "Sage Millimeter 17dBi rectangular horn"
-        antenna2["txrx"]          = "rx"
-        antenna2["location"]      = "Mounted on Meca500 Positioner"
-        antenna2["gain_dbi"]      = 17
-        antenna2["beamwidth_e"]   = 23
-        antenna2["beamwidth_h"]   = 24
-        antenna2["serial_number"] = "14172-01"
-        self.add_antenna(antenna1)
-        self.add_antenna(antenna2)
-
-        self['total_measurements']     = 0
-        self['completed_measurements'] = 0
-        self['measurements']           = [] #now add the measurement data
+            self.get_vna_params(pna_addr=pna_addr)  
         
         #write any input options
         for key,value in six.iteritems(arg_options):
-            if(key=='working_directory'): #get abspath if rootdir
-                value = os.path.abspath(value)
             self[key] = value
-
-        #delimeter of csv file (typically ',')
 
         #build our file names
         self.make_file_names()
@@ -371,18 +369,22 @@ class SamuraiMetafile(OrderedDict):
             
         
     #take the data from our temporary metaFile and put into JSON file
-    def finalize(self):
+    def finalize(self,json_path=None,raw_path=None):
         '''
         @brief write our data from our temp file back to the json file
             This finishes the measurement. After this is called the data from 
             the '.raw' measurement file will be put into our json file  
+        @param[in/OPT] json_path - path to json file. If None (default) get from self.jsonPath
+        @param[in/OPT] raw_path - path to \*.raw file. If None (default) get from self.raw_path
         '''
         #load json data
-        jsonFile = open(self.jsonPath,'r')
-        jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
-        jsonFile.close()
+        if json_path is None:
+            json_path = self.jsonPath
+        jsonData = SamuraiDict(json_path)
         #fill JSON Data from tmpFile
-        with open(self.raw_path,'r') as tmpFile:
+        if raw_path is None:
+            raw_path = self.raw_path
+        with open(raw_path,'r') as tmpFile:
             next(tmpFile)
             for line in tmpFile:
                 ls = line.split('|')
@@ -414,10 +416,9 @@ class SamuraiMetafile(OrderedDict):
                 #increment filled measurements
                 self.jsonData['completed_measurements']+=1
         #now write out new json data
+        
         with open(self.jsonPath,'w+') as jsonFile:
             json.dump(self.jsonData,jsonFile,indent=4)
-        #remove temp metafile
-        #os.remove(self.jsonPath+'.tmp');
         
     def load_session(self,metaName):
         '''
@@ -476,12 +477,17 @@ def finalize_metafile(metafile_path,raw_path,**kwargs):
     mymf.load_json_template(metafile_path)
     mymf.load_raw_file(raw_path)
     mymf.finalize()
+
+
+import unittest
+
+class TestSamuraiMetafile(unittest.TestCase):
+    '''@brief Unit testing for SamuraiMetafile class'''
     
+    def test_metafile_measurement(self):
+        '''@brief Test typical creation, updating, and finalize for a measurement'''
+        pass
     
-    
-#os.chdir('U:/67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\VNA_Drift/3-16-18_driftData\processed_data')
-#mf = metaFile();
-#mf.buildJsonFromRaw('metaFile.raw')
 
 if __name__=='__main__':
     import os
