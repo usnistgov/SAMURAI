@@ -21,7 +21,7 @@ from datetime import datetime #for timestamps
 import plotly.graph_objects as go
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor
-from samurai.analysis.support.MUFResult import MUFResult,set_meas_relative
+from samurai.base.MUF.MUFResult import MUFResult,set_meas_relative
 from samurai.base.generic import deprecated, ProgressCounter
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
@@ -731,7 +731,6 @@ metaFileController = MetaFileController
 ###########################################################################
 #%% various useful functions
 ###########################################################################
-from samurai.analysis.support.MUFResult import MUFResult
 
 def copy_touchstone_from_muf(metafile,out_dir='./touchstone'):
     '''

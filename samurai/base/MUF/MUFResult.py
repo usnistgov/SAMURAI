@@ -7,7 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
-from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
+from samurai.base.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.base.generic import complex2magphase, magphase2complex
 from samurai.base.generic import get_name_from_path
@@ -85,7 +85,7 @@ def set_meas_relative(meas_path,out_path=None):
     meas = MUFResult(meas_path,load_nominal=False,load_statistics=False)
     meas_dir = os.path.dirname(meas_path)
     #change all the paths
-    meas_types = ['nominal','monte_carlo','perturbed']
+    meas_types = ['nominal','nominal_post','monte_carlo','perturbed']
     for mt in meas_types:
         meas_obj = getattr(meas,mt) #get the object
         fpaths = meas_obj.filepaths #get the paths 
@@ -403,12 +403,20 @@ class MUFResult(MUFModuleController):
         if options['load_statistics']:
             self._load_statistics(verbose=options['verbose'])
             
-    def write_xml(self,out_path):
+    def write_xml(self,out_path,**kwargs):
         '''
         @brief write out our current xml file and corresponding measurements
         @param[in] out_path - path to writ ethe file out to 
+        @param[in/OPT] kwargs - keyword arguments as follows
+            - relative - write out data with paths relative to the \*.meas file (default False)
         '''
+        options = {}
+        options['relative'] = False
+        for k,v in kwargs.items():
+            option[k] = v
         super().write(out_path)
+        if options['relative']: #then just change after write (code already written)
+            set_meas_relative(out_path)
         
     def _write_nominal(self,out_dir,out_name='nominal'):
         '''
@@ -846,7 +854,7 @@ import unittest
 class TestMUFResult(unittest.TestCase):
     
     wdir = os.path.dirname(__file__)
-    unittest_dir = os.path.join(wdir,'unittest_data/MUFResult')
+    unittest_dir = os.path.join(wdir,'../unittest_data')
     
     def test_load_xml(self):
         '''
