@@ -846,7 +846,7 @@ import unittest
 class TestMUFResult(unittest.TestCase):
     
     wdir = os.path.dirname(__file__)
-    unittest_dir = os.path.join(self.wdir,'unittest_data/MUFResult')
+    unittest_dir = os.path.join(wdir,'unittest_data/MUFResult')
     
     def test_load_xml(self):
         '''
@@ -854,8 +854,10 @@ class TestMUFResult(unittest.TestCase):
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = MUFResult(meas_path)
-        nvp = res.nominal_value_path #try getting our nominal value
+        res = MUFResult(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
         
     def test_create_from_snp(self):
         '''
@@ -871,7 +873,7 @@ class TestMUFResult(unittest.TestCase):
         @brief in this test we create an empty .meas file and add our paths to it
             which is then written out
         '''
-        snp_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\touchstone\meas_cal_template.s2p")
+        snp_path = os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')
         res = MUFResult()
         res.set_nominal(snp_path)
     
@@ -881,57 +883,20 @@ class TestMUFResult(unittest.TestCase):
             This should build a template around data itself and will write out data
             using name in one of the write data methods
         '''
-        pass
+        res = MUFResult()
+        res.nominal.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')))
+        res.nominal_post.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal_post.s2p_binary')))
+        res.monte_carlo.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/MonteCarlo/mc_0.s2p_binary')))
+        #make sure the data exists
+        self.assertIsNotNone(res.nominal.data)
+        self.assertIsNotNone(res.nominal_post.data)
+        self.assertIsNotNone(res.monte_carlo[0].data)
 
 #%%
 if __name__=='__main__':
     
-    unittest.main()
-    #from samurai.base.SamuraiPlotter import SamuraiPlotter
-    #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
-    #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
-    #res = MUFResult(meas_path)
-    #mr = MUFResult(os.path.join(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Documents\papers\URSI_2020\CUP_paper\figs\touchstone','beamformed_regular_0.meas'))
-    #mr.calculate_statistics()
-    #mr.plot(21,'all')
-    #res2 = MUFResult(meas_path)
-    #mil = MUFStatistic(res2._xml_monte_carlo)
-    #mil.file_paths
-    #MUFItem(res2._xml_monte_carlo.getchildren()[-1])
-    #res2.calculate_statistics()
-    
-    #res = MUFResult(None)
-    #val = TouchstoneEditor(meas_path)
-    #res.nominal.add_item(val)
-    #pvals = []
-   # res.init_statistics()
-   # res.monte_carlo.data = []
-    #for i in range(5):
-    #    rand_vals = ((np.random.rand(len(val))*2)-1)/10
-   #     pvals.append(val*rand_vals)
-    #res.monte_carlo.add_items(pvals)
-    #res.write('test/meas_test.meas',write_nominal=True,write_statistics=True)
-    #res3 = MUFResult('test.s2p')
-    #os.chdir('test/write_test')
-    #res.write('test/write_test/test.meas')
-    #res2.write('test/write_test/test2.meas')
-    #res3.write('test/write_test/test3.meas')
-    '''
-    res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
-    res.S[11].plot()
-    print("Calculating Statistics")
-    res.calculate_statistics()
-    sp = res.options['plotter']
-    res.monte_carlo.plot(11)
-    sp.legend()
-    sp.figure()
-    res.perturbed.plot(11)
-    sp.legend()
-    '''
-    
-    #res_m = MUFResult('test.meas')
-    #res_s = MUFResult('test.s2p')
-    #res_w = MUFResult('test.w2p')
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMUFResult)
+    unittest.TextTestRunner(verbosity=2).run(suite)
         
     
     
