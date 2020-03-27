@@ -13,6 +13,7 @@ from samurai.base.SamuraiDict import SamuraiDict
 import json
 import os
 from shutil import copyfile,copy
+import shutil
 import numpy as np
 from datetime import datetime #for timestamps
 
@@ -20,15 +21,15 @@ from datetime import datetime #for timestamps
 import plotly.graph_objects as go
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor
-from samurai.analysis.support.MUFResult import MUFResult,set_meas_relative
+from samurai.base.MUF.MUFResult import MUFResult,set_meas_relative
 from samurai.base.generic import deprecated, ProgressCounter
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
-from samurai.acquisition.support.SamuraiMetafile import metaFile
+from samurai.acquisition.support.SamuraiMetafile import SamuraiMetafile,extract_data_from_raw
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
-#%% Function to set all *.meas files in a metafile to use paths relative to the *.meas file
+#%% Useful functions for Metafiles
 def set_metafile_meas_relative(metafile_path,verbose=True):
     '''
     @brief Change all \*.meas file paths to be relative to the \*.meas file.
@@ -46,6 +47,67 @@ def set_metafile_meas_relative(metafile_path,verbose=True):
         if verbose: mypc.update()
     if verbose: mypc.finalize()
     return fpaths
+
+def combine_split_measurements(out_dir,metafile_path,raw_list,copy_data=True,**kwargs):
+    '''
+    @brief Combine measurements that have been split across days into a single metafile
+    @param[in] out_dir - directory to output metafile (and possibly data)
+    @param[in] metafile - metafile that we are filling (should have space for all the measurements)
+    @param[in] raw_list - list of paths to the measurement \*.raw files to combine
+    @param[in/OPT] copy_data - copy the data into out_dir (default True). If false metafile will use absolute paths
+    @param[in/OPT] kwargs - keyword arguments as follows
+        - copy_format_name - formattable name to copy data to (default 'meas_{}')
+        - verbose - be verbose when running (default False)
+    @note this will delete and rebuild 'measurements' key in metafile using data info 
+    @example
+        # combine 2 measurements into a single metafile and copy data to out_dir
+        raw_path_1 = './path1/to/metafile.raw'
+        raw_path_2 = './path2/to/metafile.raw'
+        meta_path  = './path1/to/metafile.json'
+        out_dir    = './output_directory'
+        combine_split_measurements(out_dir,meta_path,[raw_path_1,raw_path_2])
+    '''
+    options = {}
+    options['copy_format_name'] = 'meas_{}' #formattable name to copy data to
+    options['verbose'] = False
+    for k,v in kwargs.items():
+        options[k] = v
+    
+    #load in the metafile
+    if options['verbose']: print("Loading Metafile")
+    mymf = MetafileController(metafile_path,verify=False) #its has no measurements so dont verify
+    mymf['working_directory'] = './' #set the wdir to wherever the file is placed
+    
+    #first lets extract all the measurement data from *.raw files
+    if options['verbose']: print("Extracting data from raw files")
+    meas_data = []
+    for raw_path in raw_list:
+        cur_data = extract_data_from_raw(raw_path) #extract the data
+        raw_dir = os.path.dirname(raw_path) #directory of *.raw file
+        for meas in cur_data: #make absolute paths
+            meas['filename'] = os.path.join(raw_dir,meas['filename'].strip())
+        meas_data += cur_data # lets make the paths absolute
+    
+    #fix the indices
+    for i,meas in enumerate(meas_data): meas['ID'] = i
+    
+    #now lets copy the data and rename (if the flag is set)
+    if copy_data:
+        if options['verbose']: 
+            print("Copying Measurement Files")
+            mypc = ProgressCounter(len(meas_data))
+        for i,meas in enumerate(meas_data):
+            new_fname = (options['copy_format_name'].format(i)
+                         +os.path.splitext(meas['filename'])[-1]) #build the new name
+            shutil.copy(meas['filename'],os.path.join(out_dir,new_fname)) #copy the file to the new location
+            meas['filename'] = new_fname #change the name in the meas data
+            if options['verbose']: mypc.update()
+        if options['verbose']: mypc.finalize()
+    
+    #now lets put the data back in the metafile
+    if options['verbose']: print('Writing out Metafile')
+    mymf['measurements'] = meas_data
+    return mymf.write(os.path.join(out_dir,'metafile.json'))
 
 
 #%% Class for working with the Metafiles
@@ -78,7 +140,7 @@ class MetafileController(SamuraiDict):
             self._in_dir = './' #directory of metafile for relative pathing
             self.metafile = 'metafile.json'
             self.set_wdir('./') #set to current path (relative)
-            self.update(SamuraiDict(metaFile(None,None)))
+            self.update(SamuraiDict(SamuraiMetafile(None,None)))
         
         self.unit_conversion_dict = { #dictionary to get to meters
                 'mm': 0.001,
@@ -147,28 +209,35 @@ class MetafileController(SamuraiDict):
         @param[in/OPT] arg_options -keyword arguments as follows
             data_type - nominal,monte_carlo,perturbed,etc. If none do nominal
             data_meas_num - which measurement of monte_carlo or perturbed to use
+            data_idx - which indices to load in (default to 'all')
         @return list of snp or wnp classes
         '''
         options = {}
         options['data_type'] = 'nominal'
         options['data_meas_num'] = 0
+        options['data_idx'] = 'all'
         for k,v in arg_options.items():
             options[k] = v
         snpData = []
         numLoadedMeas = 0
+        #which measurements to load 
+        if isinstance(options['data_idx'],str) and options['data_idx'] == 'all':
+            load_measurements = self.measurements 
+        else:
+            load_measurements = [self.measurements[i] for i in options['data_idx']] #list not numpy array
         #String of what data type and meas num we are loading 
         data_type_string = 'nominal' if options['data_type']=='nominal' else '{}[{}]'.format(options['data_type'],options['data_meas_num'])
-        if verbose: pc = ProgressCounter(len(self.measurements),'Loading {} Data: '.format(data_type_string),update_period=5)
-        for meas in self.measurements:
+        if verbose: pc = ProgressCounter(len(load_measurements),'Loading {} Data: '.format(data_type_string),update_period=5)
+        for meas in load_measurements:
             fname = os.path.join(self.wdir,meas['filename'].strip())
             #if options['data_type'] is None or options['data_type']=='nominal':
             #    snpData.append(snp(fname,read_header=read_header))
             if options['data_type']=='monte_carlo':
-                muf_res = MUFResult(fname)
-                fname = muf_res.monte_carlo[options['data_meas_num']].filepath
+                muf_res = MUFResult(fname,load_nominal=False)
+                fname = muf_res.monte_carlo[options['data_meas_num']].get_filepath(working_directory=muf_res.working_directory)
             if options['data_type']=='perturbed':
-                muf_res = MUFResult(fname)
-                fname = muf_res.perturbed[options['data_meas_num']].filepath
+                muf_res = MUFResult(fname,load_nominal=False)
+                fname = muf_res.perturbed[options['data_meas_num']].get_filepath(working_directory=muf_res.working_directory)
             snpData.append(TouchstoneEditor(fname,read_header=read_header))
             numLoadedMeas+=1
             #print(numLoadedMeas)
@@ -662,7 +731,6 @@ metaFileController = MetaFileController
 ###########################################################################
 #%% various useful functions
 ###########################################################################
-from samurai.analysis.support.MUFResult import MUFResult
 
 def copy_touchstone_from_muf(metafile,out_dir='./touchstone'):
     '''

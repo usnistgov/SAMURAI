@@ -22,14 +22,22 @@ from samurai.base.generic import moving_average
 #hamming window
 import scipy.signal.windows
 
-DEFAULT_HEADER = 'GHz S RI 50'
 DEFAULT_EMPTY_HEADER = 'Hz S RI 50'
+DEFAULT_HEADER       = 'GHz S RI 50'
+DEFAULT_HEADER_TIME  = 'ns S RI 50'
+DEFAULT_HEADER_ANG   = 'deg S RI 50'
 DEFAULT_COMMENTS = []
 HEADER_FREQ_REGEX = '[KMGT]*[Hh][Zz]' #regex to get GHz, Hz, THz, KHz, MHz
+HEADER_TIME_REGEX = '[NnUuMm]*[Ss]' #ns,us,ms,s
+HEADER_ANG_REGEX = '([Rr][Aa][Dd]|[Dd][Ee][Gg])' #rad,deg
+HEADER_REGEX = '({}|{}|{})'.format(HEADER_FREQ_REGEX,HEADER_TIME_REGEX,HEADER_ANG_REGEX)
 
 
 FREQ_MULT_DICT = {'HZ':1,'KHZ':1e3,'MHZ':1e6,'GHZ':1e9,'THZ':1e12}
-INV_FREQ_MULT_DICT = {val:key for key,val in FREQ_MULT_DICT.items()}  #inverse of frequency multiplier dictionary
+TIME_MULT_DICT = {'NS':1e-9,'US':1e-6,'MS':1e-3,'S':1} #time domain for waveforms always convert to seconds
+ANG_MULT_DICT  = {'DEG':1,'RAD':180/np.pi} #angular conversion
+MULT_DICT = dict(**FREQ_MULT_DICT,**TIME_MULT_DICT,**ANG_MULT_DICT) #combine the dictionaries
+INV_MULT_DICT = {val:key for key,val in MULT_DICT.items()}  #inverse of frequency multiplier dictionary
 
 #%% Class for parsing files with more ports than 2 (e.g. *.s4p)
 class MultilineFileParser(object):
@@ -115,6 +123,8 @@ class TouchstoneEditor(object):
                     out_cls = SnpEditor
                 elif re.findall('waveform',ext):
                     out_cls = WaveformEditor
+                elif re.findall('beamform',ext):
+                    out_cls = BeamformEditor
                 elif re.findall('switch',ext):
                     out_cls = SnpEditor
                 else:
@@ -363,9 +373,9 @@ class TouchstoneEditor(object):
         '''
         if header_str is None:
             header_str = self.options['header']
-        unit_strs = re.findall(HEADER_FREQ_REGEX,header_str)
+        unit_strs = re.findall(HEADER_REGEX,header_str)[0]
         if unit_strs:
-            mult = FREQ_MULT_DICT.get(unit_strs[0].upper(),None) #assume 1 match if any
+            mult = MULT_DICT.get(unit_strs[0].upper(),None) #assume 1 match if any
         else:
             mult = None
         return mult
@@ -414,10 +424,10 @@ class TouchstoneEditor(object):
              options[k] = v
          
          if(ftype=='default'):
-             if(re.findall('binary',os.path.splitext(out_file)[-1])):
-                 ftype='binary'
-             else:
+             if not (re.findall('binary',os.path.splitext(out_file)[-1])):
                  ftype='text'
+             else:
+                 ftype='binary'
        
          #round frequencies to nearest Hz
          self.round_freq_list() 
@@ -440,8 +450,8 @@ class TouchstoneEditor(object):
          #pack into correct data list
          #assume all parameters are same length
          if(ftype=='binary'):
-             num_rows = len(self.w1[11].freq_list)
-             temp_list = [self.w1[11].freq_list/freq_mult]
+             num_rows = len(self.freqs)
+             temp_list = [self.freqs/freq_mult]
              for k in self.wave_dict_keys:
                  for w in self.waves:
                      temp_list += [self.waves[w][k].raw.real,self.waves[w][k].raw.imag]
@@ -938,26 +948,21 @@ class WaveformEditor(SnpEditor):
             data_len = len(args[0]) #length of our frequencies
             super().__init__([1,np.arange(data_len)],**kwargs) #create correct size
             self.waves['S'][21].raw[:] = np.array(args[1],dtype=np.cdouble)
-            self.freqs[:] = np.array(args[0])
+            self.freqs = np.array(args[0])
         else:
             super().__init__(*args,**kwargs)
+        self.set_header(DEFAULT_HEADER_TIME)
     
     def _gen_dict_keys(self):
         return [21] #always only have a single key for waveform
+
+    @property
+    def raw(self):
+        return np.squeeze(super().raw)
     
-    def _extract_data(self,raw_data):
-       '''
-       @brief class to extract data from raw data. This can be overriden for special cases  
-       @note this is overriden here because originally we were not reading complex. Now we are though 
-       '''
-       freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
-       #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
-       for ki,k in enumerate(self.wave_dict_keys):
-           for wi,w in enumerate(self.waves):
-               idx = ki*len(self.waves)*2+(1+2*wi)
-               data = raw_data[:,idx]
-               self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
-       self.round_freq_list() #round when we load (remove numerical rounding error)
+    @property
+    def times(self):
+        return super().freqs
 
     def __getattr__(self,attr):
            '''@brief try and find in S[21] if not part of WaveformEditor'''
@@ -968,6 +973,23 @@ class WaveformEditor(SnpEditor):
                    return self.waves[attr]
                except:
                    raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
+
+class BeamformEditor(WaveformEditor):
+    '''
+    @brief Extension of WaveformEditor for beamformed data (only for 1D right now)
+    @todo Extend to 2D (Az,El)
+    @param[in] args - variable arguements. If 2 args are passed, its assumed we have angles,data (xaxis,yaxis)
+                otherwise pass parsing to TouchstoneParameter parsing
+    '''
+    def __init__(self,*args,**kwargs):
+        if 'default_extension' not in kwargs.keys():
+            kwargs['default_extension'] = 'beamform'
+        super().__init__(*args,**kwargs)
+        self.set_header(DEFAULT_HEADER_ANG)
+        
+    @property
+    def angles(self):
+        return self.freqs
 
 #acutally is the same as snpParam
 class TouchstoneParam:

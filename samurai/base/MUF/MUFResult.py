@@ -7,11 +7,12 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
-from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
+from samurai.base.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.base.generic import complex2magphase, magphase2complex
 from samurai.base.generic import get_name_from_path
 from samurai.base.generic import moving_average
+from samurai.base.generic import ProgressCounter
 
 import shutil
 
@@ -84,7 +85,7 @@ def set_meas_relative(meas_path,out_path=None):
     meas = MUFResult(meas_path,load_nominal=False,load_statistics=False)
     meas_dir = os.path.dirname(meas_path)
     #change all the paths
-    meas_types = ['nominal','monte_carlo','perturbed']
+    meas_types = ['nominal','nominal_post','monte_carlo','perturbed']
     for mt in meas_types:
         meas_obj = getattr(meas,mt) #get the object
         fpaths = meas_obj.filepaths #get the paths 
@@ -116,8 +117,8 @@ class MUFResult(MUFModuleController):
             if a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
             file will be created with the loaded measurement as the nominal result
         @param[in/OPT] arg_options - keyword arguments as follows:
-            None yet!
-            all arguments also passed to MUFModuleController constructor
+            - - all arguments passed to MUFResult.load() method
+            - - all arguments also passed to MUFModuleController constructor
         '''
         super().__init__(None,except_no_menu=False,**arg_options)
         #uncertainty statistics
@@ -143,9 +144,19 @@ class MUFResult(MUFModuleController):
         return self._xml_nominal[0][1].attrib['Text'] if self.nominal.count else None
     
     @property
+    def nominal_post_value_path(self):
+        '''@brief property to return the path of the nominal value'''
+        return self._xml_nominal_post[0][1].attrib['Text'] if self.nominal.count else None
+    
+    @property
     def _xml_nominal(self):
         '''@brief link to nominal xml path value'''
         return self.controls.find('MeasSParams')
+    
+    @property
+    def _xml_nominal_post(self):
+        '''@brief link to nominal xml path value'''
+        return self.controls.find('MeasSParamsPost')
     
     @property
     def _xml_monte_carlo(self):
@@ -236,13 +247,19 @@ class MUFResult(MUFModuleController):
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
+        #now create our nominal for post cal
+        ET.SubElement(self._controls,'MeasSParamsPost')
+        self._xml_nominal_post.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
+        self._xml_nominal_post.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParamsPost")
+        self._xml_nominal_post.set('Count',str(0))
+        self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
         self._xml_monte_carlo.set('FullName',"Me_SplitContainer2__GroupBox3_Panel2_MonteCarloPerturbedSParams")
         self._xml_monte_carlo.set('Count',str(0))
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options)
-        #and monte carlo
+        #and perturbed
         ET.SubElement(self._controls,'PerturbedSParams')
         self._xml_perturbed.set('ControlType',"CustomFormControls.FLV_VariableDetailsListMeas")
         self._xml_perturbed.set('FullName',"Me_SplitContainer2__GroupBox1_Panel1_PerturbedSParams")
@@ -256,9 +273,18 @@ class MUFResult(MUFModuleController):
         '''
         self.nominal.clear_items()
         self.nominal.add_item(nom_path)
+        
+    def set_nominal_post(self,nom_path):
+        '''
+        @brief add a nominal path to the xml *.meas file
+        @param[in] nom_path - nominal path
+        '''
+        self.nominal.clear_items()
+        self.nominal.add_item(nom_path)
     
     #alias
     set_nominal_path = set_nominal
+    set_nominal_post_path = set_nominal_post
         
     def set_monte_carlo(self,mc_path_list):
         '''
@@ -302,14 +328,22 @@ class MUFResult(MUFModuleController):
         self.plotter.legend()
         return fig
     
-    def _load_nominal(self):
+    def _load_nominal(self,verbose=False):
         '''@brief load the nominal path value into self.nominal'''
-        self.nominal.load_data()
+        if verbose: print("Loading Nominal")
+        self.nominal.load_data(working_directory=self.working_directory,verbose=False)
         
-    def _load_statistics(self):
+    def _load_nominal_post(self,verbose=False):
+        '''@brief load the nominal (post-calibrated) path value into self.nominal_post'''
+        if verbose: print("Loading Nominal Post")
+        self.nominal_post.load_data(working_directory=self.working_directory,verbose=False)
+        
+    def _load_statistics(self,verbose=False):
         '''@brief load in all of the data for all of our statistics'''
-        self.monte_carlo.load_data()
-        self.perturbed.load_data()
+        if verbose: print("Loading Monte Carlo:")
+        self.monte_carlo.load_data(working_directory=self.working_directory,verbose=verbose)
+        if verbose: print("Loading Perturbed:")
+        self.perturbed.load_data(working_directory=self.working_directory,verbose=verbose)
     
     def _load_xml(self):
         '''
@@ -322,26 +356,36 @@ class MUFResult(MUFModuleController):
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options) # parse nominal
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
+        if self._xml_nominal_post is not None:  # parse nominal post if it exists
+            self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options)
         
     def load(self,meas_path,**kwargs):
         '''
         @brief load our meas file and its corresponding data
         @param[in/OPT] meas_path - path to *.meas file to load in. This will overwrite self.meas_path
         @param[in/OPT] kwargs - keyword arguments as follows:
-            load_nominal - load our nominal value file in a subfolder of meas_path (default True)
-            load_stats - load our statistics to a subfolder of meas_path (default False)
+            load_nominal - load our data from the pre-calibrated nominal solution (default True)
+            load_nominal_post - load data from the post-calibrated nominal solution (default True)
+            load_statistics - load our statistics (monte carlo and perturbed) (default False)
+            verbose - be verbose when loading data (default False)
         '''
         options = {}
         options['load_nominal'] = True
-        options['load_stats'] = False
+        options['load_nominal_post'] = False
+        options['load_statistics'] = False
+        options['verbose'] = False
         for k,v in kwargs.items():
             options[k] = v
+        if meas_path is None: #if starting from empty, then dont load
+            options['load_nominal'] = False
+            options['load_nominal_post'] = False
+            options['load_statistics'] = False
         self.meas_path = meas_path
-        if meas_path is not None:
-            self.meas_path_dirname = os.path.dirname(self.meas_path)
         #make a *.meas if a wnp or snp file was provided
         #if self.meas_path is not None and os.path.exists(self.meas_path):
         if self.meas_path is not None:
+            if not os.path.exists(self.meas_path): #check if the file exists
+                raise FileNotFoundError('{} does not exist'.format(self.meas_path))
             _,ext = os.path.splitext(self.meas_path) #get our extension
             if not os.path.exists(self.meas_path) or '.meas' not in ext: #if its not a *.meas create our skeleton
                 self._create_meas()
@@ -353,17 +397,26 @@ class MUFResult(MUFModuleController):
             self.create_meas()
         #load our nominal and statistics if specified
         if options['load_nominal']:
-            self._load_nominal()
-
-        if options['load_stats']:
-            self._load_statistics()
+            self._load_nominal(verbose=options['verbose'])
+        if options['load_nominal_post']:
+            self._load_nominal_post(verbose=options['verbose'])
+        if options['load_statistics']:
+            self._load_statistics(verbose=options['verbose'])
             
-    def write_xml(self,out_path):
+    def write_xml(self,out_path,**kwargs):
         '''
         @brief write out our current xml file and corresponding measurements
         @param[in] out_path - path to writ ethe file out to 
+        @param[in/OPT] kwargs - keyword arguments as follows
+            - relative - write out data with paths relative to the \*.meas file (default False)
         '''
+        options = {}
+        options['relative'] = False
+        for k,v in kwargs.items():
+            option[k] = v
         super().write(out_path)
+        if options['relative']: #then just change after write (code already written)
+            set_meas_relative(out_path)
         
     def _write_nominal(self,out_dir,out_name='nominal'):
         '''
@@ -378,10 +431,29 @@ class MUFResult(MUFModuleController):
             fname+=os.path.splitext(nom_path)[-1]
             fname = shutil.copy(nom_path,fname)
         else:
-            fname = self.nominal[0].data.write(out_file)
+            fname = self.nominal[0].data.write(out_file,ftype='binary')
         fname = os.path.abspath(fname)
-        self.set_nominal_path(fname)
+        self.nominal[0][0] = get_name_from_path(fname)
+        self.nominal[0][1] = fname
             
+    def _write_nominal_post(self,out_dir,out_name='nominal_post'):
+        '''
+        @brief write out our nominal data
+        @param[in] out_dir - directory to write out to
+        @param[in/OPT] out_name - name to write out (default 'nominal')
+        '''
+        if len(self.nominal_post): #only write if data is available
+            out_file = os.path.join(out_dir,out_name)
+            if self.nominal_post[0].data is None: #then copy the file
+                fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
+                nom_path = self.nominal_post_value_path
+                fname+=os.path.splitext(nom_path)[-1]
+                fname = shutil.copy(nom_path,fname)
+            else:
+                fname = self.nominal_post[0].data.write(out_file,ftype='binary')
+            fname = os.path.abspath(fname)
+            self.nominal_post[0][0] = get_name_from_path(fname)
+            self.nominal_post[0][1] = fname
         
     def _write_statistic(self,stat_class,format_out_path):
         '''
@@ -403,21 +475,28 @@ class MUFResult(MUFModuleController):
         else:
             for i,dat in enumerate(stat_class.data): #loop through all of our data
                 fname = os.path.splitext(format_out_path.format(i))[0]
-                fname_out = dat.write(fname)
+                fname_out = dat.write(fname,ftype='binary')
                 fname_out = os.path.abspath(fname_out)
                 out_list.append(fname_out)
+                
+        for i,path in enumerate(out_list):
+            stat_class[i][0] = get_name_from_path(path)
+            stat_class[i][1] = path
+            
         return out_list
     
     def _write_statistics(self,out_dir):
-        '''
-        @brief write out monte carlo and perturbed data
-        '''
+        '''@brief write out monte carlo and perturbed data'''
+        #make the directories
         mc_dir = os.path.join(out_dir,'MonteCarlo')
         if not os.path.exists(mc_dir):
             os.makedirs(mc_dir)
         pt_dir = os.path.join(out_dir,'Perturbed')
         if not os.path.exists(pt_dir):
             os.makedirs(pt_dir)
+        #write the data
+        self._write_statistic(self.monte_carlo, os.path.join(mc_dir,'mc_{}'))
+        self._write_statistic(self.perturbed, os.path.join(pt_dir,'pt_{}'))
         
     def _write_data(self,out_dir,**kwargs):
         '''
@@ -425,17 +504,21 @@ class MUFResult(MUFModuleController):
         @param[in] out_dir - what directory to write the data out to
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
+            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
         @note if the data is not loaded in we will simply copy the files
         '''
         options = {}
         options['write_nominal'] = True
+        options['write_nominal_post'] = True
         options['write_stats'] = True
         for k,v in kwargs.items():
             options[k] = v
         #load our nominal and statistics if specified
         if options['write_nominal']:
             self._write_nominal(out_dir)
+        if options['write_nominal_post']:
+            self._write_nominal_post(out_dir)
         if options['write_stats']:
             self._write_statistics(out_dir)
         
@@ -447,14 +530,23 @@ class MUFResult(MUFModuleController):
             all other data will be stored in a similar structure to the MUF in here
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
+            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
+            verbose - be verbose when writing (default False)
         '''
         out_dir = os.path.splitext(out_path)[0]
+        if kwargs.get('verbose',False): print("Writing to : {}".format(out_path))
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
         self.write_xml(out_path)
+        
+    @property
+    def working_directory(self):
+        '''@brief getter for the directory of the *.meas file'''
+        return os.path.dirname(self.meas_path)
+        
     
 #%%    
 class MUFStatistic(MUFItemList):
@@ -513,10 +605,16 @@ class MUFStatistic(MUFItemList):
             item = mi
         super().add_item(item)
         
-    def load_data(self):
+    def load_data(self,**kwargs):
         '''@brief load in all of the data from each of the files'''
+        options = self.options
+        for k,v in kwargs.items():
+            options[k] = v
+        if options.get('verbose',False): pc = ProgressCounter(len(self.muf_items))
         for it in self.muf_items:
-            it.load_data(TouchstoneEditor,**self.options)
+            it.load_data(TouchstoneEditor,**options)
+            if options.get('verbose',False): pc.update()
+        if options.get('verbose',False): pc.finalize()
     
     def _extract_data_dict(self,tnp_list):
         '''
@@ -755,22 +853,25 @@ class MUFNominalValue(MUFStatistic):
 import unittest
 class TestMUFResult(unittest.TestCase):
     
-    wdir = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements"
+    wdir = os.path.dirname(__file__)
+    unittest_dir = os.path.join(wdir,'../unittest_data')
     
     def test_load_xml(self):
         '''
         @brief in this test we will load a xml file with uncertainties and try
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
-        meas_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas")
-        res = MUFResult(meas_path)
-        nvp = res.nominal_value_path #try getting our nominal value
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        res = MUFResult(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
         
     def test_create_from_snp(self):
         '''
         @brief this test will create a *.meas file for a given *.snp or *.wnp file
         '''
-        snp_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\touchstone\meas_cal_template.s2p")
+        snp_path = os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')
         res = MUFResult(snp_path)
         nvp = res.nominal_value_path #try getting our nominal value
         self.assertEqual(nvp,snp_path)
@@ -780,7 +881,7 @@ class TestMUFResult(unittest.TestCase):
         @brief in this test we create an empty .meas file and add our paths to it
             which is then written out
         '''
-        snp_path = os.path.join(self.wdir,r"Synthetic_Aperture\calibrated\7-8-2019\touchstone\meas_cal_template.s2p")
+        snp_path = os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')
         res = MUFResult()
         res.set_nominal(snp_path)
     
@@ -790,57 +891,20 @@ class TestMUFResult(unittest.TestCase):
             This should build a template around data itself and will write out data
             using name in one of the write data methods
         '''
-        pass
+        res = MUFResult()
+        res.nominal.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')))
+        res.nominal_post.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal_post.s2p_binary')))
+        res.monte_carlo.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/MonteCarlo/mc_0.s2p_binary')))
+        #make sure the data exists
+        self.assertIsNotNone(res.nominal.data)
+        self.assertIsNotNone(res.nominal_post.data)
+        self.assertIsNotNone(res.monte_carlo[0].data)
 
 #%%
 if __name__=='__main__':
     
-    unittest.main()
-    #from samurai.base.SamuraiPlotter import SamuraiPlotter
-    #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\meas_cal_template.meas"
-    #meas_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\7-8-2019\pdp_post_Results\meas_cal_template\PDPamplitude\meas_cal_template_PDPamplitude.meas"
-    #res = MUFResult(meas_path)
-    #mr = MUFResult(os.path.join(r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Documents\papers\URSI_2020\CUP_paper\figs\touchstone','beamformed_regular_0.meas'))
-    #mr.calculate_statistics()
-    #mr.plot(21,'all')
-    #res2 = MUFResult(meas_path)
-    #mil = MUFStatistic(res2._xml_monte_carlo)
-    #mil.file_paths
-    #MUFItem(res2._xml_monte_carlo.getchildren()[-1])
-    #res2.calculate_statistics()
-    
-    #res = MUFResult(None)
-    #val = TouchstoneEditor(meas_path)
-    #res.nominal.add_item(val)
-    #pvals = []
-   # res.init_statistics()
-   # res.monte_carlo.data = []
-    #for i in range(5):
-    #    rand_vals = ((np.random.rand(len(val))*2)-1)/10
-   #     pvals.append(val*rand_vals)
-    #res.monte_carlo.add_items(pvals)
-    #res.write('test/meas_test.meas',write_nominal=True,write_statistics=True)
-    #res3 = MUFResult('test.s2p')
-    #os.chdir('test/write_test')
-    #res.write('test/write_test/test.meas')
-    #res2.write('test/write_test/test2.meas')
-    #res3.write('test/write_test/test3.meas')
-    '''
-    res = MUFResult(meas_path,plot_options={'plot_engine':['matplotlib']})
-    res.S[11].plot()
-    print("Calculating Statistics")
-    res.calculate_statistics()
-    sp = res.options['plotter']
-    res.monte_carlo.plot(11)
-    sp.legend()
-    sp.figure()
-    res.perturbed.plot(11)
-    sp.legend()
-    '''
-    
-    #res_m = MUFResult('test.meas')
-    #res_s = MUFResult('test.s2p')
-    #res_w = MUFResult('test.w2p')
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestMUFResult)
+    unittest.TextTestRunner(verbosity=2).run(suite)
         
     
     

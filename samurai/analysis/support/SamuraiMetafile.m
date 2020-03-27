@@ -89,6 +89,38 @@ classdef SamuraiMetafile < handle
                 loc_list(i,:) = reshape(obj.json_data.measurements(i).position,1,[]);
             end
         end
-    end
+        
+        function ext_pos = get_external_positions(obj,label,meas_num)
+            %@brief Get an external position from a given measurement
+            %@param[in] label - marker label to get
+            %@param[in] meas_num - number of measurement to get position
+            %@return Structure containing the data from 'label'
+            ext_pos = obj.json_data.measurements(meas_num).external_position_measurements.(label);
+        end
+        function ext_pos_labels = get_external_position_labels(obj)
+            %@brief Get a list of labels from the first measurement
+            %@return CellArray of character arrays with labels
+            meas_num = 1;
+            ext_pos_struct = obj.json_data.measurements(meas_num).external_position_measurements; 
+            ext_pos_labels = fieldnames(ext_pos_struct);
+        end
+   end
 end
+
+%{
+
+%% Information on extracting positions from optitrack system
+fpath = '\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2020\2-5-2020\aperture_vertical\metafile.json';
+mysm = SamuraiMetafile(fpath); %load the metafile
+mylabels = mysm.get_external_position_labels();
+%for rigid body
+ext_pos_meca = mysm.get_external_positions('meca_head',1) %get the 'meca_head' rigid body
+ext_pos_meca.position.mean %mean of x,y,z positions
+ext_pos_meca.rotation.mean %mean of alpha,beta,gamma rotations
+%for rigid body markers
+ext_pos_cyl = mysm.get_external_positions('cylinders_markers',1)
+ext_pos_cyl.data(1).position.mean %mean of 1st marker in rigid body
+%}
+
+
 

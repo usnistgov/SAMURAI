@@ -242,14 +242,26 @@ class MUFItem(MUFItemList):
         options['working_directory'] = ''
         for k,v in kwargs.items():
             options[k] = v
-        fpath = self[self._filepath_subitem_idx]
-        os.path.join(options['working_directory'],fpath)
+        fpath = self.get_filepath(working_directory=options['working_directory'])
         self.data = load_funct(fpath,**kwargs)
-        
+    
+    def get_filepath(self,**kwargs):
+        '''
+        @brief getter for filepath
+        @param[in/OPT] kwargs - keyword arguements as follows:
+            - working_directory - working directory for relative paths (default '')
+        '''
+        options = {}
+        options['working_directory'] = ''
+        for k,v in kwargs.items():
+            options[k] = v
+        fpath = self[self._filepath_subitem_idx]
+        return os.path.join(options['working_directory'],fpath)
+    
     @property
     def filepath(self):
-        '''@brief getter for filepath'''
-        return self[self._filepath_subitem_idx]
+        '''@brief getter for filepath (not always absolute)'''
+        return self.get_filepath()
     
     @filepath.setter
     def filepath(self,val):
