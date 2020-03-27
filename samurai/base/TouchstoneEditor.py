@@ -162,6 +162,7 @@ class TouchstoneEditor(object):
          self.options['plot_options'] = {'plot_program':'matplotlib'}
          self.options['no_load'] = False
          self.options['default_extension'] = 'tnp' #default
+         self.options['param_class'] = TouchstoneParam
          for key,val in arg_options.items(): #overwrite defaults with inputs
              self.options[key] = val 
          #init plotter if not providied
@@ -172,8 +173,7 @@ class TouchstoneEditor(object):
          self.raw_data = None
    
          #initialize dictionary of waves
-         if self._param_class is None: #default to this
-             self._param_class = TouchstoneParam #parameter class
+         self._param_class = self.options['param_class']
          self.waves = SamuraiDict()
          for w in self.options['waves']:
              self.waves[w] = SamuraiDict()
@@ -740,13 +740,13 @@ class TouchstoneEditor(object):
             1. try and find in waves  
             2. see if its an attribute of raw data
         '''
-        try:
+        if attr in self.options['waves']:
             return self.waves[attr]
-        except AttributeError as ae:
+        else:
             try:
-                return getattr(self.raw,attr)
+                return getattr(self,attr)
             except AttributeError as ae:
-                raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
+                raise AttributeError("Attribute '{}' does not exist".format(attr))
      
     @property
     def w1(self):
@@ -891,9 +891,9 @@ class WnpEditor(TouchstoneEditor):
         options = {}
         options['waves'] = ['A','B'] #do s parameters
         options['default_extension'] = 'wnp'
+        options['param_class'] = WnpParam
         for k,v in arg_options.items():
             options[k] = v
-        self._param_class = WnpParam
         super().__init__(*args,**options)
 
 class SnpEditor(TouchstoneEditor):
@@ -910,9 +910,9 @@ class SnpEditor(TouchstoneEditor):
         options = {}
         options['waves'] = ['S'] #do s parameters
         options['default_extension'] = 'snp'
+        options['param_class'] = SnpParam
         for k,v in arg_options.items():
             options[k] = v
-        self._param_class = SnpParam
         super().__init__(*args,**options)
 
     def _gen_dict_keys(self,ports=None):
