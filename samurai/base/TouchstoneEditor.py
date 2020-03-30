@@ -13,11 +13,12 @@ from functools import reduce
 from xml.dom.minidom import parse 
 import warnings
 
-from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.base.SamuraiDict import SamuraiDict
 
 from samurai.base.generic import deprecated
 from samurai.base.generic import moving_average
+
+import plotly.graph_objs as go
 
 #hamming window
 import scipy.signal.windows
@@ -158,16 +159,11 @@ class TouchstoneEditor(object):
          self.options['comments'] = copy.deepcopy(DEFAULT_COMMENTS) #deepcopy otherwise all will point to that list
          self.options['read_header'] = True
          self.options['waves'] = ['A','B'] #waves to store. default to wave parameter
-         self.options['plotter'] = None
-         self.options['plot_options'] = {'plot_program':'matplotlib'}
          self.options['no_load'] = False
          self.options['default_extension'] = 'tnp' #default
          self.options['param_class'] = TouchstoneParam
          for key,val in arg_options.items(): #overwrite defaults with inputs
              self.options[key] = val 
-         #init plotter if not providied
-         if self.options['plotter'] is None:
-             self.options['plotter'] = SamuraiPlotter(**self.options['plot_options'])
         
          #initialize placeholder for data
          self.raw_data = None
@@ -300,8 +296,7 @@ class TouchstoneEditor(object):
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
                 #extract to self._raw
                 self._raw[wi,ki,:] = data
-                #self.waves[w][k] = self._param_class(np.array(freqs),np.array(data),plotter=self.options['plotter'])
-                self.waves[w][k] = self._param_class(self._freqs,self._raw[wi,ki,:],plotter=self.options['plotter'])
+                self.waves[w][k] = self._param_class(self._freqs,self._raw[wi,ki,:])
         self.round_freq_list() #round when we load (remove numerical rounding error)
      
     def _load_text(self,file_path,**kwargs):
@@ -396,7 +391,7 @@ class TouchstoneEditor(object):
          self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(freqs)),dtype=np.cdouble)
          for ki,k in enumerate(self.wave_dict_keys):
              for wi,wave in enumerate(self.waves.keys()):
-                 self.waves[wave][k] = self._param_class(self._freqs,self._raw[wi,ki,:],plotter=self.options['plotter'])
+                 self.waves[wave][k] = self._param_class(self._freqs,self._raw[wi,ki,:])
          self.round_freq_list()
          
     def _set_num_ports(self,num_ports):
@@ -491,7 +486,7 @@ class TouchstoneEditor(object):
         @param[in/OPT] key - port of data to plot or list of ports to plot, or 'all'  
         @param[in/OPT] waves - list of keys for self.waves to plot (default 'all')  
         @param[in/OPT] data_type - type of data to plot (e.g. mag_db,phase,phase_d)  
-        @param[in/OPT] arg_options - keywrod args passed to plotter funciton  
+        @param[in/OPT] arg_options - keywrod args passed to go.Figure() 
         '''
         # first our keys for 11,12,21,22,etc...
         if keys=='all': #check for all
@@ -504,9 +499,13 @@ class TouchstoneEditor(object):
         if not hasattr(waves,'__iter__'):
             waves = [waves]
         #now plot
+        fig = go.Figure(**arg_options)
+        traces = []
         for w in waves:
             for k in keys:
-               self.waves[w][k].plot(data_type,**arg_options)
+               trace = self.waves[w][k].plot(data_type,trace_only=True,name='{}{}'.format(w,k))
+               fig.add_trace(trace)
+        return fig
     
     def _update_param_freq_lists(self):
         '''
@@ -612,7 +611,7 @@ class TouchstoneEditor(object):
         new_keys = self.wave_dict_keys[np.in1d(self.wave_dict_keys,orig_wdk,invert=True)] #get the added keys
         for k in new_keys:
             for wk in self.waves.keys():
-                self.waves[wk][k] = self._param_class(freqs,np.zeros(len(freqs)),plotter=self.options['plotter']) #add empty params
+                self.waves[wk][k] = self._param_class(freqs,np.zeros(len(freqs))) #add empty params
    
              
     def __getitem__(self,key):
@@ -720,7 +719,7 @@ class TouchstoneEditor(object):
         @brief override deep copying of our data
         @note this is called by using copy.deepcopy
         '''
-        ret = type(self)([self.num_ports,self.freqs],**self.options) #fix issues with SamuraiPlotter class deepcopy
+        ret = type(self)([self.num_ports,self.freqs],**self.options)
         skip_keys = ['options','waves','_freqs','_raw']
         ret.raw = self.raw
         for k,v in self.__dict__.items():
@@ -1002,12 +1001,9 @@ class TouchstoneParam:
         @param[in] freq_list - list of frequencies for the parameter data  
         @param[in] raw_list  - raw complex data for the parameter  
         @param[in/OPT] arg_options - keyword arg options as follows  
-            - plotter - SamuraiPlotter class to override if not available
-            - plot_options - dictionary of args to pass to SamuraiPlotter (if plotter not specified)
+            - - None yet!
         '''
         self.options = {}
-        self.options['plotter'] = None #this should be provided by the parent
-        self.options['plot_options'] = {}
         for k,v in arg_options.items():
             self.options[k] = v
         self.update(freq_list,raw_list)
@@ -1128,16 +1124,24 @@ class TouchstoneParam:
         '''
         pass
     
-    def plot(self,data_type='mag_db',**plot_options):
+    def plot(self,data_type='mag_db',trace_only=False,**plot_options):
         '''
         @brief plot the data from the parameter given as data_type  
         @param[in] data_type - type of data to plot (e.g. mag,mag_db,phase,phase_d)  
-        @param[in/OPT] plot_options - keyword args to pass as options to self.optoins['plotter'].plot()  
+        @param[in/OPT] trace_only - only return the plotly trace (as opposed to a figure) (default False)
+        @param[in/OPT] plot_options - keyword args to pass as options to go.Scatter
+        @return Plotly figure handle (if trace_only=False) or Plotly trace handle (if trace_only=True)
         '''
-        if self.options['plotter'] is None:
-            raise Exception("No Plotter Defined")
         data = getattr(self,data_type)
-        self.options['plotter'].plot(self.freq_list,data,xlabel='Freq (Hz)',ylabel=data_type,**plot_options)     
+        freqs = self.freq_list
+        if not trace_only: #if we dont just want the trace, return the plot
+            fig = go.Figure()
+        rv = go.Scatter(x=freqs,y=data,**plot_options)
+        if not trace_only:
+            fig.add_trace(rv)
+            fig.update_layout(xaxis_label='Freq (GHz)',yaxis_label=data_type)
+            rv = fig
+        return rv
     
     def run_function_on_data(self,funct,*args,**kwargs):
        '''
@@ -1571,6 +1575,14 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.assertTrue(np.all(s1.wave_dict_keys==[22]))
         rw = s1.add_port(1)
         self.assertTrue(np.all(s1.wave_dict_keys==init_keys))
+        
+    def test_plot(self):
+        '''
+        @brief test adding/swapping/removing ports. This is written only for s2p files  
+        '''
+        f1 = os.path.join(self.dir_path,self.test_snp_txt)
+        s1 = SnpEditor(f1)
+        s1.plot()
             
 #%% things to run when we run this file
 if __name__=='__main__':
