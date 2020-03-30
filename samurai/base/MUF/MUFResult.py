@@ -5,7 +5,7 @@ Created on Mon Jun 24 16:02:04 2019
 @author: ajw5, bfj
 """
 
-from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor
+from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor,WaveformEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
 from samurai.base.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
 from samurai.base.SamuraiPlotter import SamuraiPlotter
@@ -23,6 +23,8 @@ from lxml import etree as ET
 import os
 import re
 import sys
+
+#%% Functions for file path adjustments and correction
 
 def mufPathVerify(inPath):
     return sys.path.exists(inPath)
@@ -85,7 +87,7 @@ def set_meas_relative(meas_path,out_path=None):
     meas = MUFResult(meas_path,load_nominal=False,load_statistics=False)
     meas_dir = os.path.dirname(meas_path)
     #change all the paths
-    meas_types = ['nominal','nominal_post','monte_carlo','perturbed']
+    meas_types = MUFResult.meas_types
     for mt in meas_types:
         meas_obj = getattr(meas,mt) #get the object
         fpaths = meas_obj.filepaths #get the paths 
@@ -97,6 +99,29 @@ def set_meas_relative(meas_path,out_path=None):
             meas_obj.add_items(rel_paths) #add the filepaths back
     return meas.write_xml(out_path)
     
+#%% Operation Function (e.g. FFT) with uncerts
+def calculate_time_domain(fd_w_uncert,key=21,window=None):
+    '''
+    @brief Calculate the fft of a frequency domain value with uncertainties
+    @param[in] fd_w_uncert - frequency domain values with uncertainty (e.g. MUFResult instance)
+    @param[in/OPT] key - what key (e.g. 21,11,12,22) to calculate fft  (default 21)
+    @param[in/OPT] window - windowing to add to the fft calculation
+    @return MUFResult class 
+    '''
+    td_w_uncert = MUFResult()
+    for mt in td_w_uncert.meas_types:
+        out_meas = getattr(td_w_uncert,mt) #get the measurement of interest
+        in_meas  = getattr(fd_w_uncert,mt) #get the input meas of interest
+        for ii,item in enumerate(in_meas): # go through each item in the measurement
+            item_data = item.data
+            if item_data is None:
+                raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
+            td_vals = item.w1[key].calculate_time_domain_data(window=window)
+            tdw_vals = WaveformEditor(*td_vals)
+            out_meas.add_item(tdw_vals)
+    return td_w_uncert
+
+#%% Class for MUF Interoperability
 
 class MUFResult(MUFModuleController):
     '''
@@ -108,6 +133,8 @@ class MUFResult(MUFModuleController):
         >>> mymeas = MUFResult(meas_path) #initialize the class
         >>> mymeas.calculate_monte_carlo_statistics() 
     '''
+    
+    meas_types = ['nominal','nominal_post','monte_carlo','perturbed']
         
     def __init__(self,meas_path=None,**arg_options):
         '''
@@ -899,11 +926,24 @@ class TestMUFResult(unittest.TestCase):
         self.assertIsNotNone(res.nominal.data)
         self.assertIsNotNone(res.nominal_post.data)
         self.assertIsNotNone(res.monte_carlo[0].data)
+        
+class TestUncertaintyOperations(unittest.TestCase):
+    '''@brief test operations on data with uncertainty'''
+    
+    wdir = os.path.dirname(__file__)
+    unittest_dir = os.path.join(wdir,'../unittest_data')
+    
+    def test_calculate_time_domain(self):
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        td_res = calculate_time_domain(res)
 
 #%%
 if __name__=='__main__':
     
     suite = unittest.TestLoader().loadTestsFromTestCase(TestMUFResult)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestUncertaintyOperations)
     unittest.TextTestRunner(verbosity=2).run(suite)
         
     
