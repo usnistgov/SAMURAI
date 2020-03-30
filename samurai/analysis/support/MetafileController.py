@@ -380,7 +380,8 @@ class MetafileController(SamuraiDict):
         @brief get the labels of all of the external positions (use the first measurement)
         '''
         ext_pos = self.get_external_positions(meas_num=0)
-        return ext_pos.keys()
+        keys = ext_pos.keys()
+        return [k for k in keys if not k=='timestamp'] #dont include timestamp
     
     def get_external_positions_mean(self,label,meas_type='position',meas_num=-1):
         '''
@@ -483,6 +484,21 @@ class MetafileController(SamuraiDict):
             data = json.load(fp) #load the json data
         for k,v in data.items(): #for each marker
             self.update_external_measurement(k,v) #update measurements
+            
+    def _unpack_rigid_body_markers(self):
+        '''@brief All rigid body marker lists and unpack to rb_name[0],[1],etc...'''
+        #this will just check the first measurement for the ['data'] field in each motive label
+        meas0_ext_pos = self['measurements'][0]['external_position_measurements']
+        keys_to_unpack = []
+        for k,v in meas0_ext_pos.items(): #loop through each value
+            if 'data' in v.keys():
+                keys_to_unpack.append(k)
+        #now lets actually unpack the values
+        for i in range(len(self['measurements'])):
+            for k in keys_to_unpack:
+                val = self['measurements'][i]['external_position_measurements'].pop(k) #pop the key
+                val_dict = {'{}[{}]'.format(k,iv):v for iv,v in enumerate(val)}
+                self['measurements'][i]['external_position_measurements'].update(val_dict) #add the unpacked values
         
     def _get_external_positions_value(self,value,label,meas_type,meas_num):
         '''
@@ -525,6 +541,26 @@ class MetafileController(SamuraiDict):
             if l!='meca_head':
                 pos = np.mean(pos,axis=0)
             fig.add_trace(go.Scatter(x=pos[:,0],y=pos[:,1],z=pos[:,2],name=l))
+        return fig 
+    
+    def plot_external_positions_2d(self,label_names=None,cut='xz'):
+        '''
+        @brief Plot all external positions on a 2D cut
+        @param[in/OPT] label_names - a list of label names to plot. If none, all labels will be plotted
+        @param[in/OPT] cut - what plane to show 2D cut of (e.g. 'xy','xz') (default 'xz')
+        @return Plotly figure handle
+        '''
+        if label_names is None:
+            label_names = self.get_external_positions_labels()
+        elif type(label_names)!=list or type(label_names)!=tuple:
+            label_names = [label_names] #check in case we got a single value
+        fig = go.Figure() #create the figure
+        ax_dict = {'x':0,'y':1,'z':2}
+        for l in label_names:   
+            pos = self.get_external_positions_mean(l)
+            if l!='meca_head':
+                pos = np.mean(pos,axis=0)
+            fig.add_trace(go.Scatter(x=pos[...,ax_dict[cut[0]]],y=pos[...,ax_dict[cut[1]]],name=l))
         return fig 
     
     ###########################################################################
