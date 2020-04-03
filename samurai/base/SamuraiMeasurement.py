@@ -64,7 +64,7 @@ def MUFResult2SamuraiMeasurement(mr_obj):
 def set_meas_relative(meas_path,out_path=None):
     '''
     @brief change all paths in a \*.smeas file to relative paths and save.
-    The paths will assume all paths are relative to the \*.meas file.
+        The paths will assume all paths are relative to the \*.meas file.
     @param[in] meas_path - path to \*.meas file
     @param[in/OPT] out_path - path to write out to. If not provided, overwrite the input
     @note This will overwrite the provided file if a new path is not provided
@@ -86,6 +86,32 @@ def set_meas_relative(meas_path,out_path=None):
             new_path = mufPathFind(fpaths[0], meas_dir) #find first object with respect to the *.meas file
             new_rel_dir = os.path.dirname(os.path.relpath(new_path,meas_dir)) #get the relative path
             rel_paths = [os.path.join('./',new_rel_dir,os.path.basename(p)) for p in fpaths]
+            meas_obj.add_items(rel_paths) #add the filepaths back
+    return meas.write_xml(out_path)
+
+def set_meas_absolute(meas_path,out_path=None):
+    '''
+    @brief change all paths in a \*.smeas file to absolute paths and save.
+        The paths will assume all paths are relative to the \*.meas file.
+    @param[in] meas_path - path to \*.meas file
+    @param[in/OPT] out_path - path to write out to. If not provided, overwrite the input
+    @note This will overwrite the provided file if a new path is not provided
+    @note This assumes that all Monte Carlo are in the same folder as are Perturbed
+    @return return the updated MUFResult
+    '''
+    if out_path is None:
+        out_path = meas_path
+    #first open the xml file
+    meas = SamuraiMeasurement(meas_path,load_nominal=False,load_statistics=False)
+    meas_dir = os.path.dirname(meas_path)
+    #change all the paths
+    meas_types = meas.meas_types
+    for mt in meas_types:
+        meas_obj = getattr(meas,mt) #get the object
+        fpaths = meas_obj.filepaths #get the paths 
+        if fpaths: # if there are values
+            meas_obj.clear_items() #remove the objects with the old paths
+            rel_paths = [os.path.join(meas_dir,os.path.basename(p)) for p in fpaths]
             meas_obj.add_items(rel_paths) #add the filepaths back
     return meas.write_xml(out_path)
     
@@ -138,15 +164,10 @@ class SamuraiMeasurement(SamuraiDict):
             file will be created with the loaded measurement as the nominal result
         @param[in/OPT] arg_options - keyword arguments as follows:
             - - all arguments passed to MUFResult.load() method
-            - - all arguments also passed to MUFModuleController constructor
         '''
-        super().__init__(**arg_options)
+        super().__init__()
         #measurement path
         self.meas_path = None
-        #uncertainty statistics
-        self.monte_carlo = None
-        self.perturbed = None
-        self.nominal = None
         #options
         self.options = {}
         self.options['ci_percentage'] = 95
@@ -154,10 +175,9 @@ class SamuraiMeasurement(SamuraiDict):
         for k,v in arg_options.items():
             self.options[k] = v
         #now load
+        self.create_meas() #create the skeleton
         if meas_path is not None: #load the data
             self.load(meas_path,**arg_options) #pass our kwargs here to for loading if desired
-        else:
-            self.create_meas() #create the skeleton
       
     ##########################################################################
     ### Properties for easy access
@@ -256,6 +276,13 @@ class SamuraiMeasurement(SamuraiDict):
         sm = MUFResult2SamuraiMeasurement(mr)
         for k,v in sm.items(): #update the current object values
             self[k] = v 
+            
+    def _load_json(self,meas_path):
+        '''@brief Load a json *.smeas file'''
+        super().load(meas_path)
+        for k,v in self.items():
+            if k in self.meas_types:
+                self[k] = SamMeasItem(v)
         
     def load(self,meas_path,**kwargs):
         '''
@@ -277,14 +304,13 @@ class SamuraiMeasurement(SamuraiDict):
         self.meas_path = meas_path
         #make a *.meas if a wnp or snp file was provided
         #if self.meas_path is not None and os.path.exists(self.meas_path):
-
         if not os.path.exists(meas_path): #check if the file exists
             raise FileNotFoundError('{} does not exist'.format(self.meas_path))
         _,ext = os.path.splitext(meas_path) #get our extension
         if '.meas'==ext: #load from xml
             self._load_xml(meas_path)
         elif '.smeas'==ext: #load from json
-            super().load(meas_path)
+            self._load_json(meas_path)
         else: #if its not a meas file (e.g. touchstone) then create
             self.create_meas()
             self.nominal.add_item(meas_path)
@@ -307,10 +333,10 @@ class SamuraiMeasurement(SamuraiDict):
         options = {}
         options['relative'] = False
         for k,v in kwargs.items():
-            option[k] = v
+            options[k] = v
         mr = SamuraiMeasurement2MUFResult(self)
         out_path = os.path.splitext(out_path)[0]+'.meas'
-        mr.write(out_path,**kwargs)
+        mr.write_xml(out_path,**options)
         
     def write_json(self,out_path,**kwargs):
         '''
@@ -319,9 +345,11 @@ class SamuraiMeasurement(SamuraiDict):
         options = {}
         options['relative'] = False
         for k,v in kwargs.items():
-            option[k] = v
+            options[k] = v
         out_path = os.path.splitext(out_path)[0]+'.smeas'
         super().write(out_path)
+        if options['relative']: set_meas_relative(out_path)
+        else: set_meas_absolute(out_path)
         
     def _write_nominal(self,out_dir,out_name='nominal'):
         '''
@@ -424,7 +452,10 @@ class SamuraiMeasurement(SamuraiDict):
             os.makedirs(out_dir)
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
-        self.write_xml(out_path)
+        if '.meas' in out_path: #write an xml if we have a .meas file
+            self.write_xml(out_path)
+        else:
+            self.write_json(out_path) #otherwise write a json file
         
 #################################################
 # Some useful properties
@@ -501,7 +532,7 @@ class SamMeasStatistic(list):
         options = self.options
         for k,v in kwargs.items():
             options[k] = v
-        if options.get('verbose',False): pc = ProgressCounter(len(self.muf_items))
+        if options.get('verbose',False): pc = ProgressCounter(len(self))
         for it in self:
             it.load_data(TouchstoneEditor,**options)
             if options.get('verbose',False): pc.update()
@@ -512,7 +543,7 @@ class SamMeasStatistic(list):
         @brief write the data to a provided output path with a formattable string for numbering
         @param[in] format_out_path - formattable output path (e.g. path/to/data/monte_carlo_{}.snp/wnp)
         '''
-        for i,item in enumerate(self.muf_items):
+        for i,item in enumerate(self):
             item.write(format_out_path.format(i))
             
     @property
@@ -523,7 +554,7 @@ class SamMeasStatistic(list):
     @property
     def filepaths(self):
         '''@brief get all of our file paths'''
-        return [mi[1] for mi in self.muf_items]
+        return [mi['file_path'] for mi in self]
     #alias
     file_paths=filepaths
     
@@ -598,6 +629,12 @@ class SamMeasStatistic(list):
     def freq_list(self):
         '''@brief get the frequency list from the first value'''
         return self[0].data.freq_list
+    
+    @property
+    def file_paths(self):
+        '''@brief get a list of the file paths'''
+        return [item['file_path'] for item in self]
+    filepaths = file_paths #alias
     
 #%%  
 class SamMeasItem(SamuraiDict):
@@ -704,8 +741,23 @@ class TestSamuraiMeasurement(unittest.TestCase):
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
         res.calculate_statistics()
+        
+    def test_write(self):
+        '''
+        @brief in this test we will load a xml file with uncertainties and try
+            to access the path lists of each of the uncertainty lists and the nominal result
+        '''
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
+        res.write_json('./test/test_meas.smeas')
+        res.write_xml('./test/test_meas.meas')
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res.write('./test/test_meas_all.smeas')
+        res.write('./test/test_meas_all.meas')
+        resj = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        
         
 class TestUncertaintyOperations(unittest.TestCase):
     '''@brief test operations on data with uncertainty'''
@@ -730,7 +782,7 @@ if __name__=='__main__':
     unittest_dir = os.path.join(wdir,'./unittest_data')
     meas_path = os.path.join(unittest_dir,'meas_test.meas')
     res = SamuraiMeasurement(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
-    
+    resd = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
     
     
     
