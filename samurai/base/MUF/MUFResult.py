@@ -87,7 +87,7 @@ def set_meas_relative(meas_path,out_path=None):
     meas = MUFResult(meas_path,load_nominal=False,load_statistics=False)
     meas_dir = os.path.dirname(meas_path)
     #change all the paths
-    meas_types = MUFResult.meas_types
+    meas_types = meas.meas_types
     for mt in meas_types:
         meas_obj = getattr(meas,mt) #get the object
         fpaths = meas_obj.filepaths #get the paths 
@@ -100,18 +100,21 @@ def set_meas_relative(meas_path,out_path=None):
     return meas.write_xml(out_path)
     
 #%% Operation Function (e.g. FFT) with uncerts
-def calculate_time_domain(fd_w_uncert,key=21,window=None):
+def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
     '''
     @brief Calculate the fft of a frequency domain value with uncertainties
     @param[in] fd_w_uncert - frequency domain values with uncertainty (e.g. MUFResult instance)
     @param[in/OPT] key - what key (e.g. 21,11,12,22) to calculate fft  (default 21)
     @param[in/OPT] window - windowing to add to the fft calculation
+    @param[in/OPT] verbose - whether or not to be verbose on calculations
     @return MUFResult class 
     '''
     td_w_uncert = MUFResult()
     for mt in td_w_uncert.meas_types:
+        if verbose: print("Calculating {}".format(mt))
         out_meas = getattr(td_w_uncert,mt) #get the measurement of interest
         in_meas  = getattr(fd_w_uncert,mt) #get the input meas of interest
+        if verbose and len(in_meas)>1: pc = ProgressCounter(len(in_meas))
         for ii,item in enumerate(in_meas): # go through each item in the measurement
             item_data = item.data
             if item_data is None:
@@ -119,6 +122,8 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None):
             td_vals = item.w1[key].calculate_time_domain_data(window=window)
             tdw_vals = WaveformEditor(*td_vals)
             out_meas.add_item(tdw_vals)
+            if verbose and len(in_meas)>1: pc.update()
+        if verbose and len(in_meas)>1: pc.finalize()
     return td_w_uncert
 
 #%% Class for MUF Interoperability
@@ -133,8 +138,6 @@ class MUFResult(MUFModuleController):
         >>> mymeas = MUFResult(meas_path) #initialize the class
         >>> mymeas.calculate_monte_carlo_statistics() 
     '''
-    
-    meas_types = ['nominal','nominal_post','monte_carlo','perturbed']
         
     def __init__(self,meas_path=None,**arg_options):
         '''
@@ -260,6 +263,7 @@ class MUFResult(MUFModuleController):
         @brief create a skeleton (main nodes) for a *.meas file
         This includes everything except the menustripheader
         '''
+        self.meas_types = ['nominal','nominal_post','monte_carlo','perturbed'] #default measurement types
         #root node
         root_elem = ET.Element('CorrectedMeasurement')
         root_elem.set('FileName','./')
@@ -385,6 +389,9 @@ class MUFResult(MUFModuleController):
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
         if self._xml_nominal_post is not None:  # parse nominal post if it exists
             self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options)
+            self.meas_types = ['nominal','monte_carlo','perturbed'] #default measurement types
+        else:
+            self.meas_types = ['nominal','nominal_post','monte_carlo','perturbed'] #default measurement types
         
     def load(self,meas_path,**kwargs):
         '''
@@ -946,9 +953,10 @@ if __name__=='__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(TestUncertaintyOperations)
     unittest.TextTestRunner(verbosity=2).run(suite)
         
-    
-    
-    
+    wdir = os.path.dirname(__file__)
+    unittest_dir = os.path.join(wdir,'../unittest_data')
+    meas_path = os.path.join(unittest_dir,'meas_test.meas')
+    res = MUFResult(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
     
     
     

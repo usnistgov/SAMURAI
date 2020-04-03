@@ -13,6 +13,7 @@ from samurai.base.SamuraiDict import SamuraiDict
 import json
 import os
 from shutil import copyfile,copy
+from copy import deepcopy
 import shutil
 import numpy as np
 from datetime import datetime #for timestamps
@@ -38,7 +39,7 @@ def set_metafile_meas_relative(metafile_path,verbose=True):
     @param[in/OPT] verbose - whether to be verbose or not when changing the paths
     @return The list of file paths that have been edited
     '''
-    mf = MetaFileController(metafile_path,verify=True)
+    mf = MetafileController(metafile_path,verify=True)
     fpaths = mf.filenames #get the filenames
     fpaths = [fpath for fpath in fpaths if '.meas' in fpath] #only get *.meas files
     if verbose: mypc = ProgressCounter(len(fpaths),'    Correcting Path - ')
@@ -108,6 +109,56 @@ def combine_split_measurements(out_dir,metafile_path,raw_list,copy_data=True,**k
     if options['verbose']: print('Writing out Metafile')
     mymf['measurements'] = meas_data
     return mymf.write(os.path.join(out_dir,'metafile.json'))
+
+def get_planar_center(planar_mfc):
+    '''
+    @brief take a metafile and get a new metafile with half the size cut from the center
+    @param[in] planar_mfc - metafile controller with a planar sweep
+    @return MetafileController with cut of positions
+    '''
+    #copy and get our measurements
+    mfc_out = deepcopy(planar_mfc)
+    meas = mfc_out.pop('measurements')
+    #try and make square
+    xlen = int(np.sqrt(len(meas)))
+    measr = np.reshape(meas,(xlen,int(len(meas)/xlen)))
+    posr = planar_mfc.positions.reshape(xlen,int(len(meas)/xlen),-1)
+    xsort = np.argsort(posr[0,:,0])
+    ysort = np.argsort(posr[:,0,1])
+    measr = measr[ysort,:]
+    measr = measr[:,xsort]
+    mrvs = np.vsplit(measr,4)[1:-1]
+    mrvs = np.concatenate(mrvs,axis=0)
+    mrhs = np.hsplit(mrvs,4)[1:-1]
+    mrhs = np.concatenate(mrhs,axis=1)
+    mout = mrhs.flatten()
+    mfc_out['measurements'] = mout
+    return mfc_out
+
+def get_planar_subarray_center(planar_mfc):
+    '''
+    @brief take a metafile and get a new metafile with half the size cut from the center
+    @param[in] planar_mfc - metafile controller with a planar sweep
+    @return MetafileController with cut of positions
+    '''
+    #copy and get our measurements
+    mfc_out = deepcopy(planar_mfc)
+    meas = mfc_out.pop('measurements')
+    #try and make square
+    xlen = int(np.sqrt(len(meas)))
+    measr = np.reshape(meas,(xlen,int(len(meas)/xlen)))
+    posr = planar_mfc.positions.reshape(xlen,int(len(meas)/xlen),-1)
+    xsort = np.argsort(posr[0,:,0])
+    ysort = np.argsort(posr[:,0,1])
+    measr = measr[ysort,:]
+    measr = measr[:,xsort]
+    mrvs = np.vsplit(measr,4)[1:-1]
+    mrvs = np.concatenate(mrvs,axis=0)
+    mrhs = np.hsplit(mrvs,4)[1:-1]
+    mrhs = np.concatenate(mrhs,axis=1)
+    mout = mrhs.flatten()
+    mfc_out['measurements'] = mout
+    return mfc_out
 
 
 #%% Class for working with the Metafiles
