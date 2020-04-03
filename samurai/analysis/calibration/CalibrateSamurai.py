@@ -19,7 +19,7 @@ import os
 from samurai.analysis.support.MetaFileController import MetaFileController as mfc
 from samurai.analysis.support.MetaFileController import set_metafile_meas_relative
 #from samurai.analysis.support.metaFileController import update_wdir
-from samurai.analysis.support.MUF.PostProcPy import PostProcPy as pppy
+from samurai.base.MUF.PostProcPy import PostProcPy as pppy
 from samurai.base.generic import deprecated
 from samurai.analysis.support.MetaFileController import copy_touchstone_from_muf
 

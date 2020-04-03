@@ -128,8 +128,9 @@ for meas_dir in meas_dirs:
 
     #%% Now lets find and loop through metafiles to plot our multiple measurements
     link_str_list = []
-    if build_extra:
-        for i,mf_path in enumerate(mf_paths):
+    
+    for i,mf_path in enumerate(mf_paths):
+        if build_extra:
             
             mf_name = os.path.relpath(mf_path,os.path.join(mfd_full,'../')) #name relative to directory
             mfc = MetaFileController(mf_path)
@@ -266,9 +267,9 @@ for meas_dir in meas_dirs:
             with open(extra_out_file_path,'w+') as f:
                 f.write(extra_rst_str)
             
-            #add the link to the file
-            ref_str = "   - :ref:`{}`".format('data_{0}_extra_info_{1}'.format(data_name,i))
-            link_str_list.append(ref_str)
+        #add the link to the file
+        ref_str = "   - :ref:`{}`".format('data_{0}_extra_info_{1}'.format(data_name,i))
+        link_str_list.append(ref_str)
         
     
     #%% now save out the regular page
