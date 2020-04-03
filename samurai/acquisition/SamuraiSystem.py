@@ -5,7 +5,7 @@
 @author: ajw5
 """
 
-from samurai.acquisition.support import autoPNAGrabber as pnag    #for running pnagrabber
+from samurai.acquisition.instrument_control import AutoPnaGrabber as pnag    #for running pnagrabber
 from samurai.acquisition.instrument_control.PnaController import PnaController
 from samurai.acquisition.support import samurai_metaFile as smf     #for keeping track of data
 from samurai.acquisition.instrument_control.Meca500  import Meca500       #our posisioner

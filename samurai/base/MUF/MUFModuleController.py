@@ -41,6 +41,11 @@ class MUFModuleController(SamuraiXML):
             if self.options['except_no_menu']:
                 raise Exception('No menu path provided') #implement default menu here
         
+    def load(self,*args,**kwargs):
+        '''@brief load a measurement path'''
+        super().load(args[0])
+        self._controls = ET.SubElement(self.getroot(),'Controls')  #set the controls
+        
     def run(self,out_path,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
         '''
         @brief run our module.This will also save to output_path
