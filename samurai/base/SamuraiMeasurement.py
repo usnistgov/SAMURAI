@@ -11,6 +11,8 @@ from samurai.base.generic import complex2magphase, magphase2complex
 from samurai.base.generic import get_name_from_path
 from samurai.base.generic import ProgressCounter
 from samurai.base.SamuraiDict import SamuraiDict
+from samurai.base.MUF.MUFResult import MUFResult,mufPathFind
+from samurai.base.MUF.MUFResult import calculate_confidence_interval,calculate_estimate,calculate_standard_uncertainty
 
 import shutil
 import getpass
@@ -33,8 +35,8 @@ def SamuraiMeasurement2MUFResult(sam_meas):
     '''
     mr = MUFResult() #empty data structure
     for mt in sam_meas.meas_types: #go through each meas type
-        mt_attr = getattr(sam_meas,meas_type) #get the measurements
-        mr_mt_attr = getattr(rv,meas_type)
+        mt_attr = getattr(sam_meas,mt) #get the measurements
+        mr_mt_attr = getattr(mr,mt)
         for i,item in enumerate(mt_attr): #now copy the data
             mr_mt_attr.add_item(item['file_path'])
             mr_mt_attr[i].data = item.data #copy the data 
@@ -47,13 +49,14 @@ def MUFResult2SamuraiMeasurement(mr_obj):
     @param[in] mr_obj - MUFResult object to convert
     '''
     sm = SamuraiMeasurement()
+    sm.meas_path = mr_obj.meas_path
     for mt in mr_obj.meas_types: #go through each meas type
-        mt_attr = getattr(mr_obj,meas_type) #get the measurements
-        sm_mt_attr = getattr(sm,meas_type)
+        mt_attr = getattr(mr_obj,mt) #get the measurements
+        sm_mt_attr = getattr(sm,mt)
         for i,item in enumerate(mt_attr): #now copy the data
-            sm_mt_attr.add_item(item['file_path'])
+            sm_mt_attr.add_item(item.filepath)
             sm_mt_attr[i].data = item.data #copy the data 
-    return mr
+    return sm
 
 ################################################################
 # Convert abs paths to relative (with respect to the meas file)
@@ -106,7 +109,7 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             item_data = item.data
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
-            td_vals = item.w1[key].calculate_time_domain_data(window=window)
+            td_vals = item.data.w1[key].calculate_time_domain_data(window=window)
             tdw_vals = WaveformEditor(*td_vals)
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()
@@ -138,6 +141,8 @@ class SamuraiMeasurement(SamuraiDict):
             - - all arguments also passed to MUFModuleController constructor
         '''
         super().__init__(**arg_options)
+        #measurement path
+        self.meas_path = None
         #uncertainty statistics
         self.monte_carlo = None
         self.perturbed = None
@@ -216,9 +221,9 @@ class SamuraiMeasurement(SamuraiDict):
         self['user_name'] = getpass.getuser()
         self['creation_time'] = str(datetime.datetime.now())
         #now create our nominal
-        self['nominal_measurements'] = SamMeasNominalValue(**self.options) #aliased to self.nominal
+        self['nominal_measurements'] = SamMeasStatistic(**self.options) #aliased to self.nominal
         #now create our nominal for post cal
-        self['nominal_post_measurements'] = SamMeasNominalValue(**self.options) #aliased to self.nominal_post
+        self['nominal_post_measurements'] = SamMeasStatistic(**self.options) #aliased to self.nominal_post
         #and monte carlo
         self['monte_carlo_measurements'] = SamMeasStatistic(**self.options) #aliased to self.monte_carlo
         #and perturbed
@@ -248,7 +253,9 @@ class SamuraiMeasurement(SamuraiDict):
     def _load_xml(self,meas_path):
         '''@brief Load an xml *.meas file'''
         mr = MUFResult(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
-        self.update(MUFResult2SamuraiMeasurement(mr))
+        sm = MUFResult2SamuraiMeasurement(mr)
+        for k,v in sm.items(): #update the current object values
+            self[k] = v 
         
     def load(self,meas_path,**kwargs):
         '''
@@ -419,7 +426,28 @@ class SamuraiMeasurement(SamuraiDict):
         self._write_data(out_dir,**kwargs)
         self.write_xml(out_path)
         
+#################################################
+# Some useful properties
+#################################################
     
+    #getters for our statistics
+    @property
+    def nominal(self): return self['nominal_measurements']
+    @property
+    def nominal_post(self): return self['nominal_post_measurements']
+    @property
+    def monte_carlo(self): return self['monte_carlo_measurements']
+    @property
+    def perturbed(self): return self['perturbed_measurements']
+    #and their setters
+    @nominal.setter
+    def nominal(self,val): self['nominal_measurements'] = val
+    @nominal_post.setter
+    def nominal_post(self,val): self['nominal_post_measurements'] = val
+    @monte_carlo.setter
+    def monte_carlo(self,val): self['monte_carlo_measurements'] = val
+    @perturbed.setter
+    def perturbed(self,val): self['perturbed_measurements'] = val
 
         
     @property
@@ -460,10 +488,10 @@ class SamMeasStatistic(list):
     def add_item(self,item):
         '''@brief extend super().add_item to allow adding Touchstone params'''
         if isinstance(item,str): #if its a path then add that
-            mi = {'name':get_name_from_path(item),'path':item}
+            mi = SamMeasItem({'name':get_name_from_path(item),'file_path':item})
             item = mi
         if isinstance(item,TouchstoneEditor):#then make a MUFItem and set the value as the data
-            mi = MUFItem(['name','path'])
+            mi = SamMeasItem({'name':'NA','file_path':'NA'})
             mi.data = item
             item = mi
         super().append(item)
@@ -474,24 +502,10 @@ class SamMeasStatistic(list):
         for k,v in kwargs.items():
             options[k] = v
         if options.get('verbose',False): pc = ProgressCounter(len(self.muf_items))
-        for it in self.muf_items:
+        for it in self:
             it.load_data(TouchstoneEditor,**options)
             if options.get('verbose',False): pc.update()
         if options.get('verbose',False): pc.finalize()
-    
-    def _extract_data_dict(self,tnp_list):
-        '''
-        @brief extract data from our snp_list into a dictionary with snp_list[0].wave_dict_key keys
-                and values of (n,m) 2D numpy arrays where n is len(snp_list) and m is len(snp_list[0].freq_list)
-        @return a dictionary as described in the brief
-        '''
-        data_dict = {}
-        data_dict['freq_list'] = tnp_list[0].freq_list
-        data_dict['editor_type'] = type(tnp_list[0]) #assume all of same type
-        data_dict['first_key'] = tnp_list[0].wave_dict_keys[0]
-        for k in tnp_list[0].wave_dict_keys:
-            data_dict[k] = np.array([tnp.S[k].raw for tnp in tnp_list])
-        return data_dict
         
     def write_data(self,format_out_path):
         '''
@@ -504,7 +518,7 @@ class SamMeasStatistic(list):
     @property
     def data(self):
         '''@brief return list of all loaded data'''
-        return [it.data for it in self.muf_items]
+        return [it.data for it in self]
             
     @property
     def filepaths(self):
@@ -529,15 +543,15 @@ class SamMeasStatistic(list):
             if not self.data or self.data[0] is None:
                 self.load_data()
             tnp_list = self.data
-            data_dict = self._extract_data_dict(tnp_list)
+            data = self.data
             #estimate
-            self.estimate = self._calculate_estimate(data_dict)
+            self.estimate = calculate_estimate(data)
             #confidence interval
-            ciu,cil = self._calculate_confidence_interval(data_dict)
+            ciu,cil = calculate_confidence_interval(data)
             self.confidence_interval['+'] = ciu
             self.confidence_interval['-'] = cil
             #and standard uncertainty
-            suu,sul = self._calculate_standard_uncertainty(data_dict)
+            suu,sul = calculate_standard_uncertainty(data)
             self.standard_uncertainty['+'] = suu
             self.standard_uncertainty['-'] = sul
         
@@ -545,7 +559,7 @@ class SamMeasStatistic(list):
         '''
         @brief return statistics for a given key value 
         @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
-        @return aestimate,ci_+,ci_-,std_+,std_- (WnpParams)
+        @return estimate,ci_+,ci_-,std_+,std_- (TouchstoneParams)
         '''
         est = self.estimate.S[key]
         cip = self.confidence_interval['+'].S[key]
@@ -579,88 +593,6 @@ class SamMeasStatistic(list):
         stp = self.standard_uncertainty['+'].S[key].get_value_from_frequency(freq)
         stm = self.standard_uncertainty['-'].S[key].get_value_from_frequency(freq)
         return est,cip,cim,stp,stm        
-    
-    def _calculate_estimate(self,data_dict):
-        '''
-        @brief calculate the estimate from the input values (mean of the values)
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
-        @param[in/OPT] editor_type
-        @return WnpEditor object with the estimate (mean) of the stats_path values
-        '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type'] #get the type of editor
-        tnp_out = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in tnp_out.wave_dict_keys:
-            data = data_dict[k] #get the data
-            m,p = self._complex2magphase(data)
-            m_mean = m.mean(0); p_mean = p.mean(0)
-            data_mean = self._magphase2complex(m_mean,p_mean)
-            tnp_out.S[k].update(freq_list,data_mean)
-        return tnp_out
-            
-    def _calculate_confidence_interval(self,data_dict):
-        '''
-        @brief calculate the n% confidence interval where n is self.options['ci_percentage']
-            this will calculate both the upper and lower intervals
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
-        @return WnpEditor objects for upper(+),lower(-) intervals
-        '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type']
-        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        #find percentage and index like in the MUF
-        percentage = 0.5*(1-self.options['ci_percentage']/100)
-        lo_index = int(percentage*data_dict[data_dict['first_key']].shape[0])
-        if lo_index<=0: lo_index=1
-        hi_index = data_dict[data_dict['first_key']].shape[0]-lo_index
-        for k in tnp_out_p.wave_dict_keys:
-            data = data_dict[k] #get the data
-            #done in the same way as the MUF
-            m,p = self._complex2magphase(data)
-            m.sort(0); p.sort(0)
-            m_hi = m[hi_index,:]; m_lo = m[lo_index]
-            p_hi = p[hi_index,:]; p_lo = p[lo_index]
-            hi_complex = self._magphase2complex(m_hi,p_hi)
-            lo_complex = self._magphase2complex(m_lo,p_lo)
-            tnp_out_p.S[k].update(freq_list,hi_complex)
-            tnp_out_m.S[k].update(freq_list,lo_complex)
-        return tnp_out_p,tnp_out_m
-    
-    def _calculate_standard_uncertainty(self,data_dict):
-        '''
-        @brief calculate standard uncertainty (standard deviation)
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
-        @return WnpEditor objects for upper(+),lower(-) uncerts
-        '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type']
-        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in tnp_out_p.wave_dict_keys:
-            data = data_dict[k] #get the data
-            m,p = self._complex2magphase(data)
-            m_mean = m.mean(0); p_mean = p.mean(0)
-            m_std  = m.std(0) ; p_std  = p.std(0) #mean and stdev of mag/phase
-            m_plus = m_mean+m_std; m_minus = m_mean-m_std
-            p_plus = p_mean+p_std; p_minus = p_mean-p_std
-            data_plus   = self._magphase2complex(m_plus ,p_plus )
-            data_minus  = self._magphase2complex(m_minus,p_minus)
-            tnp_out_p.S[k].update(freq_list,data_plus)
-            tnp_out_m.S[k].update(freq_list,data_minus)
-        return tnp_out_p,tnp_out_m
-    
-    def _complex2magphase(self,data):
-        return complex2magphase(data)
-    
-    def _magphase2complex(self,mag,phase):
-        return magphase2complex(mag,phase)
             
     @property
     def freq_list(self):
@@ -674,7 +606,7 @@ class SamMeasItem(SamuraiDict):
         The point of this is to allow loading of data without being in the json file.
         It also adds some other extensions
     '''
-    def __init__(*args,**kwargs):
+    def __init__(self,*args,**kwargs):
         '''@brief Constructor definition. Same as for a dictionary'''
         super().__init__(*args,**kwargs)
         self.data = None #start with no data
@@ -766,11 +698,20 @@ class TestSamuraiMeasurement(unittest.TestCase):
         self.assertIsNotNone(res.nominal_post.data)
         self.assertIsNotNone(res.monte_carlo[0].data)
         
+    def test_calculate_statistics(self):
+        '''
+        @brief in this test we will load a xml file with uncertainties and try
+            to access the path lists of each of the uncertainty lists and the nominal result
+        '''
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res.calculate_statistics()
+        
 class TestUncertaintyOperations(unittest.TestCase):
     '''@brief test operations on data with uncertainty'''
     
     wdir = os.path.dirname(__file__)
-    unittest_dir = os.path.join(wdir,'../unittest_data')
+    unittest_dir = os.path.join(wdir,'./unittest_data')
     
     def test_calculate_time_domain(self):
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
@@ -786,7 +727,7 @@ if __name__=='__main__':
     unittest.TextTestRunner(verbosity=2).run(suite)
         
     wdir = os.path.dirname(__file__)
-    unittest_dir = os.path.join(wdir,'../unittest_data')
+    unittest_dir = os.path.join(wdir,'./unittest_data')
     meas_path = os.path.join(unittest_dir,'meas_test.meas')
     res = SamuraiMeasurement(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
     

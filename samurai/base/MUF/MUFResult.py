@@ -98,6 +98,96 @@ def set_meas_relative(meas_path,out_path=None):
             rel_paths = [os.path.join('./',new_rel_dir,os.path.basename(p)) for p in fpaths]
             meas_obj.add_items(rel_paths) #add the filepaths back
     return meas.write_xml(out_path)
+
+#%% Statistics operations used in the MUF 
+
+def calculate_estimate(data):
+    '''
+    @brief calculate the estimate from the input values (mean of the values)
+    @param[in] data - list of TouchstoneParameter data
+    @return Touchstone object with the estimate (mean) of the stats_path values
+    '''
+    #create a blank snp file to fill
+    num_ports = round(np.sqrt(len(data[0].wave_dict_keys)-1)) #-1 to ignore the freq_list entry
+    first_key = data[0].wave_dict_keys[0]
+    freq_list = data[0].freq_list
+    MyEditor = type(data[0]) #type of the editor to create
+    data_dict = {}
+    for k in data[0].wave_dict_keys: #data for each key
+        data_dict[k] = np.array([tnp.S[k].raw for tnp in data]) 
+    tnp_out = MyEditor([num_ports,freq_list])
+    for k in tnp_out.wave_dict_keys:
+        data = data_dict[k] #get the data
+        m,p = complex2magphase(data)
+        m_mean = m.mean(0); p_mean = p.mean(0)
+        data_mean = magphase2complex(m_mean,p_mean)
+        tnp_out.S[k].update(freq_list,data_mean)
+    return tnp_out
+    
+def calculate_confidence_interval(data,confidence_interval=95):
+    '''
+    @brief calculate the n% confidence interval where n is ci_percentage
+        this will calculate both the upper and lower intervals
+    @param[in] data - list of TouchstoneEditor files to calculate from
+    @param[in/OPT] confidence_interval - confidence interval percentage (default 95)
+    @return TouchstoneEditor objects for upper(+),lower(-) intervals
+    '''
+    #create a blank snp file to fill
+    num_ports = round(np.sqrt(len(data[0].wave_dict_keys)-1)) #-1 to ignore the freq_list entry
+    first_key = data[0].wave_dict_keys[0]
+    freq_list = data[0].freq_list
+    MyEditor = type(data[0]) #type of the editor to create
+    data_dict = {}
+    for k in data[0].wave_dict_keys: #data for each key
+        data_dict[k] = np.array([tnp.S[k].raw for tnp in data])
+    tnp_out_p = MyEditor([num_ports,freq_list])
+    tnp_out_m = MyEditor([num_ports,freq_list])
+    #find percentage and index like in the MUF
+    percentage = 0.5*(1-confidence_interval/100)
+    lo_index = int(percentage*data_dict[first_key].shape[0])
+    if lo_index<=0: lo_index=1
+    hi_index = data_dict[first_key].shape[0]-lo_index
+    for k in tnp_out_p.wave_dict_keys:
+        data = data_dict[k] #get the data
+        #done in the same way as the MUF
+        m,p = complex2magphase(data)
+        m.sort(0); p.sort(0)
+        m_hi = m[hi_index,:]; m_lo = m[lo_index]
+        p_hi = p[hi_index,:]; p_lo = p[lo_index]
+        hi_complex = magphase2complex(m_hi,p_hi)
+        lo_complex = magphase2complex(m_lo,p_lo)
+        tnp_out_p.S[k].update(freq_list,hi_complex)
+        tnp_out_m.S[k].update(freq_list,lo_complex)
+    return tnp_out_p,tnp_out_m
+
+def calculate_standard_uncertainty(data):
+    '''
+    @brief calculate standard uncertainty (standard deviation)
+    @param[in] data - list of TouchstoneEditor files to calculate from
+    @return Touchstone objects for upper(+),lower(-) uncerts
+    '''
+    #create a blank snp file to fill
+    num_ports = round(np.sqrt(len(data[0].wave_dict_keys)-1)) #-1 to ignore the freq_list entry
+    first_key = data[0].wave_dict_keys[0]
+    freq_list = data[0].freq_list
+    MyEditor = type(data[0]) #type of the editor to create
+    data_dict = {}
+    for k in data[0].wave_dict_keys: #data for each key
+        data_dict[k] = np.array([tnp.S[k].raw for tnp in data])
+    tnp_out_p = MyEditor([num_ports,freq_list])
+    tnp_out_m = MyEditor([num_ports,freq_list])
+    for k in tnp_out_p.wave_dict_keys:
+        data = data_dict[k] #get the data
+        m,p = complex2magphase(data)
+        m_mean = m.mean(0); p_mean = p.mean(0)
+        m_std  = m.std(0) ; p_std  = p.std(0) #mean and stdev of mag/phase
+        m_plus = m_mean+m_std; m_minus = m_mean-m_std
+        p_plus = p_mean+p_std; p_minus = p_mean-p_std
+        data_plus   = magphase2complex(m_plus ,p_plus )
+        data_minus  = magphase2complex(m_minus,p_minus)
+        tnp_out_p.S[k].update(freq_list,data_plus)
+        tnp_out_m.S[k].update(freq_list,data_minus)
+    return tnp_out_p,tnp_out_m
     
 #%% Operation Function (e.g. FFT) with uncerts
 def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
@@ -703,15 +793,15 @@ class MUFStatistic(MUFItemList):
             if not self.data or self.data[0] is None:
                 self.load_data()
             tnp_list = self.data
-            data_dict = self._extract_data_dict(tnp_list)
+            data = self.data
             #estimate
-            self.estimate = self._calculate_estimate(data_dict)
+            self.estimate = self._calculate_estimate(data)
             #confidence interval
-            ciu,cil = self._calculate_confidence_interval(data_dict)
+            ciu,cil = self._calculate_confidence_interval(data)
             self.confidence_interval['+'] = ciu
             self.confidence_interval['-'] = cil
             #and standard uncertainty
-            suu,sul = self._calculate_standard_uncertainty(data_dict)
+            suu,sul = self._calculate_standard_uncertainty(data)
             self.standard_uncertainty['+'] = suu
             self.standard_uncertainty['-'] = sul
         
@@ -754,81 +844,30 @@ class MUFStatistic(MUFItemList):
         stm = self.standard_uncertainty['-'].S[key].get_value_from_frequency(freq)
         return est,cip,cim,stp,stm        
     
-    def _calculate_estimate(self,data_dict):
+    def _calculate_estimate(self,data):
         '''
         @brief calculate the estimate from the input values (mean of the values)
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
-        @param[in/OPT] editor_type
+        @param[in] data - list of touchstone editor data
         @return WnpEditor object with the estimate (mean) of the stats_path values
         '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type'] #get the type of editor
-        tnp_out = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in tnp_out.wave_dict_keys:
-            data = data_dict[k] #get the data
-            m,p = self._complex2magphase(data)
-            m_mean = m.mean(0); p_mean = p.mean(0)
-            data_mean = self._magphase2complex(m_mean,p_mean)
-            tnp_out.S[k].update(freq_list,data_mean)
-        return tnp_out
+        return calculate_estimate(data)
             
-    def _calculate_confidence_interval(self,data_dict):
+    def _calculate_confidence_interval(self,data):
         '''
         @brief calculate the n% confidence interval where n is self.options['ci_percentage']
             this will calculate both the upper and lower intervals
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
+        @param[in] data - list of touchstone editor data
         @return WnpEditor objects for upper(+),lower(-) intervals
         '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type']
-        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        #find percentage and index like in the MUF
-        percentage = 0.5*(1-self.options['ci_percentage']/100)
-        lo_index = int(percentage*data_dict[data_dict['first_key']].shape[0])
-        if lo_index<=0: lo_index=1
-        hi_index = data_dict[data_dict['first_key']].shape[0]-lo_index
-        for k in tnp_out_p.wave_dict_keys:
-            data = data_dict[k] #get the data
-            #done in the same way as the MUF
-            m,p = self._complex2magphase(data)
-            m.sort(0); p.sort(0)
-            m_hi = m[hi_index,:]; m_lo = m[lo_index]
-            p_hi = p[hi_index,:]; p_lo = p[lo_index]
-            hi_complex = self._magphase2complex(m_hi,p_hi)
-            lo_complex = self._magphase2complex(m_lo,p_lo)
-            tnp_out_p.S[k].update(freq_list,hi_complex)
-            tnp_out_m.S[k].update(freq_list,lo_complex)
-        return tnp_out_p,tnp_out_m
+        return calculate_confidence_interval(data,confidence_interval=self.options['ci_percentage'])
     
-    def _calculate_standard_uncertainty(self,data_dict):
+    def _calculate_standard_uncertainty(self,data):
         '''
         @brief calculate standard uncertainty (standard deviation)
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
+        @param[in] data - list of touchstone editor data
         @return WnpEditor objects for upper(+),lower(-) uncerts
         '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type']
-        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in tnp_out_p.wave_dict_keys:
-            data = data_dict[k] #get the data
-            m,p = self._complex2magphase(data)
-            m_mean = m.mean(0); p_mean = p.mean(0)
-            m_std  = m.std(0) ; p_std  = p.std(0) #mean and stdev of mag/phase
-            m_plus = m_mean+m_std; m_minus = m_mean-m_std
-            p_plus = p_mean+p_std; p_minus = p_mean-p_std
-            data_plus   = self._magphase2complex(m_plus ,p_plus )
-            data_minus  = self._magphase2complex(m_minus,p_minus)
-            tnp_out_p.S[k].update(freq_list,data_plus)
-            tnp_out_m.S[k].update(freq_list,data_minus)
-        return tnp_out_p,tnp_out_m
+        return calculate_standard_uncertainty(data)
     
     def _complex2magphase(self,data):
         return complex2magphase(data)
@@ -933,6 +972,15 @@ class TestMUFResult(unittest.TestCase):
         self.assertIsNotNone(res.nominal.data)
         self.assertIsNotNone(res.nominal_post.data)
         self.assertIsNotNone(res.monte_carlo[0].data)
+        
+    def test_calculate_statistics(self):
+        '''
+        @brief in this test we will load a xml file with uncertainties and try
+            to access the path lists of each of the uncertainty lists and the nominal result
+        '''
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res.calculate_statistics()
         
 class TestUncertaintyOperations(unittest.TestCase):
     '''@brief test operations on data with uncertainty'''
