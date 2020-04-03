@@ -85,9 +85,9 @@ def set_meas_relative(meas_path,out_path=None):
             meas_obj.clear_items() #remove the objects with the old paths
             new_path = mufPathFind(fpaths[0], meas_dir) #find first object with respect to the *.meas file
             new_rel_dir = os.path.dirname(os.path.relpath(new_path,meas_dir)) #get the relative path
-            rel_paths = [os.path.join('./',new_rel_dir,os.path.basename(p)) for p in fpaths]
+            rel_paths = [os.path.join('.'+os.path.sep,new_rel_dir,os.path.basename(p)) for p in fpaths]
             meas_obj.add_items(rel_paths) #add the filepaths back
-    return meas.write_xml(out_path)
+    return meas.write_json(out_path)
 
 def set_meas_absolute(meas_path,out_path=None):
     '''
@@ -110,9 +110,8 @@ def set_meas_absolute(meas_path,out_path=None):
         meas_obj = getattr(meas,mt) #get the object
         fpaths = meas_obj.filepaths #get the paths 
         if fpaths: # if there are values
-            meas_obj.clear_items() #remove the objects with the old paths
-            rel_paths = [os.path.join(meas_dir,os.path.basename(p)) for p in fpaths]
-            meas_obj.add_items(rel_paths) #add the filepaths back
+            for fi,fp in enumerate(fpaths):
+                meas_obj[fi]['file_path'] = fp
     return meas.write_xml(out_path)
     
 #%% Operation Function (e.g. FFT) with uncerts
@@ -241,13 +240,13 @@ class SamuraiMeasurement(SamuraiDict):
         self['user_name'] = getpass.getuser()
         self['creation_time'] = str(datetime.datetime.now())
         #now create our nominal
-        self['nominal_measurements'] = SamMeasStatistic(**self.options) #aliased to self.nominal
+        self['nominal'] = SamMeasStatistic(**self.options) #aliased to self.nominal
         #now create our nominal for post cal
-        self['nominal_post_measurements'] = SamMeasStatistic(**self.options) #aliased to self.nominal_post
+        self['nominal_post'] = SamMeasStatistic(**self.options) #aliased to self.nominal_post
         #and monte carlo
-        self['monte_carlo_measurements'] = SamMeasStatistic(**self.options) #aliased to self.monte_carlo
+        self['monte_carlo'] = SamMeasStatistic(**self.options) #aliased to self.monte_carlo
         #and perturbed
-        self['perturbed_measurements'] = SamMeasStatistic(**self.options) #aliased to self.perturbed
+        self['perturbed'] = SamMeasStatistic(**self.options) #aliased to self.perturbed
     
     ##########################################################################
     ### extra io functions
@@ -282,7 +281,7 @@ class SamuraiMeasurement(SamuraiDict):
         super().load(meas_path)
         for k,v in self.items():
             if k in self.meas_types:
-                self[k] = SamMeasItem(v)
+                self[k] = SamMeasStatistic(v)
         
     def load(self,meas_path,**kwargs):
         '''
@@ -463,22 +462,22 @@ class SamuraiMeasurement(SamuraiDict):
     
     #getters for our statistics
     @property
-    def nominal(self): return self['nominal_measurements']
+    def nominal(self): return self['nominal']
     @property
-    def nominal_post(self): return self['nominal_post_measurements']
+    def nominal_post(self): return self['nominal_post']
     @property
-    def monte_carlo(self): return self['monte_carlo_measurements']
+    def monte_carlo(self): return self['monte_carlo']
     @property
-    def perturbed(self): return self['perturbed_measurements']
+    def perturbed(self): return self['perturbed']
     #and their setters
     @nominal.setter
-    def nominal(self,val): self['nominal_measurements'] = val
+    def nominal(self,val): self['nominal'] = val
     @nominal_post.setter
-    def nominal_post(self,val): self['nominal_post_measurements'] = val
+    def nominal_post(self,val): self['nominal_post'] = val
     @monte_carlo.setter
-    def monte_carlo(self,val): self['monte_carlo_measurements'] = val
+    def monte_carlo(self,val): self['monte_carlo'] = val
     @perturbed.setter
-    def perturbed(self,val): self['perturbed_measurements'] = val
+    def perturbed(self,val): self['perturbed'] = val
 
         
     @property
@@ -497,16 +496,19 @@ class SamMeasStatistic(list):
              -nominal estimate (for monte carlos, sensitivity will just be nominal)
         Each of these uncertainties will be stored
     '''
-    def __init__(self,**arg_options):
+    def __init__(self,*args,**kwargs):
         '''
         @brief constructor for the class. 
         @param[in/OPT] arg_options - keyword arguemnts as follows
                 ci_percentage - confidence interval percentage (default is 95)
         '''
-        super().__init__()
+        if len(args)==1: #assume its a list of SamMeasItems
+            new_args = ([SamMeasItem(lv) for lv in args[0]],)
+        else: new_args = args
+        super().__init__(*new_args,**kwargs)
         self.options = {}
         self.options['ci_percentage'] = 95
-        for k,v in arg_options.items():
+        for k,v in kwargs.items():
             self.options[k] = v
         #properties
         self.confidence_interval = {}
@@ -744,7 +746,7 @@ class TestSamuraiMeasurement(unittest.TestCase):
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
         res.calculate_statistics()
         
-    def test_write(self):
+    def test_load_write_absolute(self):
         '''
         @brief in this test we will load a xml file with uncertainties and try
             to access the path lists of each of the uncertainty lists and the nominal result
@@ -753,10 +755,28 @@ class TestSamuraiMeasurement(unittest.TestCase):
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
         res.write_json('./test/test_meas.smeas')
         res.write_xml('./test/test_meas.meas')
+        #absolute read write test
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
-        res.write('./test/test_meas_all.smeas')
-        res.write('./test/test_meas_all.meas')
-        resj = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res.write('./test/test_meas_all.smeas',relative=False)
+        res.write('./test/test_meas_all.meas',relative=False)
+        resj = SamuraiMeasurement('./test/test_meas_all.smeas',load_nominal=True,load_nominal_post=True,load_statistics=True)
+        resx = SamuraiMeasurement('./test/test_meas_all.meas',load_nominal=True,load_nominal_post=True,load_statistics=True)
+        
+    def test_load_write_relative(self):
+        '''
+        @brief in this test we will load a xml file with uncertainties and try
+            to access the path lists of each of the uncertainty lists and the nominal result
+        '''
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
+        res.write_json('./test/test_meas.smeas')
+        res.write_xml('./test/test_meas.meas')
+        #absolute read write test
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res.write('./test/test_meas_all_rel.smeas',relative=True)
+        res.write('./test/test_meas_all_rel.meas',relative=True)
+        resj = SamuraiMeasurement('./test/test_meas_all_rel.smeas',load_nominal=True,load_nominal_post=True,load_statistics=True)
+        resx = SamuraiMeasurement('./test/test_meas_all_rel.meas',load_nominal=True,load_nominal_post=True,load_statistics=True)
         
         
 class TestUncertaintyOperations(unittest.TestCase):

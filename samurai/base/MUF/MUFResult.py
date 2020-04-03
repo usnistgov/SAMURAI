@@ -537,7 +537,7 @@ class MUFResult(MUFModuleController):
         options = {}
         options['relative'] = False
         for k,v in kwargs.items():
-            option[k] = v
+            options[k] = v
         super().write(out_path)
         if options['relative']: #then just change after write (code already written)
             set_meas_relative(out_path)
