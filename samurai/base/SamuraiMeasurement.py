@@ -149,10 +149,20 @@ class SamuraiMeasurement(SamuraiDict):
         of interfacing with data from the MUF. should be drop in replacement for MUFResult class. 
         But more clear and better
     @example
-        >>> meas_path = './test.meas' #path to *.meas file
-        >>> mymeas = MUFResult(meas_path) #initialize the class
-        >>> mymeas.calculate_monte_carlo_statistics() 
+        #Load in a *.meas file (or *.smeas for json) 
+        meas_path = './test.meas' #path to *.meas file
+        mymeas = SamuraiMeasurement(meas_path) #initialize the class
+        mymeas.calculate_monte_carlo_statistics() 
+    @example
+        #Create a *.meas (or *.smeas for json) file from *.snp files
+        mymeas = SamuraiMeasurement()
+        mymeas.nominal.add_item('nominal.snp')
+        mymeas.monte_carlo.add_item('monte_carlo_0.snp')
+        mymeas.monte_carlo.add_item('monte_carlo_1.snp')
+        mymeas.perturbed.add_item('perturbed_0.snp')
+        mymeas.perturbed.add_item('perturbed_1.snp')
     '''
+    meas_types = ['nominal','monte_carlo','perturbed'] #measurement property names
         
     def __init__(self,meas_path=None,**arg_options):
         '''
@@ -170,7 +180,6 @@ class SamuraiMeasurement(SamuraiDict):
         #options
         self.options = {}
         self.options['ci_percentage'] = 95
-        self.meas_types = None
         for k,v in arg_options.items():
             self.options[k] = v
         #now load
@@ -189,7 +198,7 @@ class SamuraiMeasurement(SamuraiDict):
     @property
     def nominal_post_value_path(self):
         '''@brief property to return the path of the nominal value'''
-        return self.nominal_post[0].file_path
+        return self.nominal[1].file_path
     
     def __getattr__(self,attr):
         '''@brief pass any nonexistant attribute attempts to our nominal data class'''
@@ -235,14 +244,11 @@ class SamuraiMeasurement(SamuraiDict):
         
     def create_meas(self):
         '''@brief create a skeleton for a *.smeas (Samurai Meas) file'''
-        self.meas_types = ['nominal','nominal_post','monte_carlo','perturbed'] #default measurement types
         self['file_path']= './'
         self['user_name'] = getpass.getuser()
         self['creation_time'] = str(datetime.datetime.now())
         #now create our nominal
         self['nominal'] = SamMeasStatistic(**self.options) #aliased to self.nominal
-        #now create our nominal for post cal
-        self['nominal_post'] = SamMeasStatistic(**self.options) #aliased to self.nominal_post
         #and monte carlo
         self['monte_carlo'] = SamMeasStatistic(**self.options) #aliased to self.monte_carlo
         #and perturbed
@@ -257,11 +263,6 @@ class SamuraiMeasurement(SamuraiDict):
         if verbose: print("Loading Nominal")
         self.nominal.load_data(working_directory=self.working_directory,verbose=False)
         
-    def _load_nominal_post(self,verbose=False):
-        '''@brief load the nominal (post-calibrated) path value into self.nominal_post'''
-        if verbose: print("Loading Nominal Post")
-        self.nominal_post.load_data(working_directory=self.working_directory,verbose=False)
-        
     def _load_statistics(self,verbose=False):
         '''@brief load in all of the data for all of our statistics'''
         if verbose: print("Loading Monte Carlo:")
@@ -269,9 +270,9 @@ class SamuraiMeasurement(SamuraiDict):
         if verbose: print("Loading Perturbed:")
         self.perturbed.load_data(working_directory=self.working_directory,verbose=verbose)
     
-    def _load_xml(self,meas_path):
+    def _load_xml(self,meas_path,**kwargs):
         '''@brief Load an xml *.meas file'''
-        mr = MUFResult(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
+        mr = MUFResult(meas_path,load_nominal=False,load_statistics=False)
         sm = MUFResult2SamuraiMeasurement(mr)
         for k,v in sm.items(): #update the current object values
             self[k] = v 
@@ -288,14 +289,12 @@ class SamuraiMeasurement(SamuraiDict):
         @brief load our meas file and its corresponding data
         @param[in/OPT] meas_path - path to *.meas file to load in. This will overwrite self.meas_path
         @param[in/OPT] kwargs - keyword arguments as follows:
-            load_nominal - load our data from the pre-calibrated nominal solution (default True)
-            load_nominal_post - load data from the post-calibrated nominal solution (default True)
+            load_nominal - load our data from the nominal solution(s) (default True)
             load_statistics - load our statistics (monte carlo and perturbed) (default False)
             verbose - be verbose when loading data (default False)
         '''
         options = {}
         options['load_nominal'] = True
-        options['load_nominal_post'] = False
         options['load_statistics'] = False
         options['verbose'] = False
         for k,v in kwargs.items():
@@ -317,8 +316,6 @@ class SamuraiMeasurement(SamuraiDict):
         #load our nominal and statistics if specified
         if options['load_nominal']:
             self._load_nominal(verbose=options['verbose'])
-        if options['load_nominal_post']:
-            self._load_nominal_post(verbose=options['verbose'])
         if options['load_statistics']:
             self._load_statistics(verbose=options['verbose'])
             
@@ -356,15 +353,7 @@ class SamuraiMeasurement(SamuraiDict):
         @param[in] out_dir - directory to write out to
         @param[in/OPT] out_name - name to write out (default 'nominal')
         '''
-        self._write_statistic(self.nominal, os.path.join(out_dir,'{}'.format(out_name)))
-            
-    def _write_nominal_post(self,out_dir,out_name='nominal_post'):
-        '''
-        @brief write out our nominal data
-        @param[in] out_dir - directory to write out to
-        @param[in/OPT] out_name - name to write out (default 'nominal')
-        '''
-        self._write_statistic(self.nominal_post, os.path.join(out_dir,'{}'.format(out_name)))
+        self._write_statistic(self.nominal, os.path.join(out_dir,out_name+'_{}'))
         
     def _write_statistic(self,stat_class,format_out_path):
         '''
@@ -415,21 +404,17 @@ class SamuraiMeasurement(SamuraiDict):
         @param[in] out_dir - what directory to write the data out to
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
-            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
         @note if the data is not loaded in we will simply copy the files
         '''
         options = {}
         options['write_nominal'] = True
-        options['write_nominal_post'] = True
         options['write_stats'] = True
         for k,v in kwargs.items():
             options[k] = v
         #load our nominal and statistics if specified
         if options['write_nominal']:
             self._write_nominal(out_dir)
-        if options['write_nominal_post']:
-            self._write_nominal_post(out_dir)
         if options['write_stats']:
             self._write_statistics(out_dir)
         
@@ -441,7 +426,6 @@ class SamuraiMeasurement(SamuraiDict):
             all other data will be stored in a similar structure to the MUF in here
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
-            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
             verbose - be verbose when writing (default False)
         '''
@@ -464,16 +448,12 @@ class SamuraiMeasurement(SamuraiDict):
     @property
     def nominal(self): return self['nominal']
     @property
-    def nominal_post(self): return self['nominal_post']
-    @property
     def monte_carlo(self): return self['monte_carlo']
     @property
     def perturbed(self): return self['perturbed']
     #and their setters
     @nominal.setter
     def nominal(self,val): self['nominal'] = val
-    @nominal_post.setter
-    def nominal_post(self,val): self['nominal_post'] = val
     @monte_carlo.setter
     def monte_carlo(self,val): self['monte_carlo'] = val
     @perturbed.setter
@@ -699,10 +679,10 @@ class TestSamuraiMeasurement(unittest.TestCase):
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = SamuraiMeasurement(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
-        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
-        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=False)
-        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res = SamuraiMeasurement(meas_path,load_nominal=False,load_statistics=False)
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=False)
+        res = SamuraiMeasurement(meas_path,load_nominal=False,load_statistics=True)
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
         
     def test_create_from_snp(self):
         '''
@@ -730,11 +710,11 @@ class TestSamuraiMeasurement(unittest.TestCase):
         '''
         res = SamuraiMeasurement()
         res.nominal.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')))
-        res.nominal_post.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal_post.s2p_binary')))
+        res.nominal.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal_post.s2p_binary')))
         res.monte_carlo.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/MonteCarlo/mc_0.s2p_binary')))
         #make sure the data exists
-        self.assertIsNotNone(res.nominal.data)
-        self.assertIsNotNone(res.nominal_post.data)
+        self.assertIsNotNone(res.nominal[0])
+        self.assertIsNotNone(res.nominal[1])
         self.assertIsNotNone(res.monte_carlo[0].data)
         
     def test_calculate_statistics(self):
@@ -743,7 +723,7 @@ class TestSamuraiMeasurement(unittest.TestCase):
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
         res.calculate_statistics()
         
     def test_load_write_absolute(self):
@@ -752,15 +732,15 @@ class TestSamuraiMeasurement(unittest.TestCase):
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=False)
         res.write_json('./test/test_meas.smeas')
         res.write_xml('./test/test_meas.meas')
         #absolute read write test
-        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
         res.write('./test/test_meas_all.smeas',relative=False)
         res.write('./test/test_meas_all.meas',relative=False)
-        resj = SamuraiMeasurement('./test/test_meas_all.smeas',load_nominal=True,load_nominal_post=True,load_statistics=True)
-        resx = SamuraiMeasurement('./test/test_meas_all.meas',load_nominal=True,load_nominal_post=True,load_statistics=True)
+        resj = SamuraiMeasurement('./test/test_meas_all.smeas',load_nominal=True,load_statistics=True)
+        resx = SamuraiMeasurement('./test/test_meas_all.meas',load_nominal=True,load_statistics=True)
         
     def test_load_write_relative(self):
         '''
@@ -775,8 +755,8 @@ class TestSamuraiMeasurement(unittest.TestCase):
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
         res.write('./test/test_meas_all_rel.smeas',relative=True)
         res.write('./test/test_meas_all_rel.meas',relative=True)
-        resj = SamuraiMeasurement('./test/test_meas_all_rel.smeas',load_nominal=True,load_nominal_post=True,load_statistics=True)
-        resx = SamuraiMeasurement('./test/test_meas_all_rel.meas',load_nominal=True,load_nominal_post=True,load_statistics=True)
+        resj = SamuraiMeasurement('./test/test_meas_all_rel.smeas',load_nominal=True,load_statistics=True)
+        resx = SamuraiMeasurement('./test/test_meas_all_rel.meas',load_nominal=True,load_statistics=True)
         
         
 class TestUncertaintyOperations(unittest.TestCase):
@@ -787,7 +767,7 @@ class TestUncertaintyOperations(unittest.TestCase):
     
     def test_calculate_time_domain(self):
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
         td_res = calculate_time_domain(res)
 
 #%%
@@ -801,8 +781,8 @@ if __name__=='__main__':
     wdir = os.path.dirname(__file__)
     unittest_dir = os.path.join(wdir,'./unittest_data')
     meas_path = os.path.join(unittest_dir,'meas_test.meas')
-    res = SamuraiMeasurement(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
-    resd = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+    res = SamuraiMeasurement(meas_path,load_nominal=False,load_statistics=False)
+    resd = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
     
     
     
