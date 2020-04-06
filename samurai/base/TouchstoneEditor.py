@@ -40,8 +40,12 @@ ANG_MULT_DICT  = {'DEG':1,'RAD':180/np.pi} #angular conversion
 MULT_DICT = dict(**FREQ_MULT_DICT,**TIME_MULT_DICT,**ANG_MULT_DICT) #combine the dictionaries
 INV_MULT_DICT = {val:key for key,val in MULT_DICT.items()}  #inverse of frequency multiplier dictionary
 
-#%% Class for parsing files with more ports than 2 (e.g. *.s4p)
+#%% 
 class MultilineFileParser(object):
+    '''
+    @brief Class for parsing files with more ports than 2 (e.g. *.s4p)
+    @author bfj
+    '''
     commentList = ['#', '!']
     def __init__(self, dataFile):
         self.dataFile = dataFile
@@ -99,7 +103,7 @@ class MultilineFileParser(object):
 class TouchstoneEditor(object):
     '''
     @brief init arbitrary port touchstone class. This covers wave and S params  
-    
+    @author ajw5
     '''
     def __new__(cls,input_file=None,*args,**kwargs):
         '''
@@ -521,7 +525,7 @@ class TouchstoneEditor(object):
         '''
         for ik,k in enumerate(self.wave_dict_keys):
             for iw,w in enumerate(self.waves.keys()):
-                self.waves[w][k]._raw = self.raw[iw,ik,:]
+                self.waves[w][k]._raw = self._raw[iw,ik,:]
     
     def _verify_freq_lists(self):
         '''
@@ -690,13 +694,13 @@ class TouchstoneEditor(object):
             for k in self.waves.keys(): #loop through each key we have
                 for w,v in self.waves[k].items(): #and multiply by the corresponding value
                     if type(other) == type(self): #cant use inherited classes
-                        other_val = self.waves[k].get(w,None)
+                        other_val = other.waves[k].get(w,None)
                         if other_val is None: #check if it didnt exist
                             continue #skip to the next iteration
                     else: #we can use inherited classes here
                         other_val = other
                     new_val = v._perform_arithmetic_operation(other_val,funct)
-                    ret.waves[k][w].raw[:] = new_val.raw
+                    ret.waves[k][w].raw = new_val.raw
                     ret.waves[k][w].freq_list = new_val.freq_list  
         else: #otherwise just try and perform the operation on raw
            ret.raw = funct(self.raw,other)
@@ -721,7 +725,7 @@ class TouchstoneEditor(object):
         '''
         ret = type(self)([self.num_ports,self.freqs],**self.options)
         skip_keys = ['options','waves','_freqs','_raw']
-        ret.raw = self.raw
+        ret._raw = copy.deepcopy(self._raw,memo)
         for k,v in self.__dict__.items():
             if k in skip_keys:
                 continue
@@ -730,6 +734,8 @@ class TouchstoneEditor(object):
             except Exception as e:
                 print("Failure")
                 raise e
+        ret._update_param_raw_data()
+        ret._update_param_freq_lists()
         return ret
             
     
@@ -741,11 +747,6 @@ class TouchstoneEditor(object):
         '''
         if attr in self.options['waves']:
             return self.waves[attr]
-        else:
-            try:
-                return getattr(self,attr)
-            except AttributeError as ae:
-                raise AttributeError("Attribute '{}' does not exist".format(attr))
      
     @property
     def w1(self):

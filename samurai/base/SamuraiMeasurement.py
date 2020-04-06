@@ -17,6 +17,7 @@ from samurai.base.MUF.MUFResult import calculate_confidence_interval,calculate_e
 import shutil
 import getpass
 import datetime
+import operator
 
 import numpy as np
 import os
@@ -466,6 +467,31 @@ class SamuraiMeasurement(SamuraiDict):
         return os.path.dirname(self.meas_path)
         
     
+###############################################
+# Math operations
+###############################################
+    def _data_operation(self,obj,funct):
+        '''
+        @brief perform an operation on loaded data and another object (funct(self,obj))
+        @param[in] obj - object to operate with. Can be SamuraiMeasurement, 
+            MUFResult, or anything supported by self.nominal[0].data
+        @param[in] funct - function to be performed on self and obj
+        '''
+        for mt in self.meas_types:
+            mt_attr = getattr(self,mt) #get the attribute
+            if hasattr(obj,mt):
+                mt_obj = getattr(obj,mt)
+            else:
+                mt_obj = obj 
+            mt_attr.data_operation(mt_obj,funct)
+        return self
+    
+    def __add__(self,obj): return self._data_operation(obj,operator.add)
+    def __sub__(self,obj): return self._data_operation(obj,operator.sub)
+    def __mult__(self,obj): return self._data_operation(obj,operator.mult)
+    def __truediv__(self,obj): return self._data_operation(obj,operator.truediv)
+    
+    
 #%%    
 class SamMeasStatistic(list):
     '''
@@ -617,6 +643,26 @@ class SamMeasStatistic(list):
         '''@brief get a list of the file paths'''
         return [item['file_path'] for item in self]
     filepaths = file_paths #alias
+    
+###############################################
+# Function for math operations
+###############################################
+    
+    def data_operation(self,obj,funct):
+        '''
+        @brief perform an operation on loaded data and another object (funct(self,obj))
+        @param[in] obj - object to operate with. Can be SamuraiMeasurement, 
+            MUFResult, or anything supported by self.nominal[0].data
+        @param[in] funct - function to be performed on self and obj
+        '''
+        for i,attr_val in enumerate(self):
+            if isinstance(obj,list):
+                obj_val = obj[i].data # assume its a SamMeasStatistic (or MUFStatistic)
+            else:
+                obj_val = obj #otherwise its just the object
+            if obj_val is not None and attr_val is not None: #only if loaded
+                self[i].data = funct(attr_val.data,obj_val)
+        return self
     
 #%%  
 class SamMeasItem(SamuraiDict):
