@@ -83,8 +83,8 @@ def combine_parameters(*args,**kwargs):
     @param[in/OPT] kwargs - keyword arguments as follows:
         - fill_value - what value to fill undefined parameters (default 1+j0)
         - out_path - directory to write the file to. If None just return the TouchstoneEditor object
-    @note this currenlty assumes that ports are consecutive (e.g. 11,12,21,22 NOT 11,13,31,33)
-    @note this also only supports up to 10 ports
+    @note This currenlty assumes that ports are consecutive (e.g. 11,12,21,22 NOT 11,13,31,33)
+    @note This only supports up to 10 ports
     '''
     options = {}
     options['fill_value'] = 1+0j
@@ -118,14 +118,14 @@ def combine_parameters(*args,**kwargs):
         port_count += ed.num_ports
         for wk in new_editor.waves.keys():
             for ik,ok in zip(in_keys,out_keys):
-                new_editor.waves[wk][ok].raw = ed.waves[wk,ik].raw #copy the raw data
+                new_editor.waves[wk][ok].raw = ed.waves[wk][ik].raw #copy the raw data
     if options['out_path'] is None:
         return new_editor       
     else:
         out_path = new_editor.write(options['out_path'])
         return out_path
     
-def split_measurements(meas,split):
+def split_parameters(meas,split,**kwargs):
     '''
     @brief split a TouchstoneEditor into multiple editors
     @param[in] meas - measurement path or object to split
@@ -135,6 +135,7 @@ def split_measurements(meas,split):
     @example
         fpath = 'path/to/file.s2p'
         out1,out2 = split_measurements(fpath)
+    @note This only supports up to 10 ports
     '''
     options = {}
     options['out_path'] = None
@@ -151,12 +152,18 @@ def split_measurements(meas,split):
     #now populate the output editors from the input
     port_count = 0 #current ports
     for oed in out_editors:
-        in_keys = ed.wave_dict_keys
-        out_keys = in_keys+(port_count+port_count*10) #add 11,22,etc to get correct port numbers
-        port_count += ed.num_ports
-        for wk in new_editor.waves.keys():
+        in_keys = oed.wave_dict_keys+(port_count*10+port_count) #e.g. key+22
+        out_keys = oed.wave_dict_keys #add 11,22,etc to get correct port numbers
+        port_count += oed.num_ports
+        for wk in oed.waves.keys():
             for ik,ok in zip(in_keys,out_keys):
-                new_editor.waves[wk][ok].raw = ed.waves[wk,ik].raw #copy the raw data
+                oed.waves[wk][ok].raw = meas.waves[wk][ik].raw #copy the raw data
+    #now write out
+    if options['out_path'] is None:
+        return out_editors 
+    else:
+        out_paths = [ed.write(options['out_path'].format(i)) for i,ed in enumerate(out_editors)]
+        return out_paths
 
 
 #%% Parsing for files with data on multiple lines
@@ -1670,6 +1677,10 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.assertTrue(sc0.S[33]==s2.S[11])
         self.assertTrue(sc0.S[11]==s2.S[11])
         self.assertTrue(sc0.S[34]==s2.S[12])
+        #now lets separate them again
+        os1,os2 = split_parameters(sc0,2)
+        self.assertTrue(os1==s1)
+        self.assertTrue(os2==s2)
         
             
 #%% things to run when we run this file

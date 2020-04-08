@@ -10,6 +10,8 @@ import os
 
 from xml.dom.minidom import parse, parseString
 
+from samurai.base.generic import subprocess_generator
+
 #default_exe_path = 'C:/Users/ajw5/Source/Repos/MUF/PostProcessor/bin/Debug/PostProcessor.exe'
 default_exe_path = r"C:\Program Files (x86)\NIST\Uncertainty Framework\PostProcessor.exe"
 
@@ -126,23 +128,6 @@ class PostProcPy:
             my_combo_node.setAttribute('SelectedIndex','0')
             #probably dont need to set the text but whatever... why not
             my_combo_node.setAttribute('ControlText','Don\'t normalize phase of .wnp fundamentals to zero')
-        
-def subprocess_generator(cmd):
-    '''
-    @brief get a generator to get the output from post processor
-     From https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
-    '''
-    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-    for stdout_line in iter(popen.stdout.readline, ""):
-        stdout_line = stdout_line.strip() #remove trailing whitespaces and newlines
-        if stdout_line=='':
-            continue #dont do anything
-        else:
-            yield stdout_line #otherwise this value we want
-    popen.stdout.close()
-    return_code = popen.wait()
-    if return_code:
-        raise subprocess.CalledProcessError(return_code, cmd) 
         
         
 if __name__=='__main__':

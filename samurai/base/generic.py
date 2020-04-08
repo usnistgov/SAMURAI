@@ -72,11 +72,6 @@ def count_lines_in_file(filePointer,comments='#'):
     return cnt
 
 
-
-
-
-
-
 #%% Some function decorators for deprecation
 import warnings
 import functools
@@ -209,6 +204,30 @@ def floor_arb(value,multiple):
     '''
     ndigs = math.ceil(-1*math.log10(multiple))
     return round(multiple*math.floor(value/multiple),ndigits=ndigs)
+
+#%% running subprocesses
+def subprocess_generator(cmd):
+    '''
+    @brief get a generator to get the output running a subprocess from the command line
+    @cite https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
+    @example
+        command = 'dir'
+        sp_gen = subprocess_generator(command)
+        for out_line in exe_generator:
+            print(out_line) 
+    '''
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        stdout_line = stdout_line.strip() #remove trailing whitespaces and newlines
+        if stdout_line=='':
+            continue #dont do anything
+        else:
+            yield stdout_line #otherwise this value we want
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd)     
+
 
 #%% Some useful counter classes
 class ValueCounter:
