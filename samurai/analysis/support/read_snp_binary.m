@@ -1,4 +1,4 @@
-function [ Barray ] = Read_MUF_Binary( FileName )
+function [ Barray ] = read_snp_binary( FileName )
     %@brief Read a binary s2p file format (same as in NIST Microwave uncertainty framework)
     %@author bfj
     %@param[in] FileName - path to the file to load
@@ -21,4 +21,8 @@ function [ Barray ] = Read_MUF_Binary( FileName )
         end
     
     end
-    
+
+%{
+file_path = 'path/to/my/measurement.s2p_binary'
+meas_data = read_snp_binary(file_path)
+%}  
