@@ -219,9 +219,9 @@ class MetafileController(SamuraiDict):
         self.update_format() #update if the format is bad
         #now lets check to see if it is valid (measurements exist)
         if verify:
-            self._verify_paths()
+            self.verify_paths()
     
-    def _verify_paths(self):
+    def verify_paths(self):
         '''@brief Verify all of the paths for the measurements listed in the metafile'''
         for i,fpath in enumerate(self.get_filename_list(True)): #
             if not os.path.exists(fpath): #then raise an error with some help

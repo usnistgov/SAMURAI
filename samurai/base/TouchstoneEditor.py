@@ -115,6 +115,7 @@ def combine_parameters(*args,**kwargs):
     for ed in editors:
         in_keys = ed.wave_dict_keys
         out_keys = in_keys+(port_count+port_count*10) #add 11,22,etc to get correct port numbers
+        port_count += ed.num_ports
         for wk in new_editor.waves.keys():
             for ik,ok in zip(in_keys,out_keys):
                 new_editor.waves[wk][ok].raw = ed.waves[wk,ik].raw #copy the raw data
@@ -131,6 +132,9 @@ def split_measurements(meas,split):
     @param[in] split - definition of how to split. For now split into n equal parts
     @param[in] kwargs - keyword args as follows:
         - out_path - formattable output path (e.g. 'split_{}') to write split values to. If None, return objects
+    @example
+        fpath = 'path/to/file.s2p'
+        out1,out2 = split_measurements(fpath)
     '''
     options = {}
     options['out_path'] = None
@@ -138,9 +142,22 @@ def split_measurements(meas,split):
         options[k] = v
     if isinstance(meas,str): #check if its a path
         meas = TouchstoneEditor(meas)
-    raise NotImplementedError("THIS IS INCOMPLETE")
-    
-    
+    freqs = meas.freq_list #get our frequencies
+    ports_per_split = meas.num_ports/split
+    if not ports_per_split == int(ports_per_split): #check for even divisibility
+        raise TouchstoneError("Number of ports ({}) not evenly divisible by {}".format(meas.num_ports,split))
+    ports_per_split = int(ports_per_split) #change to integer
+    out_editors = [type(meas)([ports_per_split,freqs]) for i in range(split)] #create n output editors
+    #now populate the output editors from the input
+    port_count = 0 #current ports
+    for oed in out_editors:
+        in_keys = ed.wave_dict_keys
+        out_keys = in_keys+(port_count+port_count*10) #add 11,22,etc to get correct port numbers
+        port_count += ed.num_ports
+        for wk in new_editor.waves.keys():
+            for ik,ok in zip(in_keys,out_keys):
+                new_editor.waves[wk][ok].raw = ed.waves[wk,ik].raw #copy the raw data
+
 
 #%% Parsing for files with data on multiple lines
 class MultilineFileParser(object):
