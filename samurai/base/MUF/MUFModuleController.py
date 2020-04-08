@@ -8,6 +8,7 @@ Created on Thu Aug  8 10:12:48 2019
 from lxml import etree as ET
 import os
 from samurai.base.SamuraiXML import SamuraiXML,SamuraiXMLElement
+from samurai.base.generic import subprocess_generator, get_name_from_path
 
 test_vnauncert_xml = r"./templates/template.vnauncert"
 test_postproc_xml = r"../../calibration/templates/cal_template.post"
@@ -15,16 +16,14 @@ test_postproc_xml = r"../../calibration/templates/cal_template.post"
 class MUFModuleController(SamuraiXML):
     '''
     @brief base class for MUF module controllers
+    @param[in] menu_path - path to menu to load
+    @param[in/OPT] kwargs - keyword args as follows:
+        - exe_path - executable path of the module for running (default None)
+        - except_no_menu - throw an exception if no menu  (default True)
+        - working_directory - directory that relative paths will be respect to. Defaults to menu directory
     '''
     def __init__(self,menu_path,**kwargs):
-        '''
-        @brief default constructor
-        @param[in] menu_path - path to menu to load
-        @param[in/OPT] kwargs - keyword args as follows:
-            - exe_path - executable path of the module for running
-            - except_no_menu - throw an exception if no menu provided
-            - working_directory - directory that relative paths will be respect to. Defaults to menu directory
-        '''
+        '''@brief default constructor'''
         super().__init__()
         self.options = {}
         self.options['exe_path'] = None
@@ -44,18 +43,23 @@ class MUFModuleController(SamuraiXML):
     def load(self,*args,**kwargs):
         '''@brief load a measurement path'''
         super().load(args[0])
-        self._controls = ET.SubElement(self.getroot(),'Controls')  #set the controls
+        self.menu_path = args[0]
+        self._controls = self.find('Controls')
         
-    def run(self,out_path,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
+    def run(self,out_path=None,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
         '''
         @brief run our module.This will also save to output_path
-        @param[in] out_path - path to write the menu to before running (and to run from)
+        @param[in/OPT] out_path - path to write the menu to before running (and to run from) default to last loaded path
         @param[in/OPT] text_function - function that the output from the post 
             processor will be passed to (in iterated format, default is print())
             First argument must be expecting a string
         @param[in/OPT] tf_args_tuple - tuple of arguments to pass to text_function
         @param[in/OPT] tf_kwargs_dict - dictionary of kwargs to pass to text_function
         '''
+        if out_path is None:
+            out_path = self.menu_path
+        else:
+            raise Exception("No menu loaded")
         self.write(out_path)
         command = self.options['exe_path']+' -r '+self.menu_path
         exe_generator = subprocess_generator(command)
@@ -63,23 +67,23 @@ class MUFModuleController(SamuraiXML):
             text_function(out_line,*tf_args_tuple,**tf_kwargs_dict)
         
     def add_item(self,parent_element,item):
-        add_items(parent_element,[item])
+        add_muf_xml_items(parent_element,[item])
         
     def add_items(self,parent_element,item_list):
-        add_items(parent_element,item_list)
+        add_muf_xml_items(parent_element,item_list)
         
     def clear_items(self,parent_element):
-        clear_items(parent_element)
+        clear_muf_xml_items(parent_element)
         
     def create_item(self,item_name,subitem_text_list):
-        create_item(item_name,subitem_text_list)
+        return create_muf_xml_item(item_name,subitem_text_list)
     
     def _get_name_from_path(self,path):
         '''
         @brief extract a default name from a path of a file
         @param[in] path - path to the file
         '''
-        return os.path.splitext(os.path.split(path)[-1])[0]
+        return get_name_from_path(path)
     
     @property
     def controls(self):
@@ -316,10 +320,10 @@ def clear_muf_xml_items(parent_element):
     for child in list(parent_element.getchildren()):
         parent_element.remove(child)
     
-def create_muf_xml_item(item_name,subitem_text_list):
+def create_muf_xml_item(item_name,subitem_text_list=None):
     '''
     @brief create an item from a name and list of subitems in MUF format
-    @param[in] item_name - name of item (Text attribute of item)
+    @param[in] item_name - name of item (Text attribute of item).
     @param[in] subitem_text_list - list of Text attribute of Subitems
     '''
     item = ET.Element('Item',attrib={"Index":"-1","Text":item_name})
@@ -377,24 +381,6 @@ class MUFModelKit(SamuraiDict):
                 return self.get_model(item)
             except KeyError:
                 raise e
-        
-import subprocess      
-def subprocess_generator(cmd):
-    '''
-    @brief get a generator to get the output from post processor
-     From https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
-    '''
-    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-    for stdout_line in iter(popen.stdout.readline, ""):
-        stdout_line = stdout_line.strip() #remove trailing whitespaces and newlines
-        if stdout_line=='':
-            continue #dont do anything
-        else:
-            yield stdout_line #otherwise this value we want
-    popen.stdout.close()
-    return_code = popen.wait()
-    if return_code:
-        raise subprocess.CalledProcessError(return_code, cmd) 
         
             
 if __name__=='__main__':

@@ -25,10 +25,14 @@ class VNAUncertController(MUFModuleController):
         @brief default constructor
         @param[in] menu_path - path to menu to load
         @param[in/OPT] kwargs - keyword args as follows:
-            None yet!
-            Thsee are also passed to MUFModuleController.__init__()
+            - exe_path - executable path (defaults to MUF install default)
+            - - Thsee are also passed to MUFModuleController.__init__()
         '''
-        super().__init__(menu_path,**kwargs)
+        kwargs_out = {}
+        kwargs_out['exe_path'] = DEFAULT_VNAUNCERT_EXE_PATH
+        for k,v in kwargs.items():
+            kwargs_out[k] = v
+        super().__init__(menu_path,**kwargs_out)
         
     def set_before_calibration(self,*args,**kwargs):
         '''

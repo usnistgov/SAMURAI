@@ -206,6 +206,8 @@ def floor_arb(value,multiple):
     return round(multiple*math.floor(value/multiple),ndigits=ndigs)
 
 #%% running subprocesses
+import subprocess    
+
 def subprocess_generator(cmd):
     '''
     @brief get a generator to get the output running a subprocess from the command line
