@@ -40,7 +40,109 @@ ANG_MULT_DICT  = {'DEG':1,'RAD':180/np.pi} #angular conversion
 MULT_DICT = dict(**FREQ_MULT_DICT,**TIME_MULT_DICT,**ANG_MULT_DICT) #combine the dictionaries
 INV_MULT_DICT = {val:key for key,val in MULT_DICT.items()}  #inverse of frequency multiplier dictionary
 
-#%% 
+#%% Some useful functions
+def get_unperturbed_meas(fname):
+    '''
+    @brief get the path of the unperturbed (nominal) measurement from a *.meas file
+    @param[in] fname - path to the *.meas file
+    '''
+    wdir = os.path.dirname(fname)
+    dom = parse(fname)
+    msp = dom.getElementsByTagName('MeasSParams').item(0)
+    unpt = msp.getElementsByTagName('Item').item(0)
+    unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
+    unpt_path = os.path.join(wdir,unpt_name)
+    return unpt_path
+
+def swap_ports(*args,**kwargs):
+    '''
+    @brief swap port n between just 2 2 port files (for now)  
+    @param[in] args - the SnpEditor objects to swap  
+    '''
+    #load in the data
+    s1 = args[0]
+    s2 = args[1]
+    freqs = s1.freq_list
+    #assume frequency lists are equal
+    if np.all(freqs != s2.freq_list):
+        raise SnpError('Frequency lists do not match')
+    so1 = SnpEditor([2,freqs])
+    so2 = SnpEditor([2,freqs])
+    so1.S[11] = s1.S[11]; so1.S[22] = s2.S[22]
+    so1.S[21] = s1.S[21]; so1.S[12] = s2.S[12]
+    so2.S[11] = s2.S[11]; so2.S[22] = s1.S[22]
+    so2.S[21] = s2.S[21]; so2.S[12] = s1.S[12]
+    return so1,so2
+
+def combine_parameters(*args,**kwargs):
+    '''
+    @brief Combine touchstone files into one with a number of ports
+        equal to the sum of the ports of the combined files
+    @param[in] args - paths or TouchstoneEditor objects to combine. 
+        These must all be of the same class (e.g. SnpEditor) and have the same frequencies
+    @param[in/OPT] kwargs - keyword arguments as follows:
+        - fill_value - what value to fill undefined parameters (default 1+j0)
+        - out_path - directory to write the file to. If None just return the TouchstoneEditor object
+    @note this currenlty assumes that ports are consecutive (e.g. 11,12,21,22 NOT 11,13,31,33)
+    @note this also only supports up to 10 ports
+    '''
+    options = {}
+    options['fill_value'] = 1+0j
+    options['out_path'] = None
+    for k,v in kwargs.items():
+        options[k] = v
+    #load the data if a string was passed in
+    editors = list(args) 
+    for i,ed in enumerate(editors):
+        if isinstance(ed,str): 
+            editors[i] = TouchstoneEditor(ed)
+    #get the class type
+    myclass = type(editors[0])
+    #verify they are the same class type (same waves)
+    editor_type = [type(ed) for ed in editors]
+    if not np.all(np.equal(editor_type,myclass)): #check all values are the same type
+        raise TypeError("All inputs must be of the same type (currently {})".format(editor_type))
+    #now lets make sure frequency lists match
+    if not np.all([np.all(editors[0].freq_list==ed.freq_list) for ed in editors]):
+        raise TouchstoneError("Cannot combine. Frequencies must match")
+    #get the sum of all the ports and the frequency list
+    freq_list = editors[0].freq_list
+    total_ports = np.sum([ed.num_ports for ed in editors])
+    #now create a new editor to copy into
+    new_editor = myclass([total_ports,freq_list])
+    new_editor.raw = options['fill_value']
+    port_count = 0 #current ports
+    for ed in editors:
+        in_keys = ed.wave_dict_keys
+        out_keys = in_keys+(port_count+port_count*10) #add 11,22,etc to get correct port numbers
+        for wk in new_editor.waves.keys():
+            for ik,ok in zip(in_keys,out_keys):
+                new_editor.waves[wk][ok].raw = ed.waves[wk,ik].raw #copy the raw data
+    if options['out_path'] is None:
+        return new_editor       
+    else:
+        out_path = new_editor.write(options['out_path'])
+        return out_path
+    
+def split_measurements(meas,split):
+    '''
+    @brief split a TouchstoneEditor into multiple editors
+    @param[in] meas - measurement path or object to split
+    @param[in] split - definition of how to split. For now split into n equal parts
+    @param[in] kwargs - keyword args as follows:
+        - out_path - formattable output path (e.g. 'split_{}') to write split values to. If None, return objects
+    '''
+    options = {}
+    options['out_path'] = None
+    for k,v in kwargs.items(): #load kwargs
+        options[k] = v
+    if isinstance(meas,str): #check if its a path
+        meas = TouchstoneEditor(meas)
+    raise NotImplementedError("THIS IS INCOMPLETE")
+    
+    
+
+#%% Parsing for files with data on multiple lines
 class MultilineFileParser(object):
     '''
     @brief Class for parsing files with more ports than 2 (e.g. *.s4p)
@@ -1338,18 +1440,6 @@ class WaveformParam(TouchstoneParam):
     def times(self,val):
         '''@brief setter for times alias'''
         self.freq_list[:] = times
-         
-             
-#sl = s2pEditor('U:/67Internal/DivisionProjects/Channel Model Uncertainty/Measurements/Cable_Drift/5-18-2018_stretchRepeats/processed/preCal/short_load.s2p')
-#get unperturbed result from .meas file
-def get_unperturbed_meas(fname):
-    wdir = os.path.dirname(fname)
-    dom = parse(fname)
-    msp = dom.getElementsByTagName('MeasSParams').item(0)
-    unpt = msp.getElementsByTagName('Item').item(0)
-    unpt_name = unpt.getElementsByTagName('SubItem').item(1).getAttribute('Text')
-    unpt_path = os.path.join(wdir,unpt_name)
-    return unpt_path
 
 class TouchstoneError(Exception):
     '''
@@ -1372,27 +1462,6 @@ class MalformedSnpError(SnpError):
     '''
     def __init__(self,err_msg):
         super().__init__(err_msg)
-        
-def swap_ports(*args,**kwargs):
-    '''
-    @brief swap port n between just 2 2 port files (for now)  
-    @param[in] args - the SnpEditor objects to swap  
-    '''
-    #load in the data
-    s1 = args[0]
-    s2 = args[1]
-    freqs = s1.freq_list
-    #assume frequency lists are equal
-    if np.all(freqs != s2.freq_list):
-        raise SnpError('Frequency lists do not match')
-    so1 = SnpEditor([2,freqs])
-    so2 = SnpEditor([2,freqs])
-    so1.S[11] = s1.S[11]; so1.S[22] = s2.S[22]
-    so1.S[21] = s1.S[21]; so1.S[12] = s2.S[12]
-    so2.S[11] = s2.S[11]; so2.S[22] = s1.S[22]
-    so2.S[21] = s2.S[21]; so2.S[12] = s1.S[12]
-    return so1,so2
-    
 
         
 def map_keys(key_list,mapping_dict):
@@ -1425,9 +1494,7 @@ class TestTouchstoneEditor(unittest.TestCase):
     '''
     
     def __init__(self,*args,**kwargs):
-        '''
-		@brief constructor  
-		'''
+        '''@brief constructor'''
 		#path of our directory for the data
         super().__init__(*args,**kwargs)
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -1438,9 +1505,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.test_wnp_bin = 'test.w2p_binary'
 	
     def test_wnp_io(self):
-        '''
-		@brief test loading of wnp editor    
-		'''
+        '''@brief test loading of wnp editor'''
 		#print("Loading *.wnp files")
         wnp_text_path = os.path.join(self.dir_path,self.test_wnp_txt)
         wnp_bin_path  = os.path.join(self.dir_path,self.test_wnp_bin)
@@ -1449,9 +1514,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.assertEqual(wnp_bin,wnp_text)
 		
     def test_snp_io(self):
-        '''
-		@brief test loading and writing of snp editor    
-		'''
+        '''@brief test loading and writing of snp editor'''
 		#print("Loading *.snp files")
         snp_text_path = os.path.join(self.dir_path,self.test_snp_txt)
         snp_bin_path  = os.path.join(self.dir_path,self.test_snp_bin)
@@ -1472,9 +1535,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         os.remove('test3.s2p')
 		
     def test_key_mapping(self):
-        '''
-		@brief test mapping keys to different ports  
-		'''
+        '''@brief test mapping keys to different ports'''
         keys = [11,31,13,33]
         mapping = {3:2}
         expected_keys = [11,21,12,22]
@@ -1482,8 +1543,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.assertTrue(np.all(np.equal(expected_keys,new_keys)))
         
     def test_copy(self):
-        '''
-        @brief test shallow and deep copying
+        '''@brief test shallow and deep copying
         @note this mostly just verifies that our raw and freq pointers
             were copied correctly.
         '''
@@ -1505,8 +1565,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         
 		
     def test_2_port_swapping(self):
-        '''
-		@brief test using swap_ports to swap 2 port files and swapping  
+        '''@brief test using swap_ports to swap 2 port files and swapping  
 		@todo improve this to test 2 different data files. THis test only
 			ensures data is not corrupted. It doesnt verify data is actually
 			swapped at all  
@@ -1543,9 +1602,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.assertTrue(np.all(s4.S[21].raw==(sp1.raw*complex(5,2))))
 		
     def test_new_class_creation(self):
-        '''
-		@brief test the creatino of new classes from TouchstoneEditor superclass  
-		'''
+        '''@brief test the creatino of new classes from TouchstoneEditor superclass'''
         wnp_text_path = os.path.join(self.dir_path,self.test_wnp_txt)
         wnp_bin_path  = os.path.join(self.dir_path,self.test_wnp_bin)
         w1 = TouchstoneEditor(wnp_text_path)
@@ -1560,9 +1617,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.assertEqual(type(s2),SnpEditor)
 		
     def test_add_swap_remove_port(self):
-        '''
-        @brief test adding/swapping/removing ports. This is written only for s2p files  
-        '''
+        '''@brief test adding/swapping/removing ports. This is written only for s2p files  '''
         f1 = os.path.join(self.dir_path,self.test_snp_txt)
         s1 = SnpEditor(f1)
         s1_11 = copy.deepcopy(s1.S[11].raw)
@@ -1578,12 +1633,27 @@ class TestTouchstoneEditor(unittest.TestCase):
         self.assertTrue(np.all(s1.wave_dict_keys==init_keys))
         
     def test_plot(self):
-        '''
-        @brief test adding/swapping/removing ports. This is written only for s2p files  
-        '''
+        '''@brief test adding/swapping/removing ports. This is written only for s2p files'''
         f1 = os.path.join(self.dir_path,self.test_snp_txt)
         s1 = SnpEditor(f1)
         s1.plot()
+    
+    def test_combine_split(self):
+        '''@brief test combine_parameters and split_measurements to combine TouchstoneEditors
+        @todo add split_measurements'''
+        f1 = os.path.join(self.dir_path,self.test_snp_txt)
+        f2 = os.path.join(self.dir_path,self.test_snp_bin)
+        s1 = SnpEditor(f1)
+        s2 = SnpEditor(f2)
+        sc0 = combine_parameters(s1,s2)
+        sc1 = combine_parameters(f1,f2)
+        sc2 = combine_parameters(f1,s2)
+        self.assertTrue(sc0==sc1) #check that using files and objects makes the same
+        self.assertTrue(sc0==sc2)
+        self.assertTrue(sc0.S[33]==s2.S[11])
+        self.assertTrue(sc0.S[11]==s2.S[11])
+        self.assertTrue(sc0.S[34]==s2.S[12])
+        
             
 #%% things to run when we run this file
 if __name__=='__main__':
@@ -1606,6 +1676,8 @@ if __name__=='__main__':
     r2 = mysnp.S[21].raw
     #mysnp.plot([21])
     
+    comb = combine_parameters(mysnp,mysnp)
+    
     #import doctest
     #doctest.testmod(extraglobs=
     #                {'mys2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p')),
@@ -1624,6 +1696,7 @@ if __name__=='__main__':
         import numpy as np
         freq_list = np.linspace(26.5e9,40e9,1351)
         s = SnpEditor([2,freq_list])
+    
         
         
         
