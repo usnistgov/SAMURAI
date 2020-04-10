@@ -331,56 +331,6 @@ def create_muf_xml_item(item_name,subitem_text_list=None):
         ET.SubElement(item,'SubItem',attrib={"Index":str(i),"Text":str(sub)})
     item.attrib['Count'] = str(len(item.getchildren()))
     return item
-
-
-from samurai.base.SamuraiDict import SamuraiDict
-
-class MUFModelKit(SamuraiDict):
-    '''
-    @brief class to store information on a set of MUF models
-    '''
-    def __init__(self,model_kit_path,*args,**kwargs):
-        '''
-        @brief constructor
-        @param[in] model_kit_path - path to a written out MUFModelKit (a json path)
-        @param[in/OPT] *args,**kwargs passed to OrderedDict
-            type - type of calkit. must be specified when model_kit_path is None
-        '''
-        self['type'] = None
-        self['models'] = {}
-        if model_kit_path is None:
-            try:
-                self['type'] = kwargs['type']
-            except:
-                raise KeyError("Please specify 'type' as a keyword argument when creating an empty kit")
-        else:
-            self.load(model_kit_path)
-    
-    def add_model(self,name,path):
-        '''
-        @brief add a model to the model kit. 
-        @param[in] name - name of the model. also the dict key to retrieve
-        @param[in] path - path to the model
-        '''
-        self['models'].update({name:path})
-        
-    def get_model(self,name):
-        '''
-        @brief get a model from our kit
-        '''
-        return self['models'][name]
-        
-    def __getitem__(self,item):
-        '''
-        @brief also check the model dictionary
-        '''
-        try:
-            return super().__getitem__(item)
-        except KeyError as e:
-            try:
-                return self.get_model(item)
-            except KeyError:
-                raise e
         
             
 if __name__=='__main__':
@@ -397,23 +347,6 @@ if __name__=='__main__':
     ppmc = MUFModuleController(test_postproc_xml)
     ppmc.option_items_checkbox
     ppmc.option_items_textbox
-    
-    #create model path json file for WR28
-    wr28_load_model = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_Load.model"
-    wr28_short_model = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_Short.model"
-    wr28_offsetShort_model = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_OffsetShort.cascade"
-    wr28_offsetThru_model  = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_ShimThru.model"
-    wr28_thru_model = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_IdentityThru.model"
-    
-    mmk = MUFModelKit(None,type='WR28')
-    mmk.add_model('load',wr28_load_model)
-    mmk.add_model('short',wr28_short_model)
-    mmk.add_model('offset_short',wr28_offsetShort_model)
-    mmk.add_model('offset_thru',wr28_offsetThru_model)
-    mmk.add_model('thru',wr28_thru_model)
-    mmk.add_model('gthru',wr28_thru_model)
-    op = os.path.join(r'C:\SAMURAI\git\samurai\analysis\support\MUF\templates','WR28.mmk')
-    mmk.write(op)
     
     
     
