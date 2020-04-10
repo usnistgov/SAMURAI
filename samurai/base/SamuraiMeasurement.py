@@ -6,7 +6,7 @@ Created on Mon Jun 24 16:02:04 2019
 """
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor,WaveformEditor
-from samurai.base.TouchstoneEditor import TouchstoneParam
+from samurai.base.TouchstoneEditor import TouchstoneParam, split_parameters
 from samurai.base.generic import complex2magphase, magphase2complex
 from samurai.base.generic import get_name_from_path
 from samurai.base.generic import ProgressCounter
@@ -114,6 +114,28 @@ def set_meas_absolute(meas_path,out_path=None):
             for fi,fp in enumerate(fpaths):
                 meas_obj[fi]['file_path'] = fp
     return meas.write_xml(out_path)
+
+def split_measurement(meas_path,split):
+    '''
+    @brief split the data in a measurement into two different measurements.
+    @note This must load in all data
+    @note This utilizes TouchstoneEditor split_parameters
+    @return Metafile instances equal to the split
+    '''
+    #first load the measurement and all its data
+    meas = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
+    #split a test case to figure out what we need
+    test_out = split_parameters(meas.nominal[0].data,split)
+    #now create editors equal to the number of test outputs
+    meas_out = [SamuraiMeasurement() for i in range(len(test_out))]
+    for mt in meas.meas_types: #now lets split everything
+        mt_attr = getattr(meas,mt)
+        for mval in mt_attr: #loop through each measurement in the type
+            split_vals = split_parameters(mval.data,split)
+            for i,sv in enumerate(split_vals): #now put back into new split values
+                getattr(meas_out[i],mt).add_item(sv) #add the item
+    return meas_out
+                
     
 #%% Operation Function (e.g. FFT) with uncerts
 def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
@@ -779,14 +801,14 @@ class TestSamuraiMeasurement(unittest.TestCase):
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=False)
-        res.write_json('./test/test_meas.smeas')
-        res.write_xml('./test/test_meas.meas')
+        res.write_json(os.path.join(self.wdir,'./test/test_meas.smeas'))
+        res.write_xml(os.path.join(self.wdir,'./test/test_meas.meas'))
         #absolute read write test
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
-        res.write('./test/test_meas_all.smeas',relative=False)
-        res.write('./test/test_meas_all.meas',relative=False)
-        resj = SamuraiMeasurement('./test/test_meas_all.smeas',load_nominal=True,load_statistics=True)
-        resx = SamuraiMeasurement('./test/test_meas_all.meas',load_nominal=True,load_statistics=True)
+        res.write(os.path.join(self.wdir,'./test/test_meas_all.smeas'),relative=False)
+        res.write(os.path.join(self.wdir,'./test/test_meas_all.meas'),relative=False)
+        resj = SamuraiMeasurement(os.path.join(self.wdir,'./test/test_meas_all.smeas'),load_nominal=True,load_statistics=True)
+        resx = SamuraiMeasurement(os.path.join(self.wdir,'./test/test_meas_all.meas'),load_nominal=True,load_statistics=True)
         
     def test_load_write_relative(self):
         '''
@@ -795,15 +817,27 @@ class TestSamuraiMeasurement(unittest.TestCase):
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
-        res.write_json('./test/test_meas.smeas')
-        res.write_xml('./test/test_meas.meas')
+        res.write_json(os.path.join(self.wdir,'./test/test_meas.smeas'))
+        res.write_xml(os.path.join(self.wdir,'./test/test_meas.meas'))
         #absolute read write test
         res = SamuraiMeasurement(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
-        res.write('./test/test_meas_all_rel.smeas',relative=True)
-        res.write('./test/test_meas_all_rel.meas',relative=True)
-        resj = SamuraiMeasurement('./test/test_meas_all_rel.smeas',load_nominal=True,load_statistics=True)
-        resx = SamuraiMeasurement('./test/test_meas_all_rel.meas',load_nominal=True,load_statistics=True)
+        res.write(os.path.join(self.wdir,'./test/test_meas_all_rel.smeas'),relative=True)
+        res.write(os.path.join(self.wdir,'./test/test_meas_all_rel.meas'),relative=True)
+        resj = SamuraiMeasurement(os.path.join(self.wdir,'./test/test_meas_all_rel.smeas'),load_nominal=True,load_statistics=True)
+        resx = SamuraiMeasurement(os.path.join(self.wdir,'./test/test_meas_all_rel.meas'),load_nominal=True,load_statistics=True)
         
+    def test_split(self):
+        '''@brief test splitting the data of the measurement (e.g. s2p to s1p)'''
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        meas = SamuraiMeasurement(meas_path,load_statistics=True)
+        meas_p1,meas_p2 = split_measurement(meas_path,2)
+        #now lets verify the data is correct
+        sn1,sn2 = split_parameters(meas.nominal[0].data,2) 
+        self.assertEqual(sn1,meas_p1.nominal[0].data)
+        self.assertEqual(sn2,meas_p2.nominal[0].data)
+        sm1,sm2 = split_parameters(meas.monte_carlo[0].data,2) 
+        self.assertEqual(sm1,meas_p1.monte_carlo[0].data)
+        self.assertEqual(sm2,meas_p2.monte_carlo[0].data)
         
 class TestUncertaintyOperations(unittest.TestCase):
     '''@brief test operations on data with uncertainty'''
