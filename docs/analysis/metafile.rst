@@ -117,10 +117,10 @@ An example of how data can be accessed with :class:`samurai.base.TouchstoneEdito
    # Now lets get some data from this
    frequencies        = mysnp.freq_list
    block_data_complex = mysnp.raw 
-   s11_complex        = mysnp.S[11].raw
-   s12_complex        = mysnp.S[12].raw
-   s21_complex        = mysnp.S[21].raw
-   s22_complex        = mysnp.S[22].raw
+   s11_complex        = mysnp.S[11]
+   s12_complex        = mysnp.S[12]
+   s21_complex        = mysnp.S[21]
+   s22_complex        = mysnp.S[22]
 
 Loading external positioning information
 -----------------------------------------

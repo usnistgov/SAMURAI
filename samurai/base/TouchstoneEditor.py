@@ -426,7 +426,7 @@ class TouchstoneEditor(object):
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
                 #extract to self._raw
                 self._raw[wi,ki,:] = data
-                self.waves[w][k] = self._param_class(self._freqs,self._raw[wi,ki,:])
+                self.waves[w][k] = self._param_class(self._raw[wi,ki,:],freqs=self._freqs)
         self.round_freq_list() #round when we load (remove numerical rounding error)
      
     def _load_text(self,file_path,**kwargs):
@@ -521,7 +521,7 @@ class TouchstoneEditor(object):
          self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(freqs)),dtype=np.cdouble)
          for ki,k in enumerate(self.wave_dict_keys):
              for wi,wave in enumerate(self.waves.keys()):
-                 self.waves[wave][k] = self._param_class(self._freqs,self._raw[wi,ki,:])
+                 self.waves[wave][k] = self._param_class(self._raw[wi,ki,:],freqs = self._freqs)
          self.round_freq_list()
          
     def _set_num_ports(self,num_ports):
@@ -643,7 +643,7 @@ class TouchstoneEditor(object):
         '''
         for k in self.wave_dict_keys:
             for w in self.waves.keys():
-                self.waves[w][k].freq_list = self.freqs
+                self.waves[w][k].freqs = self.freqs
                 
     def _update_param_raw_data(self):
         '''
@@ -651,7 +651,9 @@ class TouchstoneEditor(object):
         '''
         for ik,k in enumerate(self.wave_dict_keys):
             for iw,w in enumerate(self.waves.keys()):
-                self.waves[w][k]._raw = self._raw[iw,ik,:]
+                old_attr = self.waves[w][k].__dict__
+                self.waves[w][k] = self._param_class(self._raw[iw,ik,:])
+                self.waves[w][k].__dict__.update(old_attr)
     
     def _verify_freq_lists(self):
         '''
@@ -741,7 +743,7 @@ class TouchstoneEditor(object):
         new_keys = self.wave_dict_keys[np.in1d(self.wave_dict_keys,orig_wdk,invert=True)] #get the added keys
         for k in new_keys:
             for wk in self.waves.keys():
-                self.waves[wk][k] = self._param_class(freqs,np.zeros(len(freqs))) #add empty params
+                self.waves[wk][k] = self._param_class(np.zeros(len(freqs)),freqs=freqs) #add empty params
    
              
     def __getitem__(self,key):
@@ -764,7 +766,8 @@ class TouchstoneEditor(object):
             if the number of ports arent equal just return [num_ports_eq,num_ports_self,num_ports_other]  
         '''
         num_ports_eq = self.num_ports==other.num_ports
-        if(not num_ports_eq): #dont check more if number of ports arent equal
+        freqs_eq = np.all(self.freq_list == other.freq_list)
+        if not num_ports_eq or not freqs_eq: #dont check more if number of ports or freqs arent equal
             return [num_ports_eq,self.num_ports,other.num_ports]
         out_lists = {}
         for w in self.waves.keys():
@@ -825,9 +828,9 @@ class TouchstoneEditor(object):
                             continue #skip to the next iteration
                     else: #we can use inherited classes here
                         other_val = other
-                    new_val = v._perform_arithmetic_operation(other_val,funct)
-                    ret.waves[k][w].raw = new_val.raw
-                    ret.waves[k][w].freq_list = new_val.freq_list  
+                    new_val = funct(v,other_val)
+                    ret.waves[k][w][:] = new_val
+                    ret.waves[k][w].freqs = new_val.freq_list  
         else: #otherwise just try and perform the operation on raw
            ret.raw = funct(self.raw,other)
         return ret
@@ -1118,22 +1121,34 @@ class BeamformEditor(WaveformEditor):
         return self.freqs
 
 #%% Class for each parameter
-class TouchstoneParam:
+class TouchstoneParam(np.ndarray):
     '''
     @brief class for a single parameter (e.g. S[11])  
+    @brief initialize our parameter  
+    @param[in] raw_list - list of raw data to add
+    @param[in/OPT] freqs - frequencies of the raw data
     '''
-    def __init__(self,freq_list,raw_list,**arg_options):
+    def __new__(cls,raw_list,freqs=None):
         '''
-        @brief initialize our parameter  
-        @param[in] freq_list - list of frequencies for the parameter data  
-        @param[in] raw_list  - raw complex data for the parameter  
-        @param[in/OPT] arg_options - keyword arg options as follows  
-            - - None yet!
+        @brief This is needed for extending an ndarray
+        @cite https://docs.scipy.org/doc/numpy-1.13.0/user/basics.subclassing.html
+            the 'add attribute to existing array' section
+        @param[in] args - arguments passed to np.ndarray
+        @param[in] kwargs - key/value pairs as follows:
+            - freqs - frequencies of the data
         '''
-        self.options = {}
-        for k,v in arg_options.items():
-            self.options[k] = v
-        self.update(freq_list,raw_list)
+        # Now lets create our array object
+        obj = np.asarray(raw_list).view(cls)
+        # Now set custom values
+        obj.freqs = freqs
+        return obj
+    
+    def __array_finalize__(self,obj):
+        '''@brief This is required for extending np.ndarray'''
+        if obj is None: return
+        #otherwise make sure values are always set
+        # These should be set again according to numpy docs
+        self.freqs = getattr(obj,'freqs',None) #set our frequencies
         
     def sort(self):
         '''
@@ -1245,12 +1260,6 @@ class TouchstoneParam:
         #return myw
         return times,ifft_vals
     
-    def calculate_arbitrary_time_domain_data(self,output_vals):
-        '''
-        @brief directly calculate the dft for current values and return arbitrary output values  
-        '''
-        pass
-    
     def plot(self,data_type='mag_db',trace_only=False,**plot_options):
         '''
         @brief plot the data from the parameter given as data_type  
@@ -1299,163 +1308,45 @@ class TouchstoneParam:
         pass
     
     @property
-    def raw(self):
-        '''@brief abstract self.raw from self._raw to not edit block data in TouchstoneEditor'''
-        return self._raw
-    
-    @raw.setter
-    def raw(self,val):
-        '''@brief setter to not overwrite raw'''
-        self._raw[:] = val
+    def freq_list(self): return self.freqs
+    @freq_list.setter
+    def freq_list(self,val): self.freqs = val 
     
     @property
-    def bandwidth(self):
-        return self.get_bandwidth()
+    def raw(self): return self
+    @raw.setter
+    def raw(self,val): self[:] = val
+    
+    @property
+    def bandwidth(self): return self.get_bandwidth()
         
     def get_frequency_step(self):
-        '''
-        @brief get the average step between our frequencies  
-        '''
+        '''@brief get the average step between our frequencies'''
         return np.mean(np.diff(self.freq_list))
     
     @property
     def frequency_step(self):
         return self.get_frequency_step()
     
+    #some useful properties for different data getting types
     @property
-    def mag_db(self):
-        '''
-        @brief get the magnitude in db (20*log10(mag_lin))  
-        '''
-        return 20*np.log10(self.mag)
+    def mag_db(self): return 20*np.log10(self.mag)
+    @property
+    def mag(self): return np.abs(self.raw)
+    @property
+    def phase(self): return np.angle(self.raw)
+    @property
+    def phase_d(self): return np.angle(self.raw)*180/np.pi
     
-    @property
-    def mag(self):
-        '''
-        @brief property for magnitude  
-        @return list of magnitude data  
-        '''
-        return np.abs(self.raw)
-
-    @property
-    def phase(self):
-        '''
-        @brief property for phase in radians  
-        @return list of phase data in radians  
-        '''
-        return np.angle(self.raw)
-
-    @property
-    def phase_d(self):
-        '''
-        @brief property for phase in degrees  
-        @return list of phase data in degrees  
-        '''
-        return np.angle(self.raw)*180/np.pi
     
-    def _perform_arithmetic_operation(self,other, funct, return_all_freqs=False):
-        '''
-        @brief run an arithmetic operation on the parameter. if a parameter
-            of the same type is passed, only matching frequencies will be changed.
-            This will return only overlapping frequencies to avoid confusion  
-        @param[in] other - other value in the arithmetic operation  
-        @param[in] funct - function for arithmentic (i.e. numpy.multiply)  
-        @param[in/OPT] return_all_freqs - whether or not to return all frequencies
-            or just overlapping ones. Defaults to False so we just return overlapping  
-        @return a new copy of self multiplied by other. If other is the same as self
-            Only overlapping frequencies will be returned  
-        '''
-        if isinstance(other,type(self)): #if its an instance of the current class
-            match_list_self = np.isin(self.freq_list,other.freq_list) 
-            if not np.any(match_list_self):
-                raise TouchstoneArithmeticError("No overlapping frequencies")
-            match_list_other = np.isin(other.freq_list,self.freq_list)
-            ret_raw = funct(self.raw[match_list_self],other.raw[match_list_other]) #multiply where frequencies match
-            if return_all_freqs: #return all of the frequency values in self even if they dont overlap
-                ret = copy.deepcopy(self)
-                ret.raw[match_list_self] = ret_raw
-            else: #only return overlapping frequencies
-                ret_freq = self.freq_list[match_list_self]
-                ret = type(self)(ret_freq,ret_raw,**self.options)
-        else: #otherwise just try to multiply the raw by the input
-            ret = copy.deepcopy(self)
-            ret.raw = funct(self.raw,other) #just perform the function
-        return ret
+class WnpParam(TouchstoneParam): # just for naming
+    pass
         
-    def __mul__(self,other):
-        '''
-        @brief overload multiply for scalars and other values of the same type  
-        @note only return frequencies that overlap  
-        @param[in] other - other value to be multiplied  
-        '''
-        return self._perform_arithmetic_operation(other,np.multiply,False)
-    
-    def __div__(self,other):
-        '''
-        @brief overload multiply for scalars and other values of the same type  
-        @note only return frequencies that overlap  
-        @param[in] other - other value to be divided  
-        '''
-        return self._perform_arithmetic_operation(other,np.divide,False)
-    
-    __floordiv__=__div__ # // operator usually returns an int
-    __truediv__=__div__  # / operator 
-    
-    def __add__(self,other):
-        '''
-        @brief overload added for scalars and other values of the same type  
-        @note only return frequencies that overlap  
-        @param[in] other - other value to be added  
-        '''
-        return self._perform_arithmetic_operation(other,np.add,False)
-    
-    def __sub__(self,other):
-        '''
-        @brief overload added for scalars and other values of the same type  
-        @note only return frequencies that overlap  
-        @param[in] other - other value to be added  
-        '''
-        return self._perform_arithmetic_operation(other,np.subtract,False)
-    
-    def __getitem__(self,idx):
-        return self.raw[idx]
-    
-    def __deepcopy__(self,memo):
-        '''
-        @brief override deepcopy. This just creates a new instance with the same raw and freq_list  
-        '''
-        rv = type(self)(copy.deepcopy(self.freq_list),copy.deepcopy(self.raw),**self.options) #make an emtpy of this type
-        return rv
-    
-    def __eq__(self,other):
-        '''
-        @brief check equality of frequency and data in parameter  
-        @return [freq_eq,data_eq]  
-        '''
-        freq_eq = np.equal(self.freq_list,other.freq_list).all()
-        data_eq = np.equal(self.raw,other.raw).all()
-        return freq_eq,data_eq
-    
-    def __len__(self):
-        '''
-        @brief get the length of self.raw  
-        '''
-        return len(self.raw)
-    
-class WnpParam(TouchstoneParam):
-     
-    def __init__(self,freq_list,raw_list,**arg_options):
-        super().__init__(freq_list,raw_list,**arg_options)   
-        
-class SnpParam(TouchstoneParam):
-     
-    def __init__(self,freq_list,raw_list,**arg_options):
-        super().__init__(freq_list,raw_list,**arg_options)
+class SnpParam(TouchstoneParam): # just for naming
+    pass
         
 class WaveformParam(TouchstoneParam):
     '''@brief parameter for waveorm files'''
-    def __init__(self,freq_list,raw_list,**arg_options):
-        super().__init__(freq_list,raw_list,**arg_options)
     @property
     def times(self):
         '''@brief allow times as opposed to freq_list'''
@@ -1674,9 +1565,9 @@ class TestTouchstoneEditor(unittest.TestCase):
         sc2 = combine_parameters(f1,s2)
         self.assertTrue(sc0==sc1) #check that using files and objects makes the same
         self.assertTrue(sc0==sc2)
-        self.assertTrue(sc0.S[33]==s2.S[11])
-        self.assertTrue(sc0.S[11]==s2.S[11])
-        self.assertTrue(sc0.S[34]==s2.S[12])
+        self.assertTrue(np.all(sc0.S[33]==s2.S[11]))
+        self.assertTrue(np.all(sc0.S[11]==s2.S[11]))
+        self.assertTrue(np.all(sc0.S[34]==s2.S[12]))
         #now lets separate them again
         os1,os2 = split_parameters(sc0,2)
         self.assertTrue(os1==s1)
@@ -1685,6 +1576,12 @@ class TestTouchstoneEditor(unittest.TestCase):
             
 #%% things to run when we run this file
 if __name__=='__main__':
+
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstoneEditor)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+
+    # test touchstoneParam
+    myp = TouchstoneParam([1,2,3],freqs=[4,5,6])    
 
     #geyt the current file directory for the test data
     import os 
@@ -1697,7 +1594,8 @@ if __name__=='__main__':
     test_wnp_txt = 'test.w2p'
     test_wnp_bin = 'test.w2p_binary'
     
-    mysnp = TouchstoneEditor(os.path.join(dir_path,test_snp_txt))
+    s0 = mysnp = TouchstoneEditor(os.path.join(dir_path,test_snp_txt))
+    s1 = TouchstoneEditor(os.path.join(dir_path,test_snp_bin))
     mysnp_orig = copy.deepcopy(mysnp)
     mysnp.S[21].run_function_on_data(moving_average,10)
     r1 = mysnp_orig.S[21].raw
@@ -1716,16 +1614,14 @@ if __name__=='__main__':
     add_remove_test = True
     empty_object_test = True
     
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstoneEditor)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-    #unittest.main()
+    
         
     if empty_object_test:
         import numpy as np
         freq_list = np.linspace(26.5e9,40e9,1351)
         s = SnpEditor([2,freq_list])
     
-        
+
         
         
         
