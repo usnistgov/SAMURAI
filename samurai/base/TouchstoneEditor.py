@@ -1117,10 +1117,10 @@ class BeamformEditor(WaveformEditor):
     def angles(self):
         return self.freqs
 
-#acutally is the same as snpParam
+#%% Class for each parameter
 class TouchstoneParam:
     '''
-    @brief class for a single wave parameter (e.g. A[11])  
+    @brief class for a single parameter (e.g. S[11])  
     '''
     def __init__(self,freq_list,raw_list,**arg_options):
         '''

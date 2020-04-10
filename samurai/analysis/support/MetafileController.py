@@ -722,6 +722,8 @@ class MetafileController(SamuraiDict):
         @brief set the filenames from a list
         '''
         self.set_filename(path_list)
+        
+    file_paths = filenames
 
     def get_filename_list(self,abs_path=False):
         '''
