@@ -357,6 +357,9 @@ class MetafileController(SamuraiDict):
         self['measurements'].append(meas)
         return meas
     
+    def __len__(self):
+        return len(self['measurements'])
+    
     ###########################################################################
     ### Position operations
     ###########################################################################

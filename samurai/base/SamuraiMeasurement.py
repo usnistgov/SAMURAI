@@ -355,7 +355,7 @@ class SamuraiMeasurement(SamuraiDict):
             options[k] = v
         mr = SamuraiMeasurement2MUFResult(self)
         out_path = os.path.splitext(out_path)[0]+'.meas'
-        mr.write_xml(out_path,**options)
+        return mr.write_xml(out_path,**options)
         
     def write_json(self,out_path,**kwargs):
         '''
@@ -366,9 +366,10 @@ class SamuraiMeasurement(SamuraiDict):
         for k,v in kwargs.items():
             options[k] = v
         out_path = os.path.splitext(out_path)[0]+'.smeas'
-        super().write(out_path)
+        rv = super().write(out_path)
         if options['relative']: set_meas_relative(out_path)
         else: set_meas_absolute(out_path)
+        return rv
         
     def _write_nominal(self,out_dir,out_name='nominal'):
         '''
@@ -451,17 +452,23 @@ class SamuraiMeasurement(SamuraiDict):
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
             verbose - be verbose when writing (default False)
+            filetype - 'meas' or 'smeas' (default to 'meas') if the file doesnt have one
         '''
+        options = {}
+        options['filetype'] = kwargs.pop('filetype','meas') #only if it doesnt have an extension
         out_dir = os.path.splitext(out_path)[0]
         if kwargs.get('verbose',False): print("Writing to : {}".format(out_path))
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
+        #default if there is no ending
+        if not os.path.splitext(out_path)[-1]: #if theres no extension add one
+            out_path+= '.{}'.format(options['filetype'])
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
         if '.meas' in out_path: #write an xml if we have a .meas file
-            self.write_xml(out_path)
+            return self.write_xml(out_path)
         else:
-            self.write_json(out_path) #otherwise write a json file
+            return self.write_json(out_path) #otherwise write a json file
         
 #################################################
 # Some useful properties

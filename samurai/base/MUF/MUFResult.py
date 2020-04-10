@@ -512,9 +512,10 @@ class MUFResult(MUFModuleController):
         options['relative'] = False
         for k,v in kwargs.items():
             options[k] = v
-        super().write(out_path)
+        rv = super().write(out_path)
         if options['relative']: #then just change after write (code already written)
             set_meas_relative(out_path)
+        return rv
         
     def _write_nominal(self,out_dir,out_name='nominal'):
         '''
@@ -607,7 +608,7 @@ class MUFResult(MUFModuleController):
             os.makedirs(out_dir)
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
-        self.write_xml(out_path)
+        return self.write_xml(out_path)
         
     @property
     def working_directory(self):

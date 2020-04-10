@@ -23,7 +23,7 @@ import plotly.graph_objs as go
 #hamming window
 import scipy.signal.windows
 
-DEFAULT_EMPTY_HEADER = 'Hz S RI 50'
+DEFAULT_EMPTY_HEADER = 'GHz S RI 50' #Ghz default because thats all the MUF recognizes
 DEFAULT_HEADER       = 'GHz S RI 50'
 DEFAULT_HEADER_TIME  = 'ns S RI 50'
 DEFAULT_HEADER_ANG   = 'deg S RI 50'
@@ -81,13 +81,13 @@ def combine_parameters(*args,**kwargs):
     @param[in] args - paths or TouchstoneEditor objects to combine. 
         These must all be of the same class (e.g. SnpEditor) and have the same frequencies
     @param[in/OPT] kwargs - keyword arguments as follows:
-        - fill_value - what value to fill undefined parameters (default 1+j0)
+        - fill_value - what value to fill undefined parameters (default 0+0j)
         - out_path - directory to write the file to. If None just return the TouchstoneEditor object
     @note This currenlty assumes that ports are consecutive (e.g. 11,12,21,22 NOT 11,13,31,33)
     @note This only supports up to 10 ports
     '''
     options = {}
-    options['fill_value'] = 1+0j
+    options['fill_value'] = 0+0j
     options['out_path'] = None
     for k,v in kwargs.items():
         options[k] = v
@@ -109,7 +109,7 @@ def combine_parameters(*args,**kwargs):
     freq_list = editors[0].freq_list
     total_ports = np.sum([ed.num_ports for ed in editors])
     #now create a new editor to copy into
-    new_editor = myclass([total_ports,freq_list])
+    new_editor = myclass([total_ports,freq_list],header=editors[0].options['header'])
     new_editor.raw = options['fill_value']
     port_count = 0 #current ports
     for ed in editors:
@@ -148,7 +148,7 @@ def split_parameters(meas,split,**kwargs):
     if not ports_per_split == int(ports_per_split): #check for even divisibility
         raise TouchstoneError("Number of ports ({}) not evenly divisible by {}".format(meas.num_ports,split))
     ports_per_split = int(ports_per_split) #change to integer
-    out_editors = [type(meas)([ports_per_split,freqs]) for i in range(split)] #create n output editors
+    out_editors = [type(meas)([ports_per_split,freqs],header=meas.options['header']) for i in range(split)] #create n output editors
     #now populate the output editors from the input
     port_count = 0 #current ports
     for oed in out_editors:
@@ -274,7 +274,7 @@ class TouchstoneEditor(object):
          @brief init arbitrary port wave parameter class  
          @param[in] input_file - path of file to load in. 
                      A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-                     measurement with n ports and frequencies [f1,f2,...] 
+                     measurement with n ports and frequencies [f1,f2,...] in Hz
                      If not provided we will have a default class with no ports or anything  
          @param[in] arg_options - keywor arguments as follows:  
              - header - header to write out to the file (text only)  
@@ -517,7 +517,7 @@ class TouchstoneEditor(object):
          if self.options['header'] is None: #allow override
              self.set_header(DEFAULT_EMPTY_HEADER) #set the default header
          #and pack the port data with 0s
-         self._freqs = np.array(freqs,dtype=np.double)*self._get_freq_mult()
+         self._freqs = np.array(freqs,dtype=np.double) #dont set the multiplier when values are provided in this way
          self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(freqs)),dtype=np.cdouble)
          for ki,k in enumerate(self.wave_dict_keys):
              for wi,wave in enumerate(self.waves.keys()):
@@ -782,7 +782,9 @@ class TouchstoneEditor(object):
         @brief override default to check equality of each port. 
           we will return whether number of ports match, then lists of A matching and B matching  
         '''
-        eq_ports,eq_out_vals = self.check_equal(other)
+        ce_vals = self.check_equal(other)
+        if len(ce_vals)!=2: return False #if frequencies or number of ports dont match
+        eq_ports,eq_out_vals = ce_vals #unpack the return
         tf_list = [eq_ports]
         for v in eq_out_vals.values():
             for tf in v:

@@ -9,10 +9,15 @@ from lxml import etree as ET
 import re
 import os
 
-from samurai.analysis.support.MUF.MUFModuleController import MUFModuleController
+from samurai.base.MUF.MUFModuleController import MUFModuleController
 from samurai.base.SamuraiDict import SamuraiDict
 
 DEFAULT_VNAUNCERT_EXE_PATH = r"C:\Program Files (x86)\NIST\Uncertainty Framework\VNAUncertainty.exe"
+
+wdir = os.path.realpath(os.path.dirname(__file__))
+
+MENU_TEMPLATE_PATH = os.path.join(wdir,'./templates/template.vnauncert')
+MENU_TEMPLATE_PATH_ONE_PORT = os.path.join(wdir,'./templates/template_one_port.vnauncert')
 
 #'C:/Users/ajw5/Source/Repos/MUF/VNAUncertainty/bin/Debug/VNAUncertainty.exe'
 
@@ -25,7 +30,7 @@ class VNAUncertController(MUFModuleController):
     def __init__(self,menu_path,**kwargs):
         '''
         @brief default constructor
-        @param[in] menu_path - path to menu to load
+        @param[in] menu_path - path to menu to load. If None load a blank template
         @param[in/OPT] kwargs - keyword args as follows:
             - exe_path - executable path (defaults to MUF install default)
             - - Thsee are also passed to MUFModuleController.__init__()
@@ -34,7 +39,11 @@ class VNAUncertController(MUFModuleController):
         kwargs_out['exe_path'] = DEFAULT_VNAUNCERT_EXE_PATH
         for k,v in kwargs.items():
             kwargs_out[k] = v
+        if menu_path is None: #load the empty template
+            menu_path = MENU_TEMPLATE_PATH
         super().__init__(menu_path,**kwargs_out)
+        #now set Item lists to correct value
+        self.controls
         
     def set_before_calibration(self,*args,**kwargs):
         '''
@@ -202,14 +211,12 @@ class CalibrationModelKit(SamuraiDict):
         
 if __name__=='__main__':
     
-    from samurai.analysis.support.MUF.MUFModuleController import MUFModelKit
-    
     test_vnauncert_xml = r"./templates/template.vnauncert"
     
     vumc = VNAUncertController(test_vnauncert_xml)
     
-    model_kit_path = './templates/WR28.mmk'
-    wr28_kit = MUFModelKit(model_kit_path)
+    model_kit_path = './templates/WR28.cmk'
+    wr28_kit = CalibrationModelKit(model_kit_path)
     
     meas_dict = {
             'load':'./test/load.s2p',
@@ -220,9 +227,9 @@ if __name__=='__main__':
             }
 
     vumc.set_before_calibration(wr28_kit,meas_dict)   
-    vumc.set_duts()
+    vumc.set_duts([])
     
-    vumc.write('./templates/test.vnauncert')
+    vumc.write('./test/test.vnauncert')
     
     # Model kit
     #create model path json file for WR28
@@ -232,14 +239,14 @@ if __name__=='__main__':
     wr28_offsetThru_model  = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_ShimThru.model"
     wr28_thru_model = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_IdentityThru.model"
     
-    mmk = MUFModelKit(None,type='WR28')
-    mmk.add_model('load',wr28_load_model)
-    mmk.add_model('short',wr28_short_model)
-    mmk.add_model('offset_short',wr28_offsetShort_model)
-    mmk.add_model('offset_thru',wr28_offsetThru_model)
-    mmk.add_model('thru',wr28_thru_model)
-    mmk.add_model('gthru',wr28_thru_model)
-    op = os.path.join(r'C:\SAMURAI\git\samurai\analysis\support\MUF\templates','WR28.mmk')
-    mmk.write(op)
+    cmk = CalibrationModelKit(None,type='WR28')
+    cmk.add_model('load',wr28_load_model)
+    cmk.add_model('short',wr28_short_model)
+    cmk.add_model('offset_short',wr28_offsetShort_model)
+    cmk.add_model('offset_thru',wr28_offsetThru_model)
+    cmk.add_model('thru',wr28_thru_model)
+    cmk.add_model('gthru',wr28_thru_model)
+    op = os.path.join(r'./templates','WR28.cmk')
+    cmk.write(op)
     
     
