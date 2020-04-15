@@ -365,7 +365,12 @@ class MUFResult(MUFModuleController):
         root_elem.set('CreationTime',str(datetime.datetime.now()))
         self._setroot(root_elem)
         #create controls element
-        self._controls = ET.SubElement(self.getroot(),'Controls')  
+        self._controls = ET.SubElement(self.getroot(),'Controls') 
+        #create required Measurement Name stuff (some things don't work without it)
+        ET.SubElement(self._controls,'MeasurementName')
+        self._controls.find('MeasurementName').set('ControlType',"System.Windows.Forms.TextBox")
+        self._controls.find('MeasurementName').set('ControlText',"Me_SplitContainer2__MeasurementName")
+        self._controls.find('MeasurementName').set('FullName',"System.Windows.Forms.TextBox")
         #now create our nominal
         ET.SubElement(self._controls,'MeasSParams')
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")

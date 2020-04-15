@@ -46,10 +46,16 @@ class MUFModuleController(SamuraiXML):
         self.menu_path = args[0]
         self._controls = self.find('Controls')
         
-    def run(self,out_path=None,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
+    def write(self,*args,**kwargs):
+        '''@brief write to an output path and update self.meas_path'''
+        super().write(*args,**kwargs)
+        self.meas_path = args[0]
+        
+    def run(self,out_path=None,verbose=False,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
         '''
         @brief run our module.This will also save to output_path
         @param[in/OPT] out_path - path to write the menu to before running (and to run from) default to last loaded path
+        @param[in/OPT] verbose - whether or not to be verbose
         @param[in/OPT] text_function - function that the output from the post 
             processor will be passed to (in iterated format, default is print())
             First argument must be expecting a string
@@ -57,11 +63,13 @@ class MUFModuleController(SamuraiXML):
         @param[in/OPT] tf_kwargs_dict - dictionary of kwargs to pass to text_function
         '''
         if out_path is None:
-            out_path = self.menu_path
-        else:
-            raise Exception("No menu loaded")
+            if self.menu_path is not None:
+                out_path = self.menu_path
+            else:
+                raise Exception("No menu loaded")
         self.write(out_path)
-        command = self.options['exe_path']+' -r '+self.menu_path
+        command = self.options['exe_path']+' -r '+out_path
+        if verbose: print("Running : '{}'".format(command))
         exe_generator = subprocess_generator(command)
         for out_line in exe_generator:
             text_function(out_line,*tf_args_tuple,**tf_kwargs_dict)

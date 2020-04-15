@@ -371,22 +371,26 @@ class SamuraiMeasurement(SamuraiDict):
         else: set_meas_absolute(out_path)
         return rv
         
-    def _write_nominal(self,out_dir,out_name='nominal'):
+    def _write_nominal(self,out_dir,out_name='nominal',**kwargs):
         '''
         @brief write out our nominal data
         @param[in] out_dir - directory to write out to
         @param[in/OPT] out_name - name to write out (default 'nominal')
+        @param[in/OPT] kwargs - passed to self._write_statistic
         '''
-        self._write_statistic(self.nominal, os.path.join(out_dir,out_name+'_{}'))
+        self._write_statistic(self.nominal, os.path.join(out_dir,out_name+'_{}'),**kwargs)
         
-    def _write_statistic(self,stat_class,format_out_path):
+    def _write_statistic(self,stat_class,format_out_path,**kwargs):
         '''
         @brief write out our statistics data
         @param[in] stat_class - instance of MUFStatistic to write
         @param[in] out_dir - directory to write out to
         @param[in] format_out_path - formattable output path (e.g. path/to/dir/mc_{}.snp)
+        @param[in/OPT] kwargs - keyword arguments passed to stat_class[i].data.write()
         @return list of written file paths (absolute paths)
         '''
+        options = {'ftype':'binary'}
+        options.update(kwargs)
         out_list = []
         if not hasattr(stat_class, 'data') or stat_class.data is None: #then copy
             files =  stat_class.file_paths
@@ -399,7 +403,7 @@ class SamuraiMeasurement(SamuraiDict):
         else:
             for i,dat in enumerate(stat_class.data): #loop through all of our data
                 fname = os.path.splitext(format_out_path.format(i))[0]
-                fname_out = dat.write(fname,ftype='binary')
+                fname_out = dat.write(fname,**options)
                 fname_out = os.path.abspath(fname_out)
                 out_list.append(fname_out)
                 
@@ -409,7 +413,7 @@ class SamuraiMeasurement(SamuraiDict):
             
         return out_list
     
-    def _write_statistics(self,out_dir):
+    def _write_statistics(self,out_dir,**kwargs):
         '''@brief write out monte carlo and perturbed data'''
         #make the directories
         mc_dir = os.path.join(out_dir,'MonteCarlo')
@@ -419,8 +423,8 @@ class SamuraiMeasurement(SamuraiDict):
         if not os.path.exists(pt_dir):
             os.makedirs(pt_dir)
         #write the data
-        self._write_statistic(self.monte_carlo, os.path.join(mc_dir,'mc_{}'))
-        self._write_statistic(self.perturbed, os.path.join(pt_dir,'pt_{}'))
+        self._write_statistic(self.monte_carlo, os.path.join(mc_dir,'mc_{}'),**kwargs)
+        self._write_statistic(self.perturbed, os.path.join(pt_dir,'pt_{}'),**kwargs)
         
     def _write_data(self,out_dir,**kwargs):
         '''
@@ -434,13 +438,12 @@ class SamuraiMeasurement(SamuraiDict):
         options = {}
         options['write_nominal'] = True
         options['write_stats'] = True
-        for k,v in kwargs.items():
-            options[k] = v
+        options.update(kwargs)
         #load our nominal and statistics if specified
-        if options['write_nominal']:
-            self._write_nominal(out_dir)
-        if options['write_stats']:
-            self._write_statistics(out_dir)
+        if options.pop('write_nominal'):
+            self._write_nominal(out_dir,**options)
+        if options.pop('write_stats'):
+            self._write_statistics(out_dir,**options)
         
     def write(self,out_path,**kwargs):
         '''
@@ -455,7 +458,8 @@ class SamuraiMeasurement(SamuraiDict):
             filetype - 'meas' or 'smeas' (default to 'meas') if the file doesnt have one
         '''
         options = {}
-        options['filetype'] = kwargs.pop('filetype','meas') #only if it doesnt have an extension
+        options['filetype'] = 'meas'
+        options.update(kwargs)
         out_dir = os.path.splitext(out_path)[0]
         if kwargs.get('verbose',False): print("Writing to : {}".format(out_path))
         if not os.path.exists(out_dir):
@@ -464,7 +468,7 @@ class SamuraiMeasurement(SamuraiDict):
         if not os.path.splitext(out_path)[-1]: #if theres no extension add one
             out_path+= '.{}'.format(options['filetype'])
         #write out the data first so we update the paths
-        self._write_data(out_dir,**kwargs)
+        self._write_data(out_dir,**options)
         if '.meas' in out_path: #write an xml if we have a .meas file
             return self.write_xml(out_path)
         else:
@@ -738,8 +742,11 @@ class SamMeasItem(SamuraiDict):
         return os.path.join(options['working_directory'],self['file_path'])
         
     def __getattr__(self,attr):
-        '''@brief try the dict if the attribute doesnt exist'''
-        return self[attr]
+        '''@brief try the dict and data if the attribute doesnt exist'''
+        try:
+            return self[attr]
+        except KeyError:
+            return getattr(self.data,attr)
 
 #%% Unittest class
 import unittest

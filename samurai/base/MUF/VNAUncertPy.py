@@ -9,7 +9,7 @@ from lxml import etree as ET
 import re
 import os
 
-from samurai.base.MUF.MUFModuleController import MUFModuleController
+from samurai.base.MUF.MUFModuleController import MUFModuleController, MUFItemList
 from samurai.base.SamuraiDict import SamuraiDict
 
 DEFAULT_VNAUNCERT_EXE_PATH = r"C:\Program Files (x86)\NIST\Uncertainty Framework\VNAUncertainty.exe"
@@ -27,6 +27,11 @@ class VNAUncertController(MUFModuleController):
     '''
     @brief class to control the VNA uncertainty calculator
     '''
+    meas_type_alias_dict = {'term':'Termination (S21=S12=0)','recip':'Reciprocal Thru','switch':'Switch terms'}
+    meas_type_caps_dict  = {'THRU':'Thru','TERMINATION (S21=S12=0)':'Termination (S21=S12=0)',
+                            'SWITCH TERMS':'Switch terms','RECIPROCAL THRU':'Reciprocal thru'}
+    meas_type_one_port_alias_dict = {'Termination (S21=S12=0)':'Termination on port 1'} #aliases for a 1 port SOL types
+    
     def __init__(self,menu_path,**kwargs):
         '''
         @brief default constructor
@@ -55,30 +60,47 @@ class VNAUncertController(MUFModuleController):
     def set_calibration(self,tag_name,model_kit,meas_dict,type_dict={},**kwargs):
         '''
         @brief set calibration items from a model kit, and a measurement dictionary
+        @note this will clear all previous calibrations
         @param[in] tag_name - controls tag to place the calibration value (e.g. 'BeforeCalibration')
         @param[in] model_kit - MUFModelKit class with the required models and paths
         @param[in] meas_dict - measurement dictionary mapping names (e.g. 'load') to file paths
                     These key names MUST match a name in the MUFModelKit
         @param[in/OPT] type_dict - dictionary with matching keys to meas_dict that has the types of measurements
                     If not specified self._guess_meas_type(key_name) will be run
-        @note this will clear all previous calibrations
+        @param[in/OPT] kwargs - keyword arguments as follows:
+            - verify - Verify that the model and measurement paths exist (default true)
         '''
+        options = {'verify':True}
+        options.update(kwargs) #get kwargs
         self.clear_calibration_item(tag_name)
         for key,meas_path in meas_dict.items():
             model_path = model_kit['models'].get(key,None)
             if model_path is None:
                 raise Exception('{} is not a model key'.format(key))
+            if options['verify']:  #check the paths exist
+                if not os.path.exists(model_path): raise Exception("Model Path Doesn't Exist {}".format(model_path))
+                if not os.path.exists(meas_path):  raise Exception("Measurement Path Doesn't Exist {}".format(meas_path))
             meas_type = type_dict.get(key,self._guess_meas_type(key))
             self._add_calibration_item(tag_name,model_path,meas_type,meas_path)
             
-    def set_duts(self,dut_list):
+    def set_duts(self,dut_list,**kwargs):
         '''
-        @brief set duts from a list of elements
-        @param[in] dut_list - list of DUT elements (etree._Element type)
+        @brief set duts from a list of strings. This assumes the calibration standards have already been set.
+        @param[in] dut_list - list of DUT paths str
+        @param[in/OPT] kwargs - keyword arguments as follows:
+            - verify - Verify that the model and measurement paths exist (default true)
         '''
-        parent = self.controls.find('DUTMeasurements')
-        for d in dut_list:
-            self.add_item(parent,d)
+        options = {'verify':True}
+        options.update(kwargs)
+        parent = MUFItemList(self.controls.find('DUTMeasurements'))
+        for dut in dut_list:
+            if isinstance(dut,str): #if its a string create an item, otherwise expect an item
+                dut = self._create_dut_item(dut)
+            if not isinstance(dut,ET._Element):
+                raise Exception("DUT is not a string of XML Element, it's a {}".format(type(dut)))
+            if options['verify']: #check the paths exist
+                if not os.path.exists(dut[1].get('Text')): raise Exception("DUT Path Doesn't Exist {}".format(dut[1].get('Text')))
+            parent.add_item(dut)
         
     def clear_calibration_item(self,tag_name):
         '''
@@ -122,11 +144,11 @@ class VNAUncertController(MUFModuleController):
         meas_path = os.path.abspath(meas_path)
         model_path = os.path.abspath(model_path)
         #check the meas type
-        meas_type_alias_dict = {'term':'Termination (S21=S12=0)','recip':'Reciprocal Thru','switch':'Switch terms'}
-        meas_type_caps_dict = {'THRU':'Thru','TERMINATION (S21=S12=0)':'Termination (S21=S12=0)',
-                               'SWITCH TERMS':'Switch terms','RECIPROCAL THRU':'Reciprocal thru'}
-        meas_type = meas_type_alias_dict.get(meas_type,meas_path)
-        meas_type = meas_type_caps_dict.get(meas_type.upper(),None)
+        meas_type = self.meas_type_alias_dict.get(meas_type,meas_path)
+        meas_type = self.meas_type_caps_dict.get(meas_type.upper(),None)
+        #convert to 1 port if thats what we are using
+        if self.is_1_port_calibration():
+            meas_type = self.meas_type_one_port_alias_dict.get(meas_type,meas_type)
         if meas_type is None:
             raise Exception("Invalid meas_type")
         #now built tthe item
@@ -157,6 +179,10 @@ class VNAUncertController(MUFModuleController):
             return 'switch'
         if re.findall('THRU',key_name.upper()):
             return 'recip'#default to reciprical thru
+        
+    def is_1_port_calibration(self):
+        '''@brief Check if we are running a 1 port SOL algorithm'''
+        return self.controls.find('CalibrationEngine').get('SelectedIndex') == '3'
 
 
 #%% Class for Calibration Standards Models
@@ -164,20 +190,17 @@ class VNAUncertController(MUFModuleController):
 class CalibrationModelKit(SamuraiDict):
     '''
     @brief class to store information on a set of MUF models
-    @param[in] model_kit_path - path to a written out MUFModelKit (a json path)
+    @param[in] model_kit_path - path to a written out MUFModelKit (a json path).
+        If None, create a blank calibration model kit
     @param[in/OPT] *args,**kwargs passed to OrderedDict
-        type - type of calkit. must be specified when model_kit_path is None
+        type - type of calkit should be specified for new calibration kits
     '''
-    def __init__(self,model_kit_path,*args,**kwargs):
+    def __init__(self,model_kit_path=None,*args,**kwargs):
         '''@brief Constructor'''
+        super().__init__(*args,**kwargs)
         self['type'] = None
         self['models'] = {}
-        if model_kit_path is None:
-            try:
-                self['type'] = kwargs['type']
-            except:
-                raise KeyError("Please specify 'type' as a keyword argument when creating an empty kit")
-        else:
+        if model_kit_path is not None:
             self.load(model_kit_path)
     
     def add_model(self,name,path):
@@ -188,25 +211,19 @@ class CalibrationModelKit(SamuraiDict):
         '''
         self['models'].update({name:path})
         
-    def get_model(self,name):
-        '''
-        @brief get a model from our kit
-        '''
-        return self['models'][name]
-        
     def __getitem__(self,item):
-        '''
-        @brief also check the model dictionary
-        '''
-        try:
-            return super().__getitem__(item)
-        except KeyError as e:
-            try:
-                return self.get_model(item)
-            except KeyError:
-                raise e
-    
-        
+        '''@brief Also check the model dictionary'''
+        try: return super().__getitem__(item) #try to get the item
+        except KeyError as e: #otherwise try the model kit
+            try: return super().__getitem__('models')[item]
+            except KeyError: raise e
+
+    def __setitem__(self,item,val):
+        '''@brief Set the data in the model dictionary first'''
+        try: models = super().__getitem__('models')
+        except KeyError: models = []
+        if item in models: models[item] = val #set the model if its there
+        else: return super().__setitem__(item,val)
         
         
 if __name__=='__main__':
@@ -217,6 +234,7 @@ if __name__=='__main__':
     
     model_kit_path = './templates/WR28.cmk'
     wr28_kit = CalibrationModelKit(model_kit_path)
+    cmk = wr28_kit
     
     meas_dict = {
             'load':'./test/load.s2p',
@@ -239,7 +257,7 @@ if __name__=='__main__':
     wr28_offsetThru_model  = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_ShimThru.model"
     wr28_thru_model = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\WR28_MUF_Models\WR28\R11644A_IdentityThru.model"
     
-    cmk = CalibrationModelKit(None,type='WR28')
+    cmk = CalibrationModelKit(type='WR28')
     cmk.add_model('load',wr28_load_model)
     cmk.add_model('short',wr28_short_model)
     cmk.add_model('offset_short',wr28_offsetShort_model)

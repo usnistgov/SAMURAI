@@ -692,18 +692,13 @@ class TouchstoneEditor(object):
         diff_keys = old_keys!=new_keys
         diff_old_keys = old_keys[diff_keys]
         diff_new_keys = new_keys[diff_keys]
-        #now correct the ports
-        new_ports = []
-        for p in self._ports:
-            new_ports.append(port_map_dict.get(p,p))
-        self._ports = np.sort(new_ports)
         #now lets correct the keys
         for wk in self.waves.keys():
             params = []
             for old_key in diff_old_keys:
-                params.append(self.waves[wk].pop(old_key))
+                params.append(copy.deepcopy(self.waves[wk][old_key])) #make a temporary copy of the data
             for i,new_key in enumerate(diff_new_keys):
-                self.waves[wk].update({new_key:params[i]})
+                self.waves[wk][new_key][:] = params[i]
                 
     def swap_ports(self,port_a,port_b):
         '''
@@ -711,40 +706,7 @@ class TouchstoneEditor(object):
         @param[in] port_a - port to swap with port b  
         @param[in] port_b - port to swap with port a  
         '''
-        self.map_ports({port_a:port_b,port_b:port_a})
-        
-    def delete_port(self,port_num): 
-        '''
-        @brief delete a port from the class  
-        @param[in] port_num - the number of the port to delete (must be less than self.num_ports)
-            This will start at 1 not 0 indexing  
-        @todo MAKE THIS WORK  
-        '''
-        if port_num not in self._ports:
-            raise Exception("Port {} does not exist in this instance.".format(port_num))
-        cur_ports = np.array(self._ports)
-        orig_wdk = self.wave_dict_keys
-        self._ports = cur_ports[cur_ports!=port_num] #remove the port number
-        del_keys = orig_wdk[np.in1d(orig_wdk,self.wave_dict_keys,invert=True)] #get the added keys
-        removed_waves = {}
-        for wk in self.waves.keys():
-            removed_waves[wk] = {}
-            for k in del_keys:
-                removed_waves[wk].update({k:self.waves[wk].pop(k)})
-    
-    def add_port(self,port_num):
-        '''
-        @brief add an empty port to the class  
-        @param[in] port_num - which port to add. Exception if it already exists  
-        '''
-        orig_wdk = self.wave_dict_keys #original wave dict keys
-        freqs = self.freq_list
-        self._ports = np.sort(np.append(self._ports,[port_num])) #add the new port number
-        new_keys = self.wave_dict_keys[np.in1d(self.wave_dict_keys,orig_wdk,invert=True)] #get the added keys
-        for k in new_keys:
-            for wk in self.waves.keys():
-                self.waves[wk][k] = self._param_class(np.zeros(len(freqs)),freqs=freqs) #add empty params
-   
+        self.map_ports({port_a:port_b,port_b:port_a})   
              
     def __getitem__(self,key):
          '''
@@ -1274,7 +1236,7 @@ class TouchstoneParam(np.ndarray):
         freqs = self.freq_list
         if not trace_only: #if we dont just want the trace, return the plot
             fig = go.Figure()
-        rv = go.Scatter(x=freqs,y=data,**plot_options)
+        rv = go.Scatter(x=freqs/1e9,y=data,**plot_options)
         if not trace_only:
             fig.add_trace(rv)
             fig.update_layout(xaxis_label='Freq (GHz)',yaxis_label=data_type)
@@ -1498,6 +1460,9 @@ class TestTouchstoneEditor(unittest.TestCase):
         s1.swap_ports(1,2)
         s1.swap_ports(1,2)
         self.assertEqual(s1,s1c)
+        s1_11 = copy.deepcopy(s1.S[11].raw)
+        s1.swap_ports(1,2)
+        self.assertTrue(np.all(s1_11==s1.S[22].raw))
 		
     def test_arithmetic_between_values(self):
         '''
@@ -1531,23 +1496,7 @@ class TestTouchstoneEditor(unittest.TestCase):
         s1 = TouchstoneEditor(snp_text_path)
         s2 = TouchstoneEditor(snp_bin_path)
         self.assertEqual(type(s1),SnpEditor)
-        self.assertEqual(type(s2),SnpEditor)
-		
-    def test_add_swap_remove_port(self):
-        '''@brief test adding/swapping/removing ports. This is written only for s2p files  '''
-        f1 = os.path.join(self.dir_path,self.test_snp_txt)
-        s1 = SnpEditor(f1)
-        s1_11 = copy.deepcopy(s1.S[11].raw)
-        s1.swap_ports(1,2)
-        self.assertTrue(np.all(s1_11==s1.S[22].raw))
-        init_keys = copy.deepcopy(s1.wave_dict_keys)
-        s1.add_port(3)
-        self.assertTrue(np.all(s1.wave_dict_keys==[11,12,13,21,22,23,31,32,33]))
-        rw = s1.delete_port(3)
-        rw = s1.delete_port(1)
-        self.assertTrue(np.all(s1.wave_dict_keys==[22]))
-        rw = s1.add_port(1)
-        self.assertTrue(np.all(s1.wave_dict_keys==init_keys))
+        self.assertEqual(type(s2),SnpEditor)        
         
     def test_plot(self):
         '''@brief test adding/swapping/removing ports. This is written only for s2p files'''
