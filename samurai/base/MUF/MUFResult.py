@@ -116,12 +116,13 @@ def calculate_estimate(data):
     for k in data[0].wave_dict_keys: #data for each key
         data_dict[k] = np.array([tnp.S[k].raw for tnp in data]) 
     tnp_out = MyEditor([num_ports,freq_list])
-    for k in tnp_out.wave_dict_keys:
-        data = data_dict[k] #get the data
-        m,p = complex2magphase(data)
-        m_mean = m.mean(0); p_mean = p.mean(0)
-        data_mean = magphase2complex(m_mean,p_mean)
-        tnp_out.S[k].update(freq_list,data_mean)
+    for wk in tnp_out.waves.keys():
+        for k in tnp_out.wave_dict_keys:
+            data = data_dict[k] #get the data
+            m,p = complex2magphase(data)
+            m_mean = m.mean(0); p_mean = p.mean(0)
+            data_mean = magphase2complex(m_mean,p_mean)
+            tnp_out.waves[wk][k][:] = data_mean
     return tnp_out
     
 def calculate_confidence_interval(data,confidence_interval=95):
@@ -147,17 +148,18 @@ def calculate_confidence_interval(data,confidence_interval=95):
     lo_index = int(percentage*data_dict[first_key].shape[0])
     if lo_index<=0: lo_index=1
     hi_index = data_dict[first_key].shape[0]-lo_index
-    for k in tnp_out_p.wave_dict_keys:
-        data = data_dict[k] #get the data
-        #done in the same way as the MUF
-        m,p = complex2magphase(data)
-        m.sort(0); p.sort(0)
-        m_hi = m[hi_index,:]; m_lo = m[lo_index]
-        p_hi = p[hi_index,:]; p_lo = p[lo_index]
-        hi_complex = magphase2complex(m_hi,p_hi)
-        lo_complex = magphase2complex(m_lo,p_lo)
-        tnp_out_p.S[k].update(freq_list,hi_complex)
-        tnp_out_m.S[k].update(freq_list,lo_complex)
+    for wk in tnp_out_m.waves.keys():
+        for k in tnp_out_p.wave_dict_keys:
+            data = data_dict[k] #get the data
+            #done in the same way as the MUF
+            m,p = complex2magphase(data)
+            m.sort(0); p.sort(0)
+            m_hi = m[hi_index,:]; m_lo = m[lo_index]
+            p_hi = p[hi_index,:]; p_lo = p[lo_index]
+            hi_complex = magphase2complex(m_hi,p_hi)
+            lo_complex = magphase2complex(m_lo,p_lo)
+            tnp_out_p.waves[wk][k][:] = hi_complex
+            tnp_out_m.waves[wk][k][:] = lo_complex
     return tnp_out_p,tnp_out_m
 
 def calculate_standard_uncertainty(data):
@@ -176,17 +178,18 @@ def calculate_standard_uncertainty(data):
         data_dict[k] = np.array([tnp.S[k].raw for tnp in data])
     tnp_out_p = MyEditor([num_ports,freq_list])
     tnp_out_m = MyEditor([num_ports,freq_list])
-    for k in tnp_out_p.wave_dict_keys:
-        data = data_dict[k] #get the data
-        m,p = complex2magphase(data)
-        m_mean = m.mean(0); p_mean = p.mean(0)
-        m_std  = m.std(0) ; p_std  = p.std(0) #mean and stdev of mag/phase
-        m_plus = m_mean+m_std; m_minus = m_mean-m_std
-        p_plus = p_mean+p_std; p_minus = p_mean-p_std
-        data_plus   = magphase2complex(m_plus ,p_plus )
-        data_minus  = magphase2complex(m_minus,p_minus)
-        tnp_out_p.S[k].update(freq_list,data_plus)
-        tnp_out_m.S[k].update(freq_list,data_minus)
+    for wk in tnp_out_m.waves.keys():
+        for k in tnp_out_p.wave_dict_keys:
+            data = data_dict[k] #get the data
+            m,p = complex2magphase(data)
+            m_mean = m.mean(0); p_mean = p.mean(0)
+            m_std  = m.std(0) ; p_std  = p.std(0) #mean and stdev of mag/phase
+            m_plus = m_mean+m_std; m_minus = m_mean-m_std
+            p_plus = p_mean+p_std; p_minus = p_mean-p_std
+            data_plus   = magphase2complex(m_plus ,p_plus )
+            data_minus  = magphase2complex(m_minus,p_minus)
+            tnp_out_p.waves[wk][k][:] = data_plus
+            tnp_out_m.waves[wk][k][:] = data_minus
     return tnp_out_p,tnp_out_m
     
 #%% Operation Function (e.g. FFT) with uncerts

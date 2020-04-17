@@ -25,7 +25,9 @@ def magphase2complex(mag,phase):
     '''
     real = mag*np.cos(phase)
     imag = mag*np.sin(phase)
-    return real+1j*imag
+    complex_out = np.array(real,dtype=np.cdouble)
+    complex_out += 1j*imag
+    return complex_out
 
 def get_name_from_path(path):
     '''

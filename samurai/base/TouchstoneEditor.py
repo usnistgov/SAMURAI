@@ -6,6 +6,7 @@ edit .snp files (.s2p,.s4p,etc...)
 """
 import os
 import numpy as np
+import pandas as pd
 import copy
 import re
 import operator
@@ -226,7 +227,7 @@ class MultilineFileParser(object):
             raise StopIteration()
 
 #%% actual file manipulation class
-class TouchstoneEditor(object):
+class TouchstoneEditor:
     '''
     @brief init arbitrary port touchstone class. This covers wave and S params  
     @author ajw5
@@ -302,7 +303,7 @@ class TouchstoneEditor(object):
          self._param_class = self.options['param_class']
          self.waves = SamuraiDict()
          for w in self.options['waves']:
-             self.waves[w] = SamuraiDict()
+             self.waves[w] = None
          self._ports = [] #start with no ports
          #now load the file
          if not self.options['no_load']:
@@ -417,16 +418,17 @@ class TouchstoneEditor(object):
         @brief class to extract data from raw data. This can be overriden for special cases  
         @note if not overriden this points to the same data as in self._raw  
         '''
-        #freqs = raw_data[:,0]*self._get_freq_mult() #extract our frequencies
-         
-         #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
-        for ki,k in enumerate(self.wave_dict_keys):
-            for wi,w in enumerate(self.waves.keys()):
+        #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
+        for wi,w in enumerate(self.waves.keys()):
+            for ki,k in enumerate(self.wave_dict_keys):
                 idx = ki*len(self.waves)*2+(1+2*wi)
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
                 #extract to self._raw
                 self._raw[wi,ki,:] = data
-                self.waves[w][k] = self._param_class(self._raw[wi,ki,:],freqs=self._freqs)
+                #self.waves[w][k] = self._param_class(self._raw[wi,ki,:],freqs=self._freqs)
+                
+            self.waves[w] = TouchstoneWave(self._raw[wi,:,:].T,columns=self.wave_dict_keys,
+                                           series_subclass=self._param_class,freqs=self._freqs)
         self.round_freq_list() #round when we load (remove numerical rounding error)
      
     def _load_text(self,file_path,**kwargs):
@@ -519,9 +521,9 @@ class TouchstoneEditor(object):
          #and pack the port data with 0s
          self._freqs = np.array(freqs,dtype=np.double) #dont set the multiplier when values are provided in this way
          self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(freqs)),dtype=np.cdouble)
-         for ki,k in enumerate(self.wave_dict_keys):
-             for wi,wave in enumerate(self.waves.keys()):
-                 self.waves[wave][k] = self._param_class(self._raw[wi,ki,:],freqs = self._freqs)
+         for wi,wave in enumerate(self.waves.keys()):
+             self.waves[wave] = TouchstoneWave(self._raw[wi,:,:].T,columns=self.wave_dict_keys,
+                                           series_subclass=self._param_class,freqs=self._freqs)
          self.round_freq_list()
          
     def _set_num_ports(self,num_ports):
@@ -599,7 +601,7 @@ class TouchstoneEditor(object):
                  fp.write('#%s\n' %(self.options['header']))
                  #now write data
                  for i in range(len(self.w1[self.wave_dict_keys[0]].raw)):
-                     line_vals = [self.w1[self.wave_dict_keys[0]].freq_list[i]/freq_mult]
+                     line_vals = [self.w1[self.wave_dict_keys[0]].freqs[i]/freq_mult]
                      for k in self.wave_dict_keys:
                          for w in self.waves.values():
                              line_vals += [w[k].raw[i].real,w[k].raw[i].imag]
@@ -657,25 +659,25 @@ class TouchstoneEditor(object):
     
     def _verify_freq_lists(self):
         '''
-        @brief make sure all parameters of all waves point to self._freqs still
+        @brief make sure all parameters of all have the same frequencies
         @return False if warning is raised, True otherwise
         '''
         for k in self.wave_dict_keys:
             for w in self.waves.keys():
-                if not self.waves[w][k].freq_list is self._freqs:
+                if not np.all(self.waves[w][k].freqs == self.waves[w].freqs):
                     warnings.warn("Frequencies of {}[{}] does not point to self._freqs. Proceed with caution.".format(w,k))
                     return False
         return True
                     
     def _verify_raw_data(self):
         '''
-        @brief make sure our parameters share data with self._raw still
+        @brief make sure our parameters share data with self.waves dataframe still
         @return False if warning is raised, True otherwise
         '''
         for k in self.wave_dict_keys:
             for w in self.waves.keys():
                 data = self.waves[w][k].raw
-                if not np.shares_memory(data,self._raw):
+                if not np.shares_memory(data,self.waves[w]):
                     warnings.warn(("{}[{}].raw does not share memory with self._raw".format(w,k)))
                     return False
         return True
@@ -715,7 +717,7 @@ class TouchstoneEditor(object):
          @param[in] key - key of A,B parameters to get  
          @return [frequency_list,A_complex_values,B_complex_values] list of lists from the S parameter  
          '''
-         out_list =  [self.freq_list]
+         out_list =  [self.freqs]
          for w in self.waves.keys():
              out_list.append(self.waves[w][key].raw)
          return out_list
@@ -728,7 +730,7 @@ class TouchstoneEditor(object):
             if the number of ports arent equal just return [num_ports_eq,num_ports_self,num_ports_other]  
         '''
         num_ports_eq = self.num_ports==other.num_ports
-        freqs_eq = np.all(self.freq_list == other.freq_list)
+        freqs_eq = np.all(self.freqs == other.freq_list)
         if not num_ports_eq or not freqs_eq: #dont check more if number of ports or freqs arent equal
             return [num_ports_eq,self.num_ports,other.num_ports]
         out_lists = {}
@@ -754,25 +756,12 @@ class TouchstoneEditor(object):
         return all(tf_list)
         
     
-    def __mul__(self,other):
-        '''@brief what happens if we multiply two tnp classes'''
-        return self._perform_arithmetic_operation(other,np.multiply)
-   
-    def __add__(self,other):
-        '''@brief what happens if we multiply two tnp classes'''
-        return self._perform_arithmetic_operation(other,np.add)
+    def __mul__(self,other): return self._perform_arithmetic_operation(other,np.multiply)
+    def __add__(self,other): return self._perform_arithmetic_operation(other,np.add) 
+    def __sub__(self,other): return self._perform_arithmetic_operation(other,np.subtract) 
+    def __div__(self,other): return self._perform_arithmetic_operation(other,np.divide)
     
-    def __sub__(self,other):
-        '''@brief what happens if we multiply two tnp classes'''
-        return self._perform_arithmetic_operation(other,np.subtract)
-    
-    def __div__(self,other):
-        '''@brief what happens if we multiply two tnp classes'''
-        return self._perform_arithmetic_operation(other,np.divide)
-    
-    def __len__(self):
-        '''@brief return the length of the paramters. just the length of the first parameter'''
-        return len(self.v1)
+    def __len__(self): return len(self.v1)
                     
     def _perform_arithmetic_operation(self,other,funct):
         '''
@@ -794,9 +783,11 @@ class TouchstoneEditor(object):
                         other_val = other
                     new_val = funct(v,other_val)
                     ret.waves[k][w][:] = new_val
-                    ret.waves[k][w].freqs = new_val.freq_list  
-        else: #otherwise just try and perform the operation on raw
-           ret.raw = funct(self.raw,other)
+                    ret.waves[k][w].freqs = new_val.freqs  
+        else: #otherwise just try and perform the operation on raw each wave
+            for wk in self.waves.keys():
+                ret.waves[wk][:] = funct(self.waves[wk],other).to_numpy() 
+                ret.waves[wk].freqs = self.waves[wk].freqs
         return ret
     
     def run_function_on_data(self,funct,*args,**kwargs):
@@ -856,17 +847,11 @@ class TouchstoneEditor(object):
         return self.w1[self.wave_dict_keys[0]]
     
     @property
-    def freq_list(self):
-        '''@brief get the frequency list of the data'''
-        return self.freqs
-    
+    def freq_list(self): return self.freqs
     @property
-    def bandwidth(self):
-        return self.v1.bandwidth
-    
+    def bandwidth(self): return self.v1.bandwidth
     @property
-    def frequency_step(self):
-        return self.v1.frequency_step
+    def frequency_step(self): return self.v1.frequency_step
     
     def average_keys(self,key_list):
          '''
@@ -971,16 +956,8 @@ class TouchstoneEditor(object):
          return self.raw.shape
 
 class WnpEditor(TouchstoneEditor):
-    '''
-    @brief class for wave parameter file (*.wnp)  
-    '''
+    '''@brief class for wave parameter file (*.wnp)'''
     def __init__(self,*args,**arg_options):
-        '''
-        @brief init arbitrary port s parameter class  
-        @param[in] input_file - path of file to load in. 
-                    A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-                    measurement with n ports and frequencies [f1,f2,...]   
-        '''
         options = {}
         options['waves'] = ['A','B'] #do s parameters
         options['default_extension'] = 'wnp'
@@ -990,16 +967,8 @@ class WnpEditor(TouchstoneEditor):
         super().__init__(*args,**options)
 
 class SnpEditor(TouchstoneEditor):
-    '''
-    @brief class for s parameter file (*.snp)
-    '''
+    '''@brief class for s parameter file (*.snp)'''
     def __init__(self,*args,**arg_options):
-        '''
-        @brief init arbitrary port s parameter class  
-        @param[in] input_file - path of file to load in. 
-                    A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-                    measurement with n ports and frequencies [f1,f2,...]   
-        '''
         options = {}
         options['waves'] = ['S'] #do s parameters
         options['default_extension'] = 'snp'
@@ -1028,7 +997,7 @@ class SnpEditor(TouchstoneEditor):
        
 class WaveformEditor(SnpEditor):
     '''@brief class to read *.waveform classes that the MUF puts out'''
-    
+ 
     def __init__(self,*args,**kwargs):
         '''
         @brief wrap touchstone parameter constructor to allow passing of x,y data explicitly
@@ -1050,12 +1019,10 @@ class WaveformEditor(SnpEditor):
         return [21] #always only have a single key for waveform
 
     @property
-    def raw(self):
-        return np.squeeze(super().raw)
+    def raw(self): return np.squeeze(super().raw)
     
     @property
-    def times(self):
-        return super().freqs
+    def times(self): return super().freqs
 
     def __getattr__(self,attr):
            '''@brief try and find in S[21] if not part of WaveformEditor'''
@@ -1066,8 +1033,9 @@ class WaveformEditor(SnpEditor):
                    return self.waves[attr]
                except:
                    raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
-
-class BeamformEditor(WaveformEditor):
+                   
+                   
+class BeamformEditor(WaveformEditor): 
     '''
     @brief Extension of WaveformEditor for beamformed data (only for 1D right now)
     @todo Extend to 2D (Az,El)
@@ -1083,45 +1051,35 @@ class BeamformEditor(WaveformEditor):
     @property
     def angles(self):
         return self.freqs
+    
 
 #%% Class for each parameter
-class TouchstoneParam(np.ndarray):
+class TouchstoneParam(pd.Series):
     '''
     @brief class for a single parameter (e.g. S[11])  
     @brief initialize our parameter  
-    @param[in] raw_list - list of raw data to add
-    @param[in/OPT] freqs - frequencies of the raw data
+    @param[in/OPT] freqs - frequencies of the raw data (passed to series indices)
     '''
-    def __new__(cls,raw_list,freqs=None):
-        '''
-        @brief This is needed for extending an ndarray
-        @cite https://docs.scipy.org/doc/numpy-1.13.0/user/basics.subclassing.html
-            the 'add attribute to existing array' section
-        @param[in] args - arguments passed to np.ndarray
-        @param[in] kwargs - key/value pairs as follows:
-            - freqs - frequencies of the data
-        '''
-        # Now lets create our array object
-        obj = np.asarray(raw_list).view(cls)
-        # Now set custom values
-        obj.freqs = freqs
-        return obj
+    def __init__(self,*args,**kwargs):
+        '''@brief constructor'''
+        freqs = kwargs.pop('freqs',None)
+        kwargs['index'] = freqs
+        super().__init__(*args,**kwargs)
     
-    def __array_finalize__(self,obj):
-        '''@brief This is required for extending np.ndarray'''
-        if obj is None: return
-        #otherwise make sure values are always set
-        # These should be set again according to numpy docs
-        self.freqs = getattr(obj,'freqs',None) #set our frequencies
-        
+    # https://pandas.pydata.org/pandas-docs/stable/development/extending.html
+    @property
+    def _constructor(self): return type(self)
+    @property
+    def _constructor_expanddim(self): return TouchstoneWave
+    
     def sort(self):
         '''
         @brief sort the parameter by frequency  
         '''
-        myzipped = zip(self.freq_list,self.raw)
+        myzipped = zip(self.freqs,self.raw)
         list(myzipped).sort()
         freq_list,raw = zip(*myzipped)
-        self.freq_list = np.array(freq_list)
+        self.freqs = np.array(freq_list)
         self.raw = np.array(raw)
         
     #crop out all frequencies outside a window given by lo and hi frequencies (in Hz)
@@ -1133,8 +1091,8 @@ class TouchstoneParam(np.ndarray):
         lo_val = np.round(lo_freq)
         hi_val = np.round(hi_freq)
         #data is in ghz in files
-        del_idx = np.where(np.logical_or(self.freq_list<lo_val,self.freq_list>hi_val))
-        if(np.size(del_idx)==np.size(self.freq_list)):
+        del_idx = np.where(np.logical_or(self.freqs<lo_val,self.freqs>hi_val))
+        if(np.size(del_idx)==np.size(self.freqs)):
             print("Warning: No Frequencies within range!")
             return -1
         #delete array seems to end up
@@ -1150,52 +1108,20 @@ class TouchstoneParam(np.ndarray):
         lo_val = np.round(lo_freq)
         hi_val = np.round(hi_freq)
         #data is in ghz in files
-        del_idx = np.where(np.logical_and(self.freq_list>lo_val,self.freq_list<hi_val))
-        if(np.size(del_idx)==np.size(self.freq_list)):
+        del_idx = np.where(np.logical_and(self.freqs>lo_val,self.freqs<hi_val))
+        if(np.size(del_idx)==np.size(self.freqs)):
             print("Warning: No Frequencies within range!")
             return -1
         #delete array seems to end up
         #self.del_idx = del_idx;
         return self._pop_idx(del_idx)
-            
-    def _pop_idx(self,pop_idx):
-        '''
-        @brief pop frequencies and data from self.freq_list and self.raw provided the index  
-        @param[in] pop_idx - index,list of indices, or logical array of frequencies to pop  
-        @return - [[freqs],[values]] popped  
-        '''
-        rv = [self.freq_list[pop_idx],self.raw[pop_idx]]
-        self.freq_list = np.delete(self.freq_list,pop_idx)
-        self.raw = np.delete(self.raw,pop_idx)
-        return rv
     
     #round frequency list to nearest hz
     #useful for writing out 
     def round_freq_list(self):
-        '''
-        @brief round frequency list to nearest hz assuming values are in Hz  
-        '''
+        '''@brief round frequency list to nearest hz assuming values are in Hz  '''
         #assume frequency values are in GHz and we round to Hz
-        self.freq_list[:]=np.round(self.freq_list,decimals=0)
-    
-    #put new values into the class
-    def update(self,freq_list,raw_list):
-        '''
-        @brief put new values into the class  
-        @param[in] freq_list - list of frequencies for the parameter data  
-        @param[in] raw_list  - raw complex data for the parameter  
-        '''
-        self.freq_list = freq_list
-        self._raw = raw_list
-        
-    def get_value_from_frequency(self,freq):
-        '''
-        @brief get a raw value from a provided frequency
-            if the exact frequency is not found, the closest will be provided  
-        @param[in] freq - frequency (in Hz) to get the value of  
-        '''
-        fm = np.abs(freq-self.freq_list)
-        return self.raw[np.argmin(fm)]
+        self.freqs[:]=np.round(self.freqs,decimals=0)
         
     def calculate_time_domain_data(self,window=None):
         '''
@@ -1216,8 +1142,8 @@ class TouchstoneParam(np.ndarray):
         else: #assume its a call to scipy.signal.windows.get_window
             wvals = scipy.signal.windows.get_window(window,len(self.raw))
         ifft_vals = np.fft.ifft(self.raw*wvals)
-        total_time = 1/np.diff(self.freq_list).mean()
-        times = np.linspace(0,total_time,self.freq_list.shape[0])
+        total_time = 1/np.diff(self.freqs).mean()
+        times = np.linspace(0,total_time,self.freqs.shape[0])
         #myw = WaveformEditor(None)
         #myw.S[21].freq_list = times
         #myw.S[21].raw = ifft_vals
@@ -1233,7 +1159,7 @@ class TouchstoneParam(np.ndarray):
         @return Plotly figure handle (if trace_only=False) or Plotly trace handle (if trace_only=True)
         '''
         data = getattr(self,data_type)
-        freqs = self.freq_list
+        freqs = self.freqs
         if not trace_only: #if we dont just want the trace, return the plot
             fig = go.Figure()
         rv = go.Scatter(x=freqs/1e9,y=data,**plot_options)
@@ -1254,10 +1180,8 @@ class TouchstoneParam(np.ndarray):
        self.raw = funct(self.raw,*args,**kwargs)
     
     def get_bandwidth(self):
-        '''
-        @brief get the highest and lowest frequencies to determine our step  
-        '''
-        return np.ptp(self.freq_list)
+        '''@brief get the highest and lowest frequencies to determine our step  '''
+        return np.ptp(self.freqs)
     
     def estimate_snr(self,window_size=10):
         '''
@@ -1272,12 +1196,12 @@ class TouchstoneParam(np.ndarray):
         pass
     
     @property
-    def freq_list(self): return self.freqs
-    @freq_list.setter
-    def freq_list(self,val): self.freqs = val 
+    def freqs(self): return np.array(self.index)
+    @freqs.setter
+    def freqs(self,val): self.index = val
     
     @property
-    def raw(self): return self
+    def raw(self): return self.to_numpy()
     @raw.setter
     def raw(self,val): self[:] = val
     
@@ -1286,11 +1210,9 @@ class TouchstoneParam(np.ndarray):
         
     def get_frequency_step(self):
         '''@brief get the average step between our frequencies'''
-        return np.mean(np.diff(self.freq_list))
-    
+        return np.mean(np.diff(self.freqs))
     @property
-    def frequency_step(self):
-        return self.get_frequency_step()
+    def frequency_step(self): return self.get_frequency_step()
     
     #some useful properties for different data getting types
     @property
@@ -1301,25 +1223,57 @@ class TouchstoneParam(np.ndarray):
     def phase(self): return np.angle(self.raw)
     @property
     def phase_d(self): return np.angle(self.raw)*180/np.pi
-    
-    
-class WnpParam(TouchstoneParam): # just for naming
-    pass
-        
-class SnpParam(TouchstoneParam): # just for naming
-    pass
-        
+
+#just for naming
+class WnpParam(TouchstoneParam): pass
+class SnpParam(TouchstoneParam): pass
 class WaveformParam(TouchstoneParam):
     '''@brief parameter for waveorm files'''
     @property
     def times(self):
         '''@brief allow times as opposed to freq_list'''
-        return self.freq_list
+        return self.freqs
     @times.setter
     def times(self,val):
         '''@brief setter for times alias'''
-        self.freq_list[:] = times
+        self.freqs[:] = times
 
+#%% Class for each wave (e.g. S or A,B)
+class TouchstoneWave(pd.DataFrame):
+    '''
+    @brief Class to hold data for each wave (e.g. S or A,B)
+    @param[in/OPT] series_subclass - subclass for the returned series (Default TouchstoneParam)
+    @param[in/OPT] freqs - frequencies of the wave (this gets passed as dataframe index)
+	@note This inherits from pandas DataFrame object
+    @note Here the frequencies are the indices of the table
+    @cite Constructor info is from https://pandas.pydata.org/pandas-docs/stable/development/extending.html#extending-subclassing-pandas
+    '''
+    
+    # normal properties
+    _metadata = ['options']
+    
+    def __init__(self,*args,series_subclass=None,**kwargs):
+        '''@brief constructor'''
+        freqs = kwargs.pop('freqs',None)
+        kwargs['index'] = freqs
+        self.options = {}
+        self.options['series_subclass'] = TouchstoneParam
+        if series_subclass is not None:
+            self.options['series_subclass'] = series_subclass
+        super().__init__(*args,**kwargs)
+        
+    @property
+    def freqs(self): return self.index
+    @freqs.setter
+    def freqs(self,val): self.index = val
+    
+    # for returning correct classes
+    @property
+    def _constructor(self): return type(self)
+    @property
+    def _constructor_sliced(self): return self.options['series_subclass']
+
+#%% Error codes
 class TouchstoneError(Exception):
     '''
     @brief custom exception for errors in touchstone handling  
@@ -1362,8 +1316,8 @@ def map_keys(key_list,mapping_dict):
             i*=10
         new_key_list.append(new_key)
     return np.array(new_key_list)
-	
-	
+
+
 #%% Unit testing
 import unittest
 import os 
@@ -1534,6 +1488,8 @@ if __name__=='__main__':
     # test touchstoneParam
     myp = TouchstoneParam([1,2,3],freqs=[4,5,6])    
 
+    myw = TouchstoneWave(np.array([1,2,3,4,5]),columns=[11],freqs=[4,5,6,7,8])
+
     #geyt the current file directory for the test data
     import os 
     import copy
@@ -1549,6 +1505,7 @@ if __name__=='__main__':
     s1 = TouchstoneEditor(os.path.join(dir_path,test_snp_bin))
     mysnp_orig = copy.deepcopy(mysnp)
     mysnp.S[21].run_function_on_data(moving_average,10)
+    #moving_average(mysnp.S[21],10)
     r1 = mysnp_orig.S[21].raw
     r2 = mysnp.S[21].raw
     #mysnp.plot([21])
