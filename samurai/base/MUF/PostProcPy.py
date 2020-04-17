@@ -14,7 +14,12 @@ from samurai.base.generic import subprocess_generator
 from samurai.base.MUF.MUFModuleController import MUFModuleController,MUFItemList,create_muf_xml_item
 from samurai.base.generic import get_name_from_path
 
+file_dir = os.path.realpath(os.path.dirname(__file__))
+
 DEFAULT_POST_PROCESSOR_EXE_PATH = r"C:\Program Files (x86)\NIST\Uncertainty Framework\PostProcessor.exe"
+
+# Templates for different post processor menus (they are all formatted differently)
+TEMPLATE_POST_PROCESSOR_ERROR_BOX_COMBINE = os.path.join(file_dir,'templates/post_proc_combine_2port_error_boxes_template.post)
 
 class PostProcPy(MUFModuleController):
     '''

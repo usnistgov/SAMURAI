@@ -48,8 +48,9 @@ class MUFModuleController(SamuraiXML):
         
     def write(self,*args,**kwargs):
         '''@brief write to an output path and update self.meas_path'''
-        super().write(*args,**kwargs)
+        rv = super().write(*args,**kwargs)
         self.meas_path = args[0]
+        return rv
         
     def run(self,out_path=None,verbose=False,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
         '''
@@ -68,6 +69,7 @@ class MUFModuleController(SamuraiXML):
             else:
                 raise Exception("No menu loaded")
         self.write(out_path)
+        out_path = os.path.abspath(out_path)
         command = self.options['exe_path']+' -r '+out_path
         if verbose: print("Running : '{}'".format(command))
         exe_generator = subprocess_generator(command)

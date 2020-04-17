@@ -6,7 +6,7 @@ Created on Mon Jun 24 16:02:04 2019
 """
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor,WaveformEditor
-from samurai.base.TouchstoneEditor import TouchstoneParam, split_parameters
+from samurai.base.TouchstoneEditor import TouchstoneParam, split_parameters, combine_parameters
 from samurai.base.generic import complex2magphase, magphase2complex
 from samurai.base.generic import get_name_from_path
 from samurai.base.generic import ProgressCounter
@@ -115,6 +115,30 @@ def set_meas_absolute(meas_path,out_path=None):
                 meas_obj[fi]['file_path'] = fp
     return meas.write_xml(out_path)
 
+def combine_measurements(*args,**kwargs):
+    '''
+    @brief Combine all parameters of a mesaurement into a single measurement
+    @param[in] args - paths or Measurement objects to combine (\*.meas or \*.smeas) 
+    @param[in/OPT] kwargs - keyword arguments as follows:
+        - fill_value - what value to fill undefined parameters (default 0+0j)
+    @note This assumes each measurement has the same number of each parameter (e.g. 100 monte carlos)
+    @note This currenlty assumes that ports are consecutive (e.g. 11,12,21,22 NOT 11,13,31,33)
+    @note This only supports up to 10 ports
+    '''
+    options = {}
+    options.update(kwargs)
+    #first load in all our measurements
+    meas_in = [SamuraiMeasurement(arg,load_nominal=True,load_statistics=True) for arg in args]
+    #split a test case to figure out what we need
+    meas_out = SamuraiMeasurement() #an empty measurement for output
+    #now lets combine each of our input measurements
+    for mt in meas_out.meas_types:
+        mt_attr = getattr(meas_out,mt)
+        for im in range(len(getattr(meas_in[0],mt))): #loop through each measurement in the inputs
+            combined_val = combine_parameters(*tuple([getattr(msin,mt)[im].data for msin in meas_in]), fill_value=options.pop('fill_value',0+0j))    
+            mt_attr.add_item(combined_val) #add it to our output measurement
+    return meas_out
+
 def split_measurement(meas_path,split):
     '''
     @brief split the data in a measurement into two different measurements.
@@ -207,8 +231,10 @@ class SamuraiMeasurement(SamuraiDict):
             self.options[k] = v
         #now load
         self.create_meas() #create the skeleton
-        if meas_path is not None: #load the data
+        if isinstance(meas_path,str): #load the data
             self.load(meas_path,**arg_options) #pass our kwargs here to for loading if desired
+        if isinstance(meas_path,SamuraiMeasurement):
+            self = meas_path
       
     ##########################################################################
     ### Properties for easy access
@@ -391,6 +417,8 @@ class SamuraiMeasurement(SamuraiDict):
         '''
         options = {'ftype':'binary'}
         options.update(kwargs)
+        if format_out_path.count('{}')>1:
+            raise Exception("Only one formattable part allowed. '{}' has {}".format(format_out_path,format_out_path.count('{}')))
         out_list = []
         if not hasattr(stat_class, 'data') or stat_class.data is None: #then copy
             files =  stat_class.file_paths
@@ -503,26 +531,24 @@ class SamuraiMeasurement(SamuraiDict):
 ###############################################
 # Math operations
 ###############################################
-    def _data_operation(self,obj,funct):
+    def data_operation(self,funct,*args):
         '''
-        @brief perform an operation on loaded data and another object (funct(self,obj))
-        @param[in] obj - object to operate with. Can be SamuraiMeasurement, 
-            MUFResult, or anything supported by self.nominal[0].data
+        @brief perform an operation on loaded data (e.g. self.nominal[0].data)
         @param[in] funct - function to be performed on self and obj
+        @param[in] args - arguments to the function given by funct
         '''
+        argsl = list(args)
         for mt in self.meas_types:
             mt_attr = getattr(self,mt) #get the attribute
-            if hasattr(obj,mt):
-                mt_obj = getattr(obj,mt)
-            else:
-                mt_obj = obj 
-            mt_attr.data_operation(mt_obj,funct)
+            if isinstance(args[0],SamuraiMeasurement) or isinstance(args[0],MUFResult):
+                argsl[0] = getattr(args[0],mt_attr)
+            mt_attr.data_operation(funct,*tuple(argsl))
         return self
     
-    def __add__(self,obj): return self._data_operation(obj,operator.add)
-    def __sub__(self,obj): return self._data_operation(obj,operator.sub)
-    def __mult__(self,obj): return self._data_operation(obj,operator.mult)
-    def __truediv__(self,obj): return self._data_operation(obj,operator.truediv)
+    def __add__(self,obj): return self.data_operation(operator.add,obj)
+    def __sub__(self,obj): return self.data_operation(operator.sub,obj)
+    def __mult__(self,obj): return self.data_operation(operator.mult,obj)
+    def __truediv__(self,obj): return self.data_operation(operator.truediv,obj)
     
     
 #%%    
@@ -681,20 +707,21 @@ class SamMeasStatistic(list):
 # Function for math operations
 ###############################################
     
-    def data_operation(self,obj,funct):
+    def data_operation(self,funct,*args):
         '''
-        @brief perform an operation on loaded data and another object (funct(self,obj))
-        @param[in] obj - object to operate with. Can be SamuraiMeasurement, 
-            MUFResult, or anything supported by self.nominal[0].data
-        @param[in] funct - function to be performed on self and obj
+        @brief perform an operation on loaded data
+        @param[in] funct - function to be performed. if its a string, assume its a method of self[i].data
+        @param[in] args - arguments to the function
         '''
+        argsl = list(args)
         for i,attr_val in enumerate(self):
-            if isinstance(obj,list):
-                obj_val = obj[i].data # assume its a SamMeasStatistic (or MUFStatistic)
-            else:
-                obj_val = obj #otherwise its just the object
-            if obj_val is not None and attr_val is not None: #only if loaded
-                self[i].data = funct(attr_val.data,obj_val)
+            if isinstance(args[0],list):
+                argsl[0] = args[0][i].data # assume its a SamMeasStatistic (or MUFStatistic)
+            if argsl[0] is not None and attr_val is not None: #only if loaded
+                if isinstance(funct,str):
+                    getattr(self[i].data,funct)(*tuple(argsl))
+                else:
+                    self[i].data = funct(attr_val.data,obj_val)
         return self
     
 #%%  
@@ -840,8 +867,10 @@ class TestSamuraiMeasurement(unittest.TestCase):
         resj = SamuraiMeasurement(os.path.join(self.wdir,'./test/test_meas_all_rel.smeas'),load_nominal=True,load_statistics=True)
         resx = SamuraiMeasurement(os.path.join(self.wdir,'./test/test_meas_all_rel.meas'),load_nominal=True,load_statistics=True)
         
-    def test_split(self):
-        '''@brief test splitting the data of the measurement (e.g. s2p to s1p)'''
+    def test_split_combine(self):
+        '''
+        @brief test splitting and combining the data of the measurement (e.g. s2p to s1p)
+        '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
         meas = SamuraiMeasurement(meas_path,load_statistics=True)
         meas_p1,meas_p2 = split_measurement(meas_path,2)
@@ -852,6 +881,10 @@ class TestSamuraiMeasurement(unittest.TestCase):
         sm1,sm2 = split_parameters(meas.monte_carlo[0].data,2) 
         self.assertEqual(sm1,meas_p1.monte_carlo[0].data)
         self.assertEqual(sm2,meas_p2.monte_carlo[0].data)
+        #test combine
+        meas_comb = combine_measurements(meas_p1,meas_p2)
+        self.assertTrue(np.all(meas.nominal[0].data.S[11]==sn1.S[11]))
+        self.assertTrue(np.all(meas.nominal[0].data.S[22]==sn2.S[11]))
         
 class TestUncertaintyOperations(unittest.TestCase):
     '''@brief test operations on data with uncertainty'''
