@@ -63,8 +63,4 @@ Using the Samurai MotiveInterface
 - get distance command  :code:`mymot.get_distance('meca_head','origin')`
 - measure from dictionary/list
 
-
-Code
--------
-
-MotiveInterface code goes here  
+ 

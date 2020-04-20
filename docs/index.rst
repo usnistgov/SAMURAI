@@ -41,6 +41,7 @@ Table of Contents
    analysis/index
    data/index
    base/index
+   api/index
    faq
    :maxdepth: 2
    :caption: Contents:
