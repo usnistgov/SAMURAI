@@ -1,8 +1,19 @@
 classdef SamuraiMetafile < handle
     %@brief This is a class to handle some functionality
-    %   of the metafiles from the SAMURAI system using MATLAB
+    %   of the metafiles (\*.json files) from the SAMURAI system using MATLAB
     %@param[in] metafile_path - on constructor a metafile path
     %   can be passed in to immediatly load
+    %@example
+    %    % Add the path to this class
+    %    addpath('<class_directory'>)
+    %
+    %    % Read the file
+    %    mymetafile = SamuraiMetafile('path/to/metafile.json')
+    %
+    %    % Get measurement filenames
+    %    filenames = mymetafile.get_meas_path_list()
+    %
+    %@return An object of type SamuraiMetafile to extract data from the metafile.
     
     properties
         %Just store all of the json files. Getters will decode

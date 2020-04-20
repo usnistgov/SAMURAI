@@ -18,6 +18,16 @@ function [ touchstone_data ] = read_touchstone(file_path)
     %@brief Read a touchstone file (\*.snp,\*.wnp,\*.meas)
     %@author ajw
     %@param[in] file_path - path to the file to load
+    %@example
+    %    % Add the path to this function
+    %    addpath('<function_directory'>)
+    %
+    %    % Read the file
+    %    mysnp = read_touchstone('path/to/data.s2p')
+    %
+    %    % Get S21 data
+    %    s21_data = mysnp.S21
+    %
     %@return Table with the S or wave parameters
     [~,~,ext] = fileparts(file_path); %get the file parts
     if strcmp(ext,'.meas') %the get the nominal path and new extension
