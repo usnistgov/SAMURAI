@@ -5,8 +5,9 @@
 
 .. _SAMURAI Data Analysis:
 
-SAMURAI Data Analysis
+Data Analysis
 ======================
+
 Tools for analysis of the data taken by the SAMURAI system are given here.
 
 .. toctree::

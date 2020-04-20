@@ -31,6 +31,10 @@ In this documentation, we provide a getting started documentation, software for 
 
 This documentation describes how the system is run, the data is stored, and options on how it can be processed.
 
+Getting started
+-----------------------
+
+For installation and startup is
 
 Table of Contents
 ------------------------

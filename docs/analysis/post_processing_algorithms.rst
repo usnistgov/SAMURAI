@@ -5,9 +5,10 @@
 
 .. _post-process:
 	
-SAMURAI Post Processing Algorithms
-========================================
-Here we have tools specifically for post processing algorithms like angle of arrival (AoA).
+Utilizing SAMURAI Tools for Post-Processing
+=============================================
+Here we have tools specifically for post processing algorithms like angle of arrival (AoA). 
+There are also some base functions that may help users develop custom algorithms without having to rewrite routines for things such as loading data.
 
 .. toctree::
    load_the_data

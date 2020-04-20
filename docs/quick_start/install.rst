@@ -1,11 +1,16 @@
 
-Installing Python
+.. _installation:
+
+Installation
 ---------------------------
 
+Instructions on installation of the software. MATLAB users can skip to :ref:`install_for_matlab`.
+
 Installing Python
-++++++++++++++++++++++++++++++++++++++++++
+==========================
 
 While any python 3.X distribution should work, Anaconda has typically been used with this package as it provides many pre-installed dependencies.
+Basic instructions are also given on how to install the base python interpreter if not using Anaconda, although this is not recommended for new Python users.
 
 - Installing Anaconda  
     #. Go to the anaconda `download page <https://www.anaconda.com/distribution/#download-section>`_
@@ -13,8 +18,8 @@ While any python 3.X distribution should work, Anaconda has typically been used 
     #. Download and run the executable and follow the installer to install Anaconda 3.X
     #. Install depedencies through either :code:`conda install <package>` or :code:`pip install <package>`
 
-- Installing Python 
-    #. Download the base python interpreter at `https://www.python.org/downloads/`_
+- Installing Python (If NOT installing Anaconda)
+    #. Download the `Python interpreter <https://www.python.org/downloads/>`_
     #. install dependencies through :code:`pip install <package>`
 
 dependencies
@@ -32,17 +37,17 @@ Not all are required for all modules and therefore it may be best to install the
 
 
 Installing SAMURAI Software Package 
-------------------------------------------
+=========================================
 
 Here are instructions on how to install the SAMURAI software package.
 
 Download 
 +++++++++++++++
-The current code can be downloaded or cloned from the :git_repo:`/` or will be directly provided in a *.zip file.
+The current code can be downloaded or cloned from the :git_repo:`/` or will be directly provided in a \*.zip file.
 
 - The repository can be cloned from git when inside the git network using the command :code:`git clone https: https://gitlab.nist.gov/gitlab/uncertainteam/samurai.git`.
 
-- If using a *.zip file, the files must be extracted before installation 
+- If using a \*.zip file, the files must be extracted before installation 
 
 Installation
 ++++++++++++++++++++++
@@ -62,3 +67,26 @@ Installation
     This will allow edits to the code to immediatly be utilized in python.
 
     .. seealso:: https://pip.pypa.io/en/latest/reference/pip_install/?highlight=editable#editable-installs
+
+
+.. _install_for_matlab:
+
+Installation for MATLAB Users
+================================
+
+If only MATLAB is being used, the code simply needs to be downloaded. 
+All MATLAB code then must contain the :code:`addpath('<code-directory>')` where :code:`<code-directory>` 
+is the path to the directory of the code being used.
+For example, if the software is downloaded to :code:`\code\samurai\` a script using the :code:`read_touchstone()` function to load in a \*.s2p file
+must have something like the following.
+
+.. code-block:: MATLAB 
+
+    % Set the paths to our directories 
+    code_install_dir = '\code\samurai';
+    function_dir = fullfile(code_install_dir,'samurai\analysis\support');
+
+    % Now add the directory to the path
+    addpath(function_dir)
+
+    % Now the function 'read_touchstone()' can be used
