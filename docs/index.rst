@@ -40,7 +40,6 @@ Table of Contents
    acquisition/index
    analysis/index
    data/index
-   base/index
    api/index
    faq
    :maxdepth: 2

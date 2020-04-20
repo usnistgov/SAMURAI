@@ -19,7 +19,7 @@ file_dir = os.path.realpath(os.path.dirname(__file__))
 DEFAULT_POST_PROCESSOR_EXE_PATH = r"C:\Program Files (x86)\NIST\Uncertainty Framework\PostProcessor.exe"
 
 # Templates for different post processor menus (they are all formatted differently)
-TEMPLATE_POST_PROCESSOR_ERROR_BOX_COMBINE = os.path.join(file_dir,'templates/post_proc_combine_2port_error_boxes_template.post)
+TEMPLATE_POST_PROCESSOR_ERROR_BOX_COMBINE = os.path.join(file_dir,'templates/post_proc_combine_2port_error_boxes_template.post')
 
 class PostProcPy(MUFModuleController):
     '''
@@ -27,7 +27,7 @@ class PostProcPy(MUFModuleController):
     @param[in] menu_path - path to the menu to load
     @param[in/OPT] kwargs - keyword arguments as follows:
         - exe_path - path to post processor executable (defaults to MUF default install location)
-        - - The rest are passed to MUFModuleController.__init__
+        - | - The rest are passed to MUFModuleController.__init__
     '''
     
     def __init__(self,menu_path=None,exe_path=None,**kwargs):

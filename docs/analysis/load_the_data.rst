@@ -5,7 +5,7 @@
 
 .. _metafile_info:
 
-Interacting with the Metafile
+Interacting with the Data
 ====================================
 
 Each SAMURAI measurement contains a metafile that provides a information on the measurement and location of data.
@@ -142,22 +142,6 @@ An example of how to load filepaths and positions in MATLAB is as follows:
     :linenos:
 
 
-Metafile Interface Classes
----------------------------
-Code information for both MetaFileController (Python) and SamuraiMetafile (MATLAB)
-
-Python 
-+++++++++++++++++
-
-.. automodule:: samurai.analysis.support.MetafileController
-    :members:
-
-MATLAB
-++++++++++++
-    
-.. mat:automodule:: samurai.analysis.support 
-.. mat:autoclass:: SamuraiMetafile 
-    :members:
 
 
 

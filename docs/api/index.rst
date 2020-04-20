@@ -1,6 +1,6 @@
 
-API
---------
+Application Programming Interface (API)
+------------------------------------------
 
 All of the application programming interface (API) documentation is provided in this section. 
 
@@ -8,7 +8,6 @@ All of the application programming interface (API) documentation is provided in 
    base/index
    acquisition/index
    analysis/index
-   :maxdepth:2
+   :maxdepth: 2
    :caption: Contents:
-   
    

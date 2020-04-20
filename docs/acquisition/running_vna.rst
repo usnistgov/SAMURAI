@@ -8,11 +8,13 @@ The VNA is typically controlled remotely from a connected computer.
 In the SAMURAI lab, this is typically connected over ethernet. Communication is performed using the VISA protocol.
 The current IP address for the VNA in the SAMURAI lab is given in :ref:`hardware-config`.
 
-There are two methods for remotely running the VNA from the computer using the SAMURAI software. The first is using :class:`samurai.acquisition.support.PnaController.PnaController` and the second is using PNAGrabber (the NIST microwave uncertainty framework must be installed).
+There are two methods for remotely running the VNA from the computer using the SAMURAI software. 
+The first is using the custom :class:`samurai.acquisition.support.PnaController.PnaController` class and the second is using PNAGrabber with :class:`samurai.acquisition.support.AutoPnaGrabber.PnaGrabber`(the NIST microwave uncertainty framework must be installed).
 
 Using PnaController 
 --------------------------
 
+This section describes the use of the :class:`samurai.acquisition.support.PnaController.PnaController` class.
 While this method cannot yet do wave parameters, it is faster to measure than PnaGrabber for s-parameter measurements (especially when a sweep contains thousands of points).
 This class also does not in any way alter the state of the VNA (PNAGrabber will overwrite some settings).
 An example of how this class can be used is as follows:
@@ -51,7 +53,7 @@ This class can also be used to repeatably setup the VNA for a certain sweep. An 
 Using PNAGrabber
 ---------------------
 Using PNAGrabber to communicate with the VNA has the added benefit of setting up a PNAGrabber menu and gathering data as if clicking the :code:`meas_all` button in PNAGrabber.
-This works for s-parameters and wave-parameters with an arbitrary number of ports.
+This works for s-parameters and wave-parameters with an arbitrary number of ports. This is performed using the :class:`samurai.acquisition.support.AutoPnaGrabber.PnaGrabber` class.
 
 To gather a measurement using PNAGrabber, first make a template pnagrabber menu. This is what will be run each time.
 This menu should have only a single measurement with the correct extension (e.g. \*.s2p,\*.s4p,\*.w2p).
@@ -84,7 +86,7 @@ Once this has all been setup, PNAGrabber can be used to measure with the followi
 .. code-block:: python 
 
     #import the library
-    from samurai.acquisition.support.autoPNAGrabber import PnaGrabber 
+    from samurai.acquisition.support.AutoPnaGrabber import PnaGrabber 
 
     # Create an object
     mypna = PnaGrabber()
@@ -117,14 +119,3 @@ In order to use PNAGrabber with the sweep, the following keyword arguments can b
     # This code only demonstrates what flags to set, not how to use the csv_sweep method 
     from samurai.acquisition.support.autoPNAGrabber import PnaGrabber
     SAMURAI_System.csv_sweep(...,meas_obj=PnaGrabber,meas_obj_init_args=(),meas_obj_meas_args=())
-
-
-
-VNA Control Classes
--------------------------
-
-.. automodule:: samurai.acquisition.instrument_control.PnaController
-		:members:
-
-.. automodule:: samurai.acquisition.instrument_control.AutoPnaGrabber.PnaGrabber
-        :members:

@@ -20,10 +20,6 @@ SAMURAI Data Acquisition
    :maxdepth: 2
    :caption: Configuration and Extra Information
 
-.. toctree::
-   acquisition_code
-   :maxdepth: 2
-   :caption: Code Reference
 
 
 	

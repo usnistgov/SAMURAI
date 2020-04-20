@@ -132,7 +132,7 @@ class MUFItemList:
         @param[in] xml_element - parent element of the list to load
             If a string is passed, a new element will be created 
         @param[in/OPT] kwargs - keyword arguments as follows:
-            - None yet!
+            - | - None yet!
         '''
         if isinstance(xml_element,str):
             xml_element = ET.Element(xml_element)
@@ -255,7 +255,7 @@ class MUFItem(MUFItemList):
         @param[in] subitem_idx - which index the path is to load (typically its self[0])
         @param[in] kwargs - keyword arguements as follows
             - working_directory - root point for relative paths. Typically should be the menu file directory
-            - - The rest of the results will be passed to load_funct
+            - | - The rest of the results will be passed to load_funct
         '''
         options = {}
         options['working_directory'] = ''
