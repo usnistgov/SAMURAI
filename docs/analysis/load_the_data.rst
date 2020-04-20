@@ -8,7 +8,22 @@
 Interacting with the Data
 ====================================
 
-Each SAMURAI measurement contains a metafile that provides a information on the measurement and location of data.
+SAMURAI Measurement Layout
+----------------------------------
+
+SAMURAI measurements taken at NIST consist of two parts, a metafile (\*.json) and measured data (\*.snp, \*.wnp, \*.meas).
+When first opening the data folder for measurements taken at NIST, the folder will contain a metafile (\*.json) multiple measurement files (\*.meas),
+along with a folder called :code:`touchstone`. 
+The :code:`touchstone` sub-directory contains its own metafile (\*.json) along with a copy of all of the nominal measurement results as touchstone files (e.g. \*.snp_binary).
+This folder can also be used when uncertainties are not of interest. 
+If using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` or :mat:func:`read_touchstone`, the data from both directories
+(and therefore the data when using either metafile) should return the same values when loaded.
+
+The Metafile
++++++++++++++++++++
+
+The metafile associated with each measurement tracks a variety of information on the measurement as it sweeps through the aperture positions.
+This provides information on experimental setup along with associating aperture positions with measured data files.
 The data is saved into a JavaScript Object Notation (JSON) file format. 
 When loaded into Python, it is loaded as a dictionary and data can be accessed using the typical :code:`metafile[key]` instructions.
 In MATLAB (using MATLAB's JSON parser), this is loaded as a structure and therefore would be accessed as :code:`metafile.(key)`.
@@ -27,100 +42,170 @@ Some of the data recorded in the metafile is:
    - Position measurements from External system (:code:`external_position_measurements` key)
 
 Interaction with the metafile can easily be performed using the :class:`samurai.analysis.support.MetafileController.MetafileController`.
+For MATLAB, loading and some other functionality is built into :mat:class:`SamuraiMetafile`.
 After loading into python, data on the whole measurement can be accessed with :code:`metafile[key]`, while information at each aperture 
 position can be accessed with :code:`metafile['measurements'][aperture_position_number][key]`.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+The Data
++++++++++++
 
-Loading in a Metafile Object
--------------------------------
-A metafile can be loaded using the following code
+Each entry in the :code:`metafile['measurements']` list correspods to a measurement at a position in the aperture.
+These entries include the position of the robot along with a path to the measurement taken by the VNA/LSNA.
+These filepaths can be extracted with :code:`data_paths = metafile.file_paths`.
 
-.. code-block:: python
-   
-   #import the controller class
-   from samurai.analysis.support.MetafileController import MetafileController
-   
-   #provide a path to the metafile 
-   metafile_path = "./path/to/metafile.json"
+Each of these paths will point to either a touchstone file (\*.snp,\*.wnp,\*.snp) or a measurement file (\*.meas) which contain uncertainties on the measurements.
+A reference explaining the touchstone format can be found `here <http://na.support.keysight.com/plts/help/WebHelp/FilePrint/SnP_File_Format.htm>`_ .
+Data can be loaded without uncertainties with :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` (:mat:func:`read_touchstone` for MATLAB)
+or with uncertainties using :class:`samurai.base.SamuraiMeasurement.SamuraiMeasurement`.
 
-   #load the metafile into an object
-   mymetafile = MetafileController(metafile_path)
-
-Loading the Measurement Data
--------------------------------
-
-The file paths of each measurement can be retrieved with :code:`MetafileController.file_paths` property. 
-The position of the synthetic aperture from each measurement can be retrieved with the :code:`MetafileController.positions` property.
-The data from each of the files can be loaded as :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` objects using the :code:`MetafileController.load_data()` method.
-
-This process can also be done manually by looping through the file paths contained in the metafile (the :code:`MetafileController.file_paths` property) along with the :class:`samurai.base.TouchstoneEditor.TouchstoneEditor`.
-An example of this is given as follows
-
-.. code-block:: python
-
-   #first import our TouchstoneEditor Class 
-   from samurai.base.TouchstoneEditor import TouchstoneEditor
-
-   # Assume the metafile has already been loaded
-   fpaths = mymetafile.file_paths
-
-   # Now lets loop through and load the data
-   data_list = []
-   for fpath in fpaths:
-      data_list.append(TouchstoneEditor(fpath))
-
-Data for the SAMURAI measurements is typically contained in the Touchstone file format (e.g. \*.s2p). 
-A reference explaining this format can be found `here<http://na.support.keysight.com/plts/help/WebHelp/FilePrint/SnP_File_Format.htm>`_ .
-While this data is typically stored in an ASCII format, because of the large amount of data taken with the SAMURAI system, data is sometimes
+While touchstone data is typically stored in an ASCII format, because of the large amount of data taken with the SAMURAI system, data is sometimes
 stored in a binary format (e.g. \*.s2p_binary). Starting from the beginning of the file, the binary data is stored as follows:
 
 - 32 bit integer giving the number of rows
 - 32 bit integer giving the number of columns
 - 64 bit floating point data in row order
 
-An example of how this data is read in is given below in python:
-
-.. code-block: python 
-
-   # First import NumPy
-   import numpy as np
-
-   # Then load the row and column count
-   [num_rows,num_cols] = np.fromfile(file_path,dtype=np.uint32,count=2) 
-
-   # And load the floating point data
-   raw_data = np.fromfile(file_path,dtype=np.float64) #read raw data
-   raw_data = raw_data[1:] #remove header
-
-   # Set to the correct shape
-   raw_data = raw_data.reshape((num_rows,num_cols)) #match the text output
-
 .. seealso:: This is the same format described in the help guide of the `NIST Microwave Uncertainty Framework <https://www.nist.gov/services-resources/software/wafer-calibration-software>`_
 
-Both binary and regular snp files can be loaded with :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` without any extra user work.
-If using MATLAB, the :code:`read_snp_binary.m` function in :code:`samurai/analysis/support/` can be used to load binary snp data.
+Both  :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` and :mat:func:`read_touchstone` for MATLAB can handle this with no issue.
+An example of how :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` loads binary touchstone data is given below:
 
-An example of how data can be accessed with :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` is given below.
 
-.. code-block: python
+
+
+Example Code for Loading Measurement Data
+------------------------------------------------
+
+The following example codes show how the measurement data and aperture positions can be loaded.
+
+.. important:: The user must set the :code:`metafile_path` variable to correctly point to the :code:`metafile.json` file for the data being imported.
+
+Python
+++++++++++++
+
+.. code-block:: python
+
+   '''
+   This example will load in a metafile and get a list of s-parameter data and corresponding aperture positions.
+   It is important that the user correctly set the 'metafile_path' variable.
+   This will also show how to access the S21 data of the parameter and x,y,z coordinates in millimeters of a measurement.
+   '''
+
+   # Lets start by importing our required classes
+   from samurai.analysis.support.MetafileController import MetafileController
+   from samurai.base.TouchstoneEditor import TouchstoneEditor
+   
+   # Provide a path to the metafile. THIS SHOULD BE SET BY THE USER
+   metafile_path = r"./path/to/metafile.json"
+
+   # Load in our metafile object
+   mymetafile = MetafileController(metafile_path)
+
+   # Extract our file paths and our aperture positions
+   positions = mymetafile.positions 
+   file_paths = mymetafile.file_paths
+   data = []
+
+   # Now lets load the data from each file.
+   # This can also be accomplished using 'mymetafile.load_data(verbose=True)'
+   for path in file_paths:
+      data.append(TouchstoneEditor(path))
+
+   # Finally lets get the x,y,z positions and S21 data for each measurement
+   xyz_positions = positions[:,:3] # leave out alpha,beta,gamma rotation
+   s21_data = [d.S[21] for d in data]
+
+MATLAB
+++++++++++++
+
+MATLAB cannot install the SAMURAI library like python and therefore we must begin the code by adding
+the directory of our code to the path. In this case :code:`<samurai-base-path>` refers to the path to the downloaded SAMURAI library directory.
+The MATLAB processing code is then contained in the directory :code:`<samurai-base-path>/samurai/analysis/support`. 
+This directory must be added to the MATLAB path before use.
+
+.. code-block:: MATLAB
+
+   % Lets start by adding our directory to the path
+   samurai_base_path = '<samurai-base-path>'
+   addpath(fullfile(samurai_base_path,'samurai/analysis/support'));
+   
+   % Provide a path to the metafile. THIS SHOULD BE SET BY THE USER
+   metafile_path = './path/to/metafile.json';
+
+   % Load in our metafile object
+   mymetafile = SamuraiMetafile(metafile_path);
+   [wdir,~,~] = fileparts(metafile_path);
+
+   % Extract our file paths and our aperture positions
+   positions = mymetafile.get_location_list();
+   file_paths = mymetafile.get_meas_path_list(); %get relative files
+
+   % Now lets load the data from each file.
+   data = cell(1,length(file_paths));
+   for i=1:length(file_paths)
+      data{i} = read_touchstone(fullfile(wdir,file_paths{i}));
+   end
+
+   % Finally lets get the x,y,z positions and S21 data for each measurement
+   xyz_positions = positions(:,1:3); % leave out alpha,beta,gamma rotation
+   s21_data = cell(1,length(data));
+   for i=1:length(data)
+      s21_data{i} = data{i}.S21;
+   end
+
+
+Working with Touchstone Files
+------------------------------------------------
+
+This section covers in a bit more detail working with touchstone files using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` in python
+and :mat:func:`read_touchstone` in MATLAB.
+
+Python
++++++++++++
+
+Touchstone files can be worked with in Python using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor`.
+This class loads data into a pandas DataFrame and places it in an attribute :code:`S` for s-parameters and :code:`A` and :code:`B` for wave parameters.
+The following code then demonstrates how to access each of the S parameters of a 2 port S-parameter file (\*.s2p).
+
+.. code-block:: python
 
    # Import the library
    from samurai.base.TouchstoneEditor import TouchstoneEditor
 
    # Load the file 
-   mypath = 'path/to/file.s2p' # (could also be 'file.s2p_binary')
+   mypath = r'path/to/file.s2p' # (could also be 'file.s2p_binary')
    mysnp = TouchstoneEditor(mypath)
 
    # Now lets get some data from this
    frequencies        = mysnp.freq_list
-   block_data_complex = mysnp.raw 
+   sAll_complex       = mysnp.S
    s11_complex        = mysnp.S[11]
    s12_complex        = mysnp.S[12]
    s21_complex        = mysnp.S[21]
    s22_complex        = mysnp.S[22]
+
+MATLAB
++++++++++
+
+In MATLAB, touchstone data is loaded using the :mat:func:`read_touchstone` function. 
+This function takes a file path and returns a MATLAB table object with all of the loaded data.
+The following code again demonstrates how to access each of the S parameters of a 2 port S-parameter file.
+
+.. code-block:: MATLAB
+
+   % Add the directory of the function
+   addpath(fullfile('<samurai-base-path>','samurai/analysis/support');
+
+   % Load the file 
+   mypath = 'path/to/file.s2p' % (could also be 'file.s2p_binary');
+   mysnp = read_touchstone(mypath);
+
+   % Now lets get some data from this
+   frequencies        = mysnp.frequency;
+   s11_complex        = mysnp.S11;
+   s12_complex        = mysnp.S12;
+   s21_complex        = mysnp.S21;
+   s22_complex        = mysnp.S22;
 
 Loading external positioning information
 -----------------------------------------
@@ -130,16 +215,6 @@ as the transmit and recieve antennas, and possible scatterers in the scene. A di
 the metafile using the :code:`MetaFileController.get_external_positions()` method.
 
 
-Loading with MATLAB
-----------------------
-Some of these functions have also been implemented in MATLAB with the SamuraiMetafile Class.
-An example of how to load filepaths and positions in MATLAB is as follows:
-
-.. note:: The user must provide the correct loading of the data from the filepaths in this scenario.
-
-.. literalinclude:: ../test_scripts/metafile_test_script.m
-    :language: matlab 
-    :linenos:
 
 
 

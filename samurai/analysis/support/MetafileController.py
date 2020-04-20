@@ -294,7 +294,7 @@ class MetafileController(SamuraiDict):
             #print(numLoadedMeas)
             if verbose: pc.update()
         if verbose: pc.finalize(); print('Loading Complete')
-        return snpData,numLoadedMeas
+        return snpData
     
     def update_format(self):
         '''

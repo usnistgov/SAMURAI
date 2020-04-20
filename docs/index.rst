@@ -32,9 +32,21 @@ In this documentation, we provide a getting started documentation, software for 
 This documentation describes how the system is run, the data is stored, and options on how it can be processed.
 
 Getting started
------------------------
+++++++++++++++++++++
 
-For installation and startup is
+For first time users trying to get up and started please go to :ref:`quick_start`.
+
+Documentation Layout
+++++++++++++++++++++++++++
+
+This documentation is separated into a few main sections:
+
+- :ref:`quick_start` provides a brief introduction on how to get started measuring and processing data.
+- :ref:`data_acquisition` includes information on how to set up a measurement system utilizing similar hardware and software to the NIST system.
+- :ref:`SAMURAI Data Analysis` includes information on how to calibrate, load, and process data taken with the SAMURAI (or similar) system.
+- :ref:`samurai_data` provides data and information on measurements taken with the NIST SAMURAI system.
+- :ref:`api` gives in depth information on each module, class, and function of the code.
+- :ref:`faq` answers some commonly asked questions.
 
 Table of Contents
 ------------------------
