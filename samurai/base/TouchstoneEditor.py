@@ -69,10 +69,10 @@ def swap_ports(*args,**kwargs):
         raise SnpError('Frequency lists do not match')
     so1 = SnpEditor([2,freqs])
     so2 = SnpEditor([2,freqs])
-    so1.S[11] = s1.S[11]; so1.S[22] = s2.S[22]
-    so1.S[21] = s1.S[21]; so1.S[12] = s2.S[12]
-    so2.S[11] = s2.S[11]; so2.S[22] = s1.S[22]
-    so2.S[21] = s2.S[21]; so2.S[12] = s1.S[12]
+    so1.S[11][:] = s1.S[11]; so1.S[22][:] = s2.S[22]
+    so1.S[21][:] = s1.S[21]; so1.S[12][:] = s2.S[12]
+    so2.S[11][:] = s2.S[11]; so2.S[22][:] = s1.S[22]
+    so2.S[21][:] = s2.S[21]; so2.S[12][:] = s1.S[12]
     return so1,so2
 
 def combine_parameters(*args,**kwargs):
@@ -225,26 +225,94 @@ class MultilineFileParser(object):
             return data
         else:
             raise StopIteration()
+            
+#%% Functions for loading in the data
+def load_text_touchstone(file_path,**kwargs):
+    '''
+    @brief Load snp/wnp file data to a table (just like the data is stored in the file)
+    @param[in] file_path - path of text file to load  
+    @param[in/OPT] kwargs - keyword args as follows:  
+        - read_header - whether or not to read the header and comments in text files.
+                        It is faster to not read the header/comments  
+    @return Dictionary with elements {'data':raw_data,'header':header_string,'comments':['list','of','comments']}
+    '''
+    #first read in comments
+    comments = []
+    header = DEFAULT_HEADER
+    if(kwargs.get('read_header',None)): #flag for reading header for speed
+         with open(file_path,'r') as fp: 
+             for line in fp:
+                 if(line.strip()[0]=='#'):
+                     header = line
+                     #self.set_header(line) #try and set it. If its not valid it wont be set
+                 elif(line.strip()[0]=='!'):
+                     comments.append(line.strip()[1:])
+                 else: #else its data
+                     pass     
+    else: #dont read comments
+         comments.append('Header and comments NOT read from file')
+    #now read in data from the file with many possible delimiters in cases
+    #of badly formated files
+    fp = MultilineFileParser(file_path)
+    regex_str = r'[ ,|\t]+'
+    rc = re.compile(regex_str)
+    raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
+    if raw_data.ndim==1: #case if we have 1 data point only
+        raw_data = np.reshape(raw_data,(1,-1))
+    return {'data':raw_data,'header':header,'comments':comments}
+        
+def load_binary_touchstone(file_path):
+    '''
+    @brief Function to load binary snp/wnp file  
+    @param[in] file_path - path of binary file to load  
+    @param[in/OPT] kwargs - keyword args as follows:  
+    '''
+    [num_rows,num_cols] = np.fromfile(file_path,dtype=np.uint32,count=2) 
+    raw_data = np.fromfile(file_path,dtype=np.float64) #read raw data
+    raw_data = raw_data[1:] #remove header
+    raw_data = raw_data.reshape((num_rows,num_cols)) #match the text output
+    comments = ['Data read from binary file']
+    return {'data':raw_data,'header':DEFAULT_HEADER,'comments':comments}
 
 #%% actual file manipulation class
-class TouchstoneEditor:
+class TouchstoneEditor(pd.DataFrame):
     '''
-    @brief init arbitrary port touchstone class. This covers wave and S params  
+    @brief Load and handle arbitrary port touchstone class. This covers wave and S params  
     @author ajw5
+    @note This inherits from a pandas dataframe for easy usage
+    @param[in] args - input arguments can be: 
+        - path of file to load in. 
+        - A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
+                measurement with n ports and frequencies [f1,f2,...] 
+        - A typical pandas dataframe constructor
+    @note This can also be called as the typical constructor of a pandas DataFrame
+    @param[in] arg_options - keywor arguments as follows:  
+        - header - header to write out to the file (text only)  
+        - comments - comments to write to file (text only)  
+        - read_header - True/False whether or not to read in header from text files (faster if false, default to true)  
+        - waves - list of what waves we are measuring for self.waves dictionary (default ['A','B'] for s params should be ['S'])  
+        - no_load - if True, do not immediatly load the file (default False)  
+        - default_extension - default output file extension (e.g. snp,wnp)  
     '''
-    def __new__(cls,input_file=None,*args,**kwargs):
+    
+    # normal properties
+    _metadata = ['options','_ports']
+    
+    def __new__(cls,*args,**kwargs):
+
         '''
         @brief instantiator to return correct class (e.g. WnpEditor or SnpEditor)  
-        @param[in] input_file - path of file to load in. 
-                A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-                measurement with n ports and frequencies [f1,f2,...]   
         @param[in/OPT] kwargs - keyword arguments. most passed to init but the following:
             override_extension_check - prevent the class from being changed due to extension  
         @note help from https://stackoverflow.com/questions/9143948/changing-the-class-type-of-a-class-after-inserted-data  
         '''
+        
+        if not len(args): #if empty, add an argument
+            args = (None,) 
         override_extension_check = kwargs.pop('override_extension_check',None)
         if not override_extension_check: #we can override this new set for certain cases
-            if isinstance(input_file,str): #this could be a list for an empty object
+            if isinstance(args[0],str): #this could be a list for an empty object
+                input_file = args[0]
                 _,ext = os.path.splitext(input_file)
                 if re.findall('meas',ext):
                     input_file = get_unperturbed_meas(input_file)
@@ -267,55 +335,46 @@ class TouchstoneEditor:
             out_cls = cls
         instance = super().__new__(out_cls)
         if out_cls != cls: #run the init if it hasn't yet
-            instance.__init__(input_file,*args,**kwargs)
+            instance.__init__(*args,**kwargs)
         return instance
-   
-    def __init__(self,input_file=None,**arg_options):
-         '''
-         @brief init arbitrary port wave parameter class  
-         @param[in] input_file - path of file to load in. 
-                     A tuple (n,[f1,f2,....]) or list [n,[f1,f2,....]] can also be passed to create an empty 
-                     measurement with n ports and frequencies [f1,f2,...] in Hz
-                     If not provided we will have a default class with no ports or anything  
-         @param[in] arg_options - keywor arguments as follows:  
-             - header - header to write out to the file (text only)  
-             - comments - comments to write to file (text only)  
-             - read_header - True/False whether or not to read in header from text files (faster if false, default to true)  
-             - waves - list of what waves we are measuring for self.waves dictionary (default ['A','B'] for s params should be ['S'])  
-             - no_load - if True, do not immediatly load the file (default False)  
-             - default_extension - default output file extension (e.g. snp,wnp)  
-         '''
+    
+    
+    def __init__(self,*args,**kwargs):
+         '''@brief Constructor'''
+         option_keys = ['header','comments'                     ,'read_header',
+                        'waves'  ,'no_load','default_extension','param_class']
+         option_vals = [None    ,copy.deepcopy(DEFAULT_COMMENTS),True,
+                        ['A','B'],False    ,'tnp'              ,TouchstoneParam]
          self.options = {}
-         self.options['header'] = None #this will be set later
-         self.options['comments'] = copy.deepcopy(DEFAULT_COMMENTS) #deepcopy otherwise all will point to that list
-         self.options['read_header'] = True
-         self.options['waves'] = ['A','B'] #waves to store. default to wave parameter
-         self.options['no_load'] = False
-         self.options['default_extension'] = 'tnp' #default
-         self.options['param_class'] = TouchstoneParam
-         for key,val in arg_options.items(): #overwrite defaults with inputs
-             self.options[key] = val 
-        
-         #initialize placeholder for data
-         self.raw_data = None
-   
-         #initialize dictionary of waves
-         self._param_class = self.options['param_class']
-         self.waves = SamuraiDict()
-         for w in self.options['waves']:
-             self.waves[w] = None
+         for key,val in zip(option_keys,option_vals): #extract our options
+             self.options[key] = kwargs.pop(key,val) #default value
+         if not len(args): #if empty, add an argument
+            args = (None,)
+         # Extract important arguments if we are building in a special way
+         if isinstance(args[0],str): # if its a string assume its a file path
+             input_file = args[0]; args = tuple(list(args[1:]))
+         elif isinstance(args[0],tuple) or isinstance(args[0],list):
+             if np.ndim(args[0]) and len(args[0])==2 and np.isscalar(args[0][0]): #then assume its a port setup
+                 input_file = args[0]; args = tuple(list(args[1:]))
+         else: #otherwise its probably a DataFrame setup
+             input_file = None
+         #initialize the dataframe
          self._ports = [] #start with no ports
+         freqs = kwargs.pop('freqs',None)
+         if freqs is not None:
+             kwargs['index'] = freqs
+         super().__init__(*args,**kwargs)
          #now load the file
          if not self.options['no_load']:
-             if(isinstance(input_file,str)):
+             if(isinstance(input_file,str)): #if its a string, load a file
                  self.load(input_file,read_header=self.options['read_header'])
              elif(isinstance(input_file,tuple) or isinstance(input_file,list)):
-                 self._load_empty(input_file[0],input_file[1])
+                 self._create_empty(input_file[0],input_file[1])
              elif input_file is None:
                  pass #dont do anything if we get no input arguments
          #now verify everything loaded correctly
          self._verify_freq_lists()
-             
+
     def _gen_dict_keys(self):
         '''
         @brief function to generate the dictionary keys for each wave in self.waves  
@@ -389,11 +448,14 @@ class TouchstoneEditor:
          #if we have a binary file (e.g. *.w2p_binary)
          if(ftype=='binary'):
              #first read the header
-             raw_data = self._load_binary(input_file,**kwargs)  
+             loaded_data = load_binary_touchstone(input_file)  
          #if we have a text file (e.g. *.w2p)
          elif(ftype=='text'):
-             raw_data = self._load_text(input_file,**kwargs)
-   
+             loaded_data = load_text_touchstone(input_file,**kwargs)
+         #now set the variables from the loaded data
+         raw_data = loaded_data['data']
+         self.set_header(loaded_data['header'])
+         self.options['comments'] = loaded_data['comments']
          num_cols = np.size(raw_data,1) #get the number of columns     
          #now split the data (text and binary input should be formatted the same here)
          #first check if our file is named correctly
@@ -404,14 +466,85 @@ class TouchstoneEditor:
          if self.options['header'] is None: #if we dont have a header here, set the default
              self.set_header(DEFAULT_HEADER)
              
-         self._freqs = raw_data[:,0]*self._get_freq_mult() #set our frequencies from the raw data
-         self.raw_data = raw_data #raw data before unpacking
-         #this raw data will be of size (number_of_waves(e.g. 'S' or 'A','B'),num_keys(e.g. 11,21,12,22),num_freqs(num_measured_values))
-         self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(self._freqs)),dtype=np.cdouble)
+         freqs = raw_data[:,0]*self._get_freq_mult() #set our frequencies from the raw data
+         # create an empty dataframe to store the data
+         self._create_empty(num_ports_from_file,freqs)
          
          #file is good if we make it here so continue to unpacking
          self._extract_data(raw_data)
+     
+    def write(self,out_file,ftype='default',delimiter=' ',**kwargs):
+         '''
+         @brief write out data to touchstone (e.g. *.snp,*.wnp,*.tnp)  
+         @param[in] out_file - path of file name to write to. if *.[wts]np is the extension
+             (e.g *.snp) the n will be replaced with the correct number of ports  
+         @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)  
+         @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')  
+         @param[in/OPT] kwargs - keyword arguments as follows  
+             - fix_extension - whether or not to fix the extension provided by out_file (default True)
+                 This ensures the output file extension is correct  
+         '''
+         options = {}
+         options['fix_extension'] = True
+         for k,v in kwargs.items():
+             options[k] = v
          
+         if(ftype=='default'):
+             if not (re.findall('binary',os.path.splitext(out_file)[-1])):
+                 ftype='text'
+             else:
+                 ftype='binary'
+                 
+         comments = self.options['comments']
+         header   = self.options['header']
+       
+         #round frequencies to nearest Hz
+         self.round_freq_list() 
+         #make sure the frequency lists are equal before writing; just in case somthing went wrong
+         self._verify_freq_lists()
+         
+         #clean the output filename
+         fname,ext = os.path.splitext(out_file)
+         if options['fix_extension']: #just replace the extension with the correct one
+             ext = '.ext' #this will be replaced
+             if ftype=='binary': #add binary if needed
+                 ext += '_binary'
+             ext = re.sub('(?<=\.).*?((?=_binary)|$)',self.options['default_extension'],ext)
+         ext = re.sub('(?<=[wst])n(?=p)',str(self.num_ports),ext) #replace if snp
+         out_file = fname+ext
+         
+         #get our frequency multiplier
+         freq_mult = self._get_freq_mult()
+         
+         #pack into correct data  array
+         out_data = np.ndarray((self.shape[0],self.shape[1]*2+1),dtype=np.double)
+         out_data[:,0] = self.freqs/freq_mult
+         out_data[:,1::2] = self.raw.real 
+         out_data[:,2::2] = self.raw.imag
+         
+         if(ftype=='binary'): # Write to binary file             
+             with open(out_file,'wb') as fp:
+                 num_rows = len(self.freqs)
+                 num_cols = len(self.wave_dict_keys)*len(self.waves)*2+1
+                 np.array([num_rows,num_cols],dtype=np.uint32).tofile(fp)
+                 out_data.tofile(fp)
+                 
+         elif(ftype=='text'): #write to text file
+             with open(out_file,'w+') as fp:
+                 #write our comments
+                 if type(comments) is not list: #assume if its not a list ts a string
+                     comments = [comments]
+                 for i in range(len(comments)):
+                     fp.write('!%s\n' %(comments[i]))
+                 #write our header (should just be a single string)
+                 fp.write('#%s\n' %(header))
+                 #now write out our data
+                 for line_data in out_data:
+                     fp.write(delimiter.join(['{:G}'.format(dat) for dat in line_data])+'\n')
+                 
+         else:
+             print('Write Type not implemented')
+         return out_file
          
     def _extract_data(self,raw_data):
         '''
@@ -419,62 +552,33 @@ class TouchstoneEditor:
         @note if not overriden this points to the same data as in self._raw  
         '''
         #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
-        for wi,w in enumerate(self.waves.keys()):
+        for wi,w in enumerate(self.waves):
             for ki,k in enumerate(self.wave_dict_keys):
                 idx = ki*len(self.waves)*2+(1+2*wi)
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
                 #extract to self._raw
-                self._raw[wi,ki,:] = data
-                #self.waves[w][k] = self._param_class(self._raw[wi,ki,:],freqs=self._freqs)
+                self[(w,k)] = data
                 
-            self.waves[w] = TouchstoneWave(self._raw[wi,:,:].T,columns=self.wave_dict_keys,
-                                           series_subclass=self._param_class,freqs=self._freqs)
         self.round_freq_list() #round when we load (remove numerical rounding error)
-     
-    def _load_text(self,file_path,**kwargs):
+    
+    def _create_empty(self,num_ports,freqs):
         '''
-        @brief internal function to load text snp/wnp file  
-        @param[in] file_path - path of text file to load  
-        @param[in/OPT] kwargs - keyword args as follows:  
-            - read_header - whether or not to read the header and comments in text files.
-                            It is faster to not read the header/comments  
+        @brief create a WnpEditor class with all NaNs
+        @param[in] num_ports - number of ports for the class  
+        @param[in] num_measurements - number of measurements per parameter (i.e. number of frequencies)  
         '''
-        
-        #first read in comments
-        if(kwargs.get('read_header',None)): #flag for reading header for speed
-             with open(file_path,'r') as fp: 
-                 for line in fp:
-                     if(line.strip()[0]=='#'):
-                         self.set_header(line) #try and set it. If its not valid it wont be set
-                     elif(line.strip()[0]=='!'):
-                         self.options['comments'].append(line.strip()[1:])
-                     else: #else its data
-                         pass     
-        else: #dont read comments
-             self.options['comments'].append('Header and comments NOT read from file')
-        #now read in data from the file with many possible delimiters in cases
-        #of badly formated files
-        fp = MultilineFileParser(file_path)
-        regex_str = r'[ ,|\t]+'
-        rc = re.compile(regex_str)
-        raw_data = np.loadtxt((rc.sub(' ',l) for l in fp),comments=['#','!']) 
-        if raw_data.ndim==1: #case if we have 1 data point only
-            raw_data = np.reshape(raw_data,(1,-1))
-        return raw_data
-        
-    def _load_binary(self,file_path,**kwargs):
-        '''
-        @brief internal function to load binary snp/wnp file  
-        @param[in] file_path - path of binary file to load  
-        @param[in/OPT] kwargs - keyword args as follows:  
-            - None yet!
-        '''
-        [num_rows,num_cols] = np.fromfile(file_path,dtype=np.uint32,count=2) 
-        raw_data = np.fromfile(file_path,dtype=np.float64) #read raw data
-        raw_data = raw_data[1:] #remove header
-        raw_data = raw_data.reshape((num_rows,num_cols)) #match the text output
-        self.options['comments'] = ['Data read from binary file']
-        return raw_data
+        self._set_num_ports(num_ports) #set the number of ports
+        #now set our keys
+        self._gen_dict_keys()
+        if self.options['header'] is None: #allow override
+            self.set_header(DEFAULT_EMPTY_HEADER) #set the default header
+        #and pack the port data with 0s
+        # this will alternate waves like the data is in the file to prevent copy
+        wave_column_list = self.options['waves']*len(self.wave_dict_keys)
+        key_column_list = np.repeat(self.wave_dict_keys,len(self.options['waves']))
+        columns = [wave_column_list,key_column_list]
+        super().__init__(columns=columns,index=freqs,dtype=np.cdouble)
+        self.round_freq_list()
     
     def set_header(self,header_str):
         '''
@@ -506,25 +610,6 @@ class TouchstoneEditor:
         else:
             mult = None
         return mult
-     
-    def _load_empty(self,num_ports,freqs):
-         '''
-         @brief create a WnpEditor class with all values as 0  
-         @param[in] num_ports - number of ports for the class  
-         @param[in] num_measurements - number of measurements per parameter (i.e. number of frequencies)  
-         '''
-         self._set_num_ports(num_ports) #set the number of ports
-         #now set our keys
-         self._gen_dict_keys()
-         if self.options['header'] is None: #allow override
-             self.set_header(DEFAULT_EMPTY_HEADER) #set the default header
-         #and pack the port data with 0s
-         self._freqs = np.array(freqs,dtype=np.double) #dont set the multiplier when values are provided in this way
-         self._raw = np.ndarray((len(self.waves),len(self.wave_dict_keys),len(freqs)),dtype=np.cdouble)
-         for wi,wave in enumerate(self.waves.keys()):
-             self.waves[wave] = TouchstoneWave(self._raw[wi,:,:].T,columns=self.wave_dict_keys,
-                                           series_subclass=self._param_class,freqs=self._freqs)
-         self.round_freq_list()
          
     def _set_num_ports(self,num_ports):
         '''
@@ -533,84 +618,6 @@ class TouchstoneEditor:
         '''
         self._ports = np.arange(1,num_ports+1)
         
-        
-    def write(self,out_file,ftype='default',delimiter=' ',**kwargs):
-         '''
-         @brief write out data to touchstone (e.g. *.snp,*.wnp,*.tnp)  
-         @param[in] out_file - path of file name to write to. if *.[wts]np is the extension
-             (e.g *.snp) the n will be replaced with the correct number of ports  
-         @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)  
-         @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')  
-         @param[in/OPT] kwargs - keyword arguments as follows  
-             - fix_extension - whether or not to fix the extension provided by out_file (default True)
-                 This ensures the output file extension is correct  
-         '''
-         options = {}
-         options['fix_extension'] = True
-         for k,v in kwargs.items():
-             options[k] = v
-         
-         if(ftype=='default'):
-             if not (re.findall('binary',os.path.splitext(out_file)[-1])):
-                 ftype='text'
-             else:
-                 ftype='binary'
-       
-         #round frequencies to nearest Hz
-         self.round_freq_list() 
-         #make sure the frequency lists are equal before writing; just in case somthing went wrong
-         self._verify_freq_lists()
-         
-         #clean the output filename
-         fname,ext = os.path.splitext(out_file)
-         if options['fix_extension']: #just replace the extension with the correct one
-             ext = '.ext' #this will be replaced
-             if ftype=='binary': #add binary if needed
-                 ext += '_binary'
-             ext = re.sub('(?<=\.).*?((?=_binary)|$)',self.options['default_extension'],ext)
-         ext = re.sub('(?<=[wst])n(?=p)',str(self.num_ports),ext) #replace if snp
-         out_file = fname+ext
-         
-         #get our frequency multiplier
-         freq_mult = self._get_freq_mult()
-         
-         #pack into correct data list
-         #assume all parameters are same length
-         if(ftype=='binary'):
-             num_rows = len(self.freqs)
-             temp_list = [self.freqs/freq_mult]
-             for k in self.wave_dict_keys:
-                 for w in self.waves:
-                     temp_list += [self.waves[w][k].raw.real,self.waves[w][k].raw.imag]
-                 
-             data = np.transpose(np.array(temp_list))
-             
-             with open(out_file,'wb') as fp:
-                 num_cols = len(self.wave_dict_keys)*len(self.waves)*2+1
-                 np.array([num_rows,num_cols],dtype=np.uint32).tofile(fp)
-                 data.tofile(fp)
-                 
-         elif(ftype=='text'):
-             with open(out_file,'w+') as fp:
-                 #write our comments
-                 if type(self.options['comments']) is not list: #assume if its not a list ts a string
-                     self.options['comments'] = [self.options['comments']]
-                 for i in range(len(self.options['comments'])):
-                     fp.write('!%s\n' %(self.options['comments'][i]))
-                 #write our header (should just be a single string)
-                 fp.write('#%s\n' %(self.options['header']))
-                 #now write data
-                 for i in range(len(self.w1[self.wave_dict_keys[0]].raw)):
-                     line_vals = [self.w1[self.wave_dict_keys[0]].freqs[i]/freq_mult]
-                     for k in self.wave_dict_keys:
-                         for w in self.waves.values():
-                             line_vals += [w[k].raw[i].real,w[k].raw[i].imag]
-                     #write the line to the file. The upper ensures we get E not e
-                     fp.write(delimiter.join([str(v).upper() for v in line_vals])+'\n')
-                 
-         else:
-             print('Write Type not implemented')
-         return out_file
              
     def plot(self,keys='all',waves='all',data_type='mag_db',**arg_options):
         '''
@@ -627,7 +634,7 @@ class TouchstoneEditor:
             keys = [keys]
         # now fix our wave input
         if waves=='all':
-            waves = list(self.waves.keys())
+            waves = list(self.waves)
         if not hasattr(waves,'__iter__'):
             waves = [waves]
         #now plot
@@ -635,7 +642,7 @@ class TouchstoneEditor:
         traces = []
         for w in waves:
             for k in keys:
-               trace = self.waves[w][k].plot(data_type,trace_only=True,name='{}{}'.format(w,k))
+               trace = self[w][k].plot(data_type,trace_only=True,name='{}{}'.format(w,k))
                fig.add_trace(trace)
         return fig
     
@@ -663,8 +670,8 @@ class TouchstoneEditor:
         @return False if warning is raised, True otherwise
         '''
         for k in self.wave_dict_keys:
-            for w in self.waves.keys():
-                if not np.all(self.waves[w][k].freqs == self.waves[w].freqs):
+            for w in self.waves:
+                if not np.all(self[w][k].freqs == self[w].freqs):
                     warnings.warn("Frequencies of {}[{}] does not point to self._freqs. Proceed with caution.".format(w,k))
                     return False
         return True
@@ -675,9 +682,9 @@ class TouchstoneEditor:
         @return False if warning is raised, True otherwise
         '''
         for k in self.wave_dict_keys:
-            for w in self.waves.keys():
-                data = self.waves[w][k].raw
-                if not np.shares_memory(data,self.waves[w]):
+            for w in self.waves:
+                data = self[w][k].raw
+                if not np.shares_memory(data,self[w]):
                     warnings.warn(("{}[{}].raw does not share memory with self._raw".format(w,k)))
                     return False
         return True
@@ -695,10 +702,10 @@ class TouchstoneEditor:
         diff_old_keys = old_keys[diff_keys]
         diff_new_keys = new_keys[diff_keys]
         #now lets correct the keys
-        for wk in self.waves.keys():
+        for wk in self.waves:
             params = []
             for old_key in diff_old_keys:
-                params.append(copy.deepcopy(self.waves[wk][old_key])) #make a temporary copy of the data
+                params.append(copy.deepcopy(self[wk][old_key])) #make a temporary copy of the data
             for i,new_key in enumerate(diff_new_keys):
                 self.waves[wk][new_key][:] = params[i]
                 
@@ -709,86 +716,6 @@ class TouchstoneEditor:
         @param[in] port_b - port to swap with port a  
         '''
         self.map_ports({port_a:port_b,port_b:port_a})   
-             
-    def __getitem__(self,key):
-         '''
-         @brief override of [] operator to get S parameters
-             This is a shortcut that will return freqeuncy/complex value data  
-         @param[in] key - key of A,B parameters to get  
-         @return [frequency_list,A_complex_values,B_complex_values] list of lists from the S parameter  
-         '''
-         out_list =  [self.freqs]
-         for w in self.waves.keys():
-             out_list.append(self.waves[w][key].raw)
-         return out_list
-     
-    def check_equal(self,other):
-        '''
-        @brief function to check equality and give more in depth info that simply ==  
-        @param[in] other - Wnp Editor to compare to   
-        @return list of equality for each port for A and B [num_ports_eq,[A,A,A,A],[B,B,B,B]]
-            if the number of ports arent equal just return [num_ports_eq,num_ports_self,num_ports_other]  
-        '''
-        num_ports_eq = self.num_ports==other.num_ports
-        freqs_eq = np.all(self.freqs == other.freq_list)
-        if not num_ports_eq or not freqs_eq: #dont check more if number of ports or freqs arent equal
-            return [num_ports_eq,self.num_ports,other.num_ports]
-        out_lists = {}
-        for w in self.waves.keys():
-            out_lists[w] = []
-        for k in self.wave_dict_keys:
-            for w in self.waves.keys():
-                out_lists[w].append(self.waves[w][k]==other.waves[w][k])
-        return [num_ports_eq,out_lists] 
-             
-    def __eq__(self,other):
-        '''
-        @brief override default to check equality of each port. 
-          we will return whether number of ports match, then lists of A matching and B matching  
-        '''
-        ce_vals = self.check_equal(other)
-        if len(ce_vals)!=2: return False #if frequencies or number of ports dont match
-        eq_ports,eq_out_vals = ce_vals #unpack the return
-        tf_list = [eq_ports]
-        for v in eq_out_vals.values():
-            for tf in v:
-                tf_list+=list(tf)
-        return all(tf_list)
-        
-    
-    def __mul__(self,other): return self._perform_arithmetic_operation(other,np.multiply)
-    def __add__(self,other): return self._perform_arithmetic_operation(other,np.add) 
-    def __sub__(self,other): return self._perform_arithmetic_operation(other,np.subtract) 
-    def __div__(self,other): return self._perform_arithmetic_operation(other,np.divide)
-    
-    def __len__(self): return len(self.v1)
-                    
-    def _perform_arithmetic_operation(self,other,funct):
-        '''
-        @brief perform an arithmetic operation on the waves between two touchstone paramters
-            This operation will return a new editor with the new values. It will always contain
-            the same frequencies that existed in the first argument of the operation  
-        @param[in] other - other object that will be used to add/subtract/multiply/etc  
-        @param[in] funct - function to operate with. This should be able to work on whole numpy arrays  
-        '''
-        ret = copy.deepcopy(self)
-        if isinstance(other,TouchstoneEditor) or isinstance(other,TouchstoneParam): #if its a touchstoneEditor
-            for k in self.waves.keys(): #loop through each key we have
-                for w,v in self.waves[k].items(): #and multiply by the corresponding value
-                    if type(other) == type(self): #cant use inherited classes
-                        other_val = other.waves[k].get(w,None)
-                        if other_val is None: #check if it didnt exist
-                            continue #skip to the next iteration
-                    else: #we can use inherited classes here
-                        other_val = other
-                    new_val = funct(v,other_val)
-                    ret.waves[k][w][:] = new_val
-                    ret.waves[k][w].freqs = new_val.freqs  
-        else: #otherwise just try and perform the operation on raw each wave
-            for wk in self.waves.keys():
-                ret.waves[wk][:] = funct(self.waves[wk],other).to_numpy() 
-                ret.waves[wk].freqs = self.waves[wk].freqs
-        return ret
     
     def run_function_on_data(self,funct,*args,**kwargs):
         '''
@@ -801,57 +728,6 @@ class TouchstoneEditor:
         for k in self.waves.keys(): #loop through each key we have
             for p in self.waves[k].keys():
                 self.waves[k][p].run_function_on_data(funct,*args,**kwargs)
-  
-    def __deepcopy__(self,memo):
-        '''
-        @brief override deep copying of our data
-        @note this is called by using copy.deepcopy
-        '''
-        ret = type(self)([self.num_ports,self.freqs],**self.options)
-        skip_keys = ['options','waves','_freqs','_raw']
-        ret._raw = copy.deepcopy(self._raw,memo)
-        for k,v in self.__dict__.items():
-            if k in skip_keys:
-                continue
-            try:
-                setattr(ret,k,copy.deepcopy(v,memo))
-            except Exception as e:
-                print("Failure")
-                raise e
-        ret._update_param_raw_data()
-        ret._update_param_freq_lists()
-        return ret
-            
-    
-    def __getattr__(self,attr):
-        '''
-        @brief run if we dont have the attribute  
-            1. try and find in waves  
-            2. see if its an attribute of raw data
-        '''
-        if attr in self.options['waves']:
-            return self.waves[attr]
-     
-    @property
-    def w1(self):
-        '''
-        @brief shortcut for first wave   
-        '''
-        return self.waves[list(self.waves.keys())[0]]
-    
-    @property
-    def v1(self):
-        '''
-        @brief shortcut to first value in first wave  
-        '''
-        return self.w1[self.wave_dict_keys[0]]
-    
-    @property
-    def freq_list(self): return self.freqs
-    @property
-    def bandwidth(self): return self.v1.bandwidth
-    @property
-    def frequency_step(self): return self.v1.frequency_step
     
     def average_keys(self,key_list):
          '''
@@ -875,8 +751,8 @@ class TouchstoneEditor:
         @brief call a function from wnp param on all waves and all parameters  
         '''
         for k in self.wave_dict_keys:
-            for wk in self.waves.keys():
-                _funct = getattr(self.waves[wk][k],fname)
+            for wk in self.waves:
+                _funct = getattr(self[wk][k],fname)
                 _funct(*args) #call the function with the input args
      
     def sort(self):
@@ -929,31 +805,44 @@ class TouchstoneEditor:
                  self.waves[wk][k].freq_list += np.round(LO_freq)
                  #now round the frequencies to nearest Hz
                  self.waves[wk][k].round_freq_list()
-                 
+      
     @property
-    def raw(self):
-         '''@brief abstract self.raw from self._raw to not edit block data in TouchstoneEditor'''
-         return self._raw
-     
-    @raw.setter
-    def raw(self,val):
-         '''@brief setter to not overwrite raw'''
-         self._raw[:] = val
-         
-    @property 
-    def freqs(self):
-        '''@brief abstract self._freqs to not edit the block data'''
-        return self._freqs
+    def freqs(self): return self.index
+    @freqs.setter
+    def freqs(self,val): self.index = val
+    @property
+    def waves(self): return self.options['waves']
     
-    @freqs.setter 
-    def freqs(self,val):
-        '''@brief setter to not overwrite freqs'''
-        self._freqs[:] = val
-              
+    # for returning correct classes
     @property
-    def shape(self):
-         #shape of raw
-         return self.raw.shape
+    def _constructor(self): return type(self)
+    @property
+    def _constructor_sliced(self): return self.options['param_class']
+    
+    @property
+    def w1(self): return self.options['waves'][0]
+    @property
+    def v1(self): return self.w1[self.wave_dict_keys[0]]
+    @property
+    def freq_list(self): return self.freqs
+    @property
+    def bandwidth(self): return self.v1.bandwidth
+    @property
+    def frequency_step(self): return self.v1.frequency_step
+    @property
+    def raw(self): return self.to_numpy() 
+    @raw.setter
+    def raw(self,val): self[:] = val
+    
+    def __eq__(self,other): return self.equals(other)
+    
+    def __getattr__(self,val):
+        '''@brief Return view if accessed by e.g. S11'''
+        if len(val)>1 and val[0] in self.options['waves']:
+            return self[(val[0],int(val[1:]))]
+        return super().__getattr__(val)
+        
+              
 
 class WnpEditor(TouchstoneEditor):
     '''@brief class for wave parameter file (*.wnp)'''
@@ -997,7 +886,7 @@ class SnpEditor(TouchstoneEditor):
        
 class WaveformEditor(SnpEditor):
     '''@brief class to read *.waveform classes that the MUF puts out'''
- 
+    
     def __init__(self,*args,**kwargs):
         '''
         @brief wrap touchstone parameter constructor to allow passing of x,y data explicitly
@@ -1009,7 +898,7 @@ class WaveformEditor(SnpEditor):
         if len(args)==2: #assume data is passed explicitly
             data_len = len(args[0]) #length of our frequencies
             super().__init__([1,np.arange(data_len)],**kwargs) #create correct size
-            self.waves['S'][21].raw[:] = np.array(args[1],dtype=np.cdouble)
+            self['S'][21].raw[:] = np.array(args[1],dtype=np.cdouble)
             self.freqs = np.array(args[0])
         else:
             super().__init__(*args,**kwargs)
@@ -1023,17 +912,6 @@ class WaveformEditor(SnpEditor):
     
     @property
     def times(self): return super().freqs
-
-    def __getattr__(self,attr):
-           '''@brief try and find in S[21] if not part of WaveformEditor'''
-           try:
-               return getattr(self.waves['S'][21],attr)
-           except:
-               try: #try and find in S21
-                   return self.waves[attr]
-               except:
-                   raise AttributeError("Attribute '{}' does not exist and is not a key in self.waves".format(attr))
-                   
                    
 class BeamformEditor(WaveformEditor): 
     '''
@@ -1237,41 +1115,7 @@ class WaveformParam(TouchstoneParam):
     def times(self,val):
         '''@brief setter for times alias'''
         self.freqs[:] = times
-
-#%% Class for each wave (e.g. S or A,B)
-class TouchstoneWave(pd.DataFrame):
-    '''
-    @brief Class to hold data for each wave (e.g. S or A,B)
-    @param[in/OPT] series_subclass - subclass for the returned series (Default TouchstoneParam)
-    @param[in/OPT] freqs - frequencies of the wave (this gets passed as dataframe index)
-	@note This inherits from pandas DataFrame object
-    @note Here the frequencies are the indices of the table
-    @cite Constructor info is from https://pandas.pydata.org/pandas-docs/stable/development/extending.html#extending-subclassing-pandas
-    '''
-    
-    # normal properties
-    _metadata = ['options']
-    
-    def __init__(self,*args,series_subclass=None,**kwargs):
-        '''@brief constructor'''
-        freqs = kwargs.pop('freqs',None)
-        kwargs['index'] = freqs
-        self.options = {}
-        self.options['series_subclass'] = TouchstoneParam
-        if series_subclass is not None:
-            self.options['series_subclass'] = series_subclass
-        super().__init__(*args,**kwargs)
         
-    @property
-    def freqs(self): return self.index
-    @freqs.setter
-    def freqs(self,val): self.index = val
-    
-    # for returning correct classes
-    @property
-    def _constructor(self): return type(self)
-    @property
-    def _constructor_sliced(self): return self.options['series_subclass']
 
 #%% Error codes
 class TouchstoneError(Exception):
@@ -1345,6 +1189,10 @@ class TestTouchstoneEditor(unittest.TestCase):
         wnp_text = WnpEditor(wnp_text_path)
         wnp_bin  = WnpEditor(wnp_bin_path)
         self.assertEqual(wnp_bin,wnp_text)
+        wnp_text.write('test2.w2p')
+        wnp_text.write('test2.w2p_binary')
+        os.remove('test2.w2p')
+        os.remove('test2.w2p_binary')
 		
     def test_snp_io(self):
         '''@brief test loading and writing of snp editor'''
@@ -1481,14 +1329,14 @@ class TestTouchstoneEditor(unittest.TestCase):
             
 #%% things to run when we run this file
 if __name__=='__main__':
+    
 
     suite = unittest.TestLoader().loadTestsFromTestCase(TestTouchstoneEditor)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
     # test touchstoneParam
-    myp = TouchstoneParam([1,2,3],freqs=[4,5,6])    
-
-    myw = TouchstoneWave(np.array([1,2,3,4,5]),columns=[11],freqs=[4,5,6,7,8])
+    myp = SnpParam([1,2,3],freqs=[4,5,6])   
+    s = SnpEditor(0,columns=[1,2],index=[0,1,2])
 
     #geyt the current file directory for the test data
     import os 
@@ -1501,34 +1349,29 @@ if __name__=='__main__':
     test_wnp_txt = 'test.w2p'
     test_wnp_bin = 'test.w2p_binary'
     
+    fpath = os.path.join(dir_path,test_snp_txt)
+
+    s = TouchstoneEditor()
     s0 = mysnp = TouchstoneEditor(os.path.join(dir_path,test_snp_txt))
+    
+  
     s1 = TouchstoneEditor(os.path.join(dir_path,test_snp_bin))
     mysnp_orig = copy.deepcopy(mysnp)
-    mysnp.S[21].run_function_on_data(moving_average,10)
+    mysnp.S21.run_function_on_data(moving_average,10)
     #moving_average(mysnp.S[21],10)
-    r1 = mysnp_orig.S[21].raw
-    r2 = mysnp.S[21].raw
+    r1 = mysnp_orig.S21.raw
+    r2 = mysnp.S21.raw
     #mysnp.plot([21])
     
-    comb = combine_parameters(mysnp,mysnp)
+    #comb = combine_parameters(mysnp,mysnp)
     
     #import doctest
     #doctest.testmod(extraglobs=
     #                {'mys2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p')),
     #                 'myw2p':TouchstoneEditor(os.path.join(dir_path,'test.s2p'))})
         
-    myw = WaveformEditor([1,2,3],[3,2,1])
-        
-    add_remove_test = True
-    empty_object_test = True
-    
-    
-        
-    if empty_object_test:
-        import numpy as np
-        freq_list = np.linspace(26.5e9,40e9,1351)
-        s = SnpEditor([2,freq_list])
-    
+    #myw = WaveformEditor([1,2,3],[3,2,1])
+ 
 
         
         
