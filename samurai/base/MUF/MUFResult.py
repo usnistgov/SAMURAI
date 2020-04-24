@@ -116,13 +116,13 @@ def calculate_estimate(data):
     for k in data[0].wave_dict_keys: #data for each key
         data_dict[k] = np.array([tnp.S[k].raw for tnp in data]) 
     tnp_out = MyEditor([num_ports,freq_list])
-    for wk in tnp_out.waves.keys():
+    for wk in tnp_out.waves:
         for k in tnp_out.wave_dict_keys:
             data = data_dict[k] #get the data
             m,p = complex2magphase(data)
             m_mean = m.mean(0); p_mean = p.mean(0)
             data_mean = magphase2complex(m_mean,p_mean)
-            tnp_out.waves[wk][k][:] = data_mean
+            tnp_out[(wk,k)][:] = data_mean
     return tnp_out
     
 def calculate_confidence_interval(data,confidence_interval=95):
@@ -148,7 +148,7 @@ def calculate_confidence_interval(data,confidence_interval=95):
     lo_index = int(percentage*data_dict[first_key].shape[0])
     if lo_index<=0: lo_index=1
     hi_index = data_dict[first_key].shape[0]-lo_index
-    for wk in tnp_out_m.waves.keys():
+    for wk in tnp_out_m.waves:
         for k in tnp_out_p.wave_dict_keys:
             data = data_dict[k] #get the data
             #done in the same way as the MUF
@@ -158,8 +158,8 @@ def calculate_confidence_interval(data,confidence_interval=95):
             p_hi = p[hi_index,:]; p_lo = p[lo_index]
             hi_complex = magphase2complex(m_hi,p_hi)
             lo_complex = magphase2complex(m_lo,p_lo)
-            tnp_out_p.waves[wk][k][:] = hi_complex
-            tnp_out_m.waves[wk][k][:] = lo_complex
+            tnp_out_p[(wk,k)][:] = hi_complex
+            tnp_out_m[(wk,k)][:] = lo_complex
     return tnp_out_p,tnp_out_m
 
 def calculate_standard_uncertainty(data):
@@ -178,7 +178,7 @@ def calculate_standard_uncertainty(data):
         data_dict[k] = np.array([tnp.S[k].raw for tnp in data])
     tnp_out_p = MyEditor([num_ports,freq_list])
     tnp_out_m = MyEditor([num_ports,freq_list])
-    for wk in tnp_out_m.waves.keys():
+    for wk in tnp_out_m.waves:
         for k in tnp_out_p.wave_dict_keys:
             data = data_dict[k] #get the data
             m,p = complex2magphase(data)
@@ -188,8 +188,8 @@ def calculate_standard_uncertainty(data):
             p_plus = p_mean+p_std; p_minus = p_mean-p_std
             data_plus   = magphase2complex(m_plus ,p_plus )
             data_minus  = magphase2complex(m_minus,p_minus)
-            tnp_out_p.waves[wk][k][:] = data_plus
-            tnp_out_m.waves[wk][k][:] = data_minus
+            tnp_out_p[(wk,k)][:] = data_plus
+            tnp_out_m[(wk,k)][:] = data_minus
     return tnp_out_p,tnp_out_m
     
 #%% Operation Function (e.g. FFT) with uncerts
@@ -212,7 +212,7 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             item_data = item.data
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
-            td_vals = item.w1[key].calculate_time_domain_data(window=window)
+            td_vals = item.data[(item.waves[0],key)].calculate_time_domain_data(window=window)
             tdw_vals = WaveformEditor(*td_vals)
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()
@@ -893,9 +893,7 @@ class TestMUFResult(unittest.TestCase):
         res = MUFResult(meas_path,load_nominal=True,load_statistics=True)
         
     def test_create_from_snp(self):
-        '''
-        @brief this test will create a *.meas file for a given *.snp or *.wnp file
-        '''
+        '''@brief This test will create a *.meas file for a given *.snp or *.wnp file'''
         snp_path = os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')
         res = MUFResult(snp_path)
         nvp = res.nominal_value_path #try getting our nominal value
@@ -936,7 +934,6 @@ class TestMUFResult(unittest.TestCase):
         
 class TestUncertaintyOperations(unittest.TestCase):
     '''@brief test operations on data with uncertainty'''
-    
     wdir = os.path.dirname(__file__)
     unittest_dir = os.path.join(wdir,'../unittest_data')
     

@@ -181,7 +181,7 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             item_data = item.data
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
-            td_vals = item.data.w1[key].calculate_time_domain_data(window=window)
+            td_vals = item.data[(item.waves[0],key)].calculate_time_domain_data(window=window)
             tdw_vals = WaveformEditor(*td_vals)
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()

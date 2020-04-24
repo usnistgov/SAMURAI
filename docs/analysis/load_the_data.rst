@@ -176,13 +176,23 @@ The following code then demonstrates how to access each of the S parameters of a
    mypath = r'path/to/file.s2p' # (could also be 'file.s2p_binary')
    mysnp = TouchstoneEditor(mypath)
 
-   # Now lets get some data from this
+   # Now lets get some data from this.
+   # Accessing in this way automatically 
+   # returns an editable reference to each parameter
    frequencies        = mysnp.freq_list
    sAll_complex       = mysnp.S
-   s11_complex        = mysnp.S[11]
-   s12_complex        = mysnp.S[12]
-   s21_complex        = mysnp.S[21]
-   s22_complex        = mysnp.S[22]
+   s11_complex        = mysnp.S11
+   s12_complex        = mysnp.S12
+   s21_complex        = mysnp.S21
+   s22_complex        = mysnp.S22
+
+   # We can then access the data like
+   freq = 26.5e9
+   val = s11_complex[freq] # access by the frequency
+   val = s11_complex.iloc[0] # access by integer index
+
+This loaded data inherits from the pandas DataFrame type, allowing this data to also be manipulated similar to that.
+More information on the pandas DataFrame can be found at the `Pandas DataFrame Documentation <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html>`_.
 
 MATLAB
 +++++++++
