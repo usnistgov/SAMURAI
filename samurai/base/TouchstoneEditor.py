@@ -165,6 +165,38 @@ def split_parameters(meas,split,**kwargs):
     else:
         out_paths = [ed.write(options['out_path'].format(i)) for i,ed in enumerate(out_editors)]
         return out_paths
+    
+def ifft(data,window=None):
+    '''
+    @brief calculate the time domain data
+    @todo Verify the lack of ifftshift here is correct for phases... 
+    @param[in] data - data as a TouchstoneParam/Editor
+    @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
+        squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
+        or a callable with input (len(self.raw))
+    @return WaveformEditor with time domain data
+    '''
+    if window is None:
+        wvals = np.ones(len(data))
+    elif window == 'sinc2': #apply a sinc^2 window (0 at edges)
+        wvals = np.linspace(-1,1,len(data))
+        wvals = np.sinc(wvals)**2
+    elif callable(window):
+        wvals = window(len(data))
+    else: #assume its a call to scipy.signal.windows.get_window
+        wvals = scipy.signal.windows.get_window(window,len(data))
+    wdata = data*np.reshape(wvals,tuple([len(wvals)]+[-1]*(np.ndim(data)-1)))
+    ifft_vals = np.fft.ifft(wdata,axis=0)
+    total_time = 1/np.diff(data.freqs).mean()
+    times = np.linspace(0,total_time,len(data))
+    #not the cleanest but it works
+    if isinstance(data,TouchstoneEditor): #TouchstoneEditor
+        num_ports = data.num_ports
+        myw = WaveformEditor([num_ports,times])
+    else: #TouchstoneParam
+         myw = WaveformParam(index=times)
+    myw[:] = np.reshape(ifft_vals,tuple([len(ifft_vals)]+[-1]*(np.ndim(myw)-1)))
+    return myw
 
 
 #%% Parsing for files with data on multiple lines
@@ -226,7 +258,7 @@ class MultilineFileParser(object):
         else:
             raise StopIteration()
             
-#%% Functions for loading in the data
+#%% IO Functions for touchstone files
 def read_text_touchstone(file_path,**kwargs):
     '''
     @brief Load snp/wnp file data to a table (just like the data is stored in the file)
@@ -381,8 +413,6 @@ class TouchstoneEditor(pd.DataFrame):
                  self._create_empty(input_file[0],input_file[1])
              elif input_file is None:
                  pass #dont do anything if we get no input arguments
-         #now verify everything loaded correctly
-         #self._verify_freq_lists()
 
     def _gen_dict_keys(self):
         '''
@@ -400,29 +430,13 @@ class TouchstoneEditor(pd.DataFrame):
         keys = np.array([i*10+j for i in np.sort(self._ports) for j in np.sort(self._ports)])
         return keys
     
-    @property
-    def wave_dict_keys(self):
-        '''
-        @brief getter for wave_dict_keys after we switched to storing ports not keys (easier to add and remove)  
-        '''
-        return self._gen_dict_keys()
-    
-    @property
-    def num_ports(self):
-        '''
-        @brief quickly get number of ports. Got tired of typing this  
-        @example
-        >>> mys2p.num_ports
-        2
-        >>> myw2p.num_ports
-        2
-        '''
-        return len(self._ports)
+
              
-    def read(self,input_file,**kwargs):
+    def read(self,input_file,round_freqs=True,**kwargs):
          '''
          @brief Read in a wave parameter file and parse into the class  
          @param[in] input_file - path of file to load  
+         @param[in] round_freqs - round frequency indices (default True)
          @param[in/OPT] - kwargs - keyword arguements as follows:  
                  - ftype  - type of file we are loading (e.g. 'text' or 'binary')  
                  - read_header - whether or not to read the header and comments in text files. It is faster to not read the header/comments
@@ -483,16 +497,20 @@ class TouchstoneEditor(pd.DataFrame):
          #file is good if we make it here so continue to unpacking
          self._extract_data(raw_data)
          
+         if round_freqs:
+             self.round_freq_list()
+         
     # also alias to load
     load = read
      
-    def write(self,out_file,ftype='default',delimiter=' ',**kwargs):
+    def write(self,out_file,ftype='default',delimiter=' ',round_freqs=True,**kwargs):
          '''
          @brief write out data to touchstone (e.g. *.snp,*.wnp,*.tnp)  
          @param[in] out_file - path of file name to write to. if *.[wts]np is the extension
              (e.g *.snp) the n will be replaced with the correct number of ports  
          @param[in/OPT] ftype - type of file to write out ('default' will write to whatever extension out_file has)  
          @param[in/OPT] delimiter - delimiter to use when writing text files (default is ' ')  
+         @param[in/OPT] round_freqs - round our frequency list to the nearest hz
          @param[in/OPT] kwargs - keyword arguments as follows  
              - fix_extension - whether or not to fix the extension provided by out_file (default True)
                  This ensures the output file extension is correct  
@@ -512,9 +530,8 @@ class TouchstoneEditor(pd.DataFrame):
          header   = self.options['header']
        
          #round frequencies to nearest Hz
-         self.round_freq_list() 
-         #make sure the frequency lists are equal before writing; just in case somthing went wrong
-         self._verify_freq_lists()
+         if round_freqs:
+             self.round_freq_list() #issue when using Waveforms with time
          
          #clean the output filename
          fname,ext = os.path.splitext(out_file)
@@ -573,7 +590,7 @@ class TouchstoneEditor(pd.DataFrame):
                 #extract to self._raw
                 self[(w,k)] = data
                 
-        self.round_freq_list() #round when we load (remove numerical rounding error)
+        #self.round_freq_list() #round when we load (remove numerical rounding error)
     
     def _create_empty(self,num_ports,freqs):
         '''
@@ -591,8 +608,8 @@ class TouchstoneEditor(pd.DataFrame):
         wave_column_list = self.options['waves']*len(self.wave_dict_keys)
         key_column_list = np.repeat(self.wave_dict_keys,len(self.options['waves']))
         columns = [wave_column_list,key_column_list]
-        super().__init__(columns=columns,index=freqs,dtype=np.cdouble)
-        self.round_freq_list()
+        super().__init__(columns=columns,index=pd.Index(freqs,name='frequency'),dtype=np.cdouble)
+        #self.round_freq_list()
     
     def set_header(self,header_str):
         '''
@@ -633,9 +650,10 @@ class TouchstoneEditor(pd.DataFrame):
         self._ports = np.arange(1,num_ports+1)
         
              
-    def plot(self,keys='all',waves='all',data_type='mag_db',**arg_options):
+    def plot_plotly(self,keys='all',waves='all',data_type='mag_db',**arg_options):
         '''
-        @brief plot our wave or s parameter data  
+        @brief plot our wave or s parameter data using plotly. Placeholder until pandas implements
+            plotly as a backedn plotting enging (they say next release)
         @param[in/OPT] key - port of data to plot or list of ports to plot, or 'all'  
         @param[in/OPT] waves - list of keys for self.waves to plot (default 'all')  
         @param[in/OPT] data_type - type of data to plot (e.g. mag_db,phase,phase_d)  
@@ -656,52 +674,9 @@ class TouchstoneEditor(pd.DataFrame):
         traces = []
         for w in waves:
             for k in keys:
-               trace = self[w][k].plot(data_type,trace_only=True,name='{}{}'.format(w,k))
+               trace = self[w][k].plot_plotly(data_type,trace_only=True,name='{}{}'.format(w,k))
                fig.add_trace(trace)
         return fig
-    
-    def _update_param_freq_lists(self):
-        '''
-        @brief update the pointer for the frequency lists in each param
-        '''
-        for k in self.wave_dict_keys:
-            for w in self.waves.keys():
-                self.waves[w][k].freqs = self.freqs
-                
-    def _update_param_raw_data(self):
-        '''
-        @brief update the pointer for the raw_data in each param
-        '''
-        for ik,k in enumerate(self.wave_dict_keys):
-            for iw,w in enumerate(self.waves.keys()):
-                old_attr = self.waves[w][k].__dict__
-                self.waves[w][k] = self._param_class(self._raw[iw,ik,:])
-                self.waves[w][k].__dict__.update(old_attr)
-    
-    def _verify_freq_lists(self):
-        '''
-        @brief make sure all parameters of all have the same frequencies
-        @return False if warning is raised, True otherwise
-        '''
-        for k in self.wave_dict_keys:
-            for w in self.waves:
-                if not np.all(self[w][k].freqs == self[w].freqs):
-                    warnings.warn("Frequencies of {}[{}] does not point to self._freqs. Proceed with caution.".format(w,k))
-                    return False
-        return True
-                    
-    def _verify_raw_data(self):
-        '''
-        @brief make sure our parameters share data with self.waves dataframe still
-        @return False if warning is raised, True otherwise
-        '''
-        for k in self.wave_dict_keys:
-            for w in self.waves:
-                data = self[w][k].raw
-                if not np.shares_memory(data,self[w]):
-                    warnings.warn(("{}[{}].raw does not share memory with self._raw".format(w,k)))
-                    return False
-        return True
                     
     def map_ports(self,port_map_dict):
         '''
@@ -731,6 +706,7 @@ class TouchstoneEditor(pd.DataFrame):
         '''
         self.map_ports({port_a:port_b,port_b:port_a})   
     
+    @deprecated("Use self.apply(funct,raw=True,args=*args,**kwargs) method")
     def run_function_on_data(self,funct,*args,**kwargs):
         '''
         @brief run a function on each of our param raw data.  
@@ -746,79 +722,57 @@ class TouchstoneEditor(pd.DataFrame):
     def average_keys(self,key_list):
          '''
          @brief average the keys in key_list and overwrite all keys data with the average data  
+         @note this averages complex numbers
          @param[in] key_list - list of keys to average (e.g. [21,12])  
          @return TouchstoneParam or child thereof that has been averaged  
          '''
-         for wk in self.waves.keys(): #do for each wave
-             params_to_avg = [] #params to average
-             for k in key_list:
-                 params_to_avg.append(self.waves[wk][k]) #append the parameters
-             avg_param = reduce(operator.add,params_to_avg) #reduce to single parameter
-             avg_param.raw.real /= len(params_to_avg) #average complex numbers
-             avg_param.raw.imag /= len(params_to_avg) 
+         for wk in self.waves: #do for each wave
+             avg_param = self[wk][key_list].mean(axis=1)
              for k in key_list: #now set all of the keys. Each key will have a deep copy
-                 self.waves[wk][k] = copy.deepcopy(avg_param)
+                 self[(wk,k)] = avg_param
          return avg_param 
      
-    def _call_param_funct(self,fname,*args):
-        '''
-        @brief call a function from wnp param on all waves and all parameters  
-        '''
-        for k in self.wave_dict_keys:
-            for wk in self.waves:
-                _funct = getattr(self[(wk,k)],fname)
-                _funct(*args) #call the function with the input args
-     
-    def sort(self):
-        '''
-        @brief sort each of our parameters by frequency  
-        '''
-        self._call_param_funct('sort')
+    def sort(self,**kwargs):
+        '''@brief sort each of our parameters by frequency. calls DataFrame.sort_index(**kwargs)'''
+        kwargs['inplace'] = kwargs.pop('inplace',True) #Default to true
+        return self.sort_index()
         
     def crop(self,lo_freq=0,hi_freq=1e60):
         '''
         @brief remove values outside a window (lo<=freqs<=hi)
         @param[in] lo_freq - lower part of window (Hz)
         @param[in] hi_freq - upper part of window (Hz)
+        @return TouchstoneEditor with only values inside a window
         '''
         idx = np.logical_and(self.freqs>=lo_freq,self.freqs<=hi_freq)
-        #raw data must be overwritten here
-        self._freqs = self.freqs[...,idx]
-        self._raw = self.raw[...,idx]
-        self._update_param_freq_lists()
-        self._update_param_raw_data()
+        return self[idx]
         
     def cut(self,lo_freq=0,hi_freq=1e60):
         '''
         @brief remove values inside a window (lo>=freqs or hi<=freqs)
         @param[in] lo_freq - lower part of window (Hz)
         @param[in] hi_freq - upper part of window (Hz)
+        @return TouchstoneEditor with only values outside a window
         '''
         idx = np.logical_or(self.freqs<=lo_freq,self.freqs>=hi_freq)
-        #raw data must be overwritten here
-        self._freqs = self.freqs[...,idx]
-        self._raw = self.raw[...,idx]
+        return self[idx]
             
     def round_freq_list(self):
         '''
-        @brief round frequencies to nearest hz (assuming they are in GHz)  
+        @brief round frequencies to nearest Hz. 
+            This is to prevent a machine error issue seen when writing in the past
         '''
-        self._call_param_funct('round_freq_list')
-            
-    #always assume mixing up negative will mix down
-    #frequency in Ghz. 
-    #very simply ideal mixing (add our LO freqeuncy)
-    #this allows easy if/rf measurement fixing
-    def mix_port(self,port,LO_freq = 26e9):
-        '''
-        @todo update for new setup
-        '''
-        for k in self.wave_dict_keys:
-         if(int(k/10)==port): #see if its our port
-             for wk in self.waves.keys():
-                 self.waves[wk][k].freq_list += np.round(LO_freq)
-                 #now round the frequencies to nearest Hz
-                 self.waves[wk][k].round_freq_list()
+        self.freqs = np.round(self.freqs,decimals=0)
+      
+    @property
+    def wave_dict_keys(self):
+        '''@brief getter for wave_dict_keys after we switched to storing ports not keys'''
+        return self._gen_dict_keys()
+    
+    @property
+    def num_ports(self):
+        '''@brief quickly get number of ports. Got tired of typing this  '''
+        return len(self._ports)  
       
     @property
     def freqs(self): return self.index
@@ -848,6 +802,17 @@ class TouchstoneEditor(pd.DataFrame):
     @raw.setter
     def raw(self,val): self[:] = val
     
+    # properties for getting the data in different ways
+    @property
+    def mag_db(self): return 20*np.log10(self.mag)
+    @property
+    def mag(self): return np.abs(self)
+    @property
+    def phase(self): return np.angle(self)
+    @property
+    def phase_d(self): return np.angle(self)*180/np.pi
+    
+    # check total equality of the data
     def __eq__(self,other): return self.equals(other)
     
     def __getattr__(self,val):
@@ -900,7 +865,7 @@ class SnpEditor(TouchstoneEditor):
        
 class WaveformEditor(SnpEditor):
     '''
-    @brief class to read *.waveform classes that the MUF puts out
+    @brief class to read *.waveform classes that the MUF puts out. This can also be multi-port waveforms
     @param[in] args - variable arguements. If 2 args are passed, its assumed we have times/freqs,data (xaxis,yaxis)
                     otherwise pass parsing to TouchstoneParameter parsing
     '''
@@ -914,9 +879,15 @@ class WaveformEditor(SnpEditor):
         else:
             super().__init__(*args,**kwargs)
         self.set_header(DEFAULT_HEADER_TIME)
+        self.index.name='time'
 
-    def _gen_dict_keys(self):
-        return [21] #always only have a single key for waveform
+    def read(*args,**kwargs):
+        kwargs['round_freqs'] = kwargs.pop('round_freqs',False)
+        return super().read(*args,**kwargs)
+    
+    def write(*args,**kwargs):
+        kwargs['round_freqs'] = kwargs.pop('round_freqs',False)
+        return super().write(*args,**kwargs)
 
     @property
     def raw(self): return np.squeeze(super().raw)
@@ -952,97 +923,59 @@ class TouchstoneParam(pd.Series):
     '''
     def __init__(self,*args,**kwargs):
         '''@brief constructor'''
-        freqs = kwargs.pop('freqs',None)
-        kwargs['index'] = freqs
+        kwargs['index'] = kwargs.pop('freqs',kwargs.pop('index',None))
+        kwargs['dtype'] = kwargs.pop('dtype',np.cdouble)
         super().__init__(*args,**kwargs)
     
     # https://pandas.pydata.org/pandas-docs/stable/development/extending.html
     @property
     def _constructor(self): return type(self)
     @property
-    def _constructor_expanddim(self): return TouchstoneWave
+    def _constructor_expanddim(self): return TouchstoneEditor
     
     def sort(self):
-        '''
-        @brief sort the parameter by frequency  
-        '''
-        myzipped = zip(self.freqs,self.raw)
-        list(myzipped).sort()
-        freq_list,raw = zip(*myzipped)
-        self.freqs = np.array(freq_list)
-        self.raw = np.array(raw)
+        '''@brief sort the parameter by frequency  '''
+        kwargs['inplace'] = kwargs.pop('inplace',True) #Default to true
+        return self.sort_index()
         
-    #crop out all frequencies outside a window given by lo and hi frequencies (in Hz)
     def crop(self,lo_freq=0,hi_freq=1e60):
         '''
         @brief remove all frequencies and their corresponding values outside a given window  
-        @return - [[freqs],[values]] data that was removed  
+        @return type(self) with values removed
         '''
         lo_val = np.round(lo_freq)
         hi_val = np.round(hi_freq)
-        #data is in ghz in files
-        del_idx = np.where(np.logical_or(self.freqs<lo_val,self.freqs>hi_val))
-        if(np.size(del_idx)==np.size(self.freqs)):
-            print("Warning: No Frequencies within range!")
-            return -1
-        #delete array seems to end up
-        #self.del_idx = del_idx;
-        return self._pop_idx(del_idx)
+        idx = np.logical_and(self.freqs>=lo_freq,self.freqs<=hi_freq)
+        return self[idx]
         
-    #cut out all frequencies insides a window given by lo and hi frequencies (in Hz)
     def cut(self,lo_freq=0,hi_freq=1e60):
         '''
-        @brief remove all frequencies and their corresponding values inside a given window  
-        @return - [[freqs],[values]] data that was removed  
+        @brief remove all frequencies and their corresponding values inside a given window 
+        @return type(self) with values removed
         '''
         lo_val = np.round(lo_freq)
         hi_val = np.round(hi_freq)
-        #data is in ghz in files
-        del_idx = np.where(np.logical_and(self.freqs>lo_val,self.freqs<hi_val))
-        if(np.size(del_idx)==np.size(self.freqs)):
-            print("Warning: No Frequencies within range!")
-            return -1
-        #delete array seems to end up
-        #self.del_idx = del_idx;
-        return self._pop_idx(del_idx)
-    
-    #round frequency list to nearest hz
-    #useful for writing out 
-    def round_freq_list(self):
-        '''@brief round frequency list to nearest hz assuming values are in Hz  '''
-        #assume frequency values are in GHz and we round to Hz
-        self.freqs[:]=np.round(self.freqs,decimals=0)
+        idx = np.logical_and(self.freqs>lo_val,self.freqs<hi_val)
+        return self[idx]
         
-    def calculate_time_domain_data(self,window=None):
+    def ifft(self,window=None):
         '''
-        @brief calculate the time domain data  
+        @brief calculate the ifft of the data 
         @todo. Verify the lack of ifftshift here is correct for phases... 
         @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
             squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
             or a callable with input (len(self.raw))
-        @return [time domain values,ifft complex values]  
+        @return WaveformParam  
         '''
-        if window is None:
-            wvals = np.ones_like(self.raw)
-        elif window == 'sinc2': #apply a sinc^2 window (0 at edges)
-            wvals = np.linspace(-1,1,len(self.raw))
-            wvals = np.sinc(wvals)**2
-        elif callable(window):
-            wvals = window(len(self.raw))
-        else: #assume its a call to scipy.signal.windows.get_window
-            wvals = scipy.signal.windows.get_window(window,len(self.raw))
-        ifft_vals = np.fft.ifft(self.raw*wvals)
-        total_time = 1/np.diff(self.freqs).mean()
-        times = np.linspace(0,total_time,self.freqs.shape[0])
-        #myw = WaveformEditor(None)
-        #myw.S[21].freq_list = times
-        #myw.S[21].raw = ifft_vals
-        #return myw
-        return times,ifft_vals
+        return ifft(self,window=None)
     
-    def plot(self,data_type='mag_db',trace_only=False,**plot_options):
+    #alias for backward compatability
+    calculate_time_domain_data = ifft 
+    
+    def plot_plotly(self,data_type='mag_db',trace_only=False,**plot_options):
         '''
-        @brief plot the data from the parameter given as data_type  
+        @brief plot the data from the parameter given as data_type using plotly. Placeholder until pandas implements
+            plotly as a backedn plotting enging (they say next release) 
         @param[in] data_type - type of data to plot (e.g. mag,mag_db,phase,phase_d)  
         @param[in/OPT] trace_only - only return the plotly trace (as opposed to a figure) (default False)
         @param[in/OPT] plot_options - keyword args to pass as options to go.Scatter
@@ -1062,6 +995,7 @@ class TouchstoneParam(pd.Series):
     def run_function_on_data(self,funct,*args,**kwargs):
        '''
        @brief run a function on each of our param raw data.  
+       @note this sets the raw values (integer index) whereas pd.Series.apply() cannot
        @param[in] funct - function to run  
        @param[in/OPT] args - arguments for funct  
        @param[in/OPT] kwargs - keyword args for funct  
@@ -1108,11 +1042,11 @@ class TouchstoneParam(pd.Series):
     @property
     def mag_db(self): return 20*np.log10(self.mag)
     @property
-    def mag(self): return np.abs(self.raw)
+    def mag(self): return np.abs(self)
     @property
-    def phase(self): return np.angle(self.raw)
+    def phase(self): return np.angle(self)
     @property
-    def phase_d(self): return np.angle(self.raw)*180/np.pi
+    def phase_d(self): return np.angle(self)*180/np.pi
 
 #just for naming
 class WnpParam(TouchstoneParam): pass
@@ -1234,28 +1168,6 @@ class TestTouchstoneEditor(unittest.TestCase):
         expected_keys = [11,21,12,22]
         new_keys = map_keys(keys,mapping)
         self.assertTrue(np.all(np.equal(expected_keys,new_keys)))
-        
-    def test_copy(self):
-        '''@brief test shallow and deep copying
-        @note this mostly just verifies that our raw and freq pointers
-            were copied correctly.
-        '''
-        snp_bin_path  = os.path.join(self.dir_path,self.test_snp_bin)
-        snp_bin  = SnpEditor(snp_bin_path)
-        #insure the initial data is verified
-        self.assertTrue(snp_bin._verify_freq_lists())
-        self.assertTrue(snp_bin._verify_raw_data())
-        #test a shallow copy
-        shallow_copy = snp_bin
-        self.assertTrue(snp_bin is shallow_copy) #verify shallow copy
-        self.assertTrue(shallow_copy._verify_freq_lists())
-        self.assertTrue(shallow_copy._verify_raw_data())
-        #now test the deep copy
-        deep_copy = copy.deepcopy(snp_bin)
-        self.assertTrue(deep_copy._verify_freq_lists())
-        self.assertTrue(deep_copy._verify_raw_data())
-        #now ensure our raw and freq values are correct
-        
 		
     def test_2_port_swapping(self):
         '''@brief test using swap_ports to swap 2 port files and swapping  
@@ -1320,10 +1232,11 @@ class TestTouchstoneEditor(unittest.TestCase):
         #wf = WaveformEditor(freqs,data)
         
     def test_plot(self):
-        '''@brief test adding/swapping/removing ports. This is written only for s2p files'''
+        '''@brief test plotting'''
         f1 = os.path.join(self.dir_path,self.test_snp_txt)
         s1 = SnpEditor(f1)
-        s1.plot()
+        fig = s1.mag_db.plot()
+        figpl = s1.plot_plotly(data_type='mag_db')
     
     def test_combine_split(self):
         '''@brief test combine_parameters and split_measurements to combine TouchstoneEditors
@@ -1344,6 +1257,14 @@ class TestTouchstoneEditor(unittest.TestCase):
         os1,os2 = split_parameters(sc0,2)
         self.assertTrue(os1==s1)
         self.assertTrue(os2==s2)
+        
+    def test_to_time_domain(self):
+        '''@brief Test changing to time domain data'''
+        f1 = os.path.join(self.dir_path,self.test_snp_txt)
+        s1 = SnpEditor(f1)
+        td_data = ifft(s1) #create by calling ifft
+        td_S21  = ifft(s1.S21)
+        self.assertTrue(np.all(td_S21==td_data.S21))
         
             
 #%% things to run when we run this file
@@ -1373,6 +1294,8 @@ if __name__=='__main__':
     s = TouchstoneEditor()
     s0 = mysnp = TouchstoneEditor(os.path.join(dir_path,test_snp_txt))
     
+    mytd = ifft(mysnp)
+    mytds = ifft(mysnp.S21)
   
     s1 = TouchstoneEditor(os.path.join(dir_path,test_snp_bin))
     mysnp_orig = copy.deepcopy(mysnp)
