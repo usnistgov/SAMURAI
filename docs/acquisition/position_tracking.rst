@@ -57,14 +57,10 @@ Streaming from Motive
 Using the Samurai MotiveInterface
 ------------------------------------
 
-- imported from 'from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
+- import the library with :code:`from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface`
 - instantiate with :code:`mymot = MotiveInterface()`
 - query command for measuring :code:`mymot.query('meca_head')`, :code:`mymot.query(50166)`
 - get distance command  :code:`mymot.get_distance('meca_head','origin')`
-- measure from dictionary/list
+- measure from dictionary/list with :code:`mymot.query({'meca_head':None,50166:'alias_name','origin':None})`
 
-
-Code
--------
-
-MotiveInterface code goes here  
+ 

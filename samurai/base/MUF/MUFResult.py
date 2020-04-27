@@ -98,6 +98,99 @@ def set_meas_relative(meas_path,out_path=None):
             rel_paths = [os.path.join('./',new_rel_dir,os.path.basename(p)) for p in fpaths]
             meas_obj.add_items(rel_paths) #add the filepaths back
     return meas.write_xml(out_path)
+
+#%% Statistics operations used in the MUF 
+
+def calculate_estimate(data):
+    '''
+    @brief calculate the estimate from the input values (mean of the values)
+    @param[in] data - list of TouchstoneParameter data
+    @return Touchstone object with the estimate (mean) of the stats_path values
+    '''
+    #create a blank snp file to fill
+    num_ports = round(np.sqrt(len(data[0].wave_dict_keys)-1)) #-1 to ignore the freq_list entry
+    first_key = data[0].wave_dict_keys[0]
+    freq_list = data[0].freq_list
+    MyEditor = type(data[0]) #type of the editor to create
+    data_dict = {}
+    for k in data[0].wave_dict_keys: #data for each key
+        data_dict[k] = np.array([tnp.S[k].raw for tnp in data]) 
+    tnp_out = MyEditor([num_ports,freq_list])
+    for wk in tnp_out.waves:
+        for k in tnp_out.wave_dict_keys:
+            data = data_dict[k] #get the data
+            m,p = complex2magphase(data)
+            m_mean = m.mean(0); p_mean = p.mean(0)
+            data_mean = magphase2complex(m_mean,p_mean)
+            tnp_out[(wk,k)][:] = data_mean
+    return tnp_out
+    
+def calculate_confidence_interval(data,confidence_interval=95):
+    '''
+    @brief calculate the n% confidence interval where n is ci_percentage
+        this will calculate both the upper and lower intervals
+    @param[in] data - list of TouchstoneEditor files to calculate from
+    @param[in/OPT] confidence_interval - confidence interval percentage (default 95)
+    @return TouchstoneEditor objects for upper(+),lower(-) intervals
+    '''
+    #create a blank snp file to fill
+    num_ports = round(np.sqrt(len(data[0].wave_dict_keys)-1)) #-1 to ignore the freq_list entry
+    first_key = data[0].wave_dict_keys[0]
+    freq_list = data[0].freq_list
+    MyEditor = type(data[0]) #type of the editor to create
+    data_dict = {}
+    for k in data[0].wave_dict_keys: #data for each key
+        data_dict[k] = np.array([tnp.S[k].raw for tnp in data])
+    tnp_out_p = MyEditor([num_ports,freq_list])
+    tnp_out_m = MyEditor([num_ports,freq_list])
+    #find percentage and index like in the MUF
+    percentage = 0.5*(1-confidence_interval/100)
+    lo_index = int(percentage*data_dict[first_key].shape[0])
+    if lo_index<=0: lo_index=1
+    hi_index = data_dict[first_key].shape[0]-lo_index
+    for wk in tnp_out_m.waves:
+        for k in tnp_out_p.wave_dict_keys:
+            data = data_dict[k] #get the data
+            #done in the same way as the MUF
+            m,p = complex2magphase(data)
+            m.sort(0); p.sort(0)
+            m_hi = m[hi_index,:]; m_lo = m[lo_index]
+            p_hi = p[hi_index,:]; p_lo = p[lo_index]
+            hi_complex = magphase2complex(m_hi,p_hi)
+            lo_complex = magphase2complex(m_lo,p_lo)
+            tnp_out_p[(wk,k)][:] = hi_complex
+            tnp_out_m[(wk,k)][:] = lo_complex
+    return tnp_out_p,tnp_out_m
+
+def calculate_standard_uncertainty(data):
+    '''
+    @brief calculate standard uncertainty (standard deviation)
+    @param[in] data - list of TouchstoneEditor files to calculate from
+    @return Touchstone objects for upper(+),lower(-) uncerts
+    '''
+    #create a blank snp file to fill
+    num_ports = round(np.sqrt(len(data[0].wave_dict_keys)-1)) #-1 to ignore the freq_list entry
+    first_key = data[0].wave_dict_keys[0]
+    freq_list = data[0].freq_list
+    MyEditor = type(data[0]) #type of the editor to create
+    data_dict = {}
+    for k in data[0].wave_dict_keys: #data for each key
+        data_dict[k] = np.array([tnp.S[k].raw for tnp in data])
+    tnp_out_p = MyEditor([num_ports,freq_list])
+    tnp_out_m = MyEditor([num_ports,freq_list])
+    for wk in tnp_out_m.waves:
+        for k in tnp_out_p.wave_dict_keys:
+            data = data_dict[k] #get the data
+            m,p = complex2magphase(data)
+            m_mean = m.mean(0); p_mean = p.mean(0)
+            m_std  = m.std(0) ; p_std  = p.std(0) #mean and stdev of mag/phase
+            m_plus = m_mean+m_std; m_minus = m_mean-m_std
+            p_plus = p_mean+p_std; p_minus = p_mean-p_std
+            data_plus   = magphase2complex(m_plus ,p_plus )
+            data_minus  = magphase2complex(m_minus,p_minus)
+            tnp_out_p[(wk,k)][:] = data_plus
+            tnp_out_m[(wk,k)][:] = data_minus
+    return tnp_out_p,tnp_out_m
     
 #%% Operation Function (e.g. FFT) with uncerts
 def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
@@ -119,7 +212,7 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             item_data = item.data
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
-            td_vals = item.w1[key].calculate_time_domain_data(window=window)
+            td_vals = item.data[(item.waves[0],key)].calculate_time_domain_data(window=window)
             tdw_vals = WaveformEditor(*td_vals)
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()
@@ -134,11 +227,22 @@ class MUFResult(MUFModuleController):
         self is the nominal value. Other values will be contained to generate uncerts
     @TODO add serial reading implementation for quick grabbing of path lists for large files
     @example
-        >>> meas_path = './test.meas' #path to *.meas file
-        >>> mymeas = MUFResult(meas_path) #initialize the class
-        >>> mymeas.calculate_monte_carlo_statistics() 
+        #Load in a *.meas file    
+        meas_path = './test.meas' #path to *.meas file
+        mymeas = MUFResult(meas_path) #initialize the class
+        mymeas.calculate_monte_carlo_statistics() 
+    @example
+        #Create a *.meas file from *.snp files
+        mymeas = MUFResult()
+        mymeas.nominal.add_item('nominal.snp')
+        mymeas.monte_carlo.add_item('monte_carlo_0.snp')
+        mymeas.monte_carlo.add_item('monte_carlo_1.snp')
+        mymeas.perturbed.add_item('perturbed_0.snp')
+        mymeas.perturbed.add_item('perturbed_1.snp')
     '''
-        
+    
+    meas_types = ['nominal','monte_carlo','perturbed'] #default measurement types
+    
     def __init__(self,meas_path=None,**arg_options):
         '''
         @brief load up and initialize the *.meas file
@@ -176,7 +280,7 @@ class MUFResult(MUFModuleController):
     @property
     def nominal_post_value_path(self):
         '''@brief property to return the path of the nominal value'''
-        return self._xml_nominal_post[0][1].attrib['Text'] if self.nominal.count else None
+        return self._xml_nominal_post[1][1].attrib['Text'] if self.nominal.count else None
     
     @property
     def _xml_nominal(self):
@@ -186,7 +290,7 @@ class MUFResult(MUFModuleController):
     @property
     def _xml_nominal_post(self):
         '''@brief link to nominal xml path value'''
-        return self.controls.find('MeasSParamsPost')
+        return self.controls.find('MeasSParams')
     
     @property
     def _xml_monte_carlo(self):
@@ -206,13 +310,7 @@ class MUFResult(MUFModuleController):
     @plotter.setter
     def plotter(self,val):
         self.options['plotter'] = val
-    
-    def __getattr__(self,attr):
-        '''@brief pass any nonexistant attribute attempts to our nominal data class'''
-        try:
-            return getattr(self.nominal[0].data,attr)
-        except:
-            raise AttributeError('{} not in self or self.nominal'.format(attr))
+
             
     ##########################################################################
     ### Data editing and statistics functions. only operates on loaded data
@@ -263,7 +361,6 @@ class MUFResult(MUFModuleController):
         @brief create a skeleton (main nodes) for a *.meas file
         This includes everything except the menustripheader
         '''
-        self.meas_types = ['nominal','nominal_post','monte_carlo','perturbed'] #default measurement types
         #root node
         root_elem = ET.Element('CorrectedMeasurement')
         root_elem.set('FileName','./')
@@ -271,19 +368,18 @@ class MUFResult(MUFModuleController):
         root_elem.set('CreationTime',str(datetime.datetime.now()))
         self._setroot(root_elem)
         #create controls element
-        self._controls = ET.SubElement(self.getroot(),'Controls')  
+        self._controls = ET.SubElement(self.getroot(),'Controls') 
+        #create required Measurement Name stuff (some things don't work without it)
+        ET.SubElement(self._controls,'MeasurementName')
+        self._controls.find('MeasurementName').set('ControlType',"System.Windows.Forms.TextBox")
+        self._controls.find('MeasurementName').set('ControlText',"Me_SplitContainer2__MeasurementName")
+        self._controls.find('MeasurementName').set('FullName',"System.Windows.Forms.TextBox")
         #now create our nominal
         ET.SubElement(self._controls,'MeasSParams')
         self._xml_nominal.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
         self._xml_nominal.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParams")
         self._xml_nominal.set('Count',str(0))
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options)
-        #now create our nominal for post cal
-        ET.SubElement(self._controls,'MeasSParamsPost')
-        self._xml_nominal_post.set('ControlType',"CustomFormControls.FLV_FixedDetailsList")
-        self._xml_nominal_post.set('FullName',"Me_SplitContainer2__GroupBox2_Panel3_MeasSParamsPost")
-        self._xml_nominal_post.set('Count',str(0))
-        self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options)
         #and monte carlo
         ET.SubElement(self._controls,'MonteCarloPerturbedSParams')
         self._xml_monte_carlo.set('ControlType',"CustomFormControls.FLV_VariableDetailsList")
@@ -304,18 +400,9 @@ class MUFResult(MUFModuleController):
         '''
         self.nominal.clear_items()
         self.nominal.add_item(nom_path)
-        
-    def set_nominal_post(self,nom_path):
-        '''
-        @brief add a nominal path to the xml *.meas file
-        @param[in] nom_path - nominal path
-        '''
-        self.nominal.clear_items()
-        self.nominal.add_item(nom_path)
     
     #alias
     set_nominal_path = set_nominal
-    set_nominal_post_path = set_nominal_post
         
     def set_monte_carlo(self,mc_path_list):
         '''
@@ -364,11 +451,6 @@ class MUFResult(MUFModuleController):
         if verbose: print("Loading Nominal")
         self.nominal.load_data(working_directory=self.working_directory,verbose=False)
         
-    def _load_nominal_post(self,verbose=False):
-        '''@brief load the nominal (post-calibrated) path value into self.nominal_post'''
-        if verbose: print("Loading Nominal Post")
-        self.nominal_post.load_data(working_directory=self.working_directory,verbose=False)
-        
     def _load_statistics(self,verbose=False):
         '''@brief load in all of the data for all of our statistics'''
         if verbose: print("Loading Monte Carlo:")
@@ -387,32 +469,24 @@ class MUFResult(MUFModuleController):
         self.nominal = MUFNominalValue(self._xml_nominal,**self.options) # parse nominal
         self.monte_carlo = MUFStatistic(self._xml_monte_carlo,**self.options) #parse mc
         self.perturbed = MUFStatistic(self._xml_perturbed,**self.options) #parse perturbed
-        if self._xml_nominal_post is not None:  # parse nominal post if it exists
-            self.nominal_post = MUFNominalValue(self._xml_nominal_post,**self.options)
-            self.meas_types = ['nominal','monte_carlo','perturbed'] #default measurement types
-        else:
-            self.meas_types = ['nominal','nominal_post','monte_carlo','perturbed'] #default measurement types
         
     def load(self,meas_path,**kwargs):
         '''
         @brief load our meas file and its corresponding data
         @param[in/OPT] meas_path - path to *.meas file to load in. This will overwrite self.meas_path
         @param[in/OPT] kwargs - keyword arguments as follows:
-            load_nominal - load our data from the pre-calibrated nominal solution (default True)
-            load_nominal_post - load data from the post-calibrated nominal solution (default True)
+            load_nominal - load our data from the nominal solution(s) (default True)
             load_statistics - load our statistics (monte carlo and perturbed) (default False)
             verbose - be verbose when loading data (default False)
         '''
         options = {}
         options['load_nominal'] = True
-        options['load_nominal_post'] = False
         options['load_statistics'] = False
         options['verbose'] = False
         for k,v in kwargs.items():
             options[k] = v
         if meas_path is None: #if starting from empty, then dont load
             options['load_nominal'] = False
-            options['load_nominal_post'] = False
             options['load_statistics'] = False
         self.meas_path = meas_path
         #make a *.meas if a wnp or snp file was provided
@@ -432,8 +506,6 @@ class MUFResult(MUFModuleController):
         #load our nominal and statistics if specified
         if options['load_nominal']:
             self._load_nominal(verbose=options['verbose'])
-        if options['load_nominal_post']:
-            self._load_nominal_post(verbose=options['verbose'])
         if options['load_statistics']:
             self._load_statistics(verbose=options['verbose'])
             
@@ -447,47 +519,22 @@ class MUFResult(MUFModuleController):
         options = {}
         options['relative'] = False
         for k,v in kwargs.items():
-            option[k] = v
-        super().write(out_path)
+            options[k] = v
+        rv = super().write(out_path)
         if options['relative']: #then just change after write (code already written)
             set_meas_relative(out_path)
+        return rv
         
     def _write_nominal(self,out_dir,out_name='nominal'):
         '''
         @brief write out our nominal data
         @param[in] out_dir - directory to write out to
         @param[in/OPT] out_name - name to write out (default 'nominal')
+        @return list of written files
         '''
-        out_file = os.path.join(out_dir,out_name)
-        if self.nominal[0].data is None: #then copy the file
-            fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
-            nom_path = self.nominal_value_path
-            fname+=os.path.splitext(nom_path)[-1]
-            fname = shutil.copy(nom_path,fname)
-        else:
-            fname = self.nominal[0].data.write(out_file,ftype='binary')
-        fname = os.path.abspath(fname)
-        self.nominal[0][0] = get_name_from_path(fname)
-        self.nominal[0][1] = fname
-            
-    def _write_nominal_post(self,out_dir,out_name='nominal_post'):
-        '''
-        @brief write out our nominal data
-        @param[in] out_dir - directory to write out to
-        @param[in/OPT] out_name - name to write out (default 'nominal')
-        '''
-        if len(self.nominal_post): #only write if data is available
-            out_file = os.path.join(out_dir,out_name)
-            if self.nominal_post[0].data is None: #then copy the file
-                fname = os.path.splitext(out_file)[0] #in case an extension is provided remove it
-                nom_path = self.nominal_post_value_path
-                fname+=os.path.splitext(nom_path)[-1]
-                fname = shutil.copy(nom_path,fname)
-            else:
-                fname = self.nominal_post[0].data.write(out_file,ftype='binary')
-            fname = os.path.abspath(fname)
-            self.nominal_post[0][0] = get_name_from_path(fname)
-            self.nominal_post[0][1] = fname
+        out_file = os.path.join(out_dir,out_name+'_{}')
+        out_list = self._write_statistic(self.nominal,out_file)
+        return out_list
         
     def _write_statistic(self,stat_class,format_out_path):
         '''
@@ -538,21 +585,17 @@ class MUFResult(MUFModuleController):
         @param[in] out_dir - what directory to write the data out to
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
-            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
         @note if the data is not loaded in we will simply copy the files
         '''
         options = {}
         options['write_nominal'] = True
-        options['write_nominal_post'] = True
         options['write_stats'] = True
         for k,v in kwargs.items():
             options[k] = v
         #load our nominal and statistics if specified
         if options['write_nominal']:
             self._write_nominal(out_dir)
-        if options['write_nominal_post']:
-            self._write_nominal_post(out_dir)
         if options['write_stats']:
             self._write_statistics(out_dir)
         
@@ -564,7 +607,6 @@ class MUFResult(MUFModuleController):
             all other data will be stored in a similar structure to the MUF in here
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
-            write_nominal_post - write out nominal from post-calibration (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
             verbose - be verbose when writing (default False)
         '''
@@ -574,7 +616,7 @@ class MUFResult(MUFModuleController):
             os.makedirs(out_dir)
         #write out the data first so we update the paths
         self._write_data(out_dir,**kwargs)
-        self.write_xml(out_path)
+        return self.write_xml(out_path)
         
     @property
     def working_directory(self):
@@ -703,15 +745,15 @@ class MUFStatistic(MUFItemList):
             if not self.data or self.data[0] is None:
                 self.load_data()
             tnp_list = self.data
-            data_dict = self._extract_data_dict(tnp_list)
+            data = self.data
             #estimate
-            self.estimate = self._calculate_estimate(data_dict)
+            self.estimate = self._calculate_estimate(data)
             #confidence interval
-            ciu,cil = self._calculate_confidence_interval(data_dict)
+            ciu,cil = self._calculate_confidence_interval(data)
             self.confidence_interval['+'] = ciu
             self.confidence_interval['-'] = cil
             #and standard uncertainty
-            suu,sul = self._calculate_standard_uncertainty(data_dict)
+            suu,sul = self._calculate_standard_uncertainty(data)
             self.standard_uncertainty['+'] = suu
             self.standard_uncertainty['-'] = sul
         
@@ -754,81 +796,30 @@ class MUFStatistic(MUFItemList):
         stm = self.standard_uncertainty['-'].S[key].get_value_from_frequency(freq)
         return est,cip,cim,stp,stm        
     
-    def _calculate_estimate(self,data_dict):
+    def _calculate_estimate(self,data):
         '''
         @brief calculate the estimate from the input values (mean of the values)
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
-        @param[in/OPT] editor_type
+        @param[in] data - list of touchstone editor data
         @return WnpEditor object with the estimate (mean) of the stats_path values
         '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type'] #get the type of editor
-        tnp_out = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in tnp_out.wave_dict_keys:
-            data = data_dict[k] #get the data
-            m,p = self._complex2magphase(data)
-            m_mean = m.mean(0); p_mean = p.mean(0)
-            data_mean = self._magphase2complex(m_mean,p_mean)
-            tnp_out.S[k].update(freq_list,data_mean)
-        return tnp_out
+        return calculate_estimate(data)
             
-    def _calculate_confidence_interval(self,data_dict):
+    def _calculate_confidence_interval(self,data):
         '''
         @brief calculate the n% confidence interval where n is self.options['ci_percentage']
             this will calculate both the upper and lower intervals
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
+        @param[in] data - list of touchstone editor data
         @return WnpEditor objects for upper(+),lower(-) intervals
         '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type']
-        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        #find percentage and index like in the MUF
-        percentage = 0.5*(1-self.options['ci_percentage']/100)
-        lo_index = int(percentage*data_dict[data_dict['first_key']].shape[0])
-        if lo_index<=0: lo_index=1
-        hi_index = data_dict[data_dict['first_key']].shape[0]-lo_index
-        for k in tnp_out_p.wave_dict_keys:
-            data = data_dict[k] #get the data
-            #done in the same way as the MUF
-            m,p = self._complex2magphase(data)
-            m.sort(0); p.sort(0)
-            m_hi = m[hi_index,:]; m_lo = m[lo_index]
-            p_hi = p[hi_index,:]; p_lo = p[lo_index]
-            hi_complex = self._magphase2complex(m_hi,p_hi)
-            lo_complex = self._magphase2complex(m_lo,p_lo)
-            tnp_out_p.S[k].update(freq_list,hi_complex)
-            tnp_out_m.S[k].update(freq_list,lo_complex)
-        return tnp_out_p,tnp_out_m
+        return calculate_confidence_interval(data,confidence_interval=self.options['ci_percentage'])
     
-    def _calculate_standard_uncertainty(self,data_dict):
+    def _calculate_standard_uncertainty(self,data):
         '''
         @brief calculate standard uncertainty (standard deviation)
-        @param[in] data_dict - dictionary of data and frequencies for imported snp files
+        @param[in] data - list of touchstone editor data
         @return WnpEditor objects for upper(+),lower(-) uncerts
         '''
-        #create a blank snp file to fill
-        num_ports = round(np.sqrt(len(data_dict)-1)) #-1 to ignore the freq_list entry
-        freq_list = data_dict['freq_list']
-        MyEditor = data_dict['editor_type']
-        tnp_out_p = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        tnp_out_m = MyEditor([num_ports,freq_list],plotter=self.options['plotter'])
-        for k in tnp_out_p.wave_dict_keys:
-            data = data_dict[k] #get the data
-            m,p = self._complex2magphase(data)
-            m_mean = m.mean(0); p_mean = p.mean(0)
-            m_std  = m.std(0) ; p_std  = p.std(0) #mean and stdev of mag/phase
-            m_plus = m_mean+m_std; m_minus = m_mean-m_std
-            p_plus = p_mean+p_std; p_minus = p_mean-p_std
-            data_plus   = self._magphase2complex(m_plus ,p_plus )
-            data_minus  = self._magphase2complex(m_minus,p_minus)
-            tnp_out_p.S[k].update(freq_list,data_plus)
-            tnp_out_m.S[k].update(freq_list,data_minus)
-        return tnp_out_p,tnp_out_m
+        return calculate_standard_uncertainty(data)
     
     def _complex2magphase(self,data):
         return complex2magphase(data)
@@ -896,15 +887,13 @@ class TestMUFResult(unittest.TestCase):
             to access the path lists of each of the uncertainty lists and the nominal result
         '''
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = MUFResult(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
-        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=False,load_statistics=False)
-        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=False)
-        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res = MUFResult(meas_path,load_nominal=False,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_statistics=False)
+        res = MUFResult(meas_path,load_nominal=True,load_statistics=True)
         
     def test_create_from_snp(self):
-        '''
-        @brief this test will create a *.meas file for a given *.snp or *.wnp file
-        '''
+        '''@brief This test will create a *.meas file for a given *.snp or *.wnp file'''
         snp_path = os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')
         res = MUFResult(snp_path)
         nvp = res.nominal_value_path #try getting our nominal value
@@ -927,22 +916,30 @@ class TestMUFResult(unittest.TestCase):
         '''
         res = MUFResult()
         res.nominal.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal.s2p_binary')))
-        res.nominal_post.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal_post.s2p_binary')))
+        res.nominal.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/nominal_post.s2p_binary')))
         res.monte_carlo.add_item(SnpEditor(os.path.join(self.unittest_dir,'meas_test/MonteCarlo/mc_0.s2p_binary')))
         #make sure the data exists
-        self.assertIsNotNone(res.nominal.data)
-        self.assertIsNotNone(res.nominal_post.data)
+        self.assertIsNotNone(res.nominal[0].data)
+        self.assertIsNotNone(res.nominal[1].data)
         self.assertIsNotNone(res.monte_carlo[0].data)
+        
+    def test_calculate_statistics(self):
+        '''
+        @brief in this test we will load a xml file with uncertainties and try
+            to access the path lists of each of the uncertainty lists and the nominal result
+        '''
+        meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
+        res = MUFResult(meas_path,load_nominal=True,load_statistics=True)
+        res.calculate_statistics()
         
 class TestUncertaintyOperations(unittest.TestCase):
     '''@brief test operations on data with uncertainty'''
-    
     wdir = os.path.dirname(__file__)
     unittest_dir = os.path.join(wdir,'../unittest_data')
     
     def test_calculate_time_domain(self):
         meas_path = os.path.join(self.unittest_dir,'meas_test.meas')
-        res = MUFResult(meas_path,load_nominal=True,load_nominal_post=True,load_statistics=True)
+        res = MUFResult(meas_path,load_nominal=True,load_statistics=True)
         td_res = calculate_time_domain(res)
 
 #%%
@@ -956,7 +953,7 @@ if __name__=='__main__':
     wdir = os.path.dirname(__file__)
     unittest_dir = os.path.join(wdir,'../unittest_data')
     meas_path = os.path.join(unittest_dir,'meas_test.meas')
-    res = MUFResult(meas_path,load_nominal=False,load_nominal_post=False,load_statistics=False)
+    res = MUFResult(meas_path,load_nominal=False,load_statistics=False)
     
     
     

@@ -6,7 +6,7 @@
 .. _samurai_data:
 
 ##############################
-SAMURAI Data Information
+Data Information
 ##############################
 
 Here we have information on each dataset stored at - :data_root:`./` measured using the SAMURAI system at the National Institute of Standards and Technology.

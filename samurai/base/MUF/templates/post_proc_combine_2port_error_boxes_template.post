@@ -1,0 +1,138 @@
+<?xml version="1.0"?>
+<PostProcessor FileName="\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\uncertainties\cable_uncert\test\post_proc_combine_2port_error_boxes_template.post" CreationTime="4/15/2020 12:18:42 PM" AssemblyVersion="1.4.30.23016" UserName="ajw5">
+  <MenuStripItems>
+    <MatLabToolStripMenuItem Enabled="True" Checked="False" />
+    <SelectResultsDirectory Enabled="True" Checked="False" />
+    <SavemeasFilesInSubdirectories Enabled="True" Checked="True" />
+    <Binary Enabled="True" Checked="False" />
+    <SupressSensitivityAnalysis Enabled="True" Checked="False" />
+    <DoNotRecalculateExistingResultsToolStripMenuItem Enabled="True" Checked="False" />
+    <FrequenciesToolStripMenuItem Enabled="True" Checked="False" />
+    <SetTimesToolStripMenuItem Enabled="True" Checked="False" />
+    <CloseCalculators Enabled="True" Checked="False" />
+    <RunCalculationsInParallel Enabled="True" Checked="True" />
+    <CalibrateToolStripMenuItem Enabled="False" Checked="False" />
+    <AddToInputListToolStripMenuItem Enabled="False" Checked="False" />
+    <CreateMatLabTemplateToolStripMenuItem Enabled="False" Checked="False" />
+    <RunMatLabPostProcessor Enabled="False" Checked="False" />
+    <EstimateUncertaintyFromResiduals Enabled="True" Checked="False" />
+  </MenuStripItems>
+  <MenuStripTextBoxes>
+    <ResultsDirectory Enabled="True" Text="" />
+    <NumberMonteCarloSimulations Enabled="True" Text="1000" />
+    <ExperimentName Enabled="True" Text="" />
+    <GaussianLimit Enabled="True" Text="3.0" />
+    <StartFrequency Enabled="True" Text="1" />
+    <StopFrequency Enabled="True" Text="50" />
+    <StepFrequency Enabled="True" Text="1" />
+    <StartTime Enabled="True" Text="0" />
+    <StopTime Enabled="True" Text="10" />
+    <StepTime Enabled="True" Text="1" />
+    <EpsEffR Enabled="True" Text="1" />
+    <EpsEffI Enabled="True" Text="0" />
+    <GradientStoppingCondition Enabled="True" Text="0.000001" />
+    <NormStoppingCondition Enabled="True" Text="0.0" />
+    <DeltaxStoppingCondition Enabled="True" Text="0.0" />
+    <maxits Enabled="True" Text="0" />
+  </MenuStripTextBoxes>
+  <MenuStripComboBoxes>
+    <MagnitudePhaseInterpolationMethod Enabled="True" SelectedIndex="-1" />
+  </MenuStripComboBoxes>
+  <Controls>
+    <ErrorReportTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_ErrorReportTextBox" Enabled="True" Visible="False" />
+    <ModelOrigin ControlType="System.Windows.Forms.ComboBox" ControlText="NIST" FullName="Me_TableLayoutPanel1_GroupBox2_ModelOrigin" Enabled="True" Visible="False" SelectedIndex="0" Count="1">
+      <Item Index="0" Text="NIST" />
+    </ModelOrigin>
+    <ModelType ControlType="System.Windows.Forms.ComboBox" ControlText="Merge two .s2p error boxes into a .s4p calibration" FullName="Me_TableLayoutPanel1_GroupBox2_ModelType" Enabled="True" Visible="True" SelectedIndex="21" Count="31">
+      <Item Index="0" Text="Fit Measured Data With a Physical Model" />
+      <Item Index="1" Text="Correct or Add Uncertainties to Calibrated Data" />
+      <Item Index="2" Text="Calibration Comparison" />
+      <Item Index="3" Text="Scattering-Parameter Errors" />
+      <Item Index="4" Text="Convert .s4p calibration to error boxes" />
+      <Item Index="5" Text="Correct UnCalibrated S-Parameter Data" />
+      <Item Index="6" Text="Interpolate data to a common grid" />
+      <Item Index="7" Text="Adjust phase of calibration cross-talk terms" />
+      <Item Index="8" Text="Translate conventional One-Port NIST Sparams" />
+      <Item Index="9" Text="Translate conventional Two-Port NIST Sparams" />
+      <Item Index="10" Text="Apply impedance transformation to corrected RWG measurements" />
+      <Item Index="11" Text="Apply impedance transformation with loss correction to corrected RWG measurements" />
+      <Item Index="12" Text="Remove extrinsic transistor parasitics" />
+      <Item Index="13" Text="Extract pad and T-line from SOLT transistor or inductor measurement" />
+      <Item Index="14" Text="Call ICCAP to develop a model and ADS to evalutate the results" />
+      <Item Index="15" Text="Improved: Fit measured data With a physical model" />
+      <Item Index="16" Text="Obsolete: Use ADS to perform nonlinear device de-embeding" />
+      <Item Index="17" Text="Improved: ADS post processor" />
+      <Item Index="18" Text="Obsolete: Use Extact .s1p or .w1p file from .snp or .wnp file instead" />
+      <Item Index="19" Text="Convert .wnp measurements to .snp measurement" />
+      <Item Index="20" Text="Estimate transmission-line capacitance from load" />
+      <Item Index="21" Text="Merge two .s2p error boxes into a .s4p calibration" />
+      <Item Index="22" Text="Cascade a .s4p adapter with a .s4p calibration" />
+      <Item Index="23" Text="Apply impedance transformation from frequency-dependent impedance to fixed impedance, or vice versa" />
+      <Item Index="24" Text="Extact .s1p or .w1p file from .snp or .wnp file" />
+      <Item Index="25" Text="Calibrate source or HPR from .wnp file" />
+      <Item Index="26" Text="Roll reference planes using known Z0 and Gamma" />
+      <Item Index="27" Text="Merge two .s4p calibrations into a single .s4p calibration" />
+      <Item Index="28" Text="Merge two .s1p files into a .s2p with zero transmission" />
+      <Item Index="29" Text="Internal coupling model" />
+      <Item Index="30" Text="Internal multiport coupling model" />
+    </ModelType>
+    <ModelName ControlType="System.Windows.Forms.TextBox" ControlText="Convert two .s2p Error Boxes to a single .s4p calibration file" FullName="Me_TableLayoutPanel1_GroupBox2_ModelName" Enabled="True" Visible="True" />
+    <ModelGroup ControlType="System.Windows.Forms.ComboBox" ControlText="VNA measurements" FullName="Me_TableLayoutPanel1_GroupBox2_ModelGroup" Enabled="True" Visible="True" SelectedIndex="0" Count="9">
+      <Item Index="0" Text="VNA measurements" />
+      <Item Index="1" Text="Adapter removal" />
+      <Item Index="2" Text="Material characterization" />
+      <Item Index="3" Text="Power measurements" />
+      <Item Index="4" Text="Noise measurements" />
+      <Item Index="5" Text="Scope measurements" />
+      <Item Index="6" Text="Antenna measurements" />
+      <Item Index="7" Text="Generic" />
+      <Item Index="8" Text="User post processor" />
+    </ModelGroup>
+    <MultipleMeasurements ControlType="System.Windows.Forms.GroupBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox1_MultipleMeasurements" Enabled="True" Visible="False" />
+    <UserTextInput ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox1_UserTextInput" Enabled="True" Visible="False" />
+    <UserTextInputLabel ControlType="System.Windows.Forms.Label" ControlText="Location of model or cascade" FullName="Me_TableLayoutPanel1_GroupBox1_UserTextInputLabel" Enabled="True" Visible="False" />
+    <ComboBox1 ControlType="System.Windows.Forms.ComboBox" ControlText="Reverse Ports of the Right S2P file (normal case)" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox1" Enabled="True" Visible="True" SelectedIndex="2" Count="4">
+      <Item Index="0" Text="Don't Reverse Ports of S2P files" />
+      <Item Index="1" Text="Reverse Ports of the Left S2P file" />
+      <Item Index="2" Text="Reverse Ports of the Right S2P file (normal case)" />
+      <Item Index="3" Text="Reverse Ports of both S2P files" />
+    </ComboBox1>
+    <ComboBox2 ControlType="System.Windows.Forms.ComboBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox2" Enabled="True" Visible="False" SelectedIndex="-1" Count="3">
+      <Item Index="0" Text="Gradient stopping condition" />
+      <Item Index="1" Text="Norm stopping condition" />
+      <Item Index="2" Text="Delta x stopping condition" />
+    </ComboBox2>
+    <ComboBox3 ControlType="System.Windows.Forms.ComboBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox1_ComboBox3" Enabled="True" Visible="False" SelectedIndex="-1" Count="14">
+      <Item Index="0" Text="Fit over all frequencies." />
+      <Item Index="1" Text="Fit from 5 MHz to 20 MHz, replace measurements below 5 MHz." />
+      <Item Index="2" Text="Fit from 10 MHz to 50 MHz, replace measurements below 10 MHz." />
+      <Item Index="3" Text="Fit from 20 MHz to 100 MHz, replace measurements below 20 MHz." />
+      <Item Index="4" Text="Fit from 50 MHz to 200 MHz, replace measurements below 50 MHz." />
+      <Item Index="5" Text="Fit from 100 MHz to 500 MHz, replace measurements below 100 MHz." />
+      <Item Index="6" Text="Fit from 200 MHz to 1 GHz, replace measurements below 200 MHz." />
+      <Item Index="7" Text="Fit from 500 MHz to 2 GHz, replace measurements below 500 MHz." />
+      <Item Index="8" Text="Fit from 1 GHz to 5 GHz, replace measurements below 1 GHz." />
+      <Item Index="9" Text="Fit from 2 GHz to 10 GHz, replace measurements below 2 GHz." />
+      <Item Index="10" Text="Fit from 5 GHz to 20 GHz, replace measurements below 5 GHz." />
+      <Item Index="11" Text="Fit from 10 GHz to 50 GHz, replace measurements below 10 GHz." />
+      <Item Index="12" Text="Fit from 20 GHz to 100 GHz, replace measurements below 20 GHz." />
+      <Item Index="13" Text="Fit from 50 GHz to 200 GHz, replace measurements below 50 GHz." />
+    </ComboBox3>
+    <DescriptionTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_TableLayoutPanel1_GroupBox3_DescriptionTextBox" Enabled="True" Visible="True" />
+    <getAllMultipleMeasurementsAtOnceCheckBox ControlType="System.Windows.Forms.CheckBox" ControlText="getAllMultipleMeasurementsAtOnce" FullName="Me_TableLayoutPanel1_GroupBox3_getAllMultipleMeasurementsAtOnceCheckBox" Enabled="True" Visible="False" Checked="False" />
+    <ModelDescription ControlType="System.Windows.Forms.TextBox" ControlText="This post processor takes the Error Boxes described by two .s2p files and merge them into a single .s4p file. The port mapping from the two .s2p, right(R) and left(L), to the single .s4p will be the following: P1L -&gt; P1, P1R -&gt; P2, P2L -&gt; P3, P2R -&gt; P4.&#xD;&#xA;This .s4p calibration file can be used as the complete error boxes description to calibrate RAW measurements. The coupling between ports 1/2 and 3/4 of the final .s4p is assumed as 0.&#xD;&#xA;Adapted by Diogo Ribeiro" FullName="Me_TableLayoutPanel1_GroupBox3_ModelDescription" Enabled="True" Visible="True" />
+    <MultipleMeasurementsList ControlType="CustomFormControls.FLV_VariableDetailsList" ControlText="Expandable list of the multiple inputs to be processed by the Post Processor" FullName="Me_TableLayoutPanel1_GroupBox1_MultipleMeasurements_MultipleMeasurementsList" Enabled="True" Visible="False" Count="0" />
+    <PostProcessorMechanisms ControlType="CustomFormControls.FLV_FixedDetailsList" ControlText="List of the input parameters used in the Post Processor" FullName="Me_TableLayoutPanel1_GroupBox1_Panel4_PostProcessorMechanisms" Enabled="True" Visible="True" Count="2">
+      <Item Index="0" Text="Left [Port 1] Error Box (.s2p)" Count="3">
+        <SubItem Index="0" Text="Left [Port 1] Error Box (.s2p)" />
+        <SubItem Index="1" Text="" />
+        <SubItem Index="2" Text="" />
+      </Item>
+      <Item Index="1" Text="Right [Port 2] Error Box (.s2p)" Count="3">
+        <SubItem Index="0" Text="Right [Port 2] Error Box (.s2p)" />
+        <SubItem Index="1" Text="" />
+        <SubItem Index="2" Text="" />
+      </Item>
+    </PostProcessorMechanisms>
+  </Controls>
+</PostProcessor>

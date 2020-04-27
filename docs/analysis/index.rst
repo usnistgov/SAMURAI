@@ -5,13 +5,14 @@
 
 .. _SAMURAI Data Analysis:
 
-SAMURAI Data Analysis
+Data Analysis
 ======================
+
 Tools for analysis of the data taken by the SAMURAI system are given here.
 
 .. toctree::
    calibration
-   metafile
+   load_the_data
    post_processing_algorithms
    :maxdepth: 2
    :caption: Contents:

@@ -219,9 +219,9 @@ class MetafileController(SamuraiDict):
         self.update_format() #update if the format is bad
         #now lets check to see if it is valid (measurements exist)
         if verify:
-            self._verify_paths()
+            self.verify_paths()
     
-    def _verify_paths(self):
+    def verify_paths(self):
         '''@brief Verify all of the paths for the measurements listed in the metafile'''
         for i,fpath in enumerate(self.get_filename_list(True)): #
             if not os.path.exists(fpath): #then raise an error with some help
@@ -294,7 +294,7 @@ class MetafileController(SamuraiDict):
             #print(numLoadedMeas)
             if verbose: pc.update()
         if verbose: pc.finalize(); print('Loading Complete')
-        return snpData,numLoadedMeas
+        return snpData
     
     def update_format(self):
         '''
@@ -356,6 +356,9 @@ class MetafileController(SamuraiDict):
         meas['filename'] = filename
         self['measurements'].append(meas)
         return meas
+    
+    def __len__(self):
+        return len(self['measurements'])
     
     ###########################################################################
     ### Position operations
@@ -722,6 +725,8 @@ class MetafileController(SamuraiDict):
         @brief set the filenames from a list
         '''
         self.set_filename(path_list)
+        
+    file_paths = filenames
 
     def get_filename_list(self,abs_path=False):
         '''
