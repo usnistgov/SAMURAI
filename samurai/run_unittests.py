@@ -20,6 +20,10 @@ test_list.append(TestTouchstoneEditor)
 from samurai.base.MUF.MUFResult import TestMUFResult
 test_list.append(TestMUFResult)
 
+#%% SamuraiMeasurement Testing
+from samurai.base.SamuraiMeasurement import TestSamuraiMeasurement
+test_list.append(TestSamuraiMeasurement)
+
 #%% now run them all
 import time
 time.sleep(0.5) #sleep for a bit to let loaded modules be printed

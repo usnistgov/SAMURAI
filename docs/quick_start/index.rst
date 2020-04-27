@@ -3,9 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. _quick_start:
+
 Getting Started
 =========================
-The following steps explain how to download and install the SAMURAI python package.
+The following steps explain how to download and install and begin using the SAMURAI software and data. 
+The provided software package contains Python modules to collect, calibrate, and process data. 
+Minor MATLAB functionality has also been included for loading in measured data.
+
+.. important:: If data is not being collected, but previously collected data is being processed, 
+         please skip directly to :ref:`metafile_info` in the :ref:`SAMURAI Data Analysis` section **after** 
+         reviewing the :ref:`installation` section.
 
 .. toctree::
    install.rst

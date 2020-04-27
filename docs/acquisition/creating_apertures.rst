@@ -27,18 +27,44 @@ This class provides some convenient methods for quickly creating planar and cyli
 
 .. warning:: It should be known that apertures used by the :meth:`samurai.acquisition.SamuraiSystem.SamuraiSystem.csv_sweep` method
         are checked that they begin with a specific header. This header specifies the world reference frame (WRF) and tool reference frame (TRF).
-        If these reference frames do not match those for which the aperture was created, damage can occur and therefore the following header must be included
-        in each csv file
+        If these reference frames do not match those for which the aperture was created, damage can occur and therefore a header like in the example below must be included
+        in each csv file before :code:`n` position values :code:`x0,y0,z0,a0,b0,g0` to :code:`xn,yn,zn,an,bn,gn`.
 
-        .. code-block:: python 
+        .. code-block:: 
 
-           # TRF = [tx,ty,tz,ta,tb,tg]
-           # WRF = [wx,wy,wz,wa,wb,wg]
+           #TRF = [tx,ty,tz,ta,tb,tg]
+           #WRF = [wx,wy,wz,wa,wb,wg]
+
+           x0,y0,z0,a0,b0,g0
+           x1,y1,z1,a1,b1,g1
+           ...
+           xn,yn,zn,an,bn,gn
            
         where [tx,ty,tz,ta,tb,tg] and [wx,wy,wz,wa,wb,wg] are the positions and orientations of the TRF and WRF respectively.
         These will be referenced against the values set for TRF and WRF in :class:`samurai.acquisition.SamuraiSystem.SamuraiSystem`.
         If Custom sweeps are created without using this class, it is important that these headers be added, and the correct corresponding reference 
-        frames be passed to :class:`samurai.acquisition.SamuraiSystem.SamuraiSystem`.
+        frames be passed to :class:`samurai.acquisition.SamuraiSystem.SamuraiSystem`. 
+
+        By default, :class:`samurai.acquisition.SamuraiSystem.SamuraiSystem` sets the reference frames as
+
+        .. code-block::
+
+                # Default SamuraiSystem reference frame values
+                # These values are in mm and degrees
+                tool_length = 131 # approximate length of antenna
+                TRF = [0,0,tool_length,0,0,90]
+                WRF = [tool_length+190,0,0,0,90,90]
+
+                # These are set in SamuraiSystem.__init__ with 
+                self.options['trf_pos'] = [0,0,tool_length,0,0,90] 
+                self.options['wrf_pos'] = [tool_length+190,0,0,0,90,90]
+
+                # And can be overrode when initializing by passing them as kwargs
+                mysam = SamuraiSystem(trf_pos = [tx,ty,tz,ta,tb,tg],
+                                      wrf_pos = [wx,wy,wz,wa,wb,wg])
+
+                
+
 
 Testing New Apertures 
 ---------------------------------
@@ -51,7 +77,7 @@ and help reduce the possibility of damaging any part of the system.
 Testing with Simulation 
 +++++++++++++++++++++++++++++++
 
-When using the Meca500 robot, there is a capability to run a simulation mode. More information on the robot itself can be found in :ref:`running-the-robot`.
+When using the Meca500 robot, there is a capability to run a simulation mode. More information on the robot itself can be found in the `Meca500 user manual <https://www.mecademic.com/Documentation/Meca500-R3-User-Manual.pdf>`_.
 It is recommended to first test the robot using the simulation mode on the robot. This is done by:
 
 #. Connect to the robots using the built in web interface in monitoring mode (while the robot is powered on and connected)

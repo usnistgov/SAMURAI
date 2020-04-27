@@ -5,19 +5,20 @@
 
 .. _post-process:
 	
-SAMURAI Post Processing Algorithms
-========================================
-Here we have tools specifically for post processing algorithms like angle of arrival (AoA).
+Utilizing SAMURAI Tools for Post-Processing
+=============================================
+Here we have tools specifically for post processing algorithms like angle of arrival (AoA). 
+There are also some base functions that may help users develop custom algorithms without having to rewrite routines for things such as loading data.
 
 .. toctree::
-   metafile
+   load_the_data
    :maxdepth: 2
    :caption: Contents:
 
 Simple Python Beamforming Example
 -----------------------------------
 A simple analysis of the data is to perform conventional beamforming on the SAMURAI data. This can be done using the 
-example class samurai.analysis.support.SamuraiBeamform.SamuraiBeamform that utilizes tools in other classes and serves
+example :class:`samurai.analysis.support.SamuraiBeamform.SamuraiBeamform` that utilizes tools in other classes and serves
 as an example on how a user could implement custom algorithms with relative ease. The following code is used to perform
 beamforming on SAMURAI data using this class at a single measured frequency (40 GHz in this case).
 
@@ -61,7 +62,7 @@ The previous example utilizes abstracted libraries to perform coventional beamfo
 Custom post processing algorithms can easily be implemented by inheriting from the samurai.analysis.support.SamuraiPostProcess.SamuraiSyntheticApertureAlgorithm class.
 Inheriting from this class provides the flexibility to define custom post processing functions while still providing the convenience
 of tools for data IO, tapering, and plotting. Once the output data has been processed, it can be packed into the 
-samurai.analysis.support.CalculatedSyntheticAperture.CalculatedSyntheticAperture class. This class provides quick tools for tasks like plotting the data in a variety of formats.
+:class:`samurai.analysis.support.CalculatedSyntheticAperture.CalculatedSyntheticAperture` class. This class provides quick tools for tasks like plotting the data in a variety of formats.
 
 Direct Extraction of measured data
 -----------------------------------
@@ -91,14 +92,3 @@ If only measured data is desired (with no other tools), the measured data and po
 With this code we have the raw data that was taken which can then be utilized for any post processing algorithm.
 
 
-Algorithm code
-----------------
-
-.. automodule:: samurai.analysis.support.SamuraiPostProcess
-	:members:
-
-.. automodule:: samurai.analysis.support.SamuraiCalculatedSyntheticAperture
-	:members:
-
-.. automodule:: samurai.analysis.support.SamuraiBeamform
-	:members:

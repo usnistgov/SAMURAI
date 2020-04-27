@@ -38,6 +38,7 @@ class SamuraiXML(ET._ElementTree):
         for k,v in kwargs.items():
             kwargs_out[k] = v
         super().write(fpath,*args,**kwargs_out)
+        return fpath
         
     def tostring(self,*args,**kwargs):
         '''

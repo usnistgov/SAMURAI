@@ -96,14 +96,13 @@ class CalibrateSamurai:
         #now set cal path
         self.ppc.setCalPath(self.in_cal_path)
         if not (self.options['wave_params_flg']): #only set switch terms for wave params
-            self.ppc.setSwitchTerms(self.switch_terms_path)
+            self.ppc.set_switch_terms(self.switch_terms_path)
         #and populate the duts
         self.ppc.setDUTFromList(fnames_abs)
         #now check our checkboxes to see what we want to do
         #self.ppc.convert_to_s2p(convert_to_s2p_flg);
         #then write and run
         print("Running Calibration in "+str(self.out_dir))
-        self.ppc.write()
         self.ppc.run()
         print("Calibration Complete. Updating MetaFile and Moving Data...")
         #update metafile and move data

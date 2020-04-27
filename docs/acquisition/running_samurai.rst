@@ -121,9 +121,5 @@ This is a script that will take a quick sweep and generate beamformed data of a 
 	:language: python 
 	:linenos:
 
-Code 
------------
 
-.. automodule:: samurai.acquisition.SamuraiSystem
-    :members:
 
