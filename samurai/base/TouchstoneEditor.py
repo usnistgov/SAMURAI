@@ -736,6 +736,17 @@ class TouchstoneEditor(pd.DataFrame):
         '''@brief sort each of our parameters by frequency. calls DataFrame.sort_index(**kwargs)'''
         kwargs['inplace'] = kwargs.pop('inplace',True) #Default to true
         return self.sort_index()
+    
+    def ifft(self,window=None):
+        '''
+        @brief calculate the ifft of the data 
+        @todo. Verify the lack of ifftshift here is correct for phases... 
+        @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
+            squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
+            or a callable with input (len(self.raw))
+        @return WaveformParam  
+        '''
+        return ifft(self,window=None)
         
     def crop(self,lo_freq=0,hi_freq=1e60):
         '''
@@ -1262,8 +1273,8 @@ class TestTouchstoneEditor(unittest.TestCase):
         '''@brief Test changing to time domain data'''
         f1 = os.path.join(self.dir_path,self.test_snp_txt)
         s1 = SnpEditor(f1)
-        td_data = ifft(s1) #create by calling ifft
-        td_S21  = ifft(s1.S21)
+        td_data = s1.ifft()
+        td_S21  = s1.S21.ifft()
         self.assertTrue(np.all(td_S21==td_data.S21))
         
             
