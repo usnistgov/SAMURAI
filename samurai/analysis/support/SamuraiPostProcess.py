@@ -100,7 +100,7 @@ class SamuraiSyntheticApertureAlgorithm:
         options['data_meas_num'] = data_meas_num
         for k,v in arg_options.items():
             options[k] = v #add any other arg inputs
-        [s_data,_] = self.metafile.load_data(**options)
+        s_data = self.metafile.load_data(**options)
         self.all_s_parameter_data = s_data
         
     def load_positions_from_file(self,file_path,**arg_options):

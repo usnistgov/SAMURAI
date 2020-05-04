@@ -148,6 +148,7 @@ function [info_struct] = get_info_from_filepath(file_path)
     %num_waves (1 for 'snp' 2 for 'wnp'), and num_ports (e.g. 's2p' has 2)
     info_struct = struct();
     [~,~,ext] = fileparts(file_path);
+    ext = char(ext);
     if length(regexp(ext,'s\d+p')) %then its s parameter
         info_struct.type='snp';
         info_struct.num_waves = 1;
