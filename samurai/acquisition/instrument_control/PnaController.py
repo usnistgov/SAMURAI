@@ -14,7 +14,7 @@ import re
 from itertools import chain
 from collections import OrderedDict
 
-from samurai.acquisition.instrument_control.InstrumentControl import SCPICommandDict, SCPIInstrument
+from samurai.acquisition.instrument_control.InstrumentControl import SCPICommandDict, SCPIInstrument, InstrumentConnectionError
 
 #>>> import visa
 #>>> rm = visa.ResourceManager()
@@ -25,7 +25,7 @@ from samurai.acquisition.instrument_control.InstrumentControl import SCPICommand
 
 import os
 script_path = os.path.dirname(os.path.realpath(__file__))
-command_set_path = os.path.join(script_path,'./command_sets/PNAX_communication_dictionary.json') 
+command_set_path = os.path.join(script_path,'./command_sets/pnax_communication_dictionary.json') 
 
 
 class PnaController(SCPIInstrument):
@@ -45,7 +45,10 @@ class PnaController(SCPIInstrument):
         
         self.is_connected = False
         
-        self.vrm = visa.ResourceManager()
+        try:
+            self.vrm = visa.ResourceManager()
+        except visa.VisaIOError as ve:
+            raise InstrumentConnectionError(str(ve))
         
         if visa_address is not None:
             self.connect(visa_address)
