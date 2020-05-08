@@ -813,15 +813,15 @@ class TouchstoneEditor(pd.DataFrame):
     @raw.setter
     def raw(self,val): self[:] = val
     
-    # properties for getting the data in different ways
+    #some useful properties for different data getting types
+    @property
+    def mag(self): return type(self)(np.real(np.abs(self)),index=self.index,columns=self.columns)
     @property
     def mag_db(self): return 20*np.log10(self.mag)
     @property
-    def mag(self): return np.abs(self)
+    def phase(self): return type(self)(np.angle(self),index=self.index,columns=self.columns)
     @property
-    def phase(self): return np.angle(self)
-    @property
-    def phase_d(self): return np.angle(self)*180/np.pi
+    def phase_d(self): return self.phase*180/np.pi
     
     # check total equality of the data
     def __eq__(self,other): return self.equals(other)

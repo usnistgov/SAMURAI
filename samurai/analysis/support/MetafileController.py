@@ -170,6 +170,16 @@ class MetafileController(SamuraiDict):
         This can also be passed as None. If this is done, a
         OrderedDict will be created from samurai_metaFile acquisition code
         with a blank measurements list
+    @example
+        # Import the file
+        from samurai.analysis.support.MetafileController import MetafileController
+        
+        # Read in the file
+        mymetafile = MetafileController('path/to/metafile.json')
+        
+        # Get the measurement filenames
+        filenames = mymetafile.get_filenames()
+        
     @param[in] arg_options - keyword arguments as follwos
         verify - verify that all measurement paths in the metafile exist (default True)
     '''
@@ -728,7 +738,7 @@ class MetafileController(SamuraiDict):
         
     file_paths = filenames
 
-    def get_filename_list(self,abs_path=False):
+    def get_filenames(self,abs_path=False):
         '''
         @brief get a list of the filenames from the metafile
         @param[in/OPT] abs_path - whether or not to return an absolute path (default False)
@@ -742,6 +752,8 @@ class MetafileController(SamuraiDict):
                 cur_fname = os.path.join(self.wdir,cur_fname)
             fnames.append(cur_fname)
         return fnames
+    
+    get_filename_list = get_filenames
 
     def get_filename(self,meas_num,abs_path=False):
         '''
