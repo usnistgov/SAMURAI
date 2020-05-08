@@ -35,7 +35,7 @@ close(wb)
 single_S21 = meas_data{1}.S21;       
 freqs_ghz  = meas_data{1}.frequency; %in GHz
 fd_fig = figure();
-plot(fd_fig,freqs_ghz,20*log10(abs(single_S21)));
+plot(freqs_ghz,20*log10(abs(single_S21)));
 xlabel('Frequency (GHz)'); ylabel('Magnitude (dB)');
 
 % Now we can generate the time domain version of this
@@ -44,7 +44,7 @@ max_time = 1/mean(diff(freqs));
 time_step = 1/(max(freqs)-min(freqs));
 times_ns = 0:time_step:max_time;
 td_fig = figure();
-plot(td_fig,times_ns,20*log10(abs(td_S21)));
+plot(times_ns,20*log10(abs(td_S21)));
 xlabel('Time (ns)'); ylabel('Magnitude (dB)');
 
 %% We can now perform a basic beamforming example
@@ -77,11 +77,35 @@ beamformed_values = 1/length(x_pos).*sum(...
     ,2);
 
 % Finally, Plot
-bf_fig = plot(az,20*log10(abs(beamformed_values)));
+bf_fig = figure();
+plot(az,20*log10(abs(beamformed_values)));
 xlabel('Azimuth (degrees)'); ylabel('Magnitude (dB)');
 
+%% This can then be repeated for all frequencies in a single angle
+% Calculate all frequencies at boresight
+az1 = 16; el1 = 0;
 
+% Convert to azel to uv. This assumes no change
+% in z_pos between elements
+u1 = cos(deg2rad(el1)).*sin(deg2rad(az1));
+v1 = sin(deg2rad(el1));
 
+% And beamform
+beamformed_1angle = 1/length(x_pos).*sum(...
+    S21_data...
+    .*exp(-1i.*k.*((x_pos.*u1)+(y_pos.*v1)))...
+    ,2);
 
+% Finally, Plot
+bf1fd_fig = figure();
+plot(freqs_ghz,20*log10(abs(beamformed_1angle)));
+xlabel('Frequency (GHz)'); ylabel('Magnitude (dB)');
 
+% And plot the time domain
+bf1td = ifft(beamformed_1angle);
+max_time = 1/mean(diff(freqs));
+time_step = 1/(max(freqs)-min(freqs));
+times_ns = 0:time_step:max_time;
+bf1td_fig = figure();
+plot(times_ns,20*log10(abs(bf1td)));
 

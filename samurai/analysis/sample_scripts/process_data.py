@@ -12,7 +12,6 @@ import plotly.graph_objs as go
 #%% Now lets load in all of our data
 # Path to the measurement Metafile (*.json file)
 metafile_path = r'path/to/metafile.json'
-metafile_path = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2020\2-24-2020\aperture_vertical\metafile.json';
 
 # Load in 'metafile.json'
 mymetafile = MetafileController(metafile_path)
@@ -46,14 +45,14 @@ fd_fig.update_layout(
 fd_fig.show(renderer='svg')
 
 # Now we can generate the time domain version of this
-td_S21 = ifft(single_S21)
+td_S21 = np.fft.ifft(single_S21)
 max_time = 1/np.mean(np.diff(freqs))
 time_step = 1/(max(freqs)-min(freqs))
 times_ns = np.arange(0,max_time,time_step)*1e9
 td_fig = go.Figure()
 td_fig.add_trace(go.Scatter(
     x=times_ns,
-    y=20*np.log10(np.abs(td_S21.to_numpy()))
+    y=20*np.log10(np.abs(td_S21))
     ));
 td_fig.update_layout(
     xaxis_title='Time (ns)',
@@ -104,6 +103,51 @@ bf_fig.update_layout(
     yaxis_title='Magnitude (dB)')
 bf_fig.show(renderer='svg')
 
+#%% This can then be repeated for all frequencies in a single angle
+# Calculate all frequencies at boresight
+az1 = 16; el1 = 0;
+
+# Convert to azel to uv. This assumes no change
+# in z_pos between elements
+u1 = np.cos(np.deg2rad(el1))*np.sin(np.deg2rad(az1))
+v1 = np.sin(np.deg2rad(el1))
+
+# And beamform
+beamformed_1angle = (
+    (1/len(x_pos))*np.sum(
+        S21_data
+        *np.exp(-1j*k*(
+            (x_pos[...,np.newaxis]*u1)+
+            (y_pos[...,np.newaxis]*v1)
+            )
+        )
+    ,axis=0));
+
+# Finally, Plot
+bf1fd_fig = go.Figure();
+bf1fd_fig.add_trace(go.Scatter(
+    x=freqs/1e9,
+    y=20*np.log10(np.abs(beamformed_1angle))
+    ));
+bf1fd_fig.update_layout(
+    xaxis_title='Frequency (GHz)',
+    yaxis_title='Magnitude (dB)')
+bf1fd_fig.show(renderer='svg')
+
+# And plot the time domain
+bf1td = np.fft.ifft(beamformed_1angle)
+max_time = 1/np.mean(np.diff(freqs))
+time_step = 1/(max(freqs)-min(freqs))
+times_ns = np.arange(0,max_time,time_step)*1e9
+bf1td_fig = go.Figure();
+bf1td_fig.add_trace(go.Scatter(
+    x=times_ns,
+    y=20*np.log10(np.abs(bf1td))
+    ));
+bf1td_fig.update_layout(
+    xaxis_title='Frequency (GHz)',
+    yaxis_title='Magnitude (dB)')
+bf1td_fig.show(renderer='svg')
 
 
 
