@@ -5,7 +5,7 @@
 
 .. _metafile_info:
 
-Interacting with the Data
+Data Layout
 ====================================
 
 SAMURAI Measurement Layout
@@ -73,7 +73,7 @@ An example of how :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` loads 
 
 
 
-Example Code for Loading Measurement Data
+Example Processing of the Data
 ------------------------------------------------
 
 The following example codes show how the measurement data and aperture positions can be loaded.
@@ -120,7 +120,7 @@ MATLAB
 
 MATLAB cannot install the SAMURAI library like python and therefore we must begin the code by adding
 the directory of our code to the path. In this case :code:`<samurai-base-path>` refers to the path to the downloaded SAMURAI library directory.
-The MATLAB processing code is then contained in the directory :code:`<samurai-base-path>/samurai/analysis/support`. 
+The MATLAB processing code is then contained in the directory :code:`<samurai-base-path>/samurai/analysis/support` and :code:`<samurai-base-path>/samurai/base`. 
 This directory must be added to the MATLAB path before use.
 
 .. code-block:: MATLAB

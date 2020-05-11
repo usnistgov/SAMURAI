@@ -12,6 +12,7 @@ import plotly.graph_objs as go
 #%% Now lets load in all of our data
 # Path to the measurement Metafile (*.json file)
 metafile_path = r'path/to/metafile.json'
+metafile_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\2-13-2019\aperture_0\metafile.json"
 
 # Load in 'metafile.json'
 mymetafile = MetafileController(metafile_path)
@@ -105,7 +106,7 @@ bf_fig.show(renderer='svg')
 
 #%% This can then be repeated for all frequencies in a single angle
 # Calculate all frequencies at boresight
-az1 = 16; el1 = 0;
+az1 = -28; el1 = 0;
 
 # Convert to azel to uv. This assumes no change
 # in z_pos between elements

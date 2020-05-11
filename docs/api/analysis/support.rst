@@ -19,5 +19,3 @@ MATLAB Support Code
 .. mat:autoclass:: SamuraiMetafile 
     :members:
 
-.. mat:automodule:: samurai.analysis.support 
-.. mat:autofunction:: read_touchstone()

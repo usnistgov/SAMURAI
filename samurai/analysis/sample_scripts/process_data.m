@@ -83,7 +83,7 @@ xlabel('Azimuth (degrees)'); ylabel('Magnitude (dB)');
 
 %% This can then be repeated for all frequencies in a single angle
 % Calculate all frequencies at boresight
-az1 = 16; el1 = 0;
+az1 = -28; el1 = 0;
 
 % Convert to azel to uv. This assumes no change
 % in z_pos between elements

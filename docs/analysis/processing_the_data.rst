@@ -5,6 +5,122 @@
 
 .. _post-process:
 	
+Post-Processing the data
+=================================
+
+Tools
+--------------
+
+Basic tools for loading and working with the data produced by SAMURAI are included in the software.
+
+The software includes both Python and MATLAB versions of :code:`TouchstoneEditor` for handling touchstone (e.g. *.snp) files along with 
+versions of :code:`MetafileController` for handling the measurement metafiles (*.json).
+
+The Python and MATLAB versions of :code:`TouchstoneEditor` can be found at 
+ :mod:`samurai.base.TouchstoneEditor` and :mat:mod:`samurai.base.TouchstoneEditor` respectively.
+ The Python and MATLAB versions of :code:`MetafileController` can be found at 
+ :mod:`samurai.analysis.support.MetafileController` and :mat:mod:`samurai.analysis.support.MetafileController` respectively.
+
+The following sections will cover the usage of these tools for processing the SAMURAI data.
+
+
+Data Processing Example
+---------------------------
+
+Now we can walk through a basic example to post-process SAMURAI data using the tools introduced in the previous section.
+This example will go over importing the library, loading the metafile and data, calculating a time domain response, 
+beamforming the data, and calculating a beamformed time domain response. 
+
+The generated plots use the data from :code:`2-13-2019/aperture_0/` which tested the reflection off a cylinder using a planar aperture. 
+All python plotting is done using the Plot.ly library.
+
+Importing the tools 
+++++++++++++++++++++++++++
+
+The first step that must be taken is to import the provided SAMURAI software tools.
+In Python this is done using the :code:`import` keyword. In MATLAB, the folder of each tool must be added 
+to the path using the :code:`addpath` function.
+
+**Python**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.py
+   :language: python 
+   :lines: 2-10
+   :linenos:
+
+
+**MATLAB**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.m 
+   :language: MATLAB
+   :lines: 2-10
+   :linenos:
+
+.. important:: When using the above MATLAB code, the user MUST set the :code:`samurai_root` variable to the directory where the SAMURAI code lives on their computer.
+
+
+Loading the Metafile and Data
++++++++++++++++++++++++++++++++++++
+
+Once the correct libraries and paths have been added, we can then use :code:`MetafileController` and :code:`TouchstoneEditor` to load in the metafile and measurement data.
+The following code is an example of how this can be performed.
+
+**Python**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.py
+   :language: python 
+   :lines: 12-31
+   :linenos:
+
+
+**MATLAB**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.m 
+   :language: MATLAB
+   :lines: 12-31
+   :linenos:
+
+
+Plotting a Measurement 
++++++++++++++++++++++++++
+
+It is useful to plot the data from a single point in the sweep before beamforming to verify the values are as expected and have been loaded correctly.
+We can then also calculate the time domain version of the measured data using the :code:`ifft` to further verify the data is as expected.
+The following code gives an example of how this can be done. Plotting with python is done using Plot.ly although this could be done with any number
+of plotting packages. 
+
+**Python**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.py
+   :language: python 
+   :lines: 34-61
+   :linenos:
+
+
+**MATLAB**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.m 
+   :language: MATLAB
+   :lines: 33-48
+   :linenos:
+
+
+As an example the frequency and time domain data from the first sweep position on :code:`2-13-2019/aperture_0` look as follows:
+
+**Frequency Domain**
+
+.. raw:: html
+   :file: figs/single_fd.html
+
+**Time Domain**
+
+.. raw:: html
+   :file: figs/single_td.html
+
+
+
+
+
 Utilizing SAMURAI Tools for Post-Processing
 =============================================
 Here we have tools specifically for post processing algorithms like angle of arrival (AoA). 
