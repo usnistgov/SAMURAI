@@ -16,7 +16,7 @@ When first opening the data folder for measurements taken at NIST, the folder wi
 along with a folder called :code:`touchstone`. 
 The :code:`touchstone` sub-directory contains its own metafile (\*.json) along with a copy of all of the nominal measurement results as touchstone files (e.g. \*.snp_binary).
 This folder can also be used when uncertainties are not of interest. 
-If using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` or :mat:func:`read_touchstone`, the data from both directories
+If using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` or :mat:func:`TouchstoneEditor`, the data from both directories
 (and therefore the data when using either metafile) should return the same values when loaded.
 
 The Metafile
@@ -55,7 +55,7 @@ These filepaths can be extracted with :code:`data_paths = metafile.file_paths`.
 
 Each of these paths will point to either a touchstone file (\*.snp,\*.wnp,\*.snp) or a measurement file (\*.meas) which contain uncertainties on the measurements.
 A reference explaining the touchstone format can be found `here <http://na.support.keysight.com/plts/help/WebHelp/FilePrint/SnP_File_Format.htm>`_ .
-Data can be loaded without uncertainties with :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` (:mat:func:`read_touchstone` for MATLAB)
+Data can be loaded without uncertainties with :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` (:mat:func:`TouchstoneEditor` for MATLAB)
 or with uncertainties using :class:`samurai.base.SamuraiMeasurement.SamuraiMeasurement`.
 
 While touchstone data is typically stored in an ASCII format, because of the large amount of data taken with the SAMURAI system, data is sometimes
@@ -67,7 +67,7 @@ stored in a binary format (e.g. \*.s2p_binary). Starting from the beginning of t
 
 .. seealso:: This is the same format described in the help guide of the `NIST Microwave Uncertainty Framework <https://www.nist.gov/services-resources/software/wafer-calibration-software>`_
 
-Both  :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` and :mat:func:`read_touchstone` for MATLAB can handle this with no issue.
+Both  :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` and :mat:func:`TouchstoneEditor` for MATLAB can handle this with no issue.
 An example of how :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` loads binary touchstone data is given below:
 
 
