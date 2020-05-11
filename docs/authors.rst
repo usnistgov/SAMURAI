@@ -44,8 +44,8 @@ Rob Jones
 Info and Picture
 
 
-And more
---------------
+The SAMURAI Team
+--------------------
 
 
 
