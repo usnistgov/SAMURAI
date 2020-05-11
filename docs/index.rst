@@ -58,6 +58,7 @@ Table of Contents
    data/index
    api/index
    faq
+   authors
    :maxdepth: 2
    :caption: Contents:
 
