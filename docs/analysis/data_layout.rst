@@ -71,94 +71,13 @@ Both  :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` and :mat:func:`rea
 An example of how :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` loads binary touchstone data is given below:
 
 
-
-
-Example Processing of the Data
-------------------------------------------------
-
-The following example codes show how the measurement data and aperture positions can be loaded.
-
-.. important:: The user must set the :code:`metafile_path` variable to correctly point to the :code:`metafile.json` file for the data being imported.
-
-Python
-++++++++++++
-
-.. code-block:: python
-
-   '''
-   This example will load in a metafile and get a list of s-parameter data and corresponding aperture positions.
-   It is important that the user correctly set the 'metafile_path' variable.
-   This will also show how to access the S21 data of the parameter and x,y,z coordinates in millimeters of a measurement.
-   '''
-
-   # Lets start by importing our required classes
-   from samurai.analysis.support.MetafileController import MetafileController
-   from samurai.base.TouchstoneEditor import TouchstoneEditor
-   
-   # Provide a path to the metafile. THIS SHOULD BE SET BY THE USER
-   metafile_path = r"./path/to/metafile.json"
-
-   # Load in our metafile object
-   mymetafile = MetafileController(metafile_path)
-
-   # Extract our file paths and our aperture positions
-   positions = mymetafile.positions 
-   file_paths = mymetafile.file_paths
-   data = []
-
-   # Now lets load the data from each file.
-   # This can also be accomplished using 'mymetafile.load_data(verbose=True)'
-   for path in file_paths:
-      data.append(TouchstoneEditor(path))
-
-   # Finally lets get the x,y,z positions and S21 data for each measurement
-   xyz_positions = positions[:,:3] # leave out alpha,beta,gamma rotation
-   s21_data = [d.S[21] for d in data]
-
-MATLAB
-++++++++++++
-
-MATLAB cannot install the SAMURAI library like python and therefore we must begin the code by adding
-the directory of our code to the path. In this case :code:`<samurai-base-path>` refers to the path to the downloaded SAMURAI library directory.
-The MATLAB processing code is then contained in the directory :code:`<samurai-base-path>/samurai/analysis/support` and :code:`<samurai-base-path>/samurai/base`. 
-This directory must be added to the MATLAB path before use.
-
-.. code-block:: MATLAB
-
-   % Lets start by adding our directory to the path
-   samurai_base_path = '<samurai-base-path>'
-   addpath(fullfile(samurai_base_path,'samurai/analysis/support'));
-   
-   % Provide a path to the metafile. THIS SHOULD BE SET BY THE USER
-   metafile_path = './path/to/metafile.json';
-
-   % Load in our metafile object
-   mymetafile = SamuraiMetafile(metafile_path);
-   [wdir,~,~] = fileparts(metafile_path);
-
-   % Extract our file paths and our aperture positions
-   positions = mymetafile.get_location_list();
-   file_paths = mymetafile.get_meas_path_list(); %get relative files
-
-   % Now lets load the data from each file.
-   data = cell(1,length(file_paths));
-   for i=1:length(file_paths)
-      data{i} = read_touchstone(fullfile(wdir,file_paths{i}));
-   end
-
-   % Finally lets get the x,y,z positions and S21 data for each measurement
-   xyz_positions = positions(:,1:3); % leave out alpha,beta,gamma rotation
-   s21_data = cell(1,length(data));
-   for i=1:length(data)
-      s21_data{i} = data{i}.S21;
-   end
-
-
 Working with Touchstone Files
 ------------------------------------------------
 
 This section covers in a bit more detail working with touchstone files using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` in python
-and :mat:func:`read_touchstone` in MATLAB.
+and :mat:func:`TouchstoneEditor` in MATLAB.
+
+.. seealso:: For more in depth information on loading and post-processing SAMURAI data, please see :ref:`post-process`
 
 Python
 +++++++++++
@@ -197,7 +116,7 @@ More information on the pandas DataFrame can be found at the `Pandas DataFrame D
 MATLAB
 +++++++++
 
-In MATLAB, touchstone data is loaded using the :mat:func:`read_touchstone` function. 
+In MATLAB, touchstone data is loaded using the :mat:func:`TouchstoneEditor` function. 
 This function takes a file path and returns a MATLAB table object with all of the loaded data.
 The following code again demonstrates how to access each of the S parameters of a 2 port S-parameter file.
 
@@ -217,7 +136,7 @@ The following code again demonstrates how to access each of the S parameters of 
    s21_complex        = mysnp.S21;
    s22_complex        = mysnp.S22;
 
-Loading external positioning information
+External positioning information
 -----------------------------------------
 
 Later SAMURAI measurements use an Optitrack optical positioning system to provide positoning information on multiple points in the measurement such

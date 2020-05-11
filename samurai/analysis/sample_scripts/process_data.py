@@ -12,7 +12,6 @@ import plotly.graph_objs as go
 #%% Now lets load in all of our data
 # Path to the measurement Metafile (*.json file)
 metafile_path = r'path/to/metafile.json'
-metafile_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\2-13-2019\aperture_0\metafile.json"
 
 # Load in 'metafile.json'
 mymetafile = MetafileController(metafile_path)
@@ -108,6 +107,10 @@ bf_fig.show(renderer='svg')
 # Calculate all frequencies at boresight
 az1 = -28; el1 = 0;
 
+# Calculate K for all frequencies
+lam_all = 299792458/(freqs.to_numpy())
+k_all = (2*np.pi)/lam_all
+
 # Convert to azel to uv. This assumes no change
 # in z_pos between elements
 u1 = np.cos(np.deg2rad(el1))*np.sin(np.deg2rad(az1))
@@ -117,7 +120,7 @@ v1 = np.sin(np.deg2rad(el1))
 beamformed_1angle = (
     (1/len(x_pos))*np.sum(
         S21_data
-        *np.exp(-1j*k*(
+        *np.exp(-1j*k_all*(
             (x_pos[...,np.newaxis]*u1)+
             (y_pos[...,np.newaxis]*v1)
             )

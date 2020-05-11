@@ -13,6 +13,7 @@ Tools for analysis of the data taken by the SAMURAI system are given here.
 .. toctree::
    calibration
    data_layout
-   processing the data
+   processing_the_data
+   other_processing_tools
    :maxdepth: 2
    :caption: Contents:

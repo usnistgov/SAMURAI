@@ -28,6 +28,12 @@ classdef MetafileController < handle
     properties
         data; % Struct loaded from json file
         metafile_dir; % For realitve wdirs
+        v1_to_v2_convert = [0,1,0,0,0,0; ...
+                            0,0,1,0,0,0; ...
+                            1,0,0,0,0,0; ... 
+                            0,0,0,1,0,0; ...
+                            0,0,0,0,0,1; ...
+                            0,0,0,0,1,0 ]
     end
     
     methods
@@ -50,6 +56,8 @@ classdef MetafileController < handle
             %now unpack
             obj.data = metaStruct;
             [obj.metafile_dir,~,~] = fileparts(fpath);
+            %update the data format
+            obj.update_format();
         end
         
         function filenames = get_filenames(obj)
@@ -88,6 +96,32 @@ classdef MetafileController < handle
             %@return A cell array of the external position structs
             ext_pos = {obj.data.measurements.external_position_measurements};
         end
+        
+        function [] = update_format(obj)
+            %@brief Update the format for old measurements. 
+            % This will update the current object and update when loaded
+            if strcmp(obj.data.positioner,'maturo') %check for maturo positioner
+                % then finangle the positions to match the meca
+                for i=1:length(self.data.measurements)  %loop through all measurements
+                    pos = self.data.measurements(i).position;
+                    pos_mm = pos*10; %cm to mm
+                    obj.data.measurements(i).units = 'mm';
+                    obj.data.measurements(i).position = list([pos_mm(4),pos_mm(1),0,0,0,0]);
+                    obj.data.positioner = 'maturo_updated_positions';
+                    obj.data.metafile_version = 2.000001; %we update to version 2 here also
+                end
+            else %otherwise check for other versions with meca
+                if(obj.data.metafile_version<2) %if pre v2, we need to convert
+                    for i=1:length(obj.data.measurements)  %loop through all measurements
+                        pos = obj.data.measurements(i).position;
+                        pos = obj.v1_to_v2_convert*pos;
+                        obj.data.measurements(i).position = pos;
+                        obj.data.metafile_version = 2.000001;
+                    end
+                end
+            end
+        end
+        
     end % methods
 end
         

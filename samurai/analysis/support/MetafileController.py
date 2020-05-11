@@ -25,7 +25,7 @@ from samurai.base.TouchstoneEditor import TouchstoneEditor
 from samurai.base.MUF.MUFResult import MUFResult,set_meas_relative
 from samurai.base.generic import deprecated, ProgressCounter
 from samurai.base.SamuraiPlotter import SamuraiPlotter
-from samurai.acquisition.support.samurai_apertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
+from samurai.acquisition.support.SamuraiApertureBuilder import v1_to_v2_convert #import v1 to v2 conversion matrix
 from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
 from samurai.acquisition.support.SamuraiMetafile import SamuraiMetafile,extract_data_from_raw
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict

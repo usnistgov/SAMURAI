@@ -23,7 +23,7 @@ positions = mymetafile.positions; %in mm
 % Now lets load in all the measurement data
 % These are stored as matlab tables
 meas_data = cell(1,length(fnames));
-wb = waitbar(m/length(fnames),'Loading the data...');
+wb = waitbar(0,'Loading the data...');
 for m=1:length(fnames)
     waitbar(m/length(fnames),wb,'Loading the data...');
     meas_data{m} = TouchstoneEditor(fnames{m});
@@ -40,8 +40,8 @@ xlabel('Frequency (GHz)'); ylabel('Magnitude (dB)');
 
 % Now we can generate the time domain version of this
 td_S21 = ifft(single_S21);
-max_time = 1/mean(diff(freqs));
-time_step = 1/(max(freqs)-min(freqs));
+max_time = 1/mean(diff(freqs_ghz));
+time_step = 1/(max(freqs_ghz)-min(freqs_ghz));
 times_ns = 0:time_step:max_time;
 td_fig = figure();
 plot(times_ns,20*log10(abs(td_S21)));
@@ -52,6 +52,7 @@ xlabel('Time (ns)'); ylabel('Magnitude (dB)');
 x_pos = positions(1,:)./1e3;
 y_pos = positions(2,:)./1e3;
 z_pos = positions(3,:)./1e3;
+
 % and S21 data for each element
 S21_data = cell2mat(cellfun(@(c) c.S21,meas_data ...
     ,'UniformOutput',false));
@@ -90,10 +91,14 @@ az1 = -28; el1 = 0;
 u1 = cos(deg2rad(el1)).*sin(deg2rad(az1));
 v1 = sin(deg2rad(el1));
 
+% Calculate K for all frequencies
+lambda_all = 299792458./(freqs_ghz*1e9);
+k_all = (2*pi)./lambda_all;
+
 % And beamform
 beamformed_1angle = 1/length(x_pos).*sum(...
     S21_data...
-    .*exp(-1i.*k.*((x_pos.*u1)+(y_pos.*v1)))...
+    .*exp(-1i.*k_all.*((x_pos.*u1)+(y_pos.*v1)))...
     ,2);
 
 % Finally, Plot
@@ -103,8 +108,8 @@ xlabel('Frequency (GHz)'); ylabel('Magnitude (dB)');
 
 % And plot the time domain
 bf1td = ifft(beamformed_1angle);
-max_time = 1/mean(diff(freqs));
-time_step = 1/(max(freqs)-min(freqs));
+max_time = 1/mean(diff(freqs_ghz));
+time_step = 1/(max(freqs_ghz)-min(freqs_ghz));
 times_ns = 0:time_step:max_time;
 bf1td_fig = figure();
 plot(times_ns,20*log10(abs(bf1td)));

@@ -17,9 +17,9 @@ The software includes both Python and MATLAB versions of :code:`TouchstoneEditor
 versions of :code:`MetafileController` for handling the measurement metafiles (*.json).
 
 The Python and MATLAB versions of :code:`TouchstoneEditor` can be found at 
- :mod:`samurai.base.TouchstoneEditor` and :mat:mod:`samurai.base.TouchstoneEditor` respectively.
- The Python and MATLAB versions of :code:`MetafileController` can be found at 
- :mod:`samurai.analysis.support.MetafileController` and :mat:mod:`samurai.analysis.support.MetafileController` respectively.
+:mod:`samurai.base.TouchstoneEditor` and :mat:mod:`samurai.base.TouchstoneEditor` respectively.
+The Python and MATLAB versions of :code:`MetafileController` can be found at 
+:mod:`samurai.analysis.support.MetafileController` and :mat:mod:`samurai.analysis.support.MetafileController` respectively.
 
 The following sections will cover the usage of these tools for processing the SAMURAI data.
 
@@ -56,7 +56,7 @@ to the path using the :code:`addpath` function.
    :lines: 2-10
    :linenos:
 
-.. important:: When using the above MATLAB code, the user MUST set the :code:`samurai_root` variable to the directory where the SAMURAI code lives on their computer.
+.. important:: When using the above MATLAB code, the user MUST set the :code:`samurai_root` variable to the directory where the SAMURAI code lives on their computer. For Python, the package must be installed (see :ref:`installation`).
 
 
 Loading the Metafile and Data
@@ -93,7 +93,7 @@ of plotting packages.
 
 .. literalinclude:: /../samurai/analysis/sample_scripts/process_data.py
    :language: python 
-   :lines: 34-61
+   :lines: 33-60
    :linenos:
 
 
@@ -118,93 +118,96 @@ As an example the frequency and time domain data from the first sweep position o
    :file: figs/single_td.html
 
 
+Beamforming the Data
++++++++++++++++++++++++++
 
+With all of the measurement data loaded, we can perform conventional beamforming on the data to get angular information.
+A simplified beamforming expression for a planar array is given as
 
+.. math::
+   :nowrap:
 
-Utilizing SAMURAI Tools for Post-Processing
-=============================================
-Here we have tools specifically for post processing algorithms like angle of arrival (AoA). 
-There are also some base functions that may help users develop custom algorithms without having to rewrite routines for things such as loading data.
+   \begin{align}
+   S_{bf} = \frac{1}{N}\sum_{n=0}^{N} S_n e^{-jk(x_nu+y_nv)}
+   \end{align}
 
-.. toctree::
-   load_the_data
-   :maxdepth: 2
-   :caption: Contents:
+where :math:`N` is the number of sweep positions, :math:`k` is our wavenumber at the beamformed frequency, :math:`x_n` and :math:`y_n` are the x and y location of the positions in meters,
+:math:`S_n` is the measured value at each position, and :math:`u` and :math:`v` are given as
 
-Simple Python Beamforming Example
------------------------------------
-A simple analysis of the data is to perform conventional beamforming on the SAMURAI data. This can be done using the 
-example :class:`samurai.analysis.support.SamuraiBeamform.SamuraiBeamform` that utilizes tools in other classes and serves
-as an example on how a user could implement custom algorithms with relative ease. The following code is used to perform
-beamforming on SAMURAI data using this class at a single measured frequency (40 GHz in this case).
-
-.. code-block:: python 
-
-   #import numpy
-   import numpy as np
-
-   #import the beamforming class
-   from samurai.analysis.support.SamuraiBeamform import SamuraiBeamform
+.. math::
+   :nowrap:
    
-   #provide a path to the metafile 
-   metafile_path = "./path/to/metafile.json"
+   \begin{align}
+   u &= \cos(\phi)\sin(\theta)\\
+   v &= \sin(\phi)
+   \end{align}
 
-   #create our beamforming class 
-   my_samurai_beamform = SamuraiBeamform(metafile_path,verbose=True)
+.
+An azimuthal cut at 0 degrees elevation can then be generated with the following code.
 
-   #add a hamming window to reduce sidelobes
-   my_samurai_beamform.set_cosine_sum_window_by_name('hamming')
-   
-   #perform beamforming
-   calc_synthetic_aperture = my_samurai_beamform.beamforming_farfield_azel(
-                                   np.arange(-90,90,1),np.arange(-90,90,1),freq_list=[40e9])
-   
-   #plot our data in 3D
-   myplot = calc_synthetic_aperture.plot_3d()
+**Python**
 
-   #show the plot in a browser
-   myplot.show(renderer='browser')
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.py
+   :language: python 
+   :lines: 62-104
+   :linenos:
 
-`myplot` then produces the following 3D representation of measured data at the synthetic aperture:
+
+**MATLAB**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.m 
+   :language: MATLAB
+   :lines: 50-82
+   :linenos:
+
+Plotting the data again for :code:`2-13-2019/aperture_0` we can plot the result as magntiude vs azimuth angle in degrees at the first frequency point.
+
+**Beamformed Result**
 
 .. raw:: html
-   :file: figs/3d_cup_test.html
-
-.. note:: This plot is produced from the 8-12-2019 dataset in a highly multipath utility plant.
-
-Making Custom algorithms
-------------------------------------
-The previous example utilizes abstracted libraries to perform coventional beamforming.
-Custom post processing algorithms can easily be implemented by inheriting from the samurai.analysis.support.SamuraiPostProcess.SamuraiSyntheticApertureAlgorithm class.
-Inheriting from this class provides the flexibility to define custom post processing functions while still providing the convenience
-of tools for data IO, tapering, and plotting. Once the output data has been processed, it can be packed into the 
-:class:`samurai.analysis.support.CalculatedSyntheticAperture.CalculatedSyntheticAperture` class. This class provides quick tools for tasks like plotting the data in a variety of formats.
-
-Direct Extraction of measured data
------------------------------------
-If only measured data is desired (with no other tools), the measured data and positions of the synthetic aperture can be extracted using the following code:
-
-.. code-block:: python
-   
-   #import the controller class
-   from samurai.analysis.support.MetaFileController import MetaFileController
-   
-   #provide a path to the metafile 
-   metafile_path = "./path/to/metafile.json"
-
-   #load the metafile into an object
-   mymetafile = MetaFileController(metafile_path)
-
-   #load the S parameter data from the metafile 
-   data = mymetafile.load_data(verbose=True)
-
-   #extract S21 to data block
-   block_data = np.array([d.S[21] for d in data])
-
-   #get array position data corresponding to each set of values in the block_data list
-   position_data = mymetafile.positions
-   
-
-With this code we have the raw data that was taken which can then be utilized for any post processing algorithm.
+   :file: figs/beamformed.html
 
 
+Response at One Angle
+++++++++++++++++++++++++++++
+
+In the last section we beamformed our data at a single frequency. We can also beamform across all frequencies at a single angle. 
+The resulting data can provide the frequency response of the channel from a given direction. 
+The time domain impulse response can then also be calculated from each angular frequency response.
+Adding onto our previous code snippets, this can be performed using the code below.
+
+**Python**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.py
+   :language: python 
+   :lines: 106-154
+   :linenos:
+
+
+**MATLAB**
+
+.. literalinclude:: /../samurai/analysis/sample_scripts/process_data.m 
+   :language: MATLAB
+   :lines: 85-115
+   :linenos:
+
+Using the data from :code:`2-13-2019/aperture_0` to beamform all frequencies at -28 degrees azimuth and 0 degrees elevation we get:
+
+**Frequency Domain**
+
+.. raw:: html
+   :file: figs/beamformed_fd.html
+
+**Time Domain**
+
+.. raw:: html
+   :file: figs/beamformed_td.html
+
+
+Data Processing Example Downloads
+---------------------------------------
+
+The above scripts can be downloaded in their entirety from the links below 
+
+- :download:`Python Example </../samurai/analysis/sample_scripts/process_data.py>`
+- :download:`MATLAB Example </../samurai/analysis/sample_scripts/process_data.m>`
