@@ -3,10 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-2018
-========
+2020
+=======
 
 Optical Table Measurements
 -----------------------------------
 
-- :data_root:`2018/`
+- :data_root:`/`
+
+None are used yet
