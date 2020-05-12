@@ -53,14 +53,22 @@ Table of Contents
 
 .. toctree::
    quick_start/index
+   :maxdepth: 2
+   :caption: Quick Start:
+
+.. toctree::
    acquisition/index
    analysis/index
    data/index
+   :maxdepth: 2
+   :caption: Contents:
+
+.. toctree::
    api/index
    faq
    authors
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Other Information:
 
 Copyright Notice
 -----------------------
