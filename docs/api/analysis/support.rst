@@ -16,6 +16,6 @@ MATLAB Support Code
 ====================
 
 .. mat:automodule:: samurai.analysis.support 
-.. mat:autoclass:: SamuraiMetafile 
+.. mat:autoclass:: MetafileController
     :members:
 

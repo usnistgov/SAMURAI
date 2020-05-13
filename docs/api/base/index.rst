@@ -27,6 +27,6 @@ Python Modules
 
 
 .. mat:automodule:: samurai.base
-.. mat:autofunction:: TouchstoneEditor()
+.. mat:autofunction:: TouchstoneEditor
 
 =======
