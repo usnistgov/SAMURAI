@@ -12,7 +12,7 @@ The provided software package contains Python modules to collect, calibrate, and
 Minor MATLAB functionality has also been included for loading in measured data.
 
 .. important:: If data is not being collected, but previously collected data is being processed, 
-         please skip directly to :ref:`metafile_info` in the :ref:`SAMURAI Data Analysis` section **after** 
+         please skip directly to :ref:`metafile_info` and :ref:`post-process` in the :ref:`analysis` section **after** 
          reviewing the :ref:`installation` section.
 
 .. toctree::

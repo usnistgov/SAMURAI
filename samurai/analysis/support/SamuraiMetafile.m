@@ -16,7 +16,9 @@ classdef SamuraiMetafile < handle
     %    filenames = mymetafile.get_meas_path_list()
     %
     %@return An object of type SamuraiMetafile to extract data from the metafile.
-    
+    %
+    %@note --- DEPRECATED --- This file has been deprecated. Please use
+    % MetafileController.m 
     properties
         %Just store all of the json files. Getters will decode
         json_data; %direct data structure from json

@@ -25,3 +25,8 @@ Python Modules
 .. automodule:: samurai.base.SamuraiMatlab
 	:members:
 
+
+.. mat:automodule:: samurai.base
+.. mat:autofunction:: TouchstoneEditor
+
+=======
