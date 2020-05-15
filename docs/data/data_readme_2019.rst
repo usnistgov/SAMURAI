@@ -30,6 +30,19 @@ Information for Measurements Conducted on :code:`2-13-2019`
 
 ----
 
+Information for Measurements Conducted on :code:`3/1/2019`
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+measured two 4" cylinders (ducting) with one on bislide at different locations
+
+- :data_root:`2019/3-1-2019/`
+
+.. include:: data_metafile_info/3-1-2019.auto.rst
+
+|
+|
+
+----
+
 Information for Measurements Conducted on :code:`7-8-2019`
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

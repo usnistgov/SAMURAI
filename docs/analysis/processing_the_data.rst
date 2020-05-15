@@ -122,7 +122,7 @@ Beamforming the Data
 +++++++++++++++++++++++++
 
 With all of the measurement data loaded, we can perform conventional beamforming on the data to get angular information.
-A simplified beamforming expression for a planar array is given as
+A simplified beamforming expression for a planar array is given by [1] and [2] as
 
 .. math::
    :nowrap:
@@ -138,8 +138,8 @@ where :math:`N` is the number of sweep positions, :math:`k` is our wavenumber at
    :nowrap:
    
    \begin{align}
-   u &= \cos(\phi)\sin(\theta)\\
-   v &= \sin(\phi)
+   u &= \sin(\theta)\cos(\phi)\\
+   v &= \sin(\theta)\sin(\phi)
    \end{align}
 
 .
@@ -211,3 +211,11 @@ The above scripts can be downloaded in their entirety from the links below
 
 - :download:`Python Example </../samurai/analysis/sample_scripts/process_data.py>`
 - :download:`MATLAB Example </../samurai/analysis/sample_scripts/process_data.m>`
+
+
+.. rubric:: References
+
+[1] R. L. Haupt, Antenna Arrays: A Computational Approach. Hoboken, NJ, USA: John Wiley & Sons, Inc., 2010.
+
+[2] C. A. Balanis, Antenna Theory: Analysis and Design, 4 edition. Hoboken, New Jersey: Wiley, 2016.
+
