@@ -138,11 +138,11 @@ where :math:`N` is the number of sweep positions, :math:`k` is our wavenumber at
    :nowrap:
    
    \begin{align}
-   u &= \sin(\theta)\cos(\phi)\\
-   v &= \sin(\theta)\sin(\phi)
+   u &= \sin(az)\cos(el)\\
+   v &= \sin(el)
    \end{align}
 
-.
+as in [3].
 An azimuthal cut at 0 degrees elevation can then be generated with the following code.
 
 **Python**
@@ -218,4 +218,7 @@ The above scripts can be downloaded in their entirety from the links below
 [1] R. L. Haupt, Antenna Arrays: A Computational Approach. Hoboken, NJ, USA: John Wiley & Sons, Inc., 2010.
 
 [2] C. A. Balanis, Antenna Theory: Analysis and Design, 4 edition. Hoboken, New Jersey: Wiley, 2016.
+
+[3] G. F. Masters and S. F. Gregson, “Coordinate System Plotting for Antenna Measurements,” p. 10.
+
 

@@ -68,8 +68,8 @@ el = zeros(size(az));
 
 % Convert to azel to uv. This assumes no change
 % in z_pos between elements
-u = cos(deg2rad(el)).*sin(deg2rad(az));
-v = sin(deg2rad(el));
+u = sin(deg2rad(az)).*cos(deg2rad(el));
+v = sin(deg2rad(el))
 
 % And beamform
 beamformed_values = 1/length(x_pos).*sum(...
