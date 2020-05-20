@@ -77,16 +77,16 @@ Installation for MATLAB Users
 If only MATLAB is being used, the code simply needs to be downloaded. 
 All MATLAB code then must contain the :code:`addpath('<code-directory>')` where :code:`<code-directory>` 
 is the path to the directory of the code being used.
-For example, if the software is downloaded to :code:`\code\samurai\` a script using the :code:`read_touchstone()` function to load in a \*.s2p file
+For example, if the software is downloaded to :code:`\code\samurai\` a script using the :code:`TouchstoneEditor` function to load in a \*.s2p file
 must have something like the following.
 
 .. code-block:: MATLAB 
 
     % Set the paths to our directories 
     code_install_dir = '\code\samurai';
-    function_dir = fullfile(code_install_dir,'samurai\analysis\support');
+    function_dir = fullfile(code_install_dir,'samurai\base');
 
     % Now add the directory to the path
     addpath(function_dir)
 
-    % Now the function 'read_touchstone()' can be used
+    % Now the function 'TouchstoneEditor()' can be used
