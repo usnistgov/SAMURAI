@@ -185,7 +185,7 @@ class SamuraiSystem():
                 #let positioner settle
                 time.sleep(options['settling_time']) 
                 #get positions from external measurement if available
-                meas_dict_data = None
+                meas_dict_data = {}
                 if options['external_position_measurements'] is not None:
                     ext_pos = my_ext_pos.get_position_data(options['external_position_measurements'],**arg_options)
                     meas_dict_data = {'external_position_measurements':ext_pos}
