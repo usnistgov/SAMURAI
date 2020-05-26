@@ -428,7 +428,7 @@ class SamuraiSyntheticApertureAlgorithm:
         #el = np.deg2rad(el.reshape((-1)))
         #get and center our positions
         pos = self.get_positions('m')[:,0:3] # positions 4,5,6 are rotations only get xyz
-        pos -= pos.mean(axis=0) #center around mean values
+        #pos -= pos.mean(axis=0) #center around mean values
         
         #now calculate our steering vector values
         k_vecs = get_k_vectors(az_u,el_v,coord,**arg_options)
@@ -603,8 +603,8 @@ class SamuraiSyntheticApertureAlgorithm:
 def to_azel(az_u,el_v,coord,replace_val = np.nan):
     '''
     @brief change a provided coordinate system ('azel' or 'uv') to azel
-    @param[in] az_u list of azimuth or u values
-    @param[in] el_v list of azimuth or v values
+    @param[in] az_u list of azimuth (radians) or u values
+    @param[in] el_v list of azimuth (radians) or v values
     @param[in] coord - what coordinate system our input values are
     @param[in/OPT] replace_val - value to replace uv outside of radius 1 with (default is nan)
     @return lists of [azimuth,elevation] values
@@ -618,6 +618,22 @@ def to_azel(az_u,el_v,coord,replace_val = np.nan):
         el_v[l1_vals] = np.nan
         azimuth = np.rad2deg(np.arctan2(az_u,np.sqrt(1-az_u**2-el_v**2)))
         elevation = np.rad2deg(np.arcsin(el_v))
+    return np.array(azimuth),np.array(elevation)
+
+def to_uv(az_u,el_v,coord,replace_val = np.nan):
+    '''
+    @brief change a provided coordinate system ('azel' or 'uv') to uv
+    @param[in] az_u list of azimuth (radians) or u values
+    @param[in] el_v list of azimuth (radians) or v values
+    @param[in] coord - what coordinate system our input values are
+    @param[in/OPT] replace_val - value to replace uv outside of radius 1 with (default is nan)
+    @return lists of [azimuth,elevation] values
+    '''
+    if(coord=='azel'):
+        u = np.cos(el_v)*np.sin(az_u)
+        v = np.sin(el_v)
+    elif(coord=='uv'): 
+        u = az_u; v = el_v
     return np.array(azimuth),np.array(elevation)
  
 def get_k_vectors(az_u,el_v,coord='azel',**arg_options):

@@ -166,6 +166,8 @@ def split_parameters(meas,split,**kwargs):
         out_paths = [ed.write(options['out_path'].format(i)) for i,ed in enumerate(out_editors)]
         return out_paths
     
+#%% some transformation functions (ifft, t params, etc)
+    
 def ifft(data,window=None):
     '''
     @brief calculate the time domain data
@@ -197,6 +199,54 @@ def ifft(data,window=None):
          myw = WaveformParam(index=times)
     myw[:] = np.reshape(ifft_vals,tuple([len(ifft_vals)]+[-1]*(np.ndim(myw)-1)))
     return myw
+
+def sparams2tparams(sparam):
+    '''
+    @brief Convert S-parameters to T-parameters
+    @param[in] sparam - SnpEditor object to convert to scattering transfer parameters
+    @note This only works for 2 port networks
+    @cite W. F. Egan, Practical RF system design. New York : Hoboken, N.J: IEEE ; Wiley-Interscience, 2003. p. 14
+    @return TransferEditor filled with T-parameters
+    '''
+    tparam = TransferEditor([2,sparam.freq_list]) # initialize
+    tparam.T11[:] = 1/sparam.S21.to_numpy()
+    tparam.T12[:] = -(sparam.S22/sparam.S21).to_numpy()
+    tparam.T21[:] = (sparam.S11/sparam.S21).to_numpy()
+    tparam.T22[:] = (sparam.S12-(sparam.S11*sparam.S22/sparam.S21)).to_numpy()
+    return tparam
+
+def tparams2sparams(tparam):
+    '''
+    @brief Convert S-parameters to T-parameters
+    @param[in] tparam - TransferEditor object to convert to scattering transfer parameters
+    @note This only works for 2 port networks
+    @cite W. F. Egan, Practical RF system design. New York : Hoboken, N.J: IEEE ; Wiley-Interscience, 2003. p. 14
+    @return SnpEditor filled with S-parameters
+    '''
+    sparam = SnpEditor([2,sparam.freq_list]) # initialize
+    sparam.S11[:] = (tparam.T21/tparam.T11).to_numpy()
+    sparam.S12[:] = ((tparam.T22-(tparam.T12*tparam.T21/tparam.T11))).to_numpy()
+    sparam.S21[:] = (1/tparam.T11).to_numpy()
+    sparam.S22[:] = -(tparam.T12/tparam.T11).to_numpy()
+    return sparam
+
+def cascade(*args):
+    '''
+    @brief cascade any number of 2 port s or t parameters
+    @param[in] args - parameters to cascade (2 port SnpEditor or TransferEditor)
+    @note SnpEditors will be converted to TransferParameters
+    @return SnpEditor if all inputs are SnpEditors, otherwise TransferEditor
+    '''
+    # convert to t params if necessary
+    all_snp_flag = all([type(arg)==SnpEditor for arg in args])
+    tparams = []
+    for arg in args:
+        if type(arg) is SnpEditor:
+            arg = sparams2tparams(arg)
+        tparams.append(arg)
+        
+    # now lets cascade them 
+    
 
 
 #%% Parsing for files with data on multiple lines
@@ -376,7 +426,7 @@ class TouchstoneEditor(pd.DataFrame):
          option_keys = ['header'      ,'comments'                     ,'read_header',
                         'waves'  ,'no_load','default_extension','param_class']
          option_vals = [DEFAULT_HEADER,copy.deepcopy(DEFAULT_COMMENTS),True,
-                        ['A','B'],False    ,'tnp'              ,TouchstoneParam]
+                        ['A','B'],False    ,'touchstone'              ,TouchstoneParam]
          self.options = {}
          for key,val in zip(option_keys,option_vals): #extract our options
              self.options[key] = kwargs.pop(key,val) #default value
@@ -873,7 +923,21 @@ class SnpEditor(TouchstoneEditor):
            return  np.array([wdk[0],wdk[2],wdk[1],wdk[3]])
        else:
            return super()._gen_dict_keys() #otherwise use the generic
-       
+
+class TransferEditor(SnpEditor):
+    '''
+    @brief class for Scattering Transfer parameters (t-parameters)
+    @note this is the same as SnpEditor, but with 'T' waves and \*.snp extension
+    '''
+    def __init__(self,*args,**arg_options):
+        options = {}
+        options['waves'] = ['T'] #do s parameters
+        options['default_extension'] = 'tnp'
+        options['param_class'] = TransferParam
+        for k,v in arg_options.items():
+            options[k] = v
+        super().__init__(*args,**options)
+
 class WaveformEditor(SnpEditor):
     '''
     @brief class to read *.waveform classes that the MUF puts out. This can also be multi-port waveforms
@@ -1062,6 +1126,7 @@ class TouchstoneParam(pd.Series):
 #just for naming
 class WnpParam(TouchstoneParam): pass
 class SnpParam(TouchstoneParam): pass
+class TransferParam(SnpParam):pass
 class WaveformParam(TouchstoneParam):
     '''@brief parameter for waveorm files'''
     @property
