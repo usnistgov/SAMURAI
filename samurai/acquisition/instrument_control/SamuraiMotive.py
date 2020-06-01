@@ -224,7 +224,7 @@ class MotiveInterface(Instrument):
         rbd = self._get_rigid_body_data(name,**arg_options) #first get the rigid body locations
         #then get the marker offsets
         offsets = self.connection.rigid_body_descriptions[name]['marker_offsets']
-        pos_list = np.array(rbd[0])+np.array(offsets)
+        pos_list = np.array(rbd[0])+np.array(offsets)*1e3
         ret_vals = [[pval,[np.nan]] for pval in pos_list]
         #now shape this correctly
         return ret_vals

@@ -40,7 +40,10 @@ class Instrument(SamuraiDict):
         '''
         self['command_dictionary_path'] = command_dict_path #save for writing out
         if command_dict_path is not None:
-            self.command_dict = InstrumentCommandDict(command_dict_path)
+            try:#raise connection error if file not found
+                self.command_dict = InstrumentCommandDict(command_dict_path)
+            except FileNotFoundError as fe:
+                raise InstrumentConnectionError(str(fe))
         else:
             self.command_dict = None
           
@@ -75,7 +78,8 @@ class Instrument(SamuraiDict):
         @brief internal function to connect to device. This prevents from requiring
             the connection to have self.connection.connect() to run self.connect()  
         '''
-        self.connection.disconnect(address)
+        if self.connection is not None:
+            self.connection.disconnect(address)
             
     def read(self,cast=False,**kwargs):
         '''

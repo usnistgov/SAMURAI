@@ -25,7 +25,9 @@ def magphase2complex(mag,phase):
     '''
     real = mag*np.cos(phase)
     imag = mag*np.sin(phase)
-    return real+1j*imag
+    complex_out = np.array(real,dtype=np.cdouble)
+    complex_out += 1j*imag
+    return complex_out
 
 def get_name_from_path(path):
     '''
@@ -70,11 +72,6 @@ def count_lines_in_file(filePointer,comments='#'):
             cnt=cnt+1
     filePointer.seek(0)
     return cnt
-
-
-
-
-
 
 
 #%% Some function decorators for deprecation
@@ -210,6 +207,32 @@ def floor_arb(value,multiple):
     ndigs = math.ceil(-1*math.log10(multiple))
     return round(multiple*math.floor(value/multiple),ndigits=ndigs)
 
+#%% running subprocesses
+import subprocess    
+
+def subprocess_generator(cmd):
+    '''
+    @brief get a generator to get the output running a subprocess from the command line
+    @cite https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
+    @example
+        command = 'dir'
+        sp_gen = subprocess_generator(command)
+        for out_line in exe_generator:
+            print(out_line) 
+    '''
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        stdout_line = stdout_line.strip() #remove trailing whitespaces and newlines
+        if stdout_line=='':
+            continue #dont do anything
+        else:
+            yield stdout_line #otherwise this value we want
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd)     
+
+
 #%% Some useful counter classes
 class ValueCounter:
     '''
@@ -253,7 +276,7 @@ class ValueCounter:
             cur_value = self.value_list[self.i]
         else:
             cur_value = value
-        if (self.i+1)%self.options['update_period']==0:
+        if (self.i)%self.options['update_period']==0:
             backspace_str = "\b"*self.prev_str_len #remove the old values
             cur_string = self.string_value.format(cur_value)
             print(backspace_str+cur_string,end='')

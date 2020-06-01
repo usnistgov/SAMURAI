@@ -6,12 +6,12 @@
 .. _samurai_data:
 
 ##############################
-SAMURAI Data Information
+Data Information
 ##############################
 
 Here we have information on each dataset stored at - :data_root:`./` measured using the SAMURAI system at the National Institute of Standards and Technology.
 
-For examples on utilizing the samurai data please see the :ref:`SAMURAI Data Analysis` section.
+For examples on utilizing the samurai data please see the :ref:`analysis` section.
 
 .. toctree::
    data_readme_2020

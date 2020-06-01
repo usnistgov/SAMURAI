@@ -19,7 +19,7 @@ import os
 from samurai.analysis.support.MetaFileController import MetaFileController as mfc
 from samurai.analysis.support.MetaFileController import set_metafile_meas_relative
 #from samurai.analysis.support.metaFileController import update_wdir
-from samurai.analysis.support.MUF.PostProcPy import PostProcPy as pppy
+from samurai.base.MUF.PostProcPy import PostProcPy as pppy
 from samurai.base.generic import deprecated
 from samurai.analysis.support.MetaFileController import copy_touchstone_from_muf
 
@@ -30,9 +30,13 @@ from samurai.analysis.support.MetaFileController import copy_touchstone_from_muf
 from shutil import copy
 
 #default paths
-default_pp_cal_template     = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template.post')
-default_pp_cal_template_wnp = os.path.join(os.path.dirname(os.path.abspath(__file__)),'templates/cal_template_wave_param.post')
+file_dir = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_PP_CAL_TEMPLATE     = os.path.join(file_dir,'templates/cal_template.post')
+DEFAULT_PP_CAL_TEMPLATE_WNP = os.path.join(file_dir,'templates/cal_template_wave_param.post')
 #this default is for s2p_files not w2p calibration (theyre different)
+
+# some other defalt templates
+CAL_TEMPLATE_100MC       = os.path.join(file_dir,'templates/cal_template_100mc.post')
 
 class CalibrateSamurai:
     
@@ -45,6 +49,8 @@ class CalibrateSamurai:
         @param[in] metaFile - path to metafile of measurement to calibrate
         @param[in] out_dir  - output directory to place the calibrated measurements
         @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
+        @param[in/OPT] gthru_file_path - path to gthru file (switch terms)
+        @param[in/OPT] post_proc_template_override - path to a template to override defaults.
         @param[in/OPT] kwargs - keyword arguments for the class options. these are also forwarded to PostProcPy
         '''
         #options dictionaruy
@@ -61,10 +67,10 @@ class CalibrateSamurai:
         #at this point we will have .s#p,.s#p_binary, .w#p, or .w#p_binary
         if(meas_ext[1]=='w'):
             self.options['wave_params_flg'] = True
-            self.post_proc_template = default_pp_cal_template_wnp
+            self.post_proc_template = DEFAULT_PP_CAL_TEMPLATE_WNP
         elif(meas_ext[1]=='s'):
             self.options['wave_params_flg'] = False
-            self.post_proc_template = default_pp_cal_template
+            self.post_proc_template = DEFAULT_PP_CAL_TEMPLATE
         else:
             raise IOError("bad extension please check the file extensions start with .s or .w") #<@todo replace with real exception
         if post_proc_template_override:
@@ -93,14 +99,13 @@ class CalibrateSamurai:
         #now set cal path
         self.ppc.setCalPath(self.in_cal_path)
         if not (self.options['wave_params_flg']): #only set switch terms for wave params
-            self.ppc.setSwitchTerms(self.switch_terms_path)
+            self.ppc.set_switch_terms(self.switch_terms_path)
         #and populate the duts
         self.ppc.setDUTFromList(fnames_abs)
         #now check our checkboxes to see what we want to do
         #self.ppc.convert_to_s2p(convert_to_s2p_flg);
         #then write and run
         print("Running Calibration in "+str(self.out_dir))
-        self.ppc.write()
         self.ppc.run()
         print("Calibration Complete. Updating MetaFile and Moving Data...")
         #update metafile and move data

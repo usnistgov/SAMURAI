@@ -5,7 +5,7 @@ Created on Fri Mar 22 15:41:34 2019
 @author: ajw5
 """
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
-from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k
+from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k,to_uv
 from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector_from_partial_k
 from samurai.analysis.support.SamuraiPostProcess import vector_mult_complex,vector_div_complex
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
@@ -17,24 +17,21 @@ import six #backward compatability
 
 class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
     '''
-    @brief samurai synthetic aperture using beamforming
+    @brief  Class to perform beamforming on SAMURAI data
+    @param[in] metafile_path - metafile if we want to load one now
+    @param[in/OPT] arg_options - keyword arguments as follows. Also passed to inherited class so look at those options
+        verbose         - whether or not to be verbose (default False)
+        antenna_pattern - AntennaPattern Class parameter to include (default None)
+        measured_values - are we using measurements, or simulated data (default True)
+        load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
+        data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
+        data_meas_num   - which measurement of monte_carlo or perturbed to use
     '''
     def __init__(self,metafile_path=None,**arg_options):
-        '''
-        @brief initilization for class. We can load our metafile here or not
-            This inherits from a generic SamuraiPostProcess class providing easy access to the data
-        @param[in] metafile_path - metafile if we want to load one now
-        @param[in/OPT] arg_options - keyword arguments as follows. Also passed to inherited class so look at those options
-            verbose         - whether or not to be verbose (default False)
-            antenna_pattern - AntennaPattern Class parameter to include (default None)
-            measured_values - are we using measurements, or simulated data (default True)
-            load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
-            data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
-            data_meas_num   - which measurement of monte_carlo or perturbed to use
-        '''
+        '''@brief Constructor for class. We can load our metafile here or not'''
         super().__init__(metafile_path,**arg_options)
     
-    def beamforming_farfield_azel(self,az_vals,el_vals,freq_list='all',**arg_options):
+    def beamform_azel(self,az_vals,el_vals,freq_list='all',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in azimuth elevation
             All locations will be pulled from the metafile positions
@@ -51,9 +48,9 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         #make the meshgrid
         [AZ,EL] = np.meshgrid(az_vals,el_vals)
         
-        return self.beamforming_farfield(AZ,EL,freq_list=freq_list,coord='azel',**arg_options)
+        return self.beamform(AZ,EL,freq_list=freq_list,coord='azel',**arg_options)
         
-    def beamforming_farfield_uv(self,u_vals,v_vals,freq_list='all',**arg_options):
+    def beamform_uv(self,u_vals,v_vals,freq_list='all',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in uv
             All locations will be pulled from the metafile positions
@@ -75,10 +72,10 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         U[l1vals] = np.nan
         V[l1vals] = np.nan
         
-        return self.beamforming_farfield(U,V,freq_list=freq_list,coord='uv',**arg_options)
+        return self.beamform(U,V,freq_list=freq_list,coord='uv',**arg_options)
         
         
-    def beamforming_farfield(self,az_u,el_v,freq_list='all',coord='azel',**arg_options):
+    def beamform(self,az_u,el_v,freq_list='all',coord='azel',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in spherical coordinates
             All locations will be pulled from the metafile positions
@@ -92,7 +89,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             unit_mult - unit multiplier for positions
             use_vectorized - use vectorized numba operations (default true)
-        @note theta and phi vals will be created into a meshgrid
+        @note This is not the most efficient way to do this. Should convert directly to UV
         @return list of CalculatedSyntheticAperture objects
         '''
         #input options (these are defaults)
@@ -120,7 +117,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             freq_list = [freq_list] 
         freq_list = np.array(freq_list)
         
-        #change our coordinates to azel
+        #change our coordinates to uv
         [azimuth,elevation] = to_azel(az_u,el_v,coord)
         
         #get our position data
@@ -193,6 +190,9 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         return mycsa
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
 
+    beamforming_farfield = beamform #does not create meshgrid
+    beamforming_farfield_uv = beamform_uv #creates meshgrid
+    beamforming_farfield_azel = beamform_azel #creates meshgrid
 
 
 ###############################################################################

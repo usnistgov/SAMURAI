@@ -1,28 +1,4 @@
 
-Acquisition Software
-=====================
-
-This information pertains to data acquisition using the SAMURAI system. The code has been tested lately with python 3.7. 
-This set of libraries uses some common python libraries. The code can be cloned from the NIST internal Gitlab server.
-
-dependencies
-------------------
-
-- Anaconda with python 3.X
-- pyvisa
-- cannot remember the last one
-
-Installing Anaconda and Dependencies
---------------------------------------
-
-- Install Anaconda
-    1. Go to the anaconda `download page <https://www.anaconda.com/distribution/#download-section>`_
-    2. Select the correct operating system and installer
-    3. Download and run the executable and follow the installer to install Anaconda 3.X
-- Install pyvisa
-    1. Type into the windows search 'anaconda prompt' and run the program
-    2. In the terminal run `conda install -c conda-forge pyvisa` to install pyvisa
-
 .. _hardware-config:
 
 System Hardware Configuration
@@ -87,7 +63,22 @@ of constrictions in mind such as:
 
 These mounts are typically 3D printed with plastic, and 3 steel ball bearings are attached to provide a kinematic connection between the robot 
 mount and the waveguide mount. This mount also provides an absorber plate to attach absorber directly behind the antenna. These mounts were 
-created in a horn antenna and open ended waveguide configuration.
+created in a horn antenna and open ended waveguide configuration. The CAD files can be downloaded for printing below.
+
+Common Components 
+ - :download:`Meca500 Mount <external_data/antenna_mount/meca500_robot_mount_r5.stl>`
+ - :download:`Marker Mount <external_data/antenna_mount/meca500_optitrack_marker_mount_r1.stl>`
+
+WR-28 17dBi rectangular horn mount
+ - :download:`Antenna Mount <external_data/antenna_mount/meca500_WR28_mount_r5.stl>`
+ - :download:`Absorber Mount <external_data/antenna_mount/meca500_absorber_mount_r2.stl>`
+
+WR-28 open ended waveguide (OEWG) mount
+ - :download:`Antenna Mount <external_data/antenna_mount/meca500_WR28_mount_r5_oewg.stl>`
+ - :download:`Absorber Mount <external_data/antenna_mount/meca500_absorber_mount_r2_oewg.stl>`
+
+OEWG full assembly
+ - :download:`Full Assembly <external_data/antenna_mount/full_assembly_oewg.stl>`
 
 Networking
 --------------

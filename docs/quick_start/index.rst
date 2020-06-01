@@ -3,39 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. _quick_start:
+
 Getting Started
 =========================
-The following steps explain how to download and install the SAMURAI python package.
+The following steps explain how to download and install and begin using the SAMURAI software and data. 
+The provided software package contains Python modules to collect, calibrate, and process data. 
+Minor MATLAB functionality has also been included for loading in measured data.
 
+.. important:: If data is not being collected, but previously collected data is being processed, 
+         please skip directly to :ref:`metafile_info` and :ref:`post-process` in the :ref:`analysis` section **after** 
+         reviewing the :ref:`installation` section.
 
-Download 
---------------------
-The current code can be downloaded or cloned from the :git_repo:`/`
+.. toctree::
+   install.rst
+   taking_measurement.rst 
+   viewing_data.rst
+   :maxdepth: 2
+   :caption: Getting Started
 
-Installation
-------------------
-
-#. Change into the downloaded SAMURAI package directory (e.g., :code:`cd <download_directory>/samurai/`).
-    
-    - This should contain a script called :code:`setup.py`
-
-#. Open an anaconda prompt (or whatever python environment to install in)
-
-#. Run :code:`pip install .` to install the package into the current environment 
-
-#. The original package can then be deleted
-
-.. note:: If The package will be changed or developed at any point in time (i.e. changes pushed to git), the original package should be placed somewhere where 
-    it will not be deleted and the package should be installed with :code:`pip install -e .` after changing into the directory. 
-    This will allow edits to the code to immediatly be utilized in python.
-
-    .. seealso:: https://pip.pypa.io/en/latest/reference/pip_install/?highlight=editable#editable-installs
-
-Taking the first measurement
-------------------------------
-
-Assuming the setup and hardware is the same or close to that in the SAMURAI lab (more info should be added on this), 
-the first measurement can be taken using the steps on how to run from a script described in :ref:`running-samurai`
-
-.. todo:: More information on the hardware setup may be useful. Unless it is found to be described enough in :ref:`hardware-config`
 

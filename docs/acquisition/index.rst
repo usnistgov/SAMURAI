@@ -3,7 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-SAMURAI Data Acquisition
+.. _data_acquisition:
+
+Data Acquisition
 =========================
 
 .. toctree::
@@ -15,14 +17,11 @@ SAMURAI Data Acquisition
 .. toctree::
    samurai_config
    running_vna
+   creating_apertures
    other_info
    :maxdepth: 2
    :caption: Configuration and Extra Information
 
-.. toctree::
-   acquisition_code
-   :maxdepth: 2
-   :caption: Code Reference
 
 
 	

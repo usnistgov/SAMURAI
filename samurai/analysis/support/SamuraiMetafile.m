@@ -1,9 +1,24 @@
 classdef SamuraiMetafile < handle
     %@brief This is a class to handle some functionality
-    %   of the metafiles from the SAMURAI system using MATLAB
+    %   of the metafiles (\*.json files) from the SAMURAI system using MATLAB
     %@param[in] metafile_path - on constructor a metafile path
     %   can be passed in to immediatly load
-    
+    %@note Any string value should probably be case as char(val) to prevent
+    %   returning a string(). 
+    %@example
+    %    % Add the path to this class
+    %    addpath('<class_directory'>)
+    %
+    %    % Read the file
+    %    mymetafile = SamuraiMetafile('path/to/metafile.json')
+    %
+    %    % Get measurement filenames
+    %    filenames = mymetafile.get_meas_path_list()
+    %
+    %@return An object of type SamuraiMetafile to extract data from the metafile.
+    %
+    %@note --- DEPRECATED --- This file has been deprecated. Please use
+    % MetafileController.m 
     properties
         %Just store all of the json files. Getters will decode
         json_data; %direct data structure from json
@@ -47,11 +62,11 @@ classdef SamuraiMetafile < handle
             %@brief Get a list of relative paths to each measurement
             %@note this returns stored relative file paths
             %   from self.json_data.measurements(i).filename
-            %@return An array of strings with relative file paths
+            %@return An cell array of character arrays with the file names
             num_meas = obj.get_num_meas();
-            meas_path_list = strings(1,num_meas);
+            meas_path_list = cell(1,num_meas);
             for i=1:num_meas
-                meas_path_list(i) = strip(obj.json_data.measurements(i).filename);
+                meas_path_list{i} = char(strip(obj.json_data.measurements(i).filename));
             end
         end
         
@@ -59,14 +74,15 @@ classdef SamuraiMetafile < handle
             %@brief Get a list of absolute paths of each measurement
             %@note This uses the self.get_working_directory() as the
             %   base directory to append relative directories to
-            %@return A list of strings with absolute file paths
+            %@note This only works if the working directory is absolute
+            %@return cell array of character arrays with each path.
             rel_paths = obj.get_meas_path_list();
             wdir = obj.get_working_directory();
-            meas_abs_path_list = strings(size(rel_paths));
+            meas_abs_path_list = cell(size(rel_paths));
             %now return list of absolute paths (inlcuding working
             %directory)
             for i=1:length(rel_paths)
-                meas_abs_path_list(i) = fullfile(wdir,char(rel_paths(i)));
+                meas_abs_path_list{i} = fullfile(wdir,char(rel_paths{i}));
             end
         end
         
@@ -74,7 +90,7 @@ classdef SamuraiMetafile < handle
             %@brief Get the working directory as specified
             %   in the metafile
             %@return Character array of the working directory
-            wdir = obj.json_data.working_directory;
+            wdir = char(obj.json_data.working_directory);
         end
         
         function loc_list = get_location_list(obj)
@@ -89,6 +105,38 @@ classdef SamuraiMetafile < handle
                 loc_list(i,:) = reshape(obj.json_data.measurements(i).position,1,[]);
             end
         end
-    end
+        
+        function ext_pos = get_external_positions(obj,label,meas_num)
+            %@brief Get an external position from a given measurement
+            %@param[in] label - marker label to get
+            %@param[in] meas_num - number of measurement to get position
+            %@return Structure containing the data from 'label'
+            ext_pos = obj.json_data.measurements(meas_num).external_position_measurements.(label);
+        end
+        function ext_pos_labels = get_external_position_labels(obj)
+            %@brief Get a list of labels from the first measurement
+            %@return CellArray of character arrays with labels
+            meas_num = 1;
+            ext_pos_struct = obj.json_data.measurements(meas_num).external_position_measurements; 
+            ext_pos_labels = fieldnames(ext_pos_struct);
+        end
+   end
 end
+
+%{
+
+%% Information on extracting positions from optitrack system
+fpath = '\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2020\2-5-2020\aperture_vertical\metafile.json';
+mysm = SamuraiMetafile(fpath); %load the metafile
+mylabels = mysm.get_external_position_labels();
+%for rigid body
+ext_pos_meca = mysm.get_external_positions('meca_head',1) %get the 'meca_head' rigid body
+ext_pos_meca.position.mean %mean of x,y,z positions
+ext_pos_meca.rotation.mean %mean of alpha,beta,gamma rotations
+%for rigid body markers
+ext_pos_cyl = mysm.get_external_positions('cylinders_markers',1)
+ext_pos_cyl.data(1).position.mean %mean of 1st marker in rigid body
+%}
+
+
 

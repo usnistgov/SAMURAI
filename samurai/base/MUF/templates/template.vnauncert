@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<VNAUncertaintyCalculator FileName="C:\SAMURAI\git\samurai\samurai\base\MUF\templates\template.vnauncert" CreationTime="4/10/2020 3:30:17 PM" AssemblyVersion="1.4.30.23017" UserName="ajw5">
+  <MenuStripItems>
+    <OptionsToolStripMenuItem1 Enabled="True" Checked="True" />
+    <SelectResultsDirectoryToolStripMenuItem Enabled="True" Checked="False" />
+    <InitializeCalibrationEngineToolStripMenuItem Enabled="False" Checked="False" />
+    <ReInitializeCalibrationEngineToolStripMenuItem Enabled="False" Checked="False" />
+    <CalibrateToolStripMenuItem Enabled="False" Checked="False" />
+    <CovarianceAnalysisToolStripMenuItem Enabled="True" Checked="False" />
+    <MonteCarloAnalysisToolStripMenuItem Enabled="True" Checked="False" />
+    <RunCalculationsInParallel Enabled="True" Checked="True" />
+    <SecondtierCalibration Enabled="True" Checked="False" />
+    <TRLRefImpedance50OhmsSet Enabled="True" Checked="True" />
+    <TurnOnSmoothingChecked Enabled="True" Checked="False" />
+    <PerformBothBeforeAndAfterCalibrationsToolStripMenuItem Enabled="True" Checked="False" />
+    <FormAverageOfDUTMeasurementsToolStripMenuItem Enabled="True" Checked="False" />
+    <UsePMCalFactorInsteadOfEff Enabled="True" Checked="False" />
+    <UseOscilloscopeToCalibratePhaseToolStripMenuItem Enabled="True" Checked="False" />
+    <SetPhaseOfFundamental Enabled="True" Checked="False" />
+    <CalculatesnpFilesFromwnp Enabled="True" Checked="True" />
+    <Extract1Port Enabled="True" Checked="False" />
+    <AddDCTermsToWaveFilesIfDcviFileIsPresentToolStripMenuItem Enabled="True" Checked="False" />
+    <UseConventionalCrosstalkModel Enabled="True" Checked="False" />
+    <SaveDUTmeasFilesInResultsDirectory Enabled="True" Checked="True" />
+    <SavemeasFilesInSubdirectories Enabled="True" Checked="True" />
+    <SaveIQErrorsWithDUTs Enabled="True" Checked="False" />
+    <Binary Enabled="True" Checked="False" />
+    <VerboseReportingToolStripMenuItem Enabled="True" Checked="False" />
+    <IncludeBothBeforeAndAfterInUncertaintyToolStripMenuItem Enabled="True" Checked="False" />
+  </MenuStripItems>
+  <MenuStripTextBoxes>
+    <ResultsDirectory Enabled="True" Text="U:\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\12-19-2018\cal_vnauncert_Results" />
+    <SetExperimentName Enabled="True" Text="" />
+    <DUTSuffix Enabled="True" Text="" />
+    <NumberMonteCarloSimulations Enabled="True" Text="100" />
+    <ReferencePlaneTrans Enabled="True" Text="" />
+    <FixtureLength1 Enabled="True" Text="Port 1 fixture length" />
+    <FixtureLength2 Enabled="True" Text="Port 2 fixture length" />
+    <TurnOnSmoothingValue Enabled="True" Text="0.1" />
+    <NormFreq Enabled="True" Text="Fundemantal frequency in (GHz)" />
+    <Extract1PortValue Enabled="True" Text="1" />
+    <EpsEffR Enabled="True" Text="-21.077" />
+    <EpsEffI Enabled="True" Text="0" />
+    <EPS_TRACK_FREQ Enabled="True" Text="10.0" />
+    <EPS_NUMBER_FREQ Enabled="True" Text="5" />
+    <SIGN_TOL Enabled="True" Text="0.001" />
+  </MenuStripTextBoxes>
+  <MenuStripComboBoxes>
+    <WaveNormalization Enabled="True" SelectedIndex="-1" />
+    <MagnitudePhaseInterpolationMethod Enabled="True" SelectedIndex="-1" />
+  </MenuStripComboBoxes>
+  <Controls>
+    <CalibrationMenuTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_CalibrationMenuTextBox" Enabled="True" Visible="False" />
+    <ErrorReportTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_ErrorReportTextBox" Enabled="True" Visible="False" />
+    <ComboBoxPort ControlType="System.Windows.Forms.ComboBox" ControlText="Port 1 cable and connector models" FullName="Me_SplitContainer2__TabControl1_TabPage1_ComboBoxPort" Enabled="True" Visible="True" SelectedIndex="0" Count="1">
+      <Item Index="0" Text="Port 1 cable and connector models" />
+    </ComboBoxPort>
+    <VNADataType ControlType="System.Windows.Forms.ComboBox" ControlText="Vector network analyzer measuring scattering parameters" FullName="Me_SplitContainer2__TabControl1_TabPage1_VNADataType" Enabled="True" Visible="True" SelectedIndex="0" Count="3">
+      <Item Index="0" Text="Vector network analyzer measuring scattering parameters" />
+      <Item Index="1" Text="Vector network analyzer measuring wave parameters" />
+      <Item Index="2" Text="Large-signal network analyzer measuring wave parameters" />
+    </VNADataType>
+    <CalibrationEngine ControlType="System.Windows.Forms.ComboBox" ControlText="Short-Open-Load-Thru (SOLT) Calibration Algorithm" FullName="Me_SplitContainer2__TabControl1_TabPage1_CalibrationEngine" Enabled="True" Visible="True" SelectedIndex="1" Count="8">
+      <Item Index="0" Text="Orthogonal-Distance Regression (StatistiCAL)" />
+      <Item Index="1" Text="Short-Open-Load-Thru (SOLT) Calibration Algorithm" />
+      <Item Index="2" Text="Levenberg-Marquardt Calibration Algorithm" />
+      <Item Index="3" Text="Short-Open-Load (SOL) One-Port Calibration Algorithm" />
+      <Item Index="4" Text="Wave-Martix Calibration Algorithm" />
+      <Item Index="5" Text="MultiLine TRL" />
+      <Item Index="6" Text="Least-Squares Series-Resistor Algorithm" />
+      <Item Index="7" Text="Dummy User SOLT Calibration Engine" />
+    </CalibrationEngine>
+    <VNANumberOfPorts ControlType="System.Windows.Forms.ComboBox" ControlText="One-port network analyzer" FullName="Me_SplitContainer2__TabControl1_TabPage1_VNANumberOfPorts" Enabled="True" Visible="True" SelectedIndex="1" Count="8">
+      <Item Index="0" Text="Two-port network analyzer" />
+      <Item Index="1" Text="One-port network analyzer" />
+      <Item Index="2" Text="Three-port network analyzer" />
+      <Item Index="3" Text="Four-port network analyzer" />
+      <Item Index="4" Text="Five-port network analyzer" />
+      <Item Index="5" Text="Six-port network analyzer" />
+      <Item Index="6" Text="Seven-port network analyzer" />
+      <Item Index="7" Text="Eight-port network analyzer" />
+    </VNANumberOfPorts>
+    <LSNA_Before_After ControlType="System.Windows.Forms.ComboBox" ControlText="Main power/phase calibration" FullName="Me_SplitContainer2__TabControl1_TabPage7_LSNA_Before_After" Enabled="False" Visible="False" SelectedIndex="0" Count="2">
+      <Item Index="0" Text="Main power/phase calibration" />
+      <Item Index="1" Text="Repeat power/phase calibration (optional)" />
+    </LSNA_Before_After>
+    <TLCapacitance ControlType="CustomFormControls.FLV_FixedDetailsList" ControlText="The capacitance per unit length of the transmission-line standards" FullName="Me_SplitContainer2__TabControl1_TabPage1_Panel1_TLCapacitance" Enabled="True" Visible="False" Count="1">
+      <Item Index="0" Text="TLCapacitance" Count="3">
+        <SubItem Index="0" Text="TLCapacitance" />
+        <SubItem Index="1" Text="" />
+        <SubItem Index="2" Text="" />
+      </Item>
+    </TLCapacitance>
+    <AfterEfficiencyBox ControlType="System.Windows.Forms.GroupBox" ControlText="PM efficiency" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_AfterEfficiencyBox" Enabled="False" Visible="False" />
+    <HPR_Port_Label ControlType="System.Windows.Forms.Label" ControlText="Port 1" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_HPR_Port_Label" Enabled="False" Visible="False" />
+    <PM_Port_Label ControlType="System.Windows.Forms.Label" ControlText="Port 1" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_PM_Port_Label" Enabled="False" Visible="False" />
+    <GroupBox8 ControlType="System.Windows.Forms.GroupBox" ControlText="Raw meas." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox8" Enabled="False" Visible="False" />
+    <GroupBox12 ControlType="System.Windows.Forms.GroupBox" ControlText="Raw meas." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox12" Enabled="False" Visible="False" />
+    <GroupBox13 ControlType="System.Windows.Forms.GroupBox" ControlText="HPR phase" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox13" Enabled="False" Visible="False" />
+    <GroupBox14 ControlType="System.Windows.Forms.GroupBox" ControlText="PM reading" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox14" Enabled="False" Visible="False" />
+    <GroupBox15 ControlType="System.Windows.Forms.GroupBox" ControlText="HPR mismatch" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox15" Enabled="False" Visible="False" />
+    <GroupBox16 ControlType="System.Windows.Forms.GroupBox" ControlText="Power-meter mismatch" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox16" Enabled="False" Visible="False" />
+    <GroupBox17 ControlType="System.Windows.Forms.GroupBox" ControlText="Phase-reference adapter" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox17" Enabled="False" Visible="False" />
+    <AfterPMAdaptBox ControlType="System.Windows.Forms.GroupBox" ControlText="Power-meter adapter" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_AfterPMAdaptBox" Enabled="False" Visible="False" />
+    <BeforeEfficiencyBox ControlType="System.Windows.Forms.GroupBox" ControlText="PM efficiency" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeEfficiencyBox" Enabled="False" Visible="False" />
+    <PM_Port ControlType="System.Windows.Forms.ComboBox" ControlText="Port 1" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_PM_Port" Enabled="False" Visible="False" SelectedIndex="0" Count="1">
+      <Item Index="0" Text="Port 1" />
+    </PM_Port>
+    <HPR_Port ControlType="System.Windows.Forms.ComboBox" ControlText="Port 1" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_HPR_Port" Enabled="False" Visible="False" SelectedIndex="0" Count="1">
+      <Item Index="0" Text="Port 1" />
+    </HPR_Port>
+    <BeforeHPRMeasurement ControlType="System.Windows.Forms.GroupBox" ControlText="Raw meas." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRMeasurement" Enabled="False" Visible="False" />
+    <BeforePMMeasurement ControlType="System.Windows.Forms.GroupBox" ControlText="Raw meas." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMMeasurement" Enabled="False" Visible="False" />
+    <BeforeHPRAmplitude ControlType="System.Windows.Forms.GroupBox" ControlText="HPR phase" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRAmplitude" Enabled="False" Visible="False" />
+    <BeforePMAmplitude ControlType="System.Windows.Forms.GroupBox" ControlText="PM reading" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMAmplitude" Enabled="False" Visible="False" />
+    <BeforeHPRMismatch ControlType="System.Windows.Forms.GroupBox" ControlText="HPR mismatch" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRMismatch" Enabled="False" Visible="False" />
+    <BeforePMMismatch ControlType="System.Windows.Forms.GroupBox" ControlText="Power-meter mismatch" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMMismatch" Enabled="False" Visible="False" />
+    <BeforeHPRAdaptBox ControlType="System.Windows.Forms.GroupBox" ControlText="Phase-reference adapter" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRAdaptBox" Enabled="False" Visible="False" />
+    <BeforePMAdaptBox ControlType="System.Windows.Forms.GroupBox" ControlText="Power-meter adapter" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMAdaptBox" Enabled="False" Visible="False" />
+    <BeforeCalibration ControlType="CustomFormControls.FLV_VariableDetailsList" ControlText="File View of the before calibration" FullName="Me_SplitContainer2__TabControl1_TabPage5_GroupBox1_BeforeCalibration" Enabled="True" Visible="False" Count="0" />
+    <AfterCalibration ControlType="CustomFormControls.FLV_VariableDetailsList" ControlText="File View of the after calibration" FullName="Me_SplitContainer2__TabControl1_TabPage2_GroupBox6_AfterCalibration" Enabled="True" Visible="False" Count="0" />
+    <DUTMeasurements ControlType="CustomFormControls.FLV_VariableDetailsList" ControlText="File View of the raw measurements" FullName="Me_SplitContainer2__TabControl1_TabPage3_GroupBox7_DUTMeasurements" Enabled="True" Visible="False" Count="0" />
+    <PostProcessors ControlType="CustomFormControls.FLV_VariableDetailsList" ControlText="File View of the post processors" FullName="Me_SplitContainer2__TabControl1_TabPage4_GroupBox11_PostProcessors" Enabled="True" Visible="False" Count="0" />
+    <MeasurementNotesTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_SplitContainer2__TabControl1_TabPage6_MeasurementNotes_MeasurementNotesTextBox" Enabled="True" Visible="False" />
+    <CalKitTextBox ControlType="System.Windows.Forms.TextBox" ControlText="" FullName="Me_SplitContainer2__TabControl1_TabPage6_CalKitDescription_CalKitTextBox" Enabled="True" Visible="False" />
+    <CalibrationEngineDescriptionTextBox ControlType="System.Windows.Forms.TextBox" ControlText="The SOLT calibration algorithm is very simple and extremely robust. You need at least three one-port standards on each port, and a thru connection. The three one-port standards must be well separated on the Smith Chart at all frequencies, or you must add additional one-port standards until at least three of the one-port standards are well separated at every frequency. This algorithm uses a least-squares fit on each port using the one-port standards, followed by a determination of the thru parameters based on the thru connection.  The one-port standards must come in pairs, with one one-port standard on each port.&#xD;&#xA;&#xD;&#xA;If you use only thru standards, the thru will be used to set the transmission tracking, and must be fully defined. If you use a reciprocal thru, or a combination of reciprocal thrus and regular thrus, the transmission tracking terms will be determined from the termination standards. The thrus and reciprocal thrus will only be used to adjust the ratio of the forward and reverse transmission tracking terms. If you use Attenuator (S21 only) or Attenuator (S12 only), only the forward or reverse transmission through the attenuator will be used. These attenuator standards can be used when you amplify the signal going in one direction only, and cannot measure transmission throught the attenuator in the other direction.&#xD;&#xA;&#xD;&#xA;Written by Dylan Williams" FullName="Me_SplitContainer2__TabControl1_TabPage6_CalibrationEngineDescription_CalibrationEngineDescriptionTextBox" Enabled="True" Visible="False" />
+    <DUTPort5 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 5 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT5_PanelDUT5_DUTPort5" Enabled="False" Visible="False" Count="0" />
+    <DUTPort4 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 4 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT4_PanelDUT4_DUTPort4" Enabled="False" Visible="False" Count="0" />
+    <DUTPort1 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 1 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT1_PanelDUT1_DUTPort1" Enabled="True" Visible="True" Count="0" />
+    <DUTPort8 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 8 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT8_PanelDUT8_DUTPort8" Enabled="False" Visible="False" Count="0" />
+    <DUTPort7 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 7 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT7_PanelDUT7_DUTPort7" Enabled="False" Visible="False" Count="0" />
+    <DUTPort6 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 6 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT6_PanelDUT6_DUTPort6" Enabled="False" Visible="False" Count="0" />
+    <Port2 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 2 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort2_PanelTP2_Port2" Enabled="False" Visible="False" Count="0" />
+    <Port7 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 7 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort7_PanelTP7_Port7" Enabled="False" Visible="False" Count="0" />
+    <Port4 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 4 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort4_PanelTP4_Port4" Enabled="False" Visible="False" Count="0" />
+    <Port5 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 5 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort5_PanelTP5_Port5" Enabled="False" Visible="False" Count="0" />
+    <Port1 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 1 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort1_PanelTP1_Port1" Enabled="True" Visible="True" Count="0" />
+    <Port8 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 8 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort8_PanelTP8_Port8" Enabled="False" Visible="False" Count="0" />
+    <Port6 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 6 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort6_PanelTP6_Port6" Enabled="False" Visible="False" Count="0" />
+    <Port3 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 3 cable and testport" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxPort3_PanelTP3_Port3" Enabled="False" Visible="False" Count="0" />
+    <DUTPort3 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 3 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT3_PanelDUT3_DUTPort3" Enabled="False" Visible="False" Count="0" />
+    <DUTPort2 ControlType="CustomFormControls.FLV_VariableIconList" ControlText="File View of port 2 cable and DUT port" FullName="Me_SplitContainer2__TabControl1_TabPage1_GroupBoxDUT2_PanelDUT2_DUTPort2" Enabled="False" Visible="False" Count="0" />
+    <AfterPMEfficiencyComplex ControlType="CustomFormControls.FLV_VariableIconList" ControlText="PM efficiency" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_AfterEfficiencyBox_AfterPMEfficiencyComplex" Enabled="False" Visible="False" Count="0" />
+    <BeforePMEfficiencyComplex ControlType="CustomFormControls.FLV_VariableIconList" ControlText="PM efficiency" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeEfficiencyBox_BeforePMEfficiencyComplex" Enabled="False" Visible="False" Count="0" />
+    <AfterHPRMeasurementW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Raw phase measurement." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox8_AfterPanelHPRMeasurement_AfterHPRMeasurementW1P" Enabled="False" Visible="False" Count="0" />
+    <AfterPMMeasurementW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Raw power-meter measurement." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox12_AfterPanelPMMeasurement_AfterPMMeasurementW1P" Enabled="False" Visible="False" Count="0" />
+    <AfterHPRW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Phase reference values" FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox13_AfterPanelHPR_AfterHPRW1P" Enabled="False" Visible="False" Count="0" />
+    <AfterPMW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter reading." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox14_AfterPanelPM_AfterPMW1P" Enabled="False" Visible="False" Count="0" />
+    <AfterHPRMismatchS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter adapter." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox15_AfterPanelHPRMismatch_AfterHPRMismatchS2P" Enabled="False" Visible="False" Count="0" />
+    <AfterPMMismatchS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter adapter." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox16_AfterPanelPMMismatch_AfterPMMismatchS2P" Enabled="False" Visible="False" Count="0" />
+    <AfterHPRAdapterS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="HPR adapter." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_GroupBox17_AfterPanelHPRAdapter_AfterHPRAdapterS2P" Enabled="False" Visible="False" Count="0" />
+    <AfterPMAdapterS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter adapter." FullName="Me_SplitContainer2__TabControl1_TabPage7_AfterPowerPhaseCalibrationBox_AfterPMAdaptBox_AfterPanelPMAdapter_AfterPMAdapterS2P" Enabled="False" Visible="False" Count="0" />
+    <BeforeHPRMeasurementW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Raw phase measurement." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRMeasurement_BeforePanelHPRMeasurement_BeforeHPRMeasurementW1P" Enabled="False" Visible="False" Count="0" />
+    <BeforePMMeasurementW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Raw power-meter measurement." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMMeasurement_BeforePanelPMMeasurement_BeforePMMeasurementW1P" Enabled="False" Visible="False" Count="0" />
+    <BeforeHPRW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Phase reference" FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRAmplitude_BeforePanelHPR_BeforeHPRW1P" Enabled="False" Visible="False" Count="0" />
+    <BeforePMW1P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter reading." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMAmplitude_BeforePanelPM_BeforePMW1P" Enabled="False" Visible="False" Count="0" />
+    <BeforeHPRMismatchS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter adapter." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRMismatch_BeforePanelHPRMismatch_BeforeHPRMismatchS2P" Enabled="False" Visible="False" Count="0" />
+    <BeforePMMismatchS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter mismatch." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMMismatch_BeforePanelPMMismatch_BeforePMMismatchS2P" Enabled="False" Visible="False" Count="0" />
+    <BeforeHPRAdapterS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="HPR adapter." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforeHPRAdaptBox_BeforePanelHPRAdapter_BeforeHPRAdapterS2P" Enabled="False" Visible="False" Count="0" />
+    <BeforePMAdapterS2P ControlType="CustomFormControls.FLV_VariableIconList" ControlText="Power-meter adapter." FullName="Me_SplitContainer2__TabControl1_TabPage7_BeforePowerPhaseCalibrationBox_BeforePMAdaptBox_BeforePanelPMAdapter_BeforePMAdapterS2P" Enabled="False" Visible="False" Count="0" />
+  </Controls>
+</VNAUncertaintyCalculator>

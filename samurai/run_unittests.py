@@ -17,8 +17,12 @@ from samurai.base.TouchstoneEditor import TestTouchstoneEditor
 test_list.append(TestTouchstoneEditor)
 
 #%% MUF Result testing
-from samurai.analysis.support.MUFResult import TestMUFResult
+from samurai.base.MUF.MUFResult import TestMUFResult
 test_list.append(TestMUFResult)
+
+#%% SamuraiMeasurement Testing
+from samurai.base.SamuraiMeasurement import TestSamuraiMeasurement
+test_list.append(TestSamuraiMeasurement)
 
 #%% now run them all
 import time

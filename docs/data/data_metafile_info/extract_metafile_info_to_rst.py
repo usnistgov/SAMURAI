@@ -55,7 +55,6 @@ meas_dirs = []
 
 #%% 2019 Data
 
-'''
 mf_dir_list_2019  = []
 mf_dir_list_2019 += ['1-30-2019']
 mf_dir_list_2019 += ['2-1-2019','2-4-2019','2-6-2019','2-7-2019']
@@ -65,17 +64,14 @@ mf_dir_list_2019 += ['6-17-2019','6-19-2019']
 mf_dir_list_2019 += ['7-8-2019']
 mf_dir_list_2019 = [os.path.join('2019',mfd) for mfd in mf_dir_list_2019]
 meas_dirs += mf_dir_list_2019
-'''
-'''
+
 ## Conference Room
 mf_dir_list_conf = ['5-17-2019','5-24-2019','5-31-2019']
 mf_dir_list_conf = [os.path.join('Conference_Room',mfd) for mfd in mf_dir_list_conf]
 meas_dirs += mf_dir_list_conf
-'''
 
 # CUP Data
-#mf_dir_list_cup  = ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
-mf_dir_list_cup  = ['8-9-2019']
+mf_dir_list_cup  = ['8-7-2019','8-8-2019','8-9-2019','8-12-2019','8-13-2019','8-16-2019']
 mf_dir_list_cup  = [os.path.join('Central_Utility_Plant',mfd) for mfd in mf_dir_list_cup]
 meas_dirs += mf_dir_list_cup
 
@@ -105,6 +101,9 @@ for meas_dir in meas_dirs:
     
     #%% lets get the information on the measurement
     mf_dict = {k:mfc[k] for k in ['experiment','notes','vna_info']}
+    unused_vna_keys = ['command_dictionary_path','connection_address']
+    for k in unused_vna_keys: #remove unneeded info
+        mf_dict['vna_info'].pop(k,None) 
     mf_dict['vna_info'] = mf_dict['vna_info'].get_rst_str()
     
     data_name = os.path.split(mfd_full)[1]
@@ -129,8 +128,9 @@ for meas_dir in meas_dirs:
 
     #%% Now lets find and loop through metafiles to plot our multiple measurements
     link_str_list = []
-    if build_extra:
-        for i,mf_path in enumerate(mf_paths):
+    
+    for i,mf_path in enumerate(mf_paths):
+        if build_extra:
             
             mf_name = os.path.relpath(mf_path,os.path.join(mfd_full,'../')) #name relative to directory
             mfc = MetaFileController(mf_path)
@@ -267,9 +267,9 @@ for meas_dir in meas_dirs:
             with open(extra_out_file_path,'w+') as f:
                 f.write(extra_rst_str)
             
-            #add the link to the file
-            ref_str = "   - :ref:`{}`".format('data_{0}_extra_info_{1}'.format(data_name,i))
-            link_str_list.append(ref_str)
+        #add the link to the file
+        ref_str = "   - :ref:`{}`".format('data_{0}_extra_info_{1}'.format(data_name,i))
+        link_str_list.append(ref_str)
         
     
     #%% now save out the regular page
