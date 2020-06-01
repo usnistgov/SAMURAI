@@ -114,3 +114,14 @@ times_ns = 0:time_step:max_time;
 bf1td_fig = figure();
 plot(times_ns,20*log10(abs(bf1td)));
 
+%% Plot the positions
+load('processing_data.mat');
+
+pos_figs = figure();
+scatter3(array_positions_m(1,:),array_positions_m(2,:),array_positions_m(3,:));
+title('Element Positions');
+xlabel('X (m)');ylabel('Y (m)');zlabel('Z (m)');
+save_plot(pos_figs,'positions','./figs','formatFlag',false);
+
+
+

@@ -146,8 +146,11 @@ def split_measurement(meas_path,split):
     @note This utilizes TouchstoneEditor split_parameters
     @return Metafile instances equal to the split
     '''
-    #first load the measurement and all its data
-    meas = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
+    if isinstance(meas_path,SamuraiMeasurement): #allow passing an object
+        meas = meas_path
+    else:
+        #first load the measurement and all its data
+        meas = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
     #split a test case to figure out what we need
     test_out = split_parameters(meas.nominal[0].data,split)
     #now create editors equal to the number of test outputs

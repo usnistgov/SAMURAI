@@ -31,9 +31,12 @@ from shutil import copy
 
 #default paths
 file_dir = os.path.dirname(os.path.abspath(__file__))
-default_pp_cal_template     = os.path.join(file_dir,'templates/cal_template.post')
-default_pp_cal_template_wnp = os.path.join(file_dir,'templates/cal_template_wave_param.post')
+DEFAULT_PP_CAL_TEMPLATE     = os.path.join(file_dir,'templates/cal_template.post')
+DEFAULT_PP_CAL_TEMPLATE_WNP = os.path.join(file_dir,'templates/cal_template_wave_param.post')
 #this default is for s2p_files not w2p calibration (theyre different)
+
+# some other defalt templates
+CAL_TEMPLATE_100MC       = os.path.join(file_dir,'templates/cal_template_100mc.post')
 
 class CalibrateSamurai:
     
@@ -64,10 +67,10 @@ class CalibrateSamurai:
         #at this point we will have .s#p,.s#p_binary, .w#p, or .w#p_binary
         if(meas_ext[1]=='w'):
             self.options['wave_params_flg'] = True
-            self.post_proc_template = default_pp_cal_template_wnp
+            self.post_proc_template = DEFAULT_PP_CAL_TEMPLATE_WNP
         elif(meas_ext[1]=='s'):
             self.options['wave_params_flg'] = False
-            self.post_proc_template = default_pp_cal_template
+            self.post_proc_template = DEFAULT_PP_CAL_TEMPLATE
         else:
             raise IOError("bad extension please check the file extensions start with .s or .w") #<@todo replace with real exception
         if post_proc_template_override:

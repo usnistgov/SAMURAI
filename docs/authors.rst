@@ -25,24 +25,25 @@ email:
  - alec.weiss@nist.gov
  - alec@weissworks.dev
 
-
-Ben Jamroz
-------------------
-
-Info and Picture
-
-
-Jeanne Quimby
+Person 1
 ---------------------
 
-Info and Picture
+info and contact
 
+Person 2
+---------------------
 
-Rob Jones 
-------------------
+info and contact
 
-Info and Picture
+Person 3
+---------------------
 
+info and contact
+
+Person 4
+---------------------
+
+info and contact
 
 The SAMURAI Team
 --------------------
