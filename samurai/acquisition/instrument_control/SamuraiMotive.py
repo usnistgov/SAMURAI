@@ -60,7 +60,7 @@ class MotiveInterface(Instrument):
         @return a dictionary with data on the positions for the points requested  
         '''
         options = {}
-        options['num_samples'] = 10
+        options['num_samples'] = 100
         options['sample_wait_time'] = 0.01 #seconds. how long each sample will take (0.01 seems safe)
         options['include_raw_data'] = False
         options['marker_name'] = None
