@@ -1,3 +1,6 @@
+%% DEPRECATED USE MetafileController.m
+
+
 classdef SamuraiMetafile < handle
     %@brief This is a class to handle some functionality
     %   of the metafiles (\*.json files) from the SAMURAI system using MATLAB

@@ -109,7 +109,6 @@ def calculate_estimate(data):
     '''
     #create a blank snp file to fill
     num_ports = round(np.sqrt(len(data[0].wave_dict_keys)-1)) #-1 to ignore the freq_list entry
-    first_key = data[0].wave_dict_keys[0]
     freq_list = data[0].freq_list
     MyEditor = type(data[0]) #type of the editor to create
     data_dict = {}
@@ -213,7 +212,7 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
             td_vals = item.data[(item.waves[0],key)].calculate_time_domain_data(window=window)
-            tdw_vals = WaveformEditor(*td_vals)
+            tdw_vals = WaveformEditor(td_vals)
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()
         if verbose and len(in_meas)>1: pc.finalize()

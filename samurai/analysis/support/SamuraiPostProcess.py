@@ -154,6 +154,16 @@ class SamuraiSyntheticApertureAlgorithm:
         else:
             pos=None
         return pos
+    
+    def normalize_positions(self,norm_funct=np.mean):
+        '''
+        @brief Normalize the values in self.all_positions to some combination of the positions
+            By default normalize to the mean of all positions
+        @param[in/OPT] norm_type - function for normalization. Should have prototype 
+            norm_funct(pos,axis=None) where pos is [[x,y,z,alpha,beta,gamma],[...],...].
+            The return value will then be subtracted from self.all_positions
+        '''
+        self.all_positions-=norm_funct(self.all_positions,axis=0)
           
     def get_positions(self,units='m'):
         '''

@@ -185,7 +185,7 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
             td_vals = item.data[(item.waves[0],key)].calculate_time_domain_data(window=window)
-            tdw_vals = WaveformEditor(*td_vals)
+            tdw_vals = WaveformEditor(td_vals)
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()
         if verbose and len(in_meas)>1: pc.finalize()
@@ -904,9 +904,9 @@ class TestUncertaintyOperations(unittest.TestCase):
 if __name__=='__main__':
     
     suite = unittest.TestLoader().loadTestsFromTestCase(TestSamuraiMeasurement)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
     suite = unittest.TestLoader().loadTestsFromTestCase(TestUncertaintyOperations)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
         
     wdir = os.path.dirname(__file__)
     unittest_dir = os.path.join(wdir,'./unittest_data')
@@ -914,5 +914,10 @@ if __name__=='__main__':
     res = SamuraiMeasurement(meas_path,load_nominal=False,load_statistics=False)
     resd = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
     
+    mymeas = SamuraiMeasurement(r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\7-8-2019_uncert\aperture_vertical\meas(1224)_cal_template_100mc.meas",load_statistics=True,verbose=True)
+    td = calculate_time_domain(mymeas)
+    td.calculate_statistics()
+    td_nom = td.nominal.data 
+    td_mc_stats = td.monte_carlo.get_statistics_dict(21);
     
     

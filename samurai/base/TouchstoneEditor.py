@@ -18,6 +18,8 @@ from samurai.base.SamuraiDict import SamuraiDict
 
 from samurai.base.generic import deprecated
 from samurai.base.generic import moving_average
+from samurai.base.generic import magphase2complex
+from samurai.base.generic import db2lin
 
 import plotly.graph_objs as go
 
@@ -40,6 +42,10 @@ TIME_MULT_DICT = {'NS':1e-9,'US':1e-6,'MS':1e-3,'S':1} #time domain for waveform
 ANG_MULT_DICT  = {'DEG':1,'RAD':180/np.pi} #angular conversion
 MULT_DICT = dict(**FREQ_MULT_DICT,**TIME_MULT_DICT,**ANG_MULT_DICT) #combine the dictionaries
 INV_MULT_DICT = {val:key for key,val in MULT_DICT.items()}  #inverse of frequency multiplier dictionary
+
+#%% Some types
+import typing
+CVECTOR_T = typing.Iterable[complex]
 
 #%% Some useful functions
 def get_unperturbed_meas(fname):
@@ -247,6 +253,18 @@ def cascade(*args):
         
     # now lets cascade them 
     
+#%% Conversions between possible storage types
+def DB2RI(cdata:CVECTOR_T) -> CVECTOR_T:
+    '''
+    @brief Convert mag/phase data that was extracted into a complex number and
+        convert to real imaginary
+    @param[in] complex vector where real is the magnitude (dB) and imag is the
+        phase (in DEGREES)
+    @return complex vector with real/imag complex data 
+    '''
+    mag_db = cdata.real 
+    angle_deg = cdata.imag
+    return magphase2complex(db2lin(mag_db),np.deg2rad(angle_deg))
 
 
 #%% Parsing for files with data on multiple lines
@@ -324,13 +342,14 @@ def read_text_touchstone(file_path,**kwargs):
     if(kwargs.get('read_header',None)): #flag for reading header for speed
          with open(file_path,'r') as fp: 
              for line in fp:
-                 if(line.strip()[0]=='#'):
-                     header = line
-                     #self.set_header(line) #try and set it. If its not valid it wont be set
-                 elif(line.strip()[0]=='!'):
-                     comments.append(line.strip()[1:])
-                 else: #else its data
-                     pass     
+                 if len(line.strip()):
+                     if(line.strip()[0]=='#'):
+                         header = line
+                         #self.set_header(line) #try and set it. If its not valid it wont be set
+                     elif(line.strip()[0]=='!'):
+                         comments.append(line.strip()[1:])
+                     else: #else its data
+                         pass     
     else: #dont read comments
          comments.append('Header and comments NOT read from file')
     #now read in data from the file with many possible delimiters in cases
@@ -632,13 +651,22 @@ class TouchstoneEditor(pd.DataFrame):
         @brief class to extract data from raw data. This can be overriden for special cases  
         @note if not overriden this points to the same data as in self._raw  
         '''
+        #function to a number stored as complex to RI
+        convert_funct = lambda in_val: in_val; #do nothing if its already RI
+        if re.findall('[dD][bB]',self.options['header']): #we have magphase data
+            convert_funct = DB2RI
         #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
         for wi,w in enumerate(self.waves):
             for ki,k in enumerate(self.wave_dict_keys):
                 idx = ki*len(self.waves)*2+(1+2*wi)
+                # Check if we are loading magphase (DB) instead of RI
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
+                data = convert_funct(data)
                 #extract to self._raw
                 self[(w,k)] = data
+                
+        #ensure we are labeled as real,imag
+        self.set_header(re.sub('[dD][bB]','RI',self.options['header']))
                 
         #self.round_freq_list() #round when we load (remove numerical rounding error)
     
@@ -955,14 +983,45 @@ class WaveformEditor(SnpEditor):
             super().__init__(*args,**kwargs)
         self.set_header(DEFAULT_HEADER_TIME)
         self.index.name='time'
+        
+    def _gen_dict_keys(self):
+        return [21]
 
-    def read(*args,**kwargs):
+    def read(self,*args,**kwargs):
         kwargs['round_freqs'] = kwargs.pop('round_freqs',False)
         return super().read(*args,**kwargs)
     
-    def write(*args,**kwargs):
+    def write(self,*args,**kwargs):
         kwargs['round_freqs'] = kwargs.pop('round_freqs',False)
         return super().write(*args,**kwargs)
+    
+    def _extract_data(self,raw_data):
+        '''
+        @brief class to extract data from raw data. This can be overriden for special cases  
+        @note This checks if we only have magnitude (no phase) like the MUF produces
+        '''
+        if raw_data.shape[1] == 2: #then its only mangitude
+            #just fake zero phase by appending zeros
+            raw_data = np.concatenate((raw_data,np.zeros_like(raw_data[:,1][...,np.newaxis])),axis=1)
+        #function to a number stored as complex to RI
+        convert_funct = lambda in_val: in_val; #do nothing if its already RI
+        if re.findall('[dD][bB]',self.options['header']): #we have magphase data
+            convert_funct = DB2RI
+        #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
+        for wi,w in enumerate(self.waves):
+            for ki,k in enumerate(self.wave_dict_keys):
+
+                idx = ki*len(self.waves)*2+(1+2*wi)
+                # Check if we are loading magphase (DB) instead of RI
+                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
+                data = convert_funct(data)
+                #extract to self._raw
+                self[(w,k)] = data
+                
+        #ensure we are labeled as real,imag
+        self.set_header(re.sub('[dD][bB]','RI',self.options['header']))
+                
+        #self.round_freq_list() #round when we load (remove numerical rounding error)
 
     @property
     def raw(self): return np.squeeze(super().raw)
