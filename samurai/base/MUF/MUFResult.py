@@ -7,7 +7,7 @@ Created on Mon Jun 24 16:02:04 2019
 
 from samurai.base.TouchstoneEditor import TouchstoneEditor,TouchstoneError, SnpEditor,WaveformEditor
 from samurai.base.TouchstoneEditor import TouchstoneParam
-from samurai.base.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem
+from samurai.base.MUF.MUFModuleController import MUFModuleController, MUFItemList, MUFItem, mufPathFind
 from samurai.base.SamuraiPlotter import SamuraiPlotter
 from samurai.base.generic import complex2magphase, magphase2complex
 from samurai.base.generic import get_name_from_path
@@ -26,50 +26,6 @@ import sys
 
 #%% Functions for file path adjustments and correction
 
-def mufPathVerify(inPath):
-    return sys.path.exists(inPath)
-
-def mufPathFind(inPath, refPoint):
-    '''
-    @brief find the path of a measurement relative to a reference point
-    @param[in] inPath - path of the file that we are looking to find
-    @param[in] refPoint - directory where the \*.meas file lives
-    @return String of Adjusted path to inPath
-    '''
-    inPath = inPath.replace('\\\\', '/').replace('\\', '/')
-    return mufPathFindR(inPath, refPoint)
-
-# Recursive
-def mufPathFindR(inPath, refPoint, level = 0):
-    '''
-    @brief find the path of a measurement relative to a reference point
-    @param[in] inPath - path of the file that we are looking to find
-    @param[in] refPoint - directory where the \*.meas file lives
-    @return String of Adjusted path to inPath
-    '''
-    #print("Level {0}".format(level))
-    if level > 3 or level < 0:
-        print("Error: file: {0} not found".format(inPath))
-        sys.exit(0)
-    fName = os.path.basename(inPath)
-    # Recursively find the subdirectories
-    # This could be better if we included the updated path in the recursion
-    subdir = ''
-    tempPath = inPath
-    for i in range(level):
-        tempPath = os.path.dirname(tempPath)
-        subdir = os.path.join(os.path.basename(tempPath), subdir)
-
-
-    #print("refPoint: {0}".format(refPoint))
-    #print("subdir: {0}".format(subdir))
-    #print("fName: {0}".format(fName))
-    constructPath = os.path.join(refPoint, os.path.join(subdir, fName))
-    #print("path: {0}".format(constructPath))
-    if os.path.exists(constructPath):
-        return constructPath
-    else:
-        return mufPathFindR(inPath, refPoint, level = level+1)
     
 def set_meas_relative(meas_path,out_path=None):
     '''
