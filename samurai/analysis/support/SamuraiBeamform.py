@@ -26,6 +26,20 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
         data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
         data_meas_num   - which measurement of monte_carlo or perturbed to use
+    @example
+        # Load and process nominal values
+        mf_path = './path/to/metafile.json'
+        az = np.linspace(-np.pi/2,np.pi/2,181)
+        el = np.linspace(-np.pi/2,np.pi/2,181)
+        mybf = SamuraiBeamform(mf_path,load_key=12)
+        bf_vals = mybf.beamform_azel(az,el)
+    @example
+        # Process the first monte_carlo result
+        mf_path = './path/to/metafile.json'
+        az = np.linspace(-np.pi/2,np.pi/2,181)
+        el = np.linspace(-np.pi/2,np.pi/2,181)
+        mybf = SamuraiBeamform(mf_path,load_key=12,data_type='monte_carlo',data_meas_num=0)
+        bf_vals = mybf.beamform_azel(az,el)
     '''
     def __init__(self,metafile_path=None,**arg_options):
         '''@brief Constructor for class. We can load our metafile here or not'''
