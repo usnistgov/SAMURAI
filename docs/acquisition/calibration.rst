@@ -88,7 +88,7 @@ Perform the waveguide calibration for each of these VNA settings in a different 
     #. Connect a WR-28 offset short to port 1
     #. Make sure the measurement type is set to :code:`One at a time`
     #. Measure the s-parameters by clicking the :code:`measure` button to the right of the :code:`offsetShort.s2p` box in PNAGrabber.
-    #. A message box will show up with the message *Please connect standard to next port and press OK. DO NOT CLICK OK YET.
+    #. A message box will show up with the message *Please connect standard to next port and press OK.* DO NOT CLICK OK YET.
     #. Connect a WR-28 offset short to port 2
     #. Click the OK button on the message box to measure port 2
 
