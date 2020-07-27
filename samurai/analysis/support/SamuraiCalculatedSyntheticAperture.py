@@ -387,8 +387,8 @@ class CalculatedSyntheticAperture:
             #assume our freq_list is in hz then write out in GHz
             mys = SnpEditor([2,freqs],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees'],header='GHz S RI 50') #create a s2p file
             #populate the s21,values
-            mys.S[21].update(self.freq_list,self.complex_values[cur_idx])
-            mys.S[12].update(self.freq_list,self.complex_values[cur_idx])
+            mys.S21[:] = self.complex_values[cur_idx]
+            mys.S12[:] = self.complex_values[cur_idx]
             #add to list and create our info
             meas_data.append(mys)
             cur_info = {}
