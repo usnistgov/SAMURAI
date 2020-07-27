@@ -486,10 +486,10 @@ class SamuraiMeasurement(SamuraiDict):
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
             verbose - be verbose when writing (default False)
-            filetype - 'meas' or 'smeas' (default to 'meas') if the file doesnt have one
+            filetype - 'meas' or 'smeas' (default to os.path.splitext()[-1]) if the file doesnt have one
         '''
         options = {}
-        options['filetype'] = 'meas'
+        options['filetype'] = os.path.splitext(out_path)[-1]
         options.update(kwargs)
         out_dir = os.path.splitext(out_path)[0]
         if kwargs.get('verbose',False): print("Writing to : {}".format(out_path))
@@ -502,8 +502,10 @@ class SamuraiMeasurement(SamuraiDict):
         self._write_data(out_dir,**options)
         if '.meas' in out_path: #write an xml if we have a .meas file
             return self.write_xml(out_path)
-        else:
+        elif '.smeas' in out_path:
             return self.write_json(out_path) #otherwise write a json file
+        else:
+            raise Exception('Extension not recognized')
         
 #################################################
 # Some useful properties

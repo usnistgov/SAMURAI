@@ -379,7 +379,7 @@ class CalculatedSyntheticAperture:
         meas_info = []
         meas_data = [] #values for returning
         pos_key_entry = {'position_key':['azimuth','elevation']}
-        freqs = self.freq_list/1e9 #freqs in ghz
+        freqs = self.freq_list #freqs in ghz
         for i in range(self.num_positions):
             cur_idx = np.unravel_index(i,self.azimuth.shape)
             az = self.azimuth[cur_idx]
