@@ -728,7 +728,7 @@ class TouchstoneEditor(pd.DataFrame):
         self._ports = np.arange(1,num_ports+1)
         
              
-    def plot_plotly(self,keys='all',waves='all',data_type='mag_db',**arg_options):
+    def plot_plotly(self,keys='all',waves='all',data_type='mag_db',trace_only=False,**arg_options):
         '''
         @brief plot our wave or s parameter data using plotly. Placeholder until pandas implements
             plotly as a backedn plotting enging (they say next release)
@@ -747,12 +747,12 @@ class TouchstoneEditor(pd.DataFrame):
             waves = list(self.waves)
         if not hasattr(waves,'__iter__'):
             waves = [waves]
-        #now plot
+        #now plot or make trace
         fig = go.Figure(**arg_options)
         traces = []
         for w in waves:
             for k in keys:
-               trace = self[w][k].plot_plotly(data_type,trace_only=True,name='{}{}'.format(w,k))
+               trace = go.self[w][k].plot_plotly(data_type,trace_only=True,name='{}{}'.format(w,k))
                fig.add_trace(trace)
         return fig
                     
@@ -1122,7 +1122,7 @@ class TouchstoneParam(pd.Series):
         rv = go.Scatter(x=freqs/1e9,y=data,**plot_options)
         if not trace_only:
             fig.add_trace(rv)
-            fig.update_layout(xaxis_label='Freq (GHz)',yaxis_label=data_type)
+            fig.update_layout(xaxis_title='Freq (GHz)',yaxis_title=data_type)
             rv = fig
         return rv
     
@@ -1174,11 +1174,11 @@ class TouchstoneParam(pd.Series):
     
     #some useful properties for different data getting types
     @property
-    def mag(self): return type(self)(np.real(np.abs(self)),index=self.index)
+    def mag(self): return pd.Series(np.real(np.abs(self)),index=self.index)
     @property
     def mag_db(self): return 20*np.log10(self.mag)
     @property
-    def phase(self): return type(self)(np.angle(self),index=self.index)
+    def phase(self): return pd.Series(np.angle(self),index=self.index)
     @property
     def phase_d(self): return self.phase*180/np.pi
 
