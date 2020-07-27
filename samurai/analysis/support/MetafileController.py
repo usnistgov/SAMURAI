@@ -30,6 +30,19 @@ from samurai.acquisition.instrument_control.SamuraiMotive import MotiveInterface
 from samurai.acquisition.support.SamuraiMetafile import SamuraiMetafile,extract_data_from_raw
 from samurai.acquisition.instrument_control.SamuraiPositionTrack import SamuraiPositionDataDict
 
+#%% Quick way to just get information from the metafile
+
+def get_metafile_info(metafile_path):
+    '''@brief load all metafile keys EXCEPT "measurements"'''
+    mymf = MetafileController(metafile_path,verify=False)
+    except_keys = ['measurements']
+    info_out = {}
+    for k,v in mymf.items():
+        if k not in except_keys:
+            info_out[k] = v 
+    return info_out
+    
+
 #%% Useful functions for Metafiles
 def set_metafile_meas_relative(metafile_path,verbose=True):
     '''
@@ -977,7 +990,8 @@ if __name__=='__main__':
     #metafile_path = r'./metafile_v2.json'
     metafile_path = r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\3-20-2019\metafile.json"
     #maturo_metafile_path = r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\USC\Measurements\8-27-2018\processed\synthetic_aperture\metaFile.json'
-    mf = MetaFileController(metafile_path)
+    mf = MetafileController(metafile_path)
+    mfinfo = get_metafile_info(metafile_path)
     fig = mf.plot_aperture()
     #mmf = MetaFileController(maturo_metafile_path)
     #5-17-2019 data
