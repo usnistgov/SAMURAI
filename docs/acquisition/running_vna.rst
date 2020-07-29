@@ -8,7 +8,10 @@ The VNA is typically controlled remotely from a connected computer.
 In the SAMURAI lab, this is typically connected over ethernet. Communication is performed using the VISA protocol.
 The current IP address for the VNA in the SAMURAI lab is given in :ref:`hardware-config`.
 
-There are two methods for remotely running the VNA from the computer using the SAMURAI software. The first is using the custom :class:`samurai.acquisition.support.PnaController.PnaController` class and the second is using PNAGrabber with :class:`samurai.acquisition.support.AutoPnaGrabber.PnaGrabber`(the NIST microwave uncertainty framework must be installed).
+There are two methods for remotely running the VNA from the computer using the SAMURAI software. 
+The first is using the custom :class:`samurai.acquisition.support.PnaController.PnaController` class 
+and the second is using PNAGrabber with :class:`samurai.acquisition.support.AutoPnaGrabber.PnaGrabber` 
+(the NIST microwave uncertainty framework must be installed).
 
 Using PnaController 
 --------------------------

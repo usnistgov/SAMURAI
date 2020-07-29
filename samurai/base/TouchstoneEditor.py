@@ -211,7 +211,7 @@ def sparams2tparams(sparam):
     @brief Convert S-parameters to T-parameters
     @param[in] sparam - SnpEditor object to convert to scattering transfer parameters
     @note This only works for 2 port networks
-    @cite W. F. Egan, Practical RF system design. New York : Hoboken, N.J: IEEE ; Wiley-Interscience, 2003. p. 14
+    @cite W. F. Egan, Practical RF system design. New York, Hoboken, N.J, IEEE, Wiley-Interscience, 2003. p. 14
     @return TransferEditor filled with T-parameters
     '''
     tparam = TransferEditor([2,sparam.freq_list]) # initialize
@@ -226,7 +226,7 @@ def tparams2sparams(tparam):
     @brief Convert S-parameters to T-parameters
     @param[in] tparam - TransferEditor object to convert to scattering transfer parameters
     @note This only works for 2 port networks
-    @cite W. F. Egan, Practical RF system design. New York : Hoboken, N.J: IEEE ; Wiley-Interscience, 2003. p. 14
+    @cite W. F. Egan, Practical RF system design. New York, Hoboken, N.J, IEEE, Wiley-Interscience, 2003. p. 14
     @return SnpEditor filled with S-parameters
     '''
     sparam = SnpEditor([2,sparam.freq_list]) # initialize
