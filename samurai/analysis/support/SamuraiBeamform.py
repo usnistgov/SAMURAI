@@ -139,6 +139,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         #get our position data
         if verbose: print("Reading measurement positions")
         pos = self.get_positions('m') #get all of our positions in meters
+        pos-=pos.mean(axis=0) #normalize to the center of the array
         az_angles = pos[:,5] #with current coordinates system azimuth=gamma
         
         #now lets use this data to get our delta_r beamforming values
