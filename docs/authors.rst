@@ -26,15 +26,31 @@ email:
  - alec.weiss@nist.gov
  - alec@weissworks.dev
 
-Person 1
+Jeanne Quimby
 ---------------------
 
-info and contact
+Biography
++++++++++++++
+Some things about Jeanne 
 
-Person 2
+Contact Info 
++++++++++++++
+
+email:
+   - jeanne.quimby@nist.gov
+
+Rod Leonhardt
 ---------------------
 
-info and contact
+Biography
++++++++++++++
+Some things about Rod 
+
+Contact Info 
++++++++++++++
+
+email:
+   - rodney.leonhardt@nist.gov
 
 Person 3
 ---------------------
