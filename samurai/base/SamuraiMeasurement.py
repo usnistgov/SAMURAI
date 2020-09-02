@@ -170,7 +170,9 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
     @brief Calculate the fft of a frequency domain value with uncertainties
     @param[in] fd_w_uncert - frequency domain values with uncertainty (e.g. MUFResult instance)
     @param[in/OPT] key - what key (e.g. 21,11,12,22) to calculate fft  (default 21)
-    @param[in/OPT] window - windowing to add to the fft calculation
+    @param[in/OPT] window - windowing to add to the fft calculation. can be 'sinc2' for sinc 
+            squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
+            or a callable with input (len(self.raw))
     @param[in/OPT] verbose - whether or not to be verbose on calculations
     @return MUFResult class 
     '''
@@ -185,11 +187,14 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
             td_vals = item.data[(item.waves[0],key)].calculate_time_domain_data(window=window)
-            tdw_vals = WaveformEditor(td_vals)
+            tdw_vals = WaveformEditor(td_vals.index,td_vals.to_numpy()) # create from Series
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()
         if verbose and len(in_meas)>1: pc.finalize()
     return td_w_uncert
+
+# alias to ifft
+ifft = calculate_time_domain
 
 #%% Class for MUF Interoperability
 
@@ -554,6 +559,10 @@ class SamuraiMeasurement(SamuraiDict):
     def __sub__(self,obj): return self.data_operation(operator.sub,obj)
     def __mult__(self,obj): return self.data_operation(operator.mult,obj)
     def __truediv__(self,obj): return self.data_operation(operator.truediv,obj)
+    
+###############################################
+# Plotting
+###############################################
     
     
 #%%    

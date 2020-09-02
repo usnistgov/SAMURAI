@@ -49,8 +49,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         '''
         @brief calculate the beamforming assuming farfield for angles in azimuth elevation
             All locations will be pulled from the metafile positions
-        @param[in] az_vals - azimuth angles in elevation from x axis (degrees)
-        @param[in] el_vals - elevation angles in azimuth from xy plane (degrees)
+        @param[in] az_vals - azimuth angles in elevation from x axis (radians)
+        @param[in] el_vals - elevation angles in azimuth from xy plane (radians)
         @note - az and el vals will be meshgridded (only provide cross sections)
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
         @param[in/OPT] arg_options - keyword arguments as follows:
@@ -59,6 +59,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         @note theta and phi vals will be created into a meshgrid
         @return list of CalculatedSyntheticAperture objects
         '''
+        #convert to degrees
+        az_vals = np.rad2deg(az_vals); el_vals = np.rad2deg(el_vals)
         #make the meshgrid
         [AZ,EL] = np.meshgrid(az_vals,el_vals)
         
@@ -137,6 +139,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         #get our position data
         if verbose: print("Reading measurement positions")
         pos = self.get_positions('m') #get all of our positions in meters
+        pos-=pos.mean(axis=0) #normalize to the center of the array
         az_angles = pos[:,5] #with current coordinates system azimuth=gamma
         
         #now lets use this data to get our delta_r beamforming values
