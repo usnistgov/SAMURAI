@@ -2,6 +2,7 @@
 About the Authors
 =======================
 
+**Still Under Construction**
 
 Alec Weiss
 -------------------
@@ -25,24 +26,41 @@ email:
  - alec.weiss@nist.gov
  - alec@weissworks.dev
 
-
-Ben Jamroz
-------------------
-
-Info and Picture
-
-
 Jeanne Quimby
 ---------------------
 
-Info and Picture
+Biography
++++++++++++++
+Some things about Jeanne 
 
+Contact Info 
++++++++++++++
 
-Rob Jones 
-------------------
+email:
+   - jeanne.quimby@nist.gov
 
-Info and Picture
+Rod Leonhardt
+---------------------
 
+Biography
++++++++++++++
+Some things about Rod 
+
+Contact Info 
++++++++++++++
+
+email:
+   - rodney.leonhardt@nist.gov
+
+Person 3
+---------------------
+
+info and contact
+
+Person 4
+---------------------
+
+info and contact
 
 The SAMURAI Team
 --------------------

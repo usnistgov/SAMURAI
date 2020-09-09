@@ -99,7 +99,7 @@ class SamuraiMatlab:
             if np.isscalar(arg) and type(arg)!=str: arg = np.array([arg],dtype=mydtype)
             if arg is None     :    arg = 'none' #replace None with text none for matlab
             if type(arg)==tuple:    arg = list(arg)
-            if type(arg)==list :    arg = np.array(arg,dtype=mydtype)
+            if type(arg)==list and not isinstance(arg[0],str):    arg = np.array(arg,dtype=mydtype)
                 
             #now convert lists to matlab
             if type(arg)==np.ndarray: #this assumes consistent values across list

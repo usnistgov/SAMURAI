@@ -146,8 +146,11 @@ def split_measurement(meas_path,split):
     @note This utilizes TouchstoneEditor split_parameters
     @return Metafile instances equal to the split
     '''
-    #first load the measurement and all its data
-    meas = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
+    if isinstance(meas_path,SamuraiMeasurement): #allow passing an object
+        meas = meas_path
+    else:
+        #first load the measurement and all its data
+        meas = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
     #split a test case to figure out what we need
     test_out = split_parameters(meas.nominal[0].data,split)
     #now create editors equal to the number of test outputs
@@ -167,7 +170,9 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
     @brief Calculate the fft of a frequency domain value with uncertainties
     @param[in] fd_w_uncert - frequency domain values with uncertainty (e.g. MUFResult instance)
     @param[in/OPT] key - what key (e.g. 21,11,12,22) to calculate fft  (default 21)
-    @param[in/OPT] window - windowing to add to the fft calculation
+    @param[in/OPT] window - windowing to add to the fft calculation. can be 'sinc2' for sinc 
+            squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
+            or a callable with input (len(self.raw))
     @param[in/OPT] verbose - whether or not to be verbose on calculations
     @return MUFResult class 
     '''
@@ -182,11 +187,14 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
             if item_data is None:
                 raise IOError("Item {} of {} has no data. Probably not loaded".format(ii,mt))
             td_vals = item.data[(item.waves[0],key)].calculate_time_domain_data(window=window)
-            tdw_vals = WaveformEditor(*td_vals)
+            tdw_vals = WaveformEditor(td_vals.index,td_vals.to_numpy()) # create from Series
             out_meas.add_item(tdw_vals)
             if verbose and len(in_meas)>1: pc.update()
         if verbose and len(in_meas)>1: pc.finalize()
     return td_w_uncert
+
+# alias to ifft
+ifft = calculate_time_domain
 
 #%% Class for MUF Interoperability
 
@@ -483,10 +491,10 @@ class SamuraiMeasurement(SamuraiDict):
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
             verbose - be verbose when writing (default False)
-            filetype - 'meas' or 'smeas' (default to 'meas') if the file doesnt have one
+            filetype - 'meas' or 'smeas' (default to os.path.splitext()[-1]) if the file doesnt have one
         '''
         options = {}
-        options['filetype'] = 'meas'
+        options['filetype'] = os.path.splitext(out_path)[-1]
         options.update(kwargs)
         out_dir = os.path.splitext(out_path)[0]
         if kwargs.get('verbose',False): print("Writing to : {}".format(out_path))
@@ -499,8 +507,10 @@ class SamuraiMeasurement(SamuraiDict):
         self._write_data(out_dir,**options)
         if '.meas' in out_path: #write an xml if we have a .meas file
             return self.write_xml(out_path)
-        else:
+        elif '.smeas' in out_path:
             return self.write_json(out_path) #otherwise write a json file
+        else:
+            raise Exception('Extension not recognized')
         
 #################################################
 # Some useful properties
@@ -549,6 +559,10 @@ class SamuraiMeasurement(SamuraiDict):
     def __sub__(self,obj): return self.data_operation(operator.sub,obj)
     def __mult__(self,obj): return self.data_operation(operator.mult,obj)
     def __truediv__(self,obj): return self.data_operation(operator.truediv,obj)
+    
+###############################################
+# Plotting
+###############################################
     
     
 #%%    
@@ -901,9 +915,9 @@ class TestUncertaintyOperations(unittest.TestCase):
 if __name__=='__main__':
     
     suite = unittest.TestLoader().loadTestsFromTestCase(TestSamuraiMeasurement)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
     suite = unittest.TestLoader().loadTestsFromTestCase(TestUncertaintyOperations)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    #unittest.TextTestRunner(verbosity=2).run(suite)
         
     wdir = os.path.dirname(__file__)
     unittest_dir = os.path.join(wdir,'./unittest_data')
@@ -911,5 +925,10 @@ if __name__=='__main__':
     res = SamuraiMeasurement(meas_path,load_nominal=False,load_statistics=False)
     resd = SamuraiMeasurement(meas_path,load_nominal=True,load_statistics=True)
     
+    mymeas = SamuraiMeasurement(r"\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\2019\7-8-2019_uncert\aperture_vertical\meas(1224)_cal_template_100mc.meas",load_statistics=True,verbose=True)
+    td = calculate_time_domain(mymeas)
+    td.calculate_statistics()
+    td_nom = td.nominal.data 
+    td_mc_stats = td.monte_carlo.get_statistics_dict(21);
     
     

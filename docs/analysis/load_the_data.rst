@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. _metafile_info:
+.. _load_the_data:
 
 Interacting with the Data
 ====================================
@@ -197,7 +197,7 @@ More information on the pandas DataFrame can be found at the `Pandas DataFrame D
 MATLAB
 +++++++++
 
-In MATLAB, touchstone data is loaded using the :mat:func:`read_touchstone` function. 
+In MATLAB, touchstone data is loaded using the :mat:func:`TouchstoneEditor` function. 
 This function takes a file path and returns a MATLAB table object with all of the loaded data.
 The following code again demonstrates how to access each of the S parameters of a 2 port S-parameter file.
 
@@ -208,7 +208,7 @@ The following code again demonstrates how to access each of the S parameters of 
 
    % Load the file 
    mypath = 'path/to/file.s2p' % (could also be 'file.s2p_binary');
-   mysnp = read_touchstone(mypath);
+   mysnp = TouchstoneEditor(mypath);
 
    % Now lets get some data from this
    frequencies        = mysnp.frequency;

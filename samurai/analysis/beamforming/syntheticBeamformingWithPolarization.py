@@ -250,7 +250,7 @@ experiment = expList[0]
 
 jsonFile = os.path.join(os.path.join(dataDir, experiment), jsonFilename)
 
-print jsonFile
+#print(jsonFile)
 freqs, measPos, measS21 = readSamuraiData(jsonFile)
 
 numMeasOrig = measPos.shape[0]

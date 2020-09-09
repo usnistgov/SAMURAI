@@ -9,7 +9,9 @@ In the SAMURAI lab, this is typically connected over ethernet. Communication is 
 The current IP address for the VNA in the SAMURAI lab is given in :ref:`hardware-config`.
 
 There are two methods for remotely running the VNA from the computer using the SAMURAI software. 
-The first is using the custom :class:`samurai.acquisition.support.PnaController.PnaController` class and the second is using PNAGrabber with :class:`samurai.acquisition.support.AutoPnaGrabber.PnaGrabber`(the NIST microwave uncertainty framework must be installed).
+The first is using the custom :class:`samurai.acquisition.support.PnaController.PnaController` class 
+and the second is using PNAGrabber with :class:`samurai.acquisition.support.AutoPnaGrabber.PnaGrabber` 
+(the NIST microwave uncertainty framework must be installed).
 
 Using PnaController 
 --------------------------
@@ -101,7 +103,7 @@ Once this has all been setup, PNAGrabber can be used to measure with the followi
 Using different methods with SAMURAI_System.csv_sweep()
 --------------------------------------------------------------
 
-When running a typical SAMURAI Sweep using the :method:`samurai.acquisition.SAMURAI_System.SAMURAI_System.csv_sweep` method,
+When running a typical SAMURAI Sweep using the :code:`samurai.acquisition.SAMURAI_System.SAMURAI_System.csv_sweep` method,
 the system will default to using the PnaController class and using ports 1 and 3.
 This can be changed with the optional input arguments :code:`meas_obj`,:code:`meas_obj_init_args`,:code:`meas_obj_meas_args`
 

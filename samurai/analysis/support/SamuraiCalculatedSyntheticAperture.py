@@ -379,7 +379,7 @@ class CalculatedSyntheticAperture:
         meas_info = []
         meas_data = [] #values for returning
         pos_key_entry = {'position_key':['azimuth','elevation']}
-        freqs = self.freq_list/1e9 #freqs in ghz
+        freqs = self.freq_list #freqs in ghz
         for i in range(self.num_positions):
             cur_idx = np.unravel_index(i,self.azimuth.shape)
             az = self.azimuth[cur_idx]
@@ -387,8 +387,8 @@ class CalculatedSyntheticAperture:
             #assume our freq_list is in hz then write out in GHz
             mys = SnpEditor([2,freqs],comments=['azimuth = '+str(az)+' degrees','elevation = '+str(el)+' degrees'],header='GHz S RI 50') #create a s2p file
             #populate the s21,values
-            mys.S[21].update(self.freq_list,self.complex_values[cur_idx])
-            mys.S[12].update(self.freq_list,self.complex_values[cur_idx])
+            mys.S21[:] = self.complex_values[cur_idx]
+            mys.S12[:] = self.complex_values[cur_idx]
             #add to list and create our info
             meas_data.append(mys)
             cur_info = {}

@@ -29,6 +29,26 @@ def magphase2complex(mag,phase):
     complex_out += 1j*imag
     return complex_out
 
+#%% to and from db
+def lin2db(val,mult=20):
+    '''
+    @brief linear to dB
+    @param[in] val - linear value to change to dB
+    @param[in/OPT] mult - mult*np.log10 (default=20)
+    '''
+    return mult*np.log10(val)
+
+
+def db2lin(val,mult=20):
+    '''
+    @brief dB to linear
+    @param[in] val - linear value to change to dB
+    @param[in/OPT] mult - mult*np.log10 (default=20)
+    '''
+    val = np.asarray(val)
+    return 10**(val/mult)
+
+#%% some other things
 def get_name_from_path(path):
     '''
     @brief extract a name from a path (no extension or directory)  

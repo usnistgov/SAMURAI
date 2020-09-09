@@ -78,7 +78,7 @@ el = np.zeros(az.shape)
 
 # Convert to azel to uv. This assumes no change
 # in z_pos between elements
-u = np.cos(np.deg2rad(el))*np.sin(np.deg2rad(az))
+u = np.sin(np.deg2rad(az))*np.cos(np.deg2rad(el))
 v = np.sin(np.deg2rad(el))
 
 # And beamform

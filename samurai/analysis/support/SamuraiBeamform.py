@@ -5,7 +5,7 @@ Created on Fri Mar 22 15:41:34 2019
 @author: ajw5
 """
 from samurai.analysis.support.SamuraiPostProcess import SamuraiSyntheticApertureAlgorithm
-from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k
+from samurai.analysis.support.SamuraiPostProcess import to_azel,get_k,to_uv
 from samurai.analysis.support.SamuraiPostProcess import calculate_steering_vector_from_partial_k
 from samurai.analysis.support.SamuraiPostProcess import vector_mult_complex,vector_div_complex
 from samurai.analysis.support.SamuraiCalculatedSyntheticAperture import CalculatedSyntheticAperture
@@ -26,17 +26,31 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         load_key        - Key to load values from (e.g. 21,11,12,22) when using measured values (default 21)
         data_type       - nominal,monte_carlo,perturbed,etc. If none do nominal
         data_meas_num   - which measurement of monte_carlo or perturbed to use
+    @example
+        # Load and process nominal values
+        mf_path = './path/to/metafile.json'
+        az = np.linspace(-np.pi/2,np.pi/2,181)
+        el = np.linspace(-np.pi/2,np.pi/2,181)
+        mybf = SamuraiBeamform(mf_path,load_key=12)
+        bf_vals = mybf.beamform_azel(az,el)
+    @example
+        # Process the first monte_carlo result
+        mf_path = './path/to/metafile.json'
+        az = np.linspace(-np.pi/2,np.pi/2,181)
+        el = np.linspace(-np.pi/2,np.pi/2,181)
+        mybf = SamuraiBeamform(mf_path,load_key=12,data_type='monte_carlo',data_meas_num=0)
+        bf_vals = mybf.beamform_azel(az,el)
     '''
     def __init__(self,metafile_path=None,**arg_options):
         '''@brief Constructor for class. We can load our metafile here or not'''
         super().__init__(metafile_path,**arg_options)
     
-    def beamforming_farfield_azel(self,az_vals,el_vals,freq_list='all',**arg_options):
+    def beamform_azel(self,az_vals,el_vals,freq_list='all',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in azimuth elevation
             All locations will be pulled from the metafile positions
-        @param[in] az_vals - azimuth angles in elevation from x axis (degrees)
-        @param[in] el_vals - elevation angles in azimuth from xy plane (degrees)
+        @param[in] az_vals - azimuth angles in elevation from x axis (radians)
+        @param[in] el_vals - elevation angles in azimuth from xy plane (radians)
         @note - az and el vals will be meshgridded (only provide cross sections)
         @param[in/OPT] freq_list  - list of frequencies to calculate for 'all' will do all frequencies
         @param[in/OPT] arg_options - keyword arguments as follows:
@@ -45,12 +59,14 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         @note theta and phi vals will be created into a meshgrid
         @return list of CalculatedSyntheticAperture objects
         '''
+        #convert to degrees
+        az_vals = np.rad2deg(az_vals); el_vals = np.rad2deg(el_vals)
         #make the meshgrid
         [AZ,EL] = np.meshgrid(az_vals,el_vals)
         
-        return self.beamforming_farfield(AZ,EL,freq_list=freq_list,coord='azel',**arg_options)
+        return self.beamform(AZ,EL,freq_list=freq_list,coord='azel',**arg_options)
         
-    def beamforming_farfield_uv(self,u_vals,v_vals,freq_list='all',**arg_options):
+    def beamform_uv(self,u_vals,v_vals,freq_list='all',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in uv
             All locations will be pulled from the metafile positions
@@ -72,10 +88,10 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         U[l1vals] = np.nan
         V[l1vals] = np.nan
         
-        return self.beamforming_farfield(U,V,freq_list=freq_list,coord='uv',**arg_options)
+        return self.beamform(U,V,freq_list=freq_list,coord='uv',**arg_options)
         
         
-    def beamforming_farfield(self,az_u,el_v,freq_list='all',coord='azel',**arg_options):
+    def beamform(self,az_u,el_v,freq_list='all',coord='azel',**arg_options):
         '''
         @brief calculate the beamforming assuming farfield for angles in spherical coordinates
             All locations will be pulled from the metafile positions
@@ -89,7 +105,7 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             antenna_pattern - AntennaPattern Class parameter to include (default None)
             unit_mult - unit multiplier for positions
             use_vectorized - use vectorized numba operations (default true)
-        @note theta and phi vals will be created into a meshgrid
+        @note This is not the most efficient way to do this. Should convert directly to UV
         @return list of CalculatedSyntheticAperture objects
         '''
         #input options (these are defaults)
@@ -117,12 +133,13 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
             freq_list = [freq_list] 
         freq_list = np.array(freq_list)
         
-        #change our coordinates to azel
+        #change our coordinates to uv
         [azimuth,elevation] = to_azel(az_u,el_v,coord)
         
         #get our position data
         if verbose: print("Reading measurement positions")
         pos = self.get_positions('m') #get all of our positions in meters
+        pos-=pos.mean(axis=0) #normalize to the center of the array
         az_angles = pos[:,5] #with current coordinates system azimuth=gamma
         
         #now lets use this data to get our delta_r beamforming values
@@ -190,6 +207,9 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         return mycsa
         #return csa_list,steering_vectors,s21_current,x_locs,y_locs,z_locs,delta_r
 
+    beamforming_farfield = beamform #does not create meshgrid
+    beamforming_farfield_uv = beamform_uv #creates meshgrid
+    beamforming_farfield_azel = beamform_azel #creates meshgrid
 
 
 ###############################################################################

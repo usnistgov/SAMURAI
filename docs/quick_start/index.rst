@@ -22,10 +22,4 @@ Minor MATLAB functionality has also been included for loading in measured data.
    :maxdepth: 2
    :caption: Getting Started
 
-Further information
-------------------------------
-
-Further information on various measurements can be found in :ref:`running-samurai`
-
-.. note:: More in depth information on how the SAMURAI system at NIST is configured can be found in :ref:`hardware-config`
 

@@ -246,7 +246,7 @@ class PnaController(SCPIInstrument):
         #now lets get the number of ports from the out_path
         num_ports = int(re.findall('(?<=s)\d+(?=p)',out_path)[0])
         #now lets create our Snp Object
-        freqs = freqs/1e9 #change to GHz
+        freqs = freqs #change to GHz
         snp = SnpEditor([num_ports,freqs],header='GHz S RI 50')
         for dd in data_dict.values():
             if dd['parameter'][0].upper()=='S': #then its an s param measurement
@@ -254,7 +254,7 @@ class PnaController(SCPIInstrument):
                 #map ports if specified
                 if port_mapping is not None:
                     s_key = map_keys([s_key],port_mapping)[0]
-                snp.S[s_key].raw = dd['data']
+                getattr(snp,'S'+str(s_key))[:] = dd['data']
         snp.write(out_path)
         return snp
     

@@ -78,7 +78,8 @@ class Instrument(SamuraiDict):
         @brief internal function to connect to device. This prevents from requiring
             the connection to have self.connection.connect() to run self.connect()  
         '''
-        self.connection.disconnect(address)
+        if self.connection is not None:
+            self.connection.disconnect(address)
             
     def read(self,cast=False,**kwargs):
         '''

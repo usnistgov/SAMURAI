@@ -19,6 +19,7 @@ This folder can also be used when uncertainties are not of interest.
 If using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` or :mat:func:`TouchstoneEditor`, the data from both directories
 (and therefore the data when using either metafile) should return the same values when loaded.
 
+
 The Metafile
 +++++++++++++++++++
 
@@ -45,6 +46,7 @@ Interaction with the metafile can easily be performed using the :class:`samurai.
 For MATLAB, loading and some other functionality is built into :mat:class:`SamuraiMetafile`.
 After loading into python, data on the whole measurement can be accessed with :code:`metafile[key]`, while information at each aperture 
 position can be accessed with :code:`metafile['measurements'][aperture_position_number][key]`.
+
 
 The Data
 +++++++++++

@@ -18,6 +18,8 @@ from samurai.base.SamuraiDict import SamuraiDict
 
 from samurai.base.generic import deprecated
 from samurai.base.generic import moving_average
+from samurai.base.generic import magphase2complex
+from samurai.base.generic import db2lin
 
 import plotly.graph_objs as go
 
@@ -40,6 +42,10 @@ TIME_MULT_DICT = {'NS':1e-9,'US':1e-6,'MS':1e-3,'S':1} #time domain for waveform
 ANG_MULT_DICT  = {'DEG':1,'RAD':180/np.pi} #angular conversion
 MULT_DICT = dict(**FREQ_MULT_DICT,**TIME_MULT_DICT,**ANG_MULT_DICT) #combine the dictionaries
 INV_MULT_DICT = {val:key for key,val in MULT_DICT.items()}  #inverse of frequency multiplier dictionary
+
+#%% Some types
+import typing
+CVECTOR_T = typing.Iterable[complex]
 
 #%% Some useful functions
 def get_unperturbed_meas(fname):
@@ -166,6 +172,8 @@ def split_parameters(meas,split,**kwargs):
         out_paths = [ed.write(options['out_path'].format(i)) for i,ed in enumerate(out_editors)]
         return out_paths
     
+#%% some transformation functions (ifft, t params, etc)
+    
 def ifft(data,window=None):
     '''
     @brief calculate the time domain data
@@ -197,6 +205,66 @@ def ifft(data,window=None):
          myw = WaveformParam(index=times)
     myw[:] = np.reshape(ifft_vals,tuple([len(ifft_vals)]+[-1]*(np.ndim(myw)-1)))
     return myw
+
+def sparams2tparams(sparam):
+    '''
+    @brief Convert S-parameters to T-parameters
+    @param[in] sparam - SnpEditor object to convert to scattering transfer parameters
+    @note This only works for 2 port networks
+    @cite W. F. Egan, Practical RF system design. New York, Hoboken, N.J, IEEE, Wiley-Interscience, 2003. p. 14
+    @return TransferEditor filled with T-parameters
+    '''
+    tparam = TransferEditor([2,sparam.freq_list]) # initialize
+    tparam.T11[:] = 1/sparam.S21.to_numpy()
+    tparam.T12[:] = -(sparam.S22/sparam.S21).to_numpy()
+    tparam.T21[:] = (sparam.S11/sparam.S21).to_numpy()
+    tparam.T22[:] = (sparam.S12-(sparam.S11*sparam.S22/sparam.S21)).to_numpy()
+    return tparam
+
+def tparams2sparams(tparam):
+    '''
+    @brief Convert S-parameters to T-parameters
+    @param[in] tparam - TransferEditor object to convert to scattering transfer parameters
+    @note This only works for 2 port networks
+    @cite W. F. Egan, Practical RF system design. New York, Hoboken, N.J, IEEE, Wiley-Interscience, 2003. p. 14
+    @return SnpEditor filled with S-parameters
+    '''
+    sparam = SnpEditor([2,sparam.freq_list]) # initialize
+    sparam.S11[:] = (tparam.T21/tparam.T11).to_numpy()
+    sparam.S12[:] = ((tparam.T22-(tparam.T12*tparam.T21/tparam.T11))).to_numpy()
+    sparam.S21[:] = (1/tparam.T11).to_numpy()
+    sparam.S22[:] = -(tparam.T12/tparam.T11).to_numpy()
+    return sparam
+
+def cascade(*args):
+    '''
+    @brief cascade any number of 2 port s or t parameters
+    @param[in] args - parameters to cascade (2 port SnpEditor or TransferEditor)
+    @note SnpEditors will be converted to TransferParameters
+    @return SnpEditor if all inputs are SnpEditors, otherwise TransferEditor
+    '''
+    # convert to t params if necessary
+    all_snp_flag = all([type(arg)==SnpEditor for arg in args])
+    tparams = []
+    for arg in args:
+        if type(arg) is SnpEditor:
+            arg = sparams2tparams(arg)
+        tparams.append(arg)
+        
+    # now lets cascade them 
+    
+#%% Conversions between possible storage types
+def DB2RI(cdata:CVECTOR_T) -> CVECTOR_T:
+    '''
+    @brief Convert mag/phase data that was extracted into a complex number and
+        convert to real imaginary
+    @param[in] complex vector where real is the magnitude (dB) and imag is the
+        phase (in DEGREES)
+    @return complex vector with real/imag complex data 
+    '''
+    mag_db = cdata.real 
+    angle_deg = cdata.imag
+    return magphase2complex(db2lin(mag_db),np.deg2rad(angle_deg))
 
 
 #%% Parsing for files with data on multiple lines
@@ -274,13 +342,14 @@ def read_text_touchstone(file_path,**kwargs):
     if(kwargs.get('read_header',None)): #flag for reading header for speed
          with open(file_path,'r') as fp: 
              for line in fp:
-                 if(line.strip()[0]=='#'):
-                     header = line
-                     #self.set_header(line) #try and set it. If its not valid it wont be set
-                 elif(line.strip()[0]=='!'):
-                     comments.append(line.strip()[1:])
-                 else: #else its data
-                     pass     
+                 if len(line.strip()):
+                     if(line.strip()[0]=='#'):
+                         header = line
+                         #self.set_header(line) #try and set it. If its not valid it wont be set
+                     elif(line.strip()[0]=='!'):
+                         comments.append(line.strip()[1:])
+                     else: #else its data
+                         pass     
     else: #dont read comments
          comments.append('Header and comments NOT read from file')
     #now read in data from the file with many possible delimiters in cases
@@ -376,7 +445,7 @@ class TouchstoneEditor(pd.DataFrame):
          option_keys = ['header'      ,'comments'                     ,'read_header',
                         'waves'  ,'no_load','default_extension','param_class']
          option_vals = [DEFAULT_HEADER,copy.deepcopy(DEFAULT_COMMENTS),True,
-                        ['A','B'],False    ,'tnp'              ,TouchstoneParam]
+                        ['A','B'],False    ,'touchstone'              ,TouchstoneParam]
          self.options = {}
          for key,val in zip(option_keys,option_vals): #extract our options
              self.options[key] = kwargs.pop(key,val) #default value
@@ -582,13 +651,22 @@ class TouchstoneEditor(pd.DataFrame):
         @brief class to extract data from raw data. This can be overriden for special cases  
         @note if not overriden this points to the same data as in self._raw  
         '''
+        #function to a number stored as complex to RI
+        convert_funct = lambda in_val: in_val; #do nothing if its already RI
+        if re.findall('[dD][bB]',self.options['header']): #we have magphase data
+            convert_funct = DB2RI
         #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
         for wi,w in enumerate(self.waves):
             for ki,k in enumerate(self.wave_dict_keys):
                 idx = ki*len(self.waves)*2+(1+2*wi)
+                # Check if we are loading magphase (DB) instead of RI
                 data = raw_data[:,idx]+raw_data[:,idx+1]*1j
+                data = convert_funct(data)
                 #extract to self._raw
                 self[(w,k)] = data
+                
+        #ensure we are labeled as real,imag
+        self.set_header(re.sub('[dD][bB]','RI',self.options['header']))
                 
         #self.round_freq_list() #round when we load (remove numerical rounding error)
     
@@ -650,7 +728,7 @@ class TouchstoneEditor(pd.DataFrame):
         self._ports = np.arange(1,num_ports+1)
         
              
-    def plot_plotly(self,keys='all',waves='all',data_type='mag_db',**arg_options):
+    def plot_plotly(self,keys='all',waves='all',data_type='mag_db',trace_only=False,**arg_options):
         '''
         @brief plot our wave or s parameter data using plotly. Placeholder until pandas implements
             plotly as a backedn plotting enging (they say next release)
@@ -669,12 +747,12 @@ class TouchstoneEditor(pd.DataFrame):
             waves = list(self.waves)
         if not hasattr(waves,'__iter__'):
             waves = [waves]
-        #now plot
+        #now plot or make trace
         fig = go.Figure(**arg_options)
         traces = []
         for w in waves:
             for k in keys:
-               trace = self[w][k].plot_plotly(data_type,trace_only=True,name='{}{}'.format(w,k))
+               trace = go.self[w][k].plot_plotly(data_type,trace_only=True,name='{}{}'.format(w,k))
                fig.add_trace(trace)
         return fig
                     
@@ -873,7 +951,21 @@ class SnpEditor(TouchstoneEditor):
            return  np.array([wdk[0],wdk[2],wdk[1],wdk[3]])
        else:
            return super()._gen_dict_keys() #otherwise use the generic
-       
+
+class TransferEditor(SnpEditor):
+    '''
+    @brief class for Scattering Transfer parameters (t-parameters)
+    @note this is the same as SnpEditor, but with 'T' waves and \*.snp extension
+    '''
+    def __init__(self,*args,**arg_options):
+        options = {}
+        options['waves'] = ['T'] #do s parameters
+        options['default_extension'] = 'tnp'
+        options['param_class'] = TransferParam
+        for k,v in arg_options.items():
+            options[k] = v
+        super().__init__(*args,**options)
+
 class WaveformEditor(SnpEditor):
     '''
     @brief class to read *.waveform classes that the MUF puts out. This can also be multi-port waveforms
@@ -891,14 +983,45 @@ class WaveformEditor(SnpEditor):
             super().__init__(*args,**kwargs)
         self.set_header(DEFAULT_HEADER_TIME)
         self.index.name='time'
+        
+    def _gen_dict_keys(self):
+        return [21]
 
-    def read(*args,**kwargs):
+    def read(self,*args,**kwargs):
         kwargs['round_freqs'] = kwargs.pop('round_freqs',False)
         return super().read(*args,**kwargs)
     
-    def write(*args,**kwargs):
+    def write(self,*args,**kwargs):
         kwargs['round_freqs'] = kwargs.pop('round_freqs',False)
         return super().write(*args,**kwargs)
+    
+    def _extract_data(self,raw_data):
+        '''
+        @brief class to extract data from raw data. This can be overriden for special cases  
+        @note This checks if we only have magnitude (no phase) like the MUF produces
+        '''
+        if raw_data.shape[1] == 2: #then its only mangitude
+            #just fake zero phase by appending zeros
+            raw_data = np.concatenate((raw_data,np.zeros_like(raw_data[:,1][...,np.newaxis])),axis=1)
+        #function to a number stored as complex to RI
+        convert_funct = lambda in_val: in_val; #do nothing if its already RI
+        if re.findall('[dD][bB]',self.options['header']): #we have magphase data
+            convert_funct = DB2RI
+        #now get the data for each port. This assumes that the keys are in the same order as the data (which they should be)
+        for wi,w in enumerate(self.waves):
+            for ki,k in enumerate(self.wave_dict_keys):
+
+                idx = ki*len(self.waves)*2+(1+2*wi)
+                # Check if we are loading magphase (DB) instead of RI
+                data = raw_data[:,idx]+raw_data[:,idx+1]*1j
+                data = convert_funct(data)
+                #extract to self._raw
+                self[(w,k)] = data
+                
+        #ensure we are labeled as real,imag
+        self.set_header(re.sub('[dD][bB]','RI',self.options['header']))
+                
+        #self.round_freq_list() #round when we load (remove numerical rounding error)
 
     @property
     def raw(self): return np.squeeze(super().raw)
@@ -999,7 +1122,7 @@ class TouchstoneParam(pd.Series):
         rv = go.Scatter(x=freqs/1e9,y=data,**plot_options)
         if not trace_only:
             fig.add_trace(rv)
-            fig.update_layout(xaxis_label='Freq (GHz)',yaxis_label=data_type)
+            fig.update_layout(xaxis_title='Freq (GHz)',yaxis_title=data_type)
             rv = fig
         return rv
     
@@ -1051,17 +1174,18 @@ class TouchstoneParam(pd.Series):
     
     #some useful properties for different data getting types
     @property
-    def mag(self): return type(self)(np.real(np.abs(self)),index=self.index)
+    def mag(self): return pd.Series(np.real(np.abs(self)),index=self.index)
     @property
     def mag_db(self): return 20*np.log10(self.mag)
     @property
-    def phase(self): return type(self)(np.angle(self),index=self.index)
+    def phase(self): return pd.Series(np.angle(self),index=self.index)
     @property
     def phase_d(self): return self.phase*180/np.pi
 
 #just for naming
 class WnpParam(TouchstoneParam): pass
 class SnpParam(TouchstoneParam): pass
+class TransferParam(SnpParam):pass
 class WaveformParam(TouchstoneParam):
     '''@brief parameter for waveorm files'''
     @property
