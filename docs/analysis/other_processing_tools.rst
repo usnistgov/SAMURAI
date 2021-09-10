@@ -32,7 +32,7 @@ beamforming on SAMURAI data using this class at a single measured frequency (40 
    
    #perform beamforming
    calc_synthetic_aperture = my_samurai_beamform.beamforming_farfield_azel(
-                                   np.arange(-90,90,1),np.arange(-90,90,1),freq_list=[40e9])
+                                   np.deg2rad(np.arange(-90,90,1)),np.deg2rad(np.arange(-90,90,1)),freq_list=[40e9])
    
    #plot our data in 3D
    myplot = calc_synthetic_aperture.plot_3d()
