@@ -16,7 +16,7 @@ When using :class:`samurai.acquisition.SamuraiSystem.SamuraiSystem`, the coordin
         
         - For other setups, it may be desirable to change this frame of reference or ensure that the positions are built with this offset in mind
 
-- The **z-axis** is in/out when looking from behind the robot which is typically the propogation direction when using a horn antenna.
+- The **z-axis** is in/out when looking from behind the robot which is typically the propagation direction when using a horn antenna.
 
 These axes can be seen with a representation of the robot on an optical table below.
 
@@ -77,7 +77,7 @@ and help reduce the possibility of damaging any part of the system.
 Testing with Simulation 
 +++++++++++++++++++++++++++++++
 
-When using the Meca500 robot, there is a capability to run a simulation mode. More information on the robot itself can be found in the `Meca500 user manual <https://www.mecademic.com/Documentation/Meca500-R3-User-Manual.pdf>`_.
+When using the Meca500 robot, there is a capability to run a simulation mode. More information on the robot itself can be found in the `Meca500 user manual <https://www.mecademic.com/en/downloads>`_.
 It is recommended to first test the robot using the simulation mode on the robot. This is done by:
 
 #. Connect to the robots using the built in web interface in monitoring mode (while the robot is powered on and connected)
@@ -130,13 +130,13 @@ Replacing this line will still run without the VNA but will physically move the 
 :class:`samurai.acquisition.SamuraiSystem.SamuraiSystem` by default also reduces the speed of the robot to ideally give the user enough reaction time 
 to hit the E-stop if needed. This also lets the user see if things like cables will get caught and pull on anything before an unsupervised measurement takes place.
 
-Performing these two tests can increase chances of success in the final measurement (although nothing is gauranteed and many other issues may arise so always be cautious).
+Performing these two tests can increase chances of success in the final measurement (although nothing is guaranteed and many other issues may arise so always be cautious).
 
 Creating a Planar Aperture 
 --------------------------------
 
 Here an example is given on how :class:`samurai.acquisition.support.SamuraiApertureBuilder` can be used to create a basic planar aperture.
-This aperture emulates a 16x16 array at a spacing of 5.35mm which is about lamda/2 at 28GHz.
+This aperture emulates a 16x16 array at a spacing of 5.35mm which is about lambda/2 at 28GHz.
 
 .. code-block:: python 
 

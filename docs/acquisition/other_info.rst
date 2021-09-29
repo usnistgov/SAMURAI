@@ -19,10 +19,10 @@ For more information on basic measurements with the VNA, see :ref:`running-the-v
 
 #. Verify that the front panel has the 5 different (assuming 2.4mm cal) .s2p files with the correct name and type as shown in the above figure. Make sure the Working Directory looks the same as in the picture. This is to ensure that all files are saved at the same level as PNAGrabber.
 #. Change the settings on PNA Grabber:
-    * Under :code:`Options> PNA Communication Settings> Address`, make sure this is pointing to the correct port the VNA is on (i.e. USB0::0x2A8D::0x2B01::SG49151012::INSTR)  as well as the correct communication method is selected (i.e USB or GPIB)
-    * Under :code:`Options> PNA Port Mapping`, make sure the ports being used on the VNA are the ports you want mapped to the sNp file (i.e: Data File Port 1 is set to PNA Port 3 and Data File Port 2 is set to PNA Port 2). Make sure there is a checkmark next to :code:`PNA Port Mapping`
-    * Under :code:`Options> IF Bandwidth Setting`, make sure this is set to the correct IF with unit of Hz (i.e 1000)
-    * Dont forget to do a :code:`File> Save` as CTRL + S does not work!!
+    * Under :code:`Options> PNA Communication Settings> Address`, make sure this is pointing to the correct port the VNA is on (e.g., USB0::0x2A8D::0x2B01::SG49151012::INSTR)  as well as the correct communication method is selected (i.e USB or GPIB)
+    * Under :code:`Options> PNA Port Mapping`, make sure the ports being used on the VNA are the ports you want mapped to the sNp file (e.g., Data File Port 1 is set to PNA Port 3 and Data File Port 2 is set to PNA Port 2). Make sure there is a checkmark next to :code:`PNA Port Mapping`
+    * Under :code:`Options> IF Bandwidth Setting`, make sure this is set to the correct IF with unit of Hz (e.g., 1000)
+    * Don't forget to do a :code:`File> Save` as CTRL + S does not work!!
 
 .. note:: There is an alternate method to get VNA measurements rather than using PNAGrabber. 
          For measurements with very large numbers of points (5000+ VNA points) PNAGrabber may become slow to transfer the data from the VNA.
@@ -92,7 +92,7 @@ Once the antennas have been remounted, return the positioner to its home positio
 Connecting the antennas
 -----------------------------
 
-Both the transmit and recieve antenna should always be contained in a 3D printed mounting holder. The newest version of this holder will have 3 steel ball bearings that fit into grooves on the Robot mount. Slide the antenna and its mount into the recieving side on the robot and connect the three 3mm nuts to snugly hold together the antenna and recieving mount. DO NOT OVERTIGHTEN THESE NUTS. The connection only needs to be lightly tightened (finger tight plus 1 turn or so). Overtightening will warp the plastic and damage the mount.
+Both the transmit and receive antenna should always be contained in a 3D printed mounting holder. The newest version of this holder will have 3 steel ball bearings that fit into grooves on the Robot mount. Slide the antenna and its mount into the receiving side on the robot and connect the three 3mm nuts to snugly hold together the antenna and receiving mount. DO NOT OVERTIGHTEN THESE NUTS. The connection only needs to be lightly tightened (finger tight plus 1 turn or so). Overtightening will warp the plastic and damage the mount.
 
 Demo the SAMURAI System
 ===========================

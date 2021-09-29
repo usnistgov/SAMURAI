@@ -49,10 +49,10 @@ Streaming from Motive
 ++++++++++++++++++++++++++++
 
 - Setup streaming interface from motive in 'Streaming Pane'
-- Make sure everyhting is being streamed. Make sure Up Axis is YUp
-- This is sending tto the loopback `127.0.0.1` on the computer at port ???
+- Make sure everything is being streamed. Make sure Up Axis is YUp
+- This is sending to the loopback `127.0.0.1` on the computer at port ???
 - THis data is constantly streamed.
-- This is then recieved in Python with the NatNetClient Class. This shouldn't be necessary to edit
+- This is then received in Python with the NatNetClient Class. This shouldn't be necessary to edit
 
 Using the Samurai MotiveInterface
 ------------------------------------

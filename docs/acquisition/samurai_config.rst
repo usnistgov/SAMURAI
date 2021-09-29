@@ -12,8 +12,8 @@ Meca 500 6 axis positioner
 Small 6 axis positioner.
 
 - `Mecademic Website <https://www.mecademic.com/products/Meca500-small-robot-arm>`_
-- `Meca500 R3 User Manual <https://www.mecademic.com/Documentation/Meca500-R3-User-Manual.pdf>`_
-- `Meca500 R3 Programming Manual <https://www.mecademic.com/Documentation/Meca500-R3-Programming-Manual.pdf>`_
+- `Meca500 R3 User Manual <https://www.mecademic.com/en/downloads>`_
+- `Meca500 R3 Programming Manual <https://www.mecademic.com/en/downloads>`_
 
 Keysight PNA-X (N5245A)
 ----------------------------
@@ -25,10 +25,10 @@ Keysight PNA-X (N5245A)
 Antennas
 --------------
 
-- Sage-millimeter 17dBi WR-28 Horn antenna  
+- Eravant (formerly Sage-millimeter) 17dBi WR-28 Horn antenna  
    - `17 dBi WR-28 Sage Horn Datasheet <https://www.sagemillimeter.com/content/datasheets/SAR-1725-28-S2.pdf>`_
 
-- Sage-millimeter 23dBi WR-28 Horn antenna  
+- Eravant (formerly Sage-millimeter) 23dBi WR-28 Horn antenna  
    - `23 dBi WR-28 Sage Horn Datasheet <https://www.sagemillimeter.com/content/datasheets/SAR-2309-28-S2.pdf>`_
 
 
@@ -43,11 +43,11 @@ Cables
 Adapters
 -------------
 
-- Sage-millimeter 2.4mm to WR-28 right angle adapters
+- Eravant (formerly Sage-millimeter) 2.4mm to WR-28 right angle adapters
    - `WR-28 to 2.4mm Female Adapter Datasheet <https://www.sagemillimeter.com/content/datasheets/SWC-282F-R1.pdf>`_
    - `WR-28 to 2.4mm Male Adapter Datasheet <https://www.sagemillimeter.com/content/datasheets/SWC-282M-R1.pdf>`_
 
-- Sage-millimeter K (2.92mm) to WR-28 right angle adapters
+- Eravant (formerly Sage-millimeter) K (2.92mm) to WR-28 right angle adapters
    - `WR-28 to K Female Adapter Datasheet <https://www.sagemillimeter.com/content/datasheets/SWC-28KF-R1.pdf>`_
    - `WR-28 to K Male Adapter Datasheet <https://www.sagemillimeter.com/content/datasheets/SWC-28KM-R1.pdf>`_
 
@@ -129,7 +129,7 @@ IP and VISA Addresses
    - Password is `password` 
 
 - Optitrack Cameras
-   - These IP addresses are unkown to the user
+   - These IP addresses are unknown to the user
 
 .. warning:: It is possible at some point in time The optitrack IP addresses may conflict with one of the other devices on the network. 
 	If so change the IP of whatever device is conflicting to something new. This may take some trial and error.

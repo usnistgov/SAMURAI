@@ -58,7 +58,7 @@ Using PNAGrabber to communicate with the VNA has the added benefit of setting up
 This works for s-parameters and wave-parameters with an arbitrary number of ports. This is performed using the :class:`samurai.acquisition.support.AutoPnaGrabber.PnaGrabber` class.
 
 To gather a measurement using PNAGrabber, first make a template pnagrabber menu. This is what will be run each time.
-This menu should have only a single measurement with the correct extension (e.g. \*.s2p,\*.s4p,\*.w2p).
+This menu should have only a single measurement with the correct extension (e.g., \*.s2p,\*.s4p,\*.w2p).
 
 
 .. _Setting Up PNAGrabber:
@@ -72,10 +72,10 @@ Setting up PNAGrabber
  .. image:: ./external_data/cal_pre_pna_grabber_front_page.PNG
 
 #. Change the settings on PNA Grabber:
-    * Under :code:`Options> PNA Communication Settings> Address`, make sure this is pointing to the correct port the VNA is on (i.e. USB0::0x2A8D::0x2B01::SG49151012::INSTR)  as well as the correct communication method is selected (i.e USB or GPIB)
-    * Under :code:`Options> PNA Port Mapping`, make sure the ports being used on the VNA are the ports you want mapped to the sNp file (i.e: Data File Port 1 is set to PNA Port 3 and Data File Port 2 is set to PNA Port 2). Make sure there is a checkmark next to :code:`PNA Port Mapping`
-    * Under :code:`Options> IF Bandwidth Setting`, make sure this is set to the correct IF with unit of Hz (i.e 1000)
-    * Dont forget to do a :code:`File> Save` as CTRL + S does not work!!
+    * Under :code:`Options> PNA Communication Settings> Address`, make sure this is pointing to the correct port the VNA is on (e.g., USB0::0x2A8D::0x2B01::SG49151012::INSTR)  as well as the correct communication method is selected (i.e USB or GPIB)
+    * Under :code:`Options> PNA Port Mapping`, make sure the ports being used on the VNA are the ports you want mapped to the sNp file (e.g., Data File Port 1 is set to PNA Port 3 and Data File Port 2 is set to PNA Port 2). Make sure there is a checkmark next to :code:`PNA Port Mapping`
+    * Under :code:`Options> IF Bandwidth Setting`, make sure this is set to the correct IF with unit of Hz (e.g., 1000)
+    * Don't forget to do a :code:`File> Save` as CTRL + S does not work!!
 
 By default the python wrapper expects that this template menu is in the working directory and named 'template.pnagrabber' (so it has the relative path './template.pnagrabber' from the running code typically).
 If a different template path is desired, pass the keyword parameter :code:`pnagrabber_template_path='path/to/template.pnagrabber'` when instantiating the :code:`PnaGrabber` class.
@@ -107,7 +107,7 @@ When running a typical SAMURAI Sweep using the :code:`samurai.acquisition.SAMURA
 the system will default to using the PnaController class and using ports 1 and 3.
 This can be changed with the optional input arguments :code:`meas_obj`,:code:`meas_obj_init_args`,:code:`meas_obj_meas_args`
 
-To utilize PnaController without any port mapping, the following keywork arguments should be passed into the csv_sweep method:
+To utilize PnaController without any port mapping, the following keyword arguments should be passed into the csv_sweep method:
 
 .. code-block:: python 
 

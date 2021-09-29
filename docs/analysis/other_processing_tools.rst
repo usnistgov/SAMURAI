@@ -51,7 +51,7 @@ beamforming on SAMURAI data using this class at a single measured frequency (40 
 Leveraging for Custom algorithms
 ------------------------------------
 
-The previous example utilizes abstracted libraries to perform coventional beamforming.
+The previous example utilizes abstracted libraries to perform conventional beamforming.
 Custom post processing algorithms can easily be implemented by inheriting from the samurai.analysis.support.SamuraiPostProcess.SamuraiSyntheticApertureAlgorithm class.
 Inheriting from this class provides the flexibility to define custom post processing functions while still providing the convenience
 of tools for data IO, tapering, and plotting. Once the output data has been processed, it can be packed into the 

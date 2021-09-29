@@ -13,21 +13,21 @@ Welcome to SAMURAI's documentation!
 - [A]ngle of
 - [I]ncidence
 
-Intoduction
+Introduction
 ----------------------
 
 The National Institute of Standards and Technology (NIST) Communication Technology Laboratory (CTL) developed the Synthetic Aperture Measurement with Uncertainties
 and Angle of Arrival (SAMURAI) millimeter-wave testbed and technique. SAMURAI utilizes a synthetic aperture method using a robotic arm and vector network analyzer/large signal network analyzer (VNA/LSNA) for flexible and accurate propagation channel and device measurements as a function of both frequency and angle. Note: this technique can use a measurement tool.
 
-In the NIST configuration of SAMURAI, linear and non-linear measurements are possible leveraging the LSNA measurement capability. We perform wideband measurements from 26.5 to 40 GHz on an optical table in a controlled laboratory to ensure stability during our measurements. The robotic arm allows for multiple configuration scan types from rectangular to cylindrical.
+In the NIST configuration of SAMURAI, linear and non-linear measurements are possible leveraging the large signal network LSNA measurement capability. We perform wideband measurements from 26.5 to 40 GHz on an optical table in a controlled laboratory to ensure stability during our measurements. The robotic arm allows for multiple configuration scan types from rectangular to cylindrical.
 
-In this documentation, we provide a getting started documentation, software for both data acquisition and data analysis. We also provide past measurement campaigns data from an Angle-of-Arrival measurements to the Central Utility Plant measurements. Finally, we provide base software libraries and frequency asked questions.
+In this documentation, we provide a getting started documentation, software for both data acquisition and data analysis. We also provide past measurement campaigns data from an Angle-of-Arrival measurements to the Central Utility Plant measurements. Finally, we provide base software libraries and frequently asked questions.
 
 
 
 .. image:: ./external_data/image_authors.jpg
 
-*SAMURAI System Set up to test the scattering off of two cylinders. This test is used to test the angular resolution of different angle of arrival (AoA) algorithms.*
+*Rod Leonhardt, Alec Weiss, and Jeanne Quimby (left to right) setting up the SAMURAI system.*
 
 This documentation describes how the system is run, the data is stored, and options on how it can be processed.
 
@@ -54,6 +54,7 @@ Table of Contents
 .. toctree::
    quick_start/index
    :maxdepth: 2
+   :numbered:
    :caption: Quick Start:
 
 .. toctree::
@@ -61,14 +62,28 @@ Table of Contents
    analysis/index
    data/index
    :maxdepth: 2
+   :numbered:
    :caption: Contents:
 
 .. toctree::
    api/index
    faq
-   authors
    :maxdepth: 1
+   :numbered:
    :caption: Other Information:
+
+
+Authors
+-----------------
+- Alec Weiss (alec.weiss@nist.gov)
+- Jeanne Quimby (jeanne.quimby@nist.gov)
+- Ben Jamroz (benjamin.jamroz@nist.gov)
+- Rod Leonhardt (rodney.leonhardt@nist.gov)
+- Peter Vouras (peter.vouras@nist.gov)
+- Kate Remley (kate.remley@nist.gov)
+- Dylan Williams (dylan.williams@nist.gov) 
+- NIST SAMURAI Team
+
 
 Copyright Notice
 -----------------------

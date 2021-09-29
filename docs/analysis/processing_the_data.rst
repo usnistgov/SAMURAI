@@ -160,7 +160,7 @@ An azimuthal cut at 0 degrees elevation can then be generated with the following
    :lines: 50-82
    :linenos:
 
-Plotting the data again for :code:`2-13-2019/aperture_0` we can plot the result as magntiude vs azimuth angle in degrees at the first frequency point.
+Plotting the data again for :code:`2-13-2019/aperture_0` we can plot the result as magnitude vs azimuth angle in degrees at the first frequency point.
 
 **Beamformed Result**
 
