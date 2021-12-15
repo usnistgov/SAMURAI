@@ -5,7 +5,7 @@ Processing and Viewing the Data
 
 After a sweep has completed, the file in which the data was output should contain a number of \*.snp files equal to the number of positions that were swept over.
 This file should also contain a 'metafile.json' and a 'metafile.raw' file. If the sweep finished correctly, the 'metafile.json' file contains all of the metadata in a javascript object notation (JSON)
-file. the 'metafile.raw' is an intermediary storage file used during measurements and can be ignored.
+file. The 'metafile.raw' is an intermediary storage file used during measurements and can be ignored.
 
 #. Calibrate the Data
 

@@ -22,7 +22,7 @@ and the total aperture size is >10 wavelengths. This data will probably not be u
 5-11-2018
 ++++++++++++++++
 This was the initial day where line of sight synthetic apertures were tested. The vna was set to a frequency range of 28-30 GHz with 20MHz steps
-Both a measurement with the transmitter about 10 degrees in the azimuth direction and 5 degrees in the elevation offset from the reciever were taken
+Both a measurement with the transmitter about 10 degrees in the azimuth direction and 5 degrees in the elevation offset from the receiver were taken
 Again both are contained within the '/calibrated' folder
 
 - :data_root:`2018/05-11-2018/`
@@ -30,7 +30,7 @@ Again both are contained within the '/calibrated' folder
 5-15-2018
 ++++++++++++++++
 Another line of sight was taken here the the transmitter both 10 degrees in the azimuth and 5 degrees in elevation at the same time
-Measurements on this day were taken from 26.5 to 40GHz with a step of 10MHz and an IFBW of 10. 
+Measurements on this day were taken from 26.5 to 40GHz with a step of 10MHz and an IF bandwidth of 10. 
 
 - :data_root:`2018/05-15-2018/`
 
@@ -60,7 +60,7 @@ The setup for this day was the same as 12-12-2018 but removed the absorber from 
 
 12-18-2018 
 ++++++++++++++++
-The setup for this day was the same as 12-12-2018 but removed the cabinetes from behind the recieve side.
+The setup for this day was the same as 12-12-2018 but removed the cabinets from behind the receive side.
 
 - :data_root:`2018/12-18-2018/`
 

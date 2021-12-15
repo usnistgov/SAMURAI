@@ -112,7 +112,7 @@ Perform the waveguide calibration for each of these VNA settings in a different 
 
 #. Make a copy of all this data into the :code:`<working_directory>/cal/calibration_pre/raw` folder. This simply provides a copy of the raw data in case a problem arises.
 
-.. note:: If only running a post calibration (e.g., no measurement the following day) These same steps should be performed in :code:`<working_directory>/cal/calibration_post`.
+.. note:: If only running a post calibration (e.g., no measurement the following day), these same steps should be performed in :code:`<working_directory>/cal/calibration_post`.
 
 #. Make a copy of calibration data into :code:`<working_directory>/cal/calibration_post` for previous day (if applicable)
 

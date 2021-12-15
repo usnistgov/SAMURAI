@@ -3,16 +3,17 @@ Calibrating the Data
 
 Before any other post-processing steps are performed, all data should be calibrated. 
 
-.. note:: Any data listed in :ref:`_samurai_data` will already be calibrated, but for any new data the following steps must be taken.
+.. note:: Any data provided in :ref:`_samurai_data` will already be calibrated, but for any new data the following steps must be taken.
 
 Calibration is typically performed using a script that calls the :class:`samurai.analysis.calibration.CalibrateSamurai`.
 This is only for VNA (or LSNA) based measurements performing calibrations on raw measured data NOT calibrated directly with the VNA (or LSNA).
 
 With the typical SAMURAI directory structure, the script template from :mod:`samurai.analysis.calibration.script_templates.calibrate`
-lays out a common way the data will be calibrated. This script utilizes a measurement metafile (*.json file) along with a microwave uncertainty framework (MUF)
+lays out a common way the data will be calibrated. This script utilizes a measurement metafile (\*.json file) along with a NIST  `Microwave Uncertainty Framework (MUF) <https://www.nist.gov/services-resources/software/wafer-calibration-software>`_ 
 post-processor template (*.post) which are located in the :code:`samurai/analysis/calibration/templates` directory.
 
-The metafile will first be split in the case of multiple sweeps taken during a single measurement (e.g. vertical and horizontal polarization)
+
+The metafile will first be split in the case of multiple sweeps taken during a single measurement (e.g., vertical and horizontal polarization)
 This script will then populate a post-processor file with the settings from the template and the files from the metafile for each of the split measurements.
 This file will automatically be saved and run and all the measurement data will be calibrated in the provided output directory and split subdirectories.
 

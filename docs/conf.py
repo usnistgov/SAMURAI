@@ -79,7 +79,7 @@ dox_funct_dict = {
     "todo"   : lambda str: re.sub(' +',' ',"\n.. todo::"+str.strip().lstrip("todo").replace('\n','')+'\n'),
     "cite"   : lambda str: re.sub(' +',' ',"\n.. seealso:: "+"*"+str.strip().lstrip("cite").replace('\n','')+"*\n"),
     "date"   : lambda str: re.sub(' +',' ',"\nDate - "+str.strip().lstrip("date").replace('\n','')+'\n'),
-    "author" : lambda str: re.sub(' +',' ',"\nAuthor - "+str.strip().lstrip("author").replace('\n','').strip(':')+'\n'),
+    "author" : lambda str: ''#re.sub(' +',' ',"\nAuthor - "+str.strip().lstrip("author").replace('\n','').strip(':')+'\n'),
 }
     
 def docstring_preprocess(doc_str):
@@ -162,7 +162,7 @@ extensions = [
 #link root directories
 extlinks = {
     'data_root': (r'\\cfs2w\67_ctl\67Internal\DivisionProjects\Channel Model Uncertainty\Measurements\Synthetic_Aperture\calibrated\%s','SAMURAI Data '),
-    'git_repo': (r'https://gitlab.nist.gov/gitlab/uncertainteam/samurai/%s','Git Repository '),
+    'git_repo': (r'https://github.com/usnistgov/SAMURAI%s','Git Repository '),
 }
 
 #exclusions

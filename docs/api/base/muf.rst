@@ -4,7 +4,7 @@
 Microwave Uncertainty Framework Python API
 ==============================================
 
-Interfaces to automate and use the Microwave Uncertainty Framework (MUF) developed at the National institute of standards and technology (NIST).
+Interfaces to automate and use the `Microwave Uncertainty Framework (MUF) <https://www.nist.gov/services-resources/software/wafer-calibration-software>`_ developed at the National institute of standards and technology (NIST).
 
 Measurement File Interface
 ------------------------------

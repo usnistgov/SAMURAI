@@ -92,7 +92,7 @@ Once the antennas have been remounted, return the positioner to its home positio
 Connecting the antennas
 -----------------------------
 
-Both the transmit and receive antenna should always be contained in a 3D printed mounting holder. The newest version of this holder will have 3 steel ball bearings that fit into grooves on the Robot mount. Slide the antenna and its mount into the receiving side on the robot and connect the three 3mm nuts to snugly hold together the antenna and receiving mount. DO NOT OVERTIGHTEN THESE NUTS. The connection only needs to be lightly tightened (finger tight plus 1 turn or so). Overtightening will warp the plastic and damage the mount.
+Both the transmit and receive antenna should always be contained in a 3D printed mounting holder. The newest version of this holder will have 3 steel ball bearings that fit into grooves on the Robot mount. Slide the antenna and its mount into the receiving side on the robot and connect the three 3mm nuts to snugly hold together the antenna and receiving mount. DO NOT OVERTIGHTEN THESE NUTS. The connection only needs to be lightly tightened (finger tight plus about a half turn). Overtightening will warp the plastic and damage the mount.
 
 Demo the SAMURAI System
 ===========================
