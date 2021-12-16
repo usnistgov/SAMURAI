@@ -23,7 +23,7 @@ default_info['steps_per_rotation'] = 400
 
 class BislideController():
     '''
-    @brief class to abstract bislide control. THIS IS ONLY FOR VELMEX BISLIDES  
+    @brief class to abstract bislide control. THIS IS ONLY FOR VELMEX BISLIDES.
     '''
     
     def __init__(self,com_port,**options):
@@ -65,9 +65,9 @@ class BislideController():
         '''
         @brief zero to limit switch  
         @param[in] direction '+' for positive '-' for negative   
-        @param[in/OPT] zero_position_reg - do we reset our position to zero?
-            defaults to true, but if we zero to the + direction should probably
-            be false otherwise all position values will be negative  
+        @param[in/OPT] zero_position_reg - Do we reset our position to zero?
+            Defaults to true, but if we zero to the + direction should probably
+            be false otherwise all position values will be negative.
         '''
         if direction=='-':
             com = "I%dM-0\r" %(motor_num)
@@ -132,7 +132,7 @@ class BislideController():
         '''
         @brief get the status of the limit switches  
         @return a dictionary with entries 1-,1+,2-,2+ 
-            which shows whehter the limit switches are activated  
+            which shows whether the limit switches are activated  
         '''
         self.enable_online_mode()
         lim_val = self.query('?')
@@ -174,7 +174,7 @@ class BislideController():
         
     def interactive_write(self,msg):
         '''
-        @brief interactively write commands Should probably be DEPRECATED. 
+        @brief Interactively write commands. Should probably be DEPRECATED. 
             Not commonly used because we zero the position regs here.  
         '''
         #interactive command as shown in the manual
@@ -232,8 +232,8 @@ class BislideController():
         @param[in/OPT] steps_per_second - number of steps per second (default 2000)
             2000 is also the value the controller starts up at  
         @param[in/OPT] motor_num - which motor to set the speed for (default 1)  
-        @note This is set for 70% power (SmMx command) This can be changed
-            To use 100% power using the SAmMx command (m is motor#, x is steps_per_second)  
+        @note This is set for 70% power (SmMx command). This can be changed
+            to use 100% power using the SAmMx command (m is motor#, x is steps_per_second).
         '''
         sps_int = int(steps_per_second) #convert to integer
         command = "S%dM%d\r" %(int(motor_num),sps_int) #generate the command

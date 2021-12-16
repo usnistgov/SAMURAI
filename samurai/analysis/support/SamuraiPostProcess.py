@@ -141,9 +141,9 @@ class SamuraiSyntheticApertureAlgorithm:
     @property
     def positions(self):
         '''
-        @brief getter for our positinos. This will allow us to mask out undesired locations
+        @brief getter for our positions. This will allow us to mask out undesired locations
         @return all desired positions that are not masked out
-        @todo implemment masking
+        @todo implement masking
         '''
         if self.all_positions is not None:
             #retrun a copy
@@ -159,9 +159,9 @@ class SamuraiSyntheticApertureAlgorithm:
         '''
         @brief Normalize the values in self.all_positions to some combination of the positions
             By default normalize to the mean of all positions
-        @param[in/OPT] norm_type - function for normalization. Should have prototype 
+        @param[in/OPT] norm_type - Function for normalization. Should have prototype 
             norm_funct(pos,axis=None) where pos is [[x,y,z,alpha,beta,gamma],[...],...].
-            The return value will then be subtracted from self.all_positions
+            The return value will then be subtracted from self.all_positions.
         '''
         self.all_positions-=norm_funct(self.all_positions,axis=0)
           
@@ -189,18 +189,18 @@ class SamuraiSyntheticApertureAlgorithm:
     
     def perturb_positions(self,perturb_funct,*args,**kwargs):
         '''
-        @brief generate and add a perturbation to our positions.
+        @brief Generate and add a perturbation to our positions.
             This will be added to self.all_positions_perturbation as to not change
-            the raw positions themselved. This will then be added to the positions
+            the raw positions themselves. This will then be added to the positions
             when getting the positions property. If self.all_positions_perturbation = None
             the raw positions will be returned.
         @param[in] perturb_funct - function to use to generate perturbation values.
             This will typically be from numpy.random.(normal/uniform/binomial/etc...) 
             but could also be a user made function that takes a 2D array of values
-            and outputs perturbed values of the same shape
-        @param[in] *args - these are the arguments for the perturbation function.
-            before being passed to the funciton, if a scalar or 1D array is passed in
-            it will be extended to match the shape of the positions
+            and outputs perturbed values of the same shape.
+        @param[in] *args - These are the arguments for the perturbation function.
+            Before being passed to the funciton, if a scalar or 1D array is passed in
+            it will be extended to match the shape of the positions.
         @param[in/OPT] kwargs - keyword arguments as follows
             units - units that the input data is in ('mm','cm','m','in') defaults meters 'm'
         '''
@@ -222,9 +222,9 @@ class SamuraiSyntheticApertureAlgorithm:
     def perturb_positions_normal(self,stdev,units='m'):
         '''
         @brief generate positional perturbations using a normal distribution
-        @param[in] stdev - standard deviation of the positions. Can be a scalar,
+        @param[in] stdev - Standard deviation of the positions. Can be a scalar,
             1D array [x,y,z,alph,bet,gam] or 2D array [[x,y,z,alph,bet,gam],...]
-            to match the size of the position array from self.all_positions
+            to match the size of the position array from self.all_positions.
         @param[in/OPT] units - units that the standard deviations are in
         '''
         self.perturb_positions(np.random.normal,0,stdev,units=units)
@@ -259,8 +259,8 @@ class SamuraiSyntheticApertureAlgorithm:
     
     def set_position_units(self,units):
         '''
-        @brief change the units of our positions ('mm','cm','m','in') possible
-            for this we must also convert our positions
+        @brief change the units of our positions ('mm','cm','m','in') possible, 
+            we must also convert our positions
         @param[in] units - the units to change to ('mm','cm','m','in')
         '''
         to_meters_dict=self.unit_conversion_dict
@@ -290,7 +290,7 @@ class SamuraiSyntheticApertureAlgorithm:
     
     def plot_positions(self,pos_units='m',plot_type='weights',**arg_options):
         '''
-        @brief plot the positions of our aperture in 3D
+        @brief plot the positions of our aperture in 3D, 
             points will be colored based on the plot type
         @param[in/OPT] pos_units - units for position (m,mm,cm,in)
         @param[in/OPT] plot_type - whether to plot 'weights','mag','phase','phase_d','real','imag'
@@ -348,7 +348,7 @@ class SamuraiSyntheticApertureAlgorithm:
     @property
     def s_parameter_data(self):
         '''
-        @brief getter for our s parameter data. This will allow us to mask out undesired locations.
+        @brief Getter for our s parameter data. This will allow us to mask out undesired locations.
         @note unlike all_s_parameter_data, this will return a numpy array, not a list of SnpEditors
         @return all s_parameter_data for desired positions that are not masked out
         @todo implemment masking
@@ -372,15 +372,15 @@ class SamuraiSyntheticApertureAlgorithm:
     @property
     def freq_list(self):
         '''
-        @brief getter for frequency list. This will use the first TouchstoneEditor value in self.all_s_parameters
-            to ensure it is up to date in case we cut our data
+        @brief Getter for frequency list. This will use the first TouchstoneEditor value in self.all_s_parameters
+            to ensure it is up to date in case we cut our data.
         '''
         if self.all_s_parameter_data is not None:
             return self.all_s_parameter_data[0].freq_list
     
     def perturb_data(self,stdev):
         '''
-        @brief generate and add a perturbation to our s parameter data.
+        @brief Generate and add a perturbation to our s parameter data.
             This will be added to self.all_data_perturbation as to not change
             the raw data. This will then be added to the data
             when getting the s_parameter_data property. If self.all_data_perturbation = None
@@ -396,12 +396,12 @@ class SamuraiSyntheticApertureAlgorithm:
     ###########################################################################
     def get_steering_vectors(self,az_u,el_v,k,coord='azel',**arg_options):
         '''
-        @brief get our steering vectors with wavenumber provided. calculates np.exp(1j*k*kvec)
-            where kvec is i_hat+j_hat+k_hat
-            It is better to not use this for large calculations. Instead caculate the k vectors and get steering vectors in the algorithm
-            to prevent recalculating k vectors
+        @brief Get our steering vectors with wavenumber provided. calculates np.exp(1j*k*kvec)
+            where kvec is i_hat+j_hat+k_hat.
+            It is better to not use this for large calculations. Instead calculate the k vectors and get steering vectors in the algorithm
+            to prevent recalculating k vectors.
         @param[in] az_u - azimuth or u values to get steering vectors for 
-        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @param[in] el_v - elevation nor v values to get steering vectors for
         @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
         @param[in/OPT] k - wavenumber to calculate with. If None, vectors 
         @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
@@ -419,19 +419,19 @@ class SamuraiSyntheticApertureAlgorithm:
     
     def get_partial_steering_vectors(self,az_u,el_v,coord='azel',**arg_options):
         '''
-        @brief get our partial steering vectors vector to later calculate the steering vector
-            calculates i_hat+j_hat+k_hat dot position 
-            (i.e. k_vectors*pos_vecs) and multiplies by position vectors
-            To get steering vectors use np.exp(-1j*k*psv_vecs)
+        @brief Get our partial steering vectors vector to later calculate the steering vector.
+            Calculates i_hat+j_hat+k_hat dot position 
+            (i.e. k_vectors*pos_vecs) and multiplies by position vectors.
+            To get steering vectors use np.exp(-1j*k*psv_vecs).
         @param[in] az_u - azimuth or u values to get steering vectors for 
-        @param[in] el_v - elevatio nor v values to get steering vectors for
+        @param[in] el_v - elevation nor v values to get steering vectors for
         @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
         @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
         @param[in/OPT] arg_options - keyword argument options as follows
             - None Yet!
-        @return the calculated partial steering vectors vectors for az_u and el_v at the provided k value, or without a k value.
-            The first axis of the returned matrix is the position value 
-            The second axis corresponds to the azel values
+        @return The calculated partial steering vectors vectors for az_u and el_v at the provided k value, or without a k value.
+            The first axis of the returned matrix is the position value .
+            The second axis corresponds to the azel values.
         '''
         #[az,el] = self.to_azel(az_u,el_v,coord) #change to azel
         #az = np.deg2rad(az.reshape((-1))) #flatten arrays along the desired axis and change to radians
@@ -447,8 +447,8 @@ class SamuraiSyntheticApertureAlgorithm:
     
     def add_plane_wave(self,az_u,el_v,amplitude_db=-50,coord='azel'):
         '''
-        @brief add a plane wave to the s parameter data.
-            If data doesnt exist then start from 0s
+        @brief Add a plane wave to the s parameter data.
+            If data doesnt exist then start from 0s.
         @param[in] az_u - azel (or uv) pairs of angles for plane waves
         @param[in] el_v - azel (or uv) pairs of angles for plane waves
         @param[in] amplitude_db - amplitude of the wave in dB (default -50)
@@ -497,7 +497,7 @@ class SamuraiSyntheticApertureAlgorithm:
     
     def set_sine_power_window(self,power):
         '''
-        @brief set our weights to reflect a sine power window
+        @brief set our weights to reflect a sine power window, 
             Hann window is power=2
         @param[in] power - power to set the sine to (e.g. power=2 produces sin(pi*n/N)**2)
         '''
@@ -598,8 +598,8 @@ class SamuraiSyntheticApertureAlgorithm:
     @weights.setter
     def weights(self,weights):
         '''
-        @brief setter for our antenna weights
-            for now these weights will be for just our values in use (masking doesnt effect)
+        @brief Setter for our antenna weights.
+            For now these weights will be for just our values in use (masking doesnt effect).
             This means weights will need to be recalculated when masking is done
         @param[in] weights - weights to set
         @todo implemment masking
@@ -648,18 +648,18 @@ def to_uv(az_u,el_v,coord,replace_val = np.nan):
  
 def get_k_vectors(az_u,el_v,coord='azel',**arg_options):
     '''
-    @brief get our k vector to later calculate the steering vector
-        calculates i_hat+j_hat+k_hat 
-        To get steering vectors use np.exp(-1j*k*dot(k_vectors*position_vectors))
+    @brief Get our k vector to later calculate the steering vector.
+        Calculates i_hat+j_hat+k_hat.
+        To get steering vectors use np.exp(-1j*k*dot(k_vectors*position_vectors)).
     @param[in] az_u - azimuth or u values to get k vecs for
-    @param[in] el_v - elevatio nor v values to get k vecs for
+    @param[in] el_v - elevation nor v values to get k vecs for
     @note az_u and el_v will be a pair list like from meshgrid. Shape doesnt matter. They will be flattened
     @param[in/OPT] coord - what coordinate system our input values are (azel or uv) (default azel)
     @param[in/OPT] arg_options - keyword argument options as follows
         - None Yet!
-    @return the calculated k vectors for az_u and el_v at the provided k value, or without a k value.
-        The first axis of the returned matrix is the x,y,z components respectively
-        The second axis is each of the measurements from the input az_u,el_v
+    @return The calculated k vectors for az_u and el_v at the provided k value, or without a k value.
+        The first axis of the returned matrix is the x,y,z components respectively.
+        The second axis is each of the measurements from the input az_u,el_v.
     '''
     az = np.deg2rad(az_u.flatten())
     el = np.deg2rad(el_v.flatten())
@@ -698,7 +698,7 @@ class Antenna(SamuraiDict):
     SPEED_OF_LIGHT=299792458.
     Z0 = 376.7 #impedance of free space
     '''
-    @brief class to hold antenna data. This is partially based on Ben's previous implementation
+    @brief Class to hold antenna data. This is partially based on Ben's previous implementation
         , and partially based on my original the AntennaPattern Class.
     @note this is built as a dictionary containing all of the antenna patterns so things can be saved out
     @cite John D. Kraus Antennas
@@ -709,7 +709,7 @@ class Antenna(SamuraiDict):
         
     def write(self,fpath,**kwargs):
         '''
-        @brief write antenna info to a file. This also adds self.eval_gain method to self['eval_gain']  
+        @brief Write antenna info to a file. This also adds self.eval_gain method to self['eval_gain']  
         @param[in] fpath - file path for writing out  
         @param[in/OPT] kwargs - keyword args passed to super().write
         @todo get this to work correctly
@@ -719,7 +719,7 @@ class Antenna(SamuraiDict):
         
     def load(self,fpath,**kwargs):
         '''
-        @brief read antenna info from a file. This also loads self['eval_gain'] to self.eval_gain
+        @brief Read antenna info from a file. This also loads self['eval_gain'] to self.eval_gain.
         @param[in] fpath - path to file to load
         @param[in/OPT] kwargs - keyword args passed to super().load
         @todo get this to work correctly
@@ -729,7 +729,7 @@ class Antenna(SamuraiDict):
         
     def writes(self,**kwargs):
         '''
-        @brief write antenna info to a file. This also adds self.eval_gain method to self['eval_gain']  
+        @brief Write antenna info to a file. This also adds self.eval_gain method to self['eval_gain'].
         @param[in/OPT] kwargs - keyword args passed to super().write
         @todo get this to work correctly
         '''
@@ -738,7 +738,7 @@ class Antenna(SamuraiDict):
         
     def loads(self,mystr,**kwargs):
         '''
-        @brief read antenna info from a file. This also loads self['eval_gain'] to self.eval_gain
+        @brief Read antenna info from a file. This also loads self['eval_gain'] to self.eval_gain.
         @param[in] mystr - string to load from
         @param[in/OPT] kwargs - keyword args passed to super().load
         @todo get this to work correctly
@@ -748,14 +748,14 @@ class Antenna(SamuraiDict):
         
     def get_power(self,freqs,az,el,*args,**kwargs):
         '''
-        @brief evaluate complex power at a specific azimuth/elevation angle with
-            a provided frequency. This needs to be overridden in subclasses
+        @brief Evaluate complex power at a specific azimuth/elevation angle with
+            a provided frequency. This needs to be overridden in subclasses.
         '''
         raise NotImplementedError
         
     def get_efield(self,freqs,az,el,*args,**kwargs):
         '''
-        @brief evaluate complex electric field at a specific azimuth/elevation angle with
+        @brief Evaluate complex electric field at a specific azimuth/elevation angle with
             a provided frequency. This needs to be overridden in subclasses. 
         @return this should return a numpy array of [etheta,ephi] fields
         '''
@@ -763,8 +763,8 @@ class Antenna(SamuraiDict):
         
     def get_hfield(self,freqs,az,el,*args,**kwargs):
         '''
-        @brief evaluate complex electric field at a specific azimuth/elevation angle with
-            a provided frequency. This needs to be overridden in subclasses
+        @brief Evaluate complex electric field at a specific azimuth/elevation angle with
+            a provided frequency. This needs to be overridden in subclasses.
         '''
         raise NotImplementedError
         
@@ -784,7 +784,7 @@ class Antenna(SamuraiDict):
         
     def get_directivity(self,freqs,az=None,el=None,r=10,**kwargs):
         '''
-        @brief calculate the directivity for a given frequency. If az,el are not provided
+        @brief calculate the directivity for a given frequency
         @cite kraus p. 26
         @note if az and el are not provided get the max directivity, otherwise provide pvec(az,el)/np.mean(pvec)
         @todo comment better and add for 2D

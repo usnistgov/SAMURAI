@@ -38,7 +38,7 @@ class VNAUncertController(MUFModuleController):
         @param[in] menu_path - path to menu to load. If None load a blank template
         @param[in/OPT] kwargs - keyword args as follows:
             - exe_path - executable path (defaults to MUF install default)
-            - - Thsee are also passed to MUFModuleController.__init__()
+            - - These are also passed to MUFModuleController.__init__()
         '''
         kwargs_out = {}
         kwargs_out['exe_path'] = DEFAULT_VNAUNCERT_EXE_PATH
@@ -52,21 +52,21 @@ class VNAUncertController(MUFModuleController):
         
     def set_before_calibration(self,*args,**kwargs):
         '''
-        @brief set calibration items from a model kit, and a measurement dictionary
+        @brief set calibration items from a model kit and a measurement dictionary
         @note look at self.set_calibration for help
         '''
         self.set_calibration('BeforeCalibration',*args,**kwargs)
         
     def set_calibration(self,tag_name,model_kit,meas_dict,type_dict={},**kwargs):
         '''
-        @brief set calibration items from a model kit, and a measurement dictionary
+        @brief set calibration items from a model kit and a measurement dictionary
         @note this will clear all previous calibrations
         @param[in] tag_name - controls tag to place the calibration value (e.g. 'BeforeCalibration')
         @param[in] model_kit - MUFModelKit class with the required models and paths
-        @param[in] meas_dict - measurement dictionary mapping names (e.g. 'load') to file paths
+        @param[in] meas_dict - Measurement dictionary mapping names (e.g. 'load') to file paths.
                     These key names MUST match a name in the MUFModelKit
-        @param[in/OPT] type_dict - dictionary with matching keys to meas_dict that has the types of measurements
-                    If not specified self._guess_meas_type(key_name) will be run
+        @param[in/OPT] type_dict - dictionary with matching keys to meas_dict that has the types of measurements, 
+                    if not specified self._guess_meas_type(key_name) will be run
         @param[in/OPT] kwargs - keyword arguments as follows:
             - verify - Verify that the model and measurement paths exist (default true)
         '''
@@ -85,7 +85,7 @@ class VNAUncertController(MUFModuleController):
             
     def set_duts(self,dut_list,**kwargs):
         '''
-        @brief set duts from a list of strings. This assumes the calibration standards have already been set.
+        @brief Set DUTs from a list of strings. This assumes the calibration standards have already been set.
         @param[in] dut_list - list of DUT paths str
         @param[in/OPT] kwargs - keyword arguments as follows:
             - verify - Verify that the model and measurement paths exist (default true)
@@ -158,9 +158,7 @@ class VNAUncertController(MUFModuleController):
         return item
     
     def _create_dut_item(self,dut_path):
-        '''
-        @brief create a dut ite element to add to the xml
-        '''
+        '''@brief create a dut ite element to add to the xml'''
         dut_path = os.path.abspath(dut_path)
         dut_name = self._get_name_from_path(dut_path)
         sub_path = [dut_name,dut_path]
@@ -190,7 +188,7 @@ class VNAUncertController(MUFModuleController):
 class CalibrationModelKit(SamuraiDict):
     '''
     @brief class to store information on a set of MUF models
-    @param[in] model_kit_path - path to a written out MUFModelKit (a json path).
+    @param[in] model_kit_path - Path to a written out MUFModelKit (a json path).
         If None, create a blank calibration model kit
     @param[in/OPT] *args,**kwargs passed to OrderedDict
         type - type of calkit should be specified for new calibration kits

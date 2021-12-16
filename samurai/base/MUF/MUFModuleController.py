@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug  8 10:12:48 2019
-
+@date Thu Aug  8 10:12:48 2019
+@brief This is a set of base libraries to control microwave uncertainty framework modules.
 @author: ajw5
 """
 
@@ -20,7 +20,7 @@ class MUFModuleController(SamuraiXML):
     @param[in/OPT] kwargs - keyword args as follows:
         - exe_path - executable path of the module for running (default None)
         - except_no_menu - throw an exception if no menu  (default True)
-        - working_directory - directory that relative paths will be respect to. Defaults to menu directory
+        - working_directory - directory that relative paths will be respect to, defaults to menu directory
     '''
     def __init__(self,menu_path,**kwargs):
         '''@brief default constructor'''
@@ -54,12 +54,12 @@ class MUFModuleController(SamuraiXML):
         
     def run(self,out_path=None,verbose=False,text_function=print,tf_args_tuple=(),tf_kwargs_dict={}):
         '''
-        @brief run our module.This will also save to output_path
+        @brief run our module and save to output_path
         @param[in/OPT] out_path - path to write the menu to before running (and to run from) default to last loaded path
         @param[in/OPT] verbose - whether or not to be verbose
         @param[in/OPT] text_function - function that the output from the post 
-            processor will be passed to (in iterated format, default is print())
-            First argument must be expecting a string
+            processor will be passed to (in iterated format, default is print()), 
+            first argument must be expecting a string
         @param[in/OPT] tf_args_tuple - tuple of arguments to pass to text_function
         @param[in/OPT] tf_kwargs_dict - dictionary of kwargs to pass to text_function
         '''
@@ -197,9 +197,7 @@ class MUFItemList:
         return self._muf_items
     
     def tostring(self,*args,**kwargs):
-        '''
-        @brief string representation is the xml value
-        '''
+        '''@brief string representation is the xml value'''
         kwargs_out = {}
         kwargs_out['pretty_print'] = True
         for k,v in kwargs.items():
@@ -221,9 +219,9 @@ class MUFItem(MUFItemList):
     def __init__(self,xml_element,**kwargs):
         '''
         @brief constructor
-        @param[in] xml_element - xml element for the item. If a list of 
+        @param[in] xml_element - Xml element for the item. If a list of 
             values is passed, a new item with each value as a subitem will be created
-        @param[in/OPT] kwargs - if a new element is being created, kwargs will be passed as attributes
+        @param[in/OPT] kwargs - kwargs will be passed as attributes if a new element is being created
         '''
         self.data = None #this is a placeholder for data to map to xml items (e.g. TouchstoneEditor)
         self._filepath_subitem_idx = 1 #subitem index of the filepath. Typically 1 for *.meas files
@@ -253,7 +251,7 @@ class MUFItem(MUFItemList):
         @brief load the data from the path subitem to self.data
         @param[in] load_funct - function to load the data given a file path (can also be a class constructor)
         @param[in] subitem_idx - which index the path is to load (typically its self[0])
-        @param[in] kwargs - keyword arguements as follows
+        @param[in] kwargs - keyword arguments as follows
             - working_directory - root point for relative paths. Typically should be the menu file directory
             - | - The rest of the results will be passed to load_funct
         '''
@@ -305,7 +303,7 @@ class MUFItem(MUFItemList):
     
 def add_muf_xml_item(parent_element,item):
     '''
-    @brief add an item(Subelement) to a parent. this also changes Count and Index of the parent and item
+    @brief add an item(Subelement) to a parent and change count and index of the parent and item
     @param[in] parent_element - parent element to add item to (e.g. self.controls.find('BeforeCalibration'))
     @param[in] item - item (element) to add to the parente element
     '''
@@ -313,9 +311,9 @@ def add_muf_xml_item(parent_element,item):
     
 def add_muf_xml_items(parent_element,item_list):
     '''
-    @brief add items(Subelements) to a parent. this also changes Count and Index of the parent and item
+    @brief add items(Subelements) to a parent and change count and index of the parent and item
     @param[in] parent_element - parent element to add item to (e.g. self.controls.find('BeforeCalibration'))
-    @param[in] item - item (element) to add to the parente element
+    @param[in] item - item (element) to add to the parent element
     '''
     if parent_element is None:
         raise Exception('Invalid parent_element')

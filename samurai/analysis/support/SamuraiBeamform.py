@@ -47,8 +47,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
     
     def beamform_azel(self,az_vals,el_vals,freq_list='all',**arg_options):
         '''
-        @brief calculate the beamforming assuming farfield for angles in azimuth elevation
-            All locations will be pulled from the metafile positions
+        @brief Calculate the beamforming assuming farfield for angles in azimuth elevation.
+            All locations will be pulled from the metafile positions.
         @param[in] az_vals - azimuth angles in elevation from x axis (radians)
         @param[in] el_vals - elevation angles in azimuth from xy plane (radians)
         @note - az and el vals will be meshgridded (only provide cross sections)
@@ -68,8 +68,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
     def beamform_uv(self,u_vals,v_vals,freq_list='all',**arg_options):
         '''
-        @brief calculate the beamforming assuming farfield for angles in uv
-            All locations will be pulled from the metafile positions
+        @brief Calculate the beamforming assuming farfield for angles in uv.
+            All locations will be pulled from the metafile positions.
         @param[in] u_vals - u values
         @param[in] v_vals - v values
         @note - az and el vals will be meshgridded (only provide cross sections)
@@ -93,8 +93,8 @@ class SamuraiBeamform(SamuraiSyntheticApertureAlgorithm):
         
     def beamform(self,az_u,el_v,freq_list='all',coord='azel',**arg_options):
         '''
-        @brief calculate the beamforming assuming farfield for angles in spherical coordinates
-            All locations will be pulled from the metafile positions
+        @brief Calculate the beamforming assuming farfield for angles in spherical coordinates.
+            All locations will be pulled from the metafile positions.
         @param[in] az_u - mesh of azimuth or U values corresponding to matching value in el_v
         @param[in] el_v - mesh of azimuth or U values corresponding to matching value in az_u
         @param[in] coord - which coordinate system we are using ('azel' or 'uv')

@@ -179,9 +179,9 @@ def ifft(data,window=None):
     @brief calculate the time domain data
     @todo Verify the lack of ifftshift here is correct for phases... 
     @param[in] data - data as a TouchstoneParam/Editor
-    @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
+    @param[in/OPT] window - What window to apply. Can be 'sinc2' for sinc 
         squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
-        or a callable with input (len(self.raw))
+        or a callable with input (len(self.raw)).
     @return WaveformEditor with time domain data
     '''
     if window is None:
@@ -332,7 +332,7 @@ def read_text_touchstone(file_path,**kwargs):
     @brief Load snp/wnp file data to a table (just like the data is stored in the file)
     @param[in] file_path - path of text file to load  
     @param[in/OPT] kwargs - keyword args as follows:  
-        - read_header - whether or not to read the header and comments in text files.
+        - read_header - Whether or not to read the header and comments in text files.
                         It is faster to not read the header/comments  
     @return Dictionary with elements {'data':raw_data,'header':header_string,'comments':['list','of','comments']}
     '''
@@ -378,7 +378,7 @@ def read_binary_touchstone(file_path):
 #%% actual file manipulation class
 class TouchstoneEditor(pd.DataFrame):
     '''
-    @brief Load and handle arbitrary port touchstone class. This covers wave and S params  
+    @brief Load and handle arbitrary port touchstone class. This covers wave and S params.
     @author ajw5
     @note This inherits from a pandas dataframe for easy usage
     @param[in] args - input arguments can be: 
@@ -648,8 +648,8 @@ class TouchstoneEditor(pd.DataFrame):
          
     def _extract_data(self,raw_data):
         '''
-        @brief class to extract data from raw data. This can be overriden for special cases  
-        @note if not overriden this points to the same data as in self._raw  
+        @brief Class to extract data from raw data. This can be overridden for special cases .
+        @note if not overridden this points to the same data as in self._raw  
         '''
         #function to a number stored as complex to RI
         convert_funct = lambda in_val: in_val; #do nothing if its already RI
@@ -730,8 +730,8 @@ class TouchstoneEditor(pd.DataFrame):
              
     def plot_plotly(self,keys='all',waves='all',data_type='mag_db',trace_only=False,**arg_options):
         '''
-        @brief plot our wave or s parameter data using plotly. Placeholder until pandas implements
-            plotly as a backedn plotting enging (they say next release)
+        @brief Plot our wave or s parameter data using plotly. Placeholder until pandas implements
+            plotly as a backedn plotting enging (they say next release).
         @param[in/OPT] key - port of data to plot or list of ports to plot, or 'all'  
         @param[in/OPT] waves - list of keys for self.waves to plot (default 'all')  
         @param[in/OPT] data_type - type of data to plot (e.g. mag_db,phase,phase_d)  
@@ -819,9 +819,9 @@ class TouchstoneEditor(pd.DataFrame):
         '''
         @brief calculate the ifft of the data 
         @todo. Verify the lack of ifftshift here is correct for phases... 
-        @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
+        @param[in/OPT] window - What window to apply. Can be 'sinc2' for sinc 
             squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
-            or a callable with input (len(self.raw))
+            or a callable with input (len(self.raw)).
         @return WaveformParam  
         '''
         return ifft(self,window=None)
@@ -848,7 +848,7 @@ class TouchstoneEditor(pd.DataFrame):
             
     def round_freq_list(self):
         '''
-        @brief round frequencies to nearest Hz. 
+        @brief Round frequencies to nearest Hz. 
             This is to prevent a machine error issue seen when writing in the past
         '''
         self.freqs = np.round(self.freqs,decimals=0)
@@ -860,7 +860,7 @@ class TouchstoneEditor(pd.DataFrame):
     
     @property
     def num_ports(self):
-        '''@brief quickly get number of ports. Got tired of typing this  '''
+        '''@brief Quickly get number of ports. Got tired of typing this.'''
         return len(self._ports)  
       
     @property
@@ -968,9 +968,9 @@ class TransferEditor(SnpEditor):
 
 class WaveformEditor(SnpEditor):
     '''
-    @brief class to read *.waveform classes that the MUF puts out. This can also be multi-port waveforms
-    @param[in] args - variable arguements. If 2 args are passed, its assumed we have times/freqs,data (xaxis,yaxis)
-                    otherwise pass parsing to TouchstoneParameter parsing
+    @brief Class to read *.waveform classes that the MUF puts out. This can also be multi-port waveforms.
+    @param[in] args - Variable arguements. If 2 args are passed, its assumed we have times/freqs,data (xaxis,yaxis)
+                    otherwise pass parsing to TouchstoneParameter parsing.
     '''
     def __init__(self,*args,**kwargs):
         '''@brief wrap touchstone parameter constructor to allow passing of x,y data explicitly'''
@@ -997,7 +997,7 @@ class WaveformEditor(SnpEditor):
     
     def _extract_data(self,raw_data):
         '''
-        @brief class to extract data from raw data. This can be overriden for special cases  
+        @brief Class to extract data from raw data. This can be overriden for special cases.
         @note This checks if we only have magnitude (no phase) like the MUF produces
         '''
         if raw_data.shape[1] == 2: #then its only mangitude
@@ -1033,8 +1033,8 @@ class BeamformEditor(WaveformEditor):
     '''
     @brief Extension of WaveformEditor for beamformed data (only for 1D right now)
     @todo Extend to 2D (Az,El)
-    @param[in] args - variable arguements. If 2 args are passed, its assumed we have angles,data (xaxis,yaxis)
-                otherwise pass parsing to TouchstoneParameter parsing
+    @param[in] args - Variable arguements. If 2 args are passed, its assumed we have angles,data (xaxis,yaxis)
+                otherwise pass parsing to TouchstoneParameter parsing.
     '''
     def __init__(self,*args,**kwargs):
         if 'default_extension' not in kwargs.keys():
@@ -1096,9 +1096,9 @@ class TouchstoneParam(pd.Series):
         '''
         @brief calculate the ifft of the data 
         @todo. Verify the lack of ifftshift here is correct for phases... 
-        @param[in/OPT] window - what window to apply. can be 'sinc2' for sinc 
+        @param[in/OPT] window - What window to apply. Can be 'sinc2' for sinc 
             squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
-            or a callable with input (len(self.raw))
+            or a callable with input (len(self.raw)).
         @return WaveformParam  
         '''
         return ifft(self,window=None)
@@ -1108,8 +1108,8 @@ class TouchstoneParam(pd.Series):
     
     def plot_plotly(self,data_type='mag_db',trace_only=False,**plot_options):
         '''
-        @brief plot the data from the parameter given as data_type using plotly. Placeholder until pandas implements
-            plotly as a backedn plotting enging (they say next release) 
+        @brief Plot the data from the parameter given as data_type using plotly. Placeholder until pandas implements
+            plotly as a backedn plotting enging (they say next release).
         @param[in] data_type - type of data to plot (e.g. mag,mag_db,phase,phase_d)  
         @param[in/OPT] trace_only - only return the plotly trace (as opposed to a figure) (default False)
         @param[in/OPT] plot_options - keyword args to pass as options to go.Scatter
@@ -1143,11 +1143,11 @@ class TouchstoneParam(pd.Series):
     
     def estimate_snr(self,window_size=10):
         '''
-        @brief estimate the mean snr of the signal 
+        @brief Estimate the mean snr of the signal. 
             This takes a moving average of the signal and subtracts that from
             the signal. whatever is left is considered noise. This can only
             give a vague estimation of SNR multiple measurements would give
-            a much better view  
+            a much better view.
         @param[in] window_size - size of window to run the moving average with  
         @todo implement  
         '''

@@ -20,16 +20,16 @@ from samurai.base.SamuraiDict import SamuraiDict
 
 class MotiveInterface(Instrument):
     '''
-    @brief This is a class to interface with the NatNet server set up by Motive
+    @brief This is a class to interface with the NatNet server set up by Motive.
         Motive is the software for optitrack cameras. This should allow us to easily
         access our live streaming values for our rigid bodies, and markers.
         We are still extending the Instrument class here to try and keep some sort
-        of consistency even though it won't use many parts of it. Allows for isinstance(-,Instrument) to be true  
+        of consistency even though it won't use many parts of it. Allows for isinstance(-,Instrument) to be true.
     '''
     
     def __init__(self,**arg_options):
         '''
-        @brief intiialize the class  
+        @brief constructor  
         @param[in/OPT] arg_options - keyword argument input as follows:
             init_wait - wait time after starting natnet client. This ensures data is populated (default 0.1)  
         '''
@@ -130,8 +130,8 @@ class MotiveInterface(Instrument):
     def get_info(self,item,**arg_options):
         '''
         @brief query motive for info on an item  
-        @param[in] item - item to get position of. can be a rigid body name
-                or the id of a marker or a dict of values  
+        @param[in] item - Item to get position of. Can be a rigid body name
+                or the id of a marker or a dict of values. 
         @param[in/OPT] **arg_options - keyword args as follows:  
             - all passed to getter function  
         '''
@@ -153,8 +153,8 @@ class MotiveInterface(Instrument):
     def _get_meas_type(self,item_dict):
         '''
         @brief get the type of measurement from an item_dict  
-        @param[in] item_dict - item dictionary to get the types from. This will also handle
-            strings or numbers for fast getting of a single measurement  
+        @param[in] item_dict - Item dictionary to get the types from. This will also handle
+            strings or numbers for fast getting of a single measurement.
         @return dictionary with each key matched to either 'labeled_marker','rigid_body'  
         '''
         type_dict = {}; lm_rv='labeled_marker'; rb_rv='rigid_body'
@@ -404,7 +404,7 @@ class MotiveRigidBodyMarkerData(SamuraiDict):
         @brief add a sample to our data.  
         @param[in] sample here should be a  dict with ids and marker samples (position/residual)  
         @note this needs to be a dictionary because the rigid body may not have the same markers
-            on every measurement if one is lost. (we dont want to combine different markers)  
+            on every measurement if one is lost (we dont want to combine different markers)  
         '''
         num_markers = len(sample) #assume sample is correct size
         while len(self['data'])<num_markers: #add data if needed

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Apr  5 13:58:12 2019
-Class to help plot matlab figures.
-Funny enough, this class is actually generic enough where it makes using
-all matlab interfaces easier by automatically converting some types of values
-to the matlab values and adding little arguments like nargin=0
-NAMED ARGUMENTS DO NOW WORK HERE
+@date Fri Apr  5 13:58:12 2019
+@brief Class to help plot matlab figures.
+    Funny enough, this class is actually generic enough where it makes using
+    all matlab interfaces easier by automatically converting some types of values
+    to the matlab values and adding little arguments like nargin=0.
+    NAMED ARGUMENTS DO NOW WORK HERE.
 @author: aweis
 """
 
@@ -17,8 +17,7 @@ from itertools import chain
 class SamuraiMatlab:
     '''
     @brief class for plotting figures using matlab engine  
-        - This class will start a matlab engine when initiated and close it when
-        deleted
+        - This class will start a matlab engine when initiated and close it when deleted
     '''
     
     def __init__(self,engine=None,**arg_options):
@@ -57,7 +56,7 @@ class SamuraiMatlab:
         '''
         @brief call a matlab function given by name funct_name  
         @param[in] funct_name - name of function to call  
-        @param[in/OPT] args - variable arguments to pass to matlab funciton  
+        @param[in/OPT] args - variable arguments to pass to matlab function  
         @param[in/OPT] kwargs - keyword args to pass to matlab function (all except nargout)  
         '''
         funct = getattr(self.engine,funct_name)
@@ -152,7 +151,7 @@ class SamuraiMatlab:
         '''
         @brief This is the MOST IMPORTANT METHOD. It allows all matlab functions to
         be called from self. This is not ideal because if nargout must=0 then we have to
-        run the funciton twice (this can be sped up by manually passing nargout=0)  
+        run the function twice (this can be sped up by manually passing nargout=0)  
         '''
         def default_method(*args,**kwargs):
             try:

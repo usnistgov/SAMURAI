@@ -549,8 +549,8 @@ import six
 
 class NatNetDescriptions(dict):
     '''
-    @brief class for natnet descriptions
-            data will be associated with the descriptions id  
+    @brief Class for natnet descriptions.
+            Data will be associated with the descriptions id.
     '''
     def __init__(self):
         super(NatNetDescriptions,self).__init__() #initialize the dictionary
@@ -558,7 +558,7 @@ class NatNetDescriptions(dict):
     
     def add_description(self,item,**description_data):
         '''
-        @brief add a description to the class. If it exists it will not be added  
+        @brief Add a description to the class. If it exists it will not be added.
         @param[in] type - type of description (e.g. rigid_body, marker_set)  
         @param[in] description_data - keyword arguments for description data  
         '''

@@ -62,7 +62,7 @@ def moving_average(data,n=5,domain='magphase'):
     @param[in] data - data to calculate the moving average on  
     @param[in/OPT] n - number of samples to average (default 5)  
     @param[in/OPT] domain - whether to work in 'magphase' or 'complex'  
-    @return averaged data. If complex average in mag/phase not real/imag. This will be of the same size as input  
+    @return Averaged data. If complex average in mag/phase not real/imag. This will be of the same size as input . 
     @cite https://stackoverflow.com/questions/14313510/how-to-calculate-moving-average-using-numpy/54628145  
     @cite https://stackoverflow.com/questions/15927755/opposite-of-numpy-unwrap  
     '''
@@ -170,7 +170,7 @@ def deprecated(reason):
 def incomplete(reason):
     """
     @brief decorator for incomplete functions  
-    @param[in] reason - reason that its incomplete. Unlike deprecation this REQUIRES a reason  
+    @param[in] reason - Reason that its incomplete. Unlike deprecation this REQUIRES a reason. 
     """
     def decorator(func1):
         if inspect.isclass(func1):
@@ -219,7 +219,7 @@ def round_arb(value,multiple):
 
 def floor_arb(value,multiple):
     '''
-    @brief floor a number to an arbitray multiple  
+    @brief floor a number to an arbitrary multiple  
     @param[in] value - value to round  
     @param[in] multiple - multiple to floor to   
     @return floored value  
@@ -289,7 +289,7 @@ class ValueCounter:
     def update(self,value=None):
         '''
         @brief update to the next value in value_list  
-        @param[in/OPT] value - if is None, the current increment of value_list will be used
+        @param[in/OPT] value - If is None, the current increment of value_list will be used.
              This allows self.value_list to be None and value to just be provided  
         '''
         if value is None:

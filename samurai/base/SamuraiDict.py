@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Aug 15 08:50:09 2019
-@brief this is a set of functions and classes to extend pythons OrderedDict class  
-@warning reading a writing of integer keys using JSON is INVALID and WILL NOT WORK  
+@brief This is a set of functions and classes to extend pythons OrderedDict class.
+@warning Reading a writing of integer keys using JSON is INVALID and WILL NOT WORK.  
 @author: ajw5
 """
 from collections import OrderedDict
@@ -15,9 +15,9 @@ import textwrap
 
 class SamuraiDict(OrderedDict):
     '''
-    @brief this is a class to inherit from that slightly extends orderedDict
+    @brief This is a class to inherit from that slightly extends orderedDict.
         This will provide read/write from json file capabilities along with
-        some other small capabilities not provided by orderedict  
+        some other small capabilities not provided by orderedict .
     '''
     def __init__(self,*args,**kwargs):
         '''
@@ -31,7 +31,7 @@ class SamuraiDict(OrderedDict):
         
     def add_alias(self,alias,key):
         '''
-        @brief add an alias to a key in the dictionary. Aliases are always from
+        @brief Add an alias to a key in the dictionary. Aliases are always from
             the base level of the dicitionary, but they can be a list of keys
             to work with nested dictionaries.  
         @param[in] alias - alias for the key  
@@ -111,7 +111,7 @@ class SamuraiDict(OrderedDict):
     
     def get_rst_str(self,alt_names={},parse_functs={},rst_format_str='- **{0}** - {1}'):
         '''
-        @brief Get a nicely formatted ReStructuredText string (for sphinx)
+        @brief Get a nicely formatted ReStructuredText string (for sphinx).
         @param[in/OPT] alt_names - Dictionary with mapping of alternative names for the keys ({key:alt_name,...})
         @param[in/OPT] parse_functs - Dictionary to parse data. Keys should be types and values should be functions (e.g., {str:parse_string})
         @param[in/OPT] rst_format_str - format string for each line. This defaults to '**{0}** - {1}'. Requires 2 inputs to format (name,val).
@@ -213,8 +213,8 @@ class SamuraiDict(OrderedDict):
         
 def update_nested_dict(dict_update,dict_to_add,overwrite_values=False,**kwargs):
     '''
-    @brief take two nested dictionaries and merge them. 
-        items in dict1 take precedence. will be merged into dict 1  
+    @brief take two nested dictionaries and merge them, 
+        items in dict1 take precedence, will be merged into dict 1  
     @param[in] dict_update - dictionary to update  
     @param[in] dict_to_add - dictionary to update from  
     @param[in/OPT] overwrite_values - do we overwrite dict_update values if they already exist  
@@ -284,7 +284,7 @@ import inspect
 from textwrap import dedent
 def function_encoder(myfun):
     '''
-    @brief encode a funciton into a dictionary  
+    @brief encode a function into a dictionary  
     @param[in] myfun - function to encode  
     @note this is still limited in functionality by inspect.getsource
     '''

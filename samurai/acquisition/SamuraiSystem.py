@@ -91,7 +91,7 @@ class SamuraiSystem():
     def set_simulation_mode(self,on_off):
         """
         @brief Set whether the robot operations in simulation mode.
-            This can only be done when disconnected, so we will check that  
+            This can only be done when disconnected, so we will check that.  
         @param[in] on_off - True to turn on Simulation, False to turn off Simulation  
         @return 0 for success, -1 if value cannot be set (because we are connected currently)  
         """
@@ -119,9 +119,9 @@ class SamuraiSystem():
             - metafile_header_values - dictionary of values to overwrite or append to in metafile header (defaults to nothing)  
             - comment_character - character or list of characters for comments (default #)  
             - external_position_measurements - configuration of external measurement device (e.g. optitrack). 
-			@note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
-				A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
-                For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+			@note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma. 
+				A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]). 
+                For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided.
             - meas_obj - class to use as a measure tool just needs a .measure method  
             - meas_obj_init_args - arguments for the class __init__() method  
             - meas_obj_meas_args - arguments for the class .measure() method  
@@ -212,9 +212,9 @@ class SamuraiSystem():
         @param[in] out_name - output name (no extension)  
         @param[in] csv_path - path to csv file  
         @param[in/OPT] external_position_measurements - configuration of external measurement device (e.g. optitrack)  
-        @note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma
-				A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]).
-                For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided
+        @note For OPTITRACK provide {name:id} pairs for markers xyz components or {name:None} for rigid bodies x,y,z,alpha,beta,gamma. 
+				A set of measurements will be provided for each of these (e.g [{'tx_antenna':50336},{'meca_head':None},{'origin':None},{'cyl_1':50123}]). 
+                For each of these points, n=num_samples (default=10) measurements are taken and the stdev, covariance matrix, and mean values are provided.
         @param[in/OPT] num_reps - number of times to repeat the sweep (default to 1)  
         @param[in/OPT] arg_options - keyword arguments as follows:  
             - settling_time - time for positioner to settle (default 0.1)  
@@ -277,9 +277,9 @@ class SamuraiSystem():
     #right is close to sink (BE CAREFUL NOT TO PULL CABLE ON RIGHT)
     def move_to_mounting_position(self,side='left',rotation=-120):
         '''
-        @brief move the Meca500 to a predetermined moutning position.   
-        @param[in/OPT] side - what side of the table to move to looking from behind the meca. (defaults 'left') CAUTION: 'right' MAY BE DANGEROUS  
-        @param[in/OPT] rotation - how much to rotate the arm at the mounting position (default -120 degrees) CAUTION: UNTESTED ANGLES MAY BE DANGEROUS  
+        @brief move the Meca500 to a predetermined mounting position.   
+        @param[in/OPT] side - What side of the table to move to looking from behind the meca. (defaults 'left') CAUTION: 'right' MAY BE DANGEROUS  
+        @param[in/OPT] rotation - How much to rotate the arm at the mounting position (default -120 degrees) CAUTION: UNTESTED ANGLES MAY BE DANGEROUS  
         @return the return of set_position() (I believe it is nothing right now)  
         '''
         #check if connected
@@ -334,8 +334,8 @@ class SamuraiSystem():
         
     def verify_position_file(self,file_path,comment_char = '#'):
         '''
-        @brief verify that the file of positions is for the correct reference frames
-                just raise an exception if the file is not value for the current reference frame.
+        @brief Verify that the file of positions is for the correct reference frames. 
+                Just raise an exception if the file is not value for the current reference frame. 
                 The verification looks for the following values to check against:  
                     - #WRF (or world reference frame or with _) = [x,y,z,alpha,beta,gamma]  
                     - #TRF (or tool reference frame or with _) = [x,y,z,alpha,beta,gamma]  

@@ -174,8 +174,8 @@ class CalibrateSamurai:
     
     def move_calibrated_nominal_results_touchstone(self,metafile_path):
         '''
-        @brief move our calibrated snp or wnp files to a provided subdirectory
-            This will pull the nominal results from the *.meas files in the newly updated metafile
+        @brief Move our calibrated snp or wnp files to a provided subdirectory. 
+            This will pull the nominal results from the *.meas files in the newly updated metafile.
         '''
         copy_touchstone_from_muf(metafile_path)
         '''

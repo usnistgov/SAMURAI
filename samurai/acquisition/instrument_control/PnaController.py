@@ -86,7 +86,7 @@ class PnaController(SCPIInstrument):
         
     def barrier(self,timeout=900e3):
         '''
-        @brief Wait until the current operation is complete
+        @brief wait until the current operation is complete
         @param[in/OPT] timeout - maximum time (in ms) to wait before 
                 raising VisaIOError (default 15 minutes)
         @return Value of query('*OPC?')
@@ -184,9 +184,9 @@ class PnaController(SCPIInstrument):
         
     def trigger(self,timeout=900000):
         '''
-        @brief trigger the vna when in manual mode. This will also wait for the sweep to complete  
-        @param[in] timeout - timeout of visa. The OPC? command hangs until the sweep is finished in single mode
-            This default to 15 minutes. reset the timeout when were done  
+        @brief Trigger the vna when in manual mode. This will also wait for the sweep to complete. 
+        @param[in] timeout - Timeout of visa. The OPC? command hangs until the sweep is finished in single mode.
+            This default to 15 minutes. Reset the timeout when were done.
         '''
         timeout_temp = self.connection.timeout
         self.connection.timeout = timeout
@@ -353,7 +353,7 @@ class PnaController(SCPIInstrument):
         
     def set_segment_sweep(self,seg_table,arb = True,couple = True):
         '''
-        @brief setup a segment sweep on the vna bysetting the segment list  
+        @brief setup a segment sweep on the vna by setting the segment list  
         @param[in] seg_table - segment table values list of tuples with [(on_off(1 or 0),num_pts,lo,hi,ifbw(optional)),...]  
         @param[in/OPT] arb - arbitrary segment sweep allowed (default True)  
         @param[in/OPT] couple - whether or not to couple the sources (default True)  
@@ -454,9 +454,7 @@ class PnaController(SCPIInstrument):
         
         
     def set_seg_source_list_iterating(self,src_num,seg_table):
-        '''
-        @TODO FIGURE OUT WHAT THIS CODE IS FOR!!!  
-        '''
+        '''@brief set segmentation table from list of segmentation tables configs'''
         
         #turn on frequency offset mode
         fom_on_com = "SENS:FOM ON"
@@ -473,7 +471,7 @@ class PnaController(SCPIInstrument):
         #couple then recouple to reset segment table
         self.set_source_coupling(src_num,'ON')
         self.set_source_coupling(src_num,'OFF')
-        #set soruce to segment
+        #set source to segment
         com = 'SENS:FOM:RANG%d:SWE:TYPE SEGM' % (rng_num)
         self.write(com)
         #print(com)

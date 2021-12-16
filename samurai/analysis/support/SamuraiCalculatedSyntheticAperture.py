@@ -24,27 +24,26 @@ import plotly.offline as ploff
         
 class CalculatedSyntheticAperture:
     '''
-    @brief this class provides a container for calculated synthetic aperture values
-        Here we have things such as our theta,phi meshgrid, our u,v meshgrid, and our complex values
+    @brief This class provides a container for calculated synthetic aperture values.
+        Here we have things such as our theta,phi meshgrid, our u,v meshgrid, and our complex values.
         It also contains methods to nicely plot each of these values.
-        This will be a single beamformed setup
+        This will be a single beamformed setup.
+    @param[in] AZIMUTH   - meshgrid output of AZIMUTH angles   (azimuth from x) (2D)
+    @param[in] ELEVATION - meshgrid output of ELEVATION angles (elevation up from xy plane) (2D)
+    @param[in/OPT] complex_values - values corresponding to a direction [THETA[i,j],PHI[i,j]]
+    @param[in/OPT] freqs - list of frequencies (if we are storing multiple)
+    @param[in/OPT] arg_options - optional input keyword arguments as follows:
+            plot_program - 'matlab' or 'plotly' possible (default 'matlab')
+            verbose - whether or not to be verbose (default False)
+            metafile_data - Extra data to pass to metafile when writing out
+                angular snp files. This usually will simply be passed as
+                the metafile loaded into a SamuraiSyntheticApertureAlgorithm
+                class. It should be a dictionary or subset of a dictionary.
     '''
     def __init__(self,AZIMUTH,ELEVATION,complex_values=np.array([],dtype=np.cdouble),freqs=np.array([]),**arg_options):
         '''
-        @brief intializer for the class. This can be initialized without any data and 
-                        just use the self.add_frequency_data() method
-        @param[in] AZIMUTH   - meshgrid output of AZIMUTH angles   (azimuth from x) (2D)
-        @param[in] ELEVATION - meshgrid output of ELEVATION angles (elevation up from xy plane) (2D)
-        @param[in/OPT] complex_values - values corresponding to a direction [THETA[i,j],PHI[i,j]]
-        @param[in/OPT] freqs - list of frequencies (if we are storing multiple)
-        @param[in/OPT] arg_options - optional input keyword arguments as follows:
-                plot_program - 'matlab' or 'plotly' possible (default 'matlab')
-                verbose - whether or not to be verbose (default False)
-                metafile_data - extra data to pass to metafile when writing out
-                    angular snp files. This usually will simply be passed as
-                    the metafile loaded into a SamuraiSyntheticApertureAlgorithm
-                    class. it should be a dictionary or subset of a dictionary
-        @return CalculatedSyntheticAperture class
+        @brief Initializer for the class. This can be initialized without any data and 
+                    just use the self.add_frequency_data() method.
         '''
         self.options = {}
         self.options['plot_program'] = 'plotly'
@@ -68,7 +67,7 @@ class CalculatedSyntheticAperture:
     def add_frequency_data(self,complex_values,freqs):
         '''
         @brief add data for a frequency or frequencies
-        @param[in] complex_values - array of complex values for each frequency (pointing angle dim 0 and 1, freq dim 2)
+        @param[in] complex_values - Array of complex values for each frequency (pointing angle dim 0 and 1, freq dim 2). 
                 Dimension 0,1 of this array must match the length of the self.azimuth and self.elevation
         @param[in] freqs - list of frequencies to append (1D array)
         '''
@@ -289,8 +288,8 @@ class CalculatedSyntheticAperture:
      
     def get_data(self,data_str,freqs='all',**arg_options):
         '''
-        @brief get the desired data from a string (e.g. 'mag_db','phase_d','mag', etc.)
-            this can also be used to select which frequencies to average
+        @brief Get the desired data from a string (e.g. 'mag_db','phase_d','mag', etc.). 
+            This can also be used to select which frequencies to average.
         @param[in] data_str - string of the data to get. can be 'mag','phase','phase_d','real','imag',complex
         @param[in/OPT] freqs - which frequencies to average (default 'all'). if the freq doesnt exist, throw an exception
         @param[in/OPT] arg_options - keyword arguments as follows
@@ -344,16 +343,16 @@ class CalculatedSyntheticAperture:
     
     def adjust_caxis(self,plot_data,plot_type,db_range=60,**arg_options):
         '''
-        @brief adjust our plotting values for a colorbar axis.
+        @brief Adjust our plotting values for a colorbar axis.
             This ensures we dont have negative values in 3D plotting.
             This is really important to use for mag_db plots. Everything else
-            will just be shifted to 0
+            will just be shifted to 0.
         @param[in] plot_data - data we are plotting
         @param[in] plot_type - type of data we are plotting (e.g. 'mag_db','mag','real',etc.)
         @param[in/OPT] db_range  - dynamic range of our plot in db (only important for mag_db default 60)
         @param[in/OPT] arg_options - kyeworkd option arguments:
             - None Yet!
-        @return new_plot_data, caxis_min, caxis_max, db_range - our new data, our miinimum colorbar value, our max colorbar value
+        @return new_plot_data, caxis_min, caxis_max, db_range - our new data, our minimum colorbar value, our max colorbar value
         '''
         if(plot_type=='mag_db'):
             #mask out lower values
@@ -399,16 +398,16 @@ class CalculatedSyntheticAperture:
     
     def write_snp_data(self,out_dir='./',**arg_options):
         '''
-        @brief write out our frequencies over our angles into s2p files 
+        @brief Write out our frequencies over our angles into s2p files.
             s21,s12 will be our complex values, s11,s22 will be 0.
             Files will be written out as 'beamformed_<number>.snp'.
             A json file (beamformed.json) will also be written out
             giving the azimuth elevation values.
         @param[in/OPT] out_dir - output directory to save the files and the metafile
         @param[in/OPT] arg_options - keyword args as follows:
-                out_path_format - what the output path of the measurements will look like. 
-                    This will be appended to out_dir. any format value (i.e. {}) will be replaced
-                json_path - path where the json file will be saved. This will be appended to out_dir
+                out_path_format - What the output path of the measurements will look like. 
+                    This will be appended to out_dir. any format value (i.e. {}) will be replaced.
+                json_path - Path where the json file will be saved. This will be appended to out_dir.
         @return list of SnpEditor classes with the data written out, and list of absolute paths to the files
         '''
         #get input options
@@ -446,7 +445,7 @@ class CalculatedSyntheticAperture:
         '''
         @brief get the index of the maximum beam
         @param[in/OPT] freqs - list of frequencies to calculate for
-        @param[in/OPT] arg_options - optional keword arguements as follows:
+        @param[in/OPT] arg_options - optional keword arguments as follows:
             mean_flg - whether or not to get the average data
         @return tuple of tuples with indices of the maximum
         '''
@@ -529,9 +528,9 @@ class CalculatedSyntheticAperture:
         
     def get_beamwidth(self,peak_idx,freqs,**arg_options):
         '''
-        @brief get the beamwidth of a beam with peak at index location (x,y)
+        @brief Get the beamwidth of a beam with peak at index location (x,y)
             this is the same index provided by get_max_beam_idx. This finds the closest
-            calculated angular crossings so will not be extremely accurate
+            calculated angular crossings so will not be extremely accurate.
         @param[in] peak_idx - peak locations in list of tuples (x,y) format for each freq in freqs for location in az/el 2D arrays 
         @param[in] freqs - list of frequencies the peaks are at. (can be all)
         @param[in/OPT] arg_options - optional keyword args as follows:
@@ -818,9 +817,9 @@ import re
 @deprecated("Superseded by samurai.analysis.SamuraiPostProcess.Antenna")
 class AntennaPattern(CalculatedSyntheticAperture):
     '''
-    @brief class to hold antenna pattern values
+    @brief Class to hold antenna pattern values.
         This inherits from CalculatedSyntheticAperture class
-        which provides many methods we want except the loading
+        which provides many methods we want except the loading.
     '''
     def __init__(self,pattern_file,**arg_options):
         '''
@@ -834,7 +833,7 @@ class AntennaPattern(CalculatedSyntheticAperture):
     
     def load(self,pattern_file,**arg_options):
         '''
-        @brief method to load pattern data from a file
+        @brief Method to load pattern data from a file.
             Currently the following filetypes are supported:
                 --- CSV ---
                 comma separated value files with the format
