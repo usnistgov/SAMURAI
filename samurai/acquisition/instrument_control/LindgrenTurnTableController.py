@@ -5,7 +5,7 @@ Controller for ETS Lindgren Turn Table Model 2005
 raw and not-raw angles are separated because it was desired to 
 be able to use negative angles, but the positioner only allows
 angles between 0 and 360 it seems.
-The posoitnoer always starts up at 0 degrees and this value can be changed
+The positioner always starts up at 0 degrees and this value can be changed
 with the CP command. This is run in the set_origin method. The angle is then
 read and everything is adjusted to this new origin when not using raw angles
 @author: ajw5

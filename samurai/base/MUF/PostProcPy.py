@@ -39,7 +39,7 @@ class PostProcPy(MUFModuleController):
         super().__init__(menu_path,**kwargs_out) # run mmc initialize
         
     def set_cal_path(self,cal_path):
-        '''@brief set the erro box file for the post processor'''
+        '''@brief set the error box file for the post processor'''
         self._controls.find('PostProcessorMechanisms')[0][1].set('Text',cal_path)
         
     setCalPath = set_cal_path
@@ -52,9 +52,9 @@ class PostProcPy(MUFModuleController):
     
     def set_dut_from_list(self,dut_list):
         '''
-        @brief Set a list of paths to multiple DUTs for the post processor. This clears all old DUTs
+        @brief Set a list of paths to multiple DUTs for the post processor. This clears all old DUTs.
         @param[in] dut_list - list of DUT paths
-        @note The MUF drag and drop interface really slows after a few hundred measurements so this becomes necessary
+        @note The MUF drag and drop interface really slows after a few hundred measurements so this becomes necessary.
         '''
         dut_node = MUFItemList(self._controls.find('MultipleMeasurementsList'))
         dut_node.clear_items()
@@ -71,7 +71,7 @@ class PostProcPy(MUFModuleController):
     def convert_to_s2p(self,set_flg):
         '''
         @brief set or remove flag to convert from w2p to s2p. 
-        @param[in] set_flg - True to convert or flase to do nothing
+        @param[in] set_flg - True to convert or false to do nothing
         '''
         my_combo_node = self._controls.find('ComboBox3')
         

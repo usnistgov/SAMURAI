@@ -98,9 +98,9 @@ class ApertureBuilder():
         
     def add_positions(self,positions,**arg_options):
         '''
-        @brief add positions to our aperture. 
+        @brief Add positions to our aperture. 
             The positions should be a 6 element list or array in the form
-            [X,Y,Z,Alpha,Beta,Gamma]. A list of these lists is also acceptable (or 2D array)  
+            [X,Y,Z,Alpha,Beta,Gamma]. A list of these lists is also acceptable (or 2D array).
         @param[in] positions - single position or list of positions in format [X,Y,Z,Alpha,Beta,Gamma]  
         @param[in/OPT] arg_options - keyword arguments for options as follows:  
                 - None yet!
@@ -114,16 +114,16 @@ class ApertureBuilder():
             
     def shift_positions(self,shift_value):
         '''
-        @brief shift our positions by a given amount. shifts self.positions  
-        @param[in] shift_value - value to shift each positino by in [x,y,z,alpha,beta,gamma]  
+        @brief shift our positions by a given amount (shifts self.positions)
+        @param[in] shift_value - value to shift each position by in [x,y,z,alpha,beta,gamma]  
         '''
         self.validate_position(shift_value)
         self.positions += np.array(shift_value)
         
     def gen_planar_aperture(self,start_position,size=None,step=None,numel=None):
         '''
-        @brief generate a planar aperture given a start position,size, and step, or number of elements
-            at least two of the three (size,step,numel) must be specified  
+        @brief Generate a planar aperture given a start position,size, and step, or number of elements.
+            At least two of the three (size,step,numel) must be specified. 
         @param[in] start_position - [x,y,z,alpha,beta,gamma] position for corner  
         @param[in/OPT] size - total size of the aperture in input units (default mm) [x,y,z]  
         @param[in/OPT] step - step size in input units (default mm) [x,y,z]  
@@ -239,7 +239,7 @@ class ApertureBuilder():
             
     def curve_array(self,curve_radius_mm):
         '''
-        @brief - curve our current points into a cylinder. Ideally this will be a planar array to start  
+        @brief - Curve our current points into a cylinder. Ideally this will be a planar array to start.  
         @param[in] - curve_radius - radius to curve along in millimeters  
         '''
         pts = self.positions
@@ -302,7 +302,7 @@ class ApertureBuilder():
         
     def plot(self,fig_handle=None,magnitude=5):
         '''
-        @brief plot the aperture points. We flip y and z for nicer view angle  
+        @brief Plot the aperture points. We flip y and z for nicer view angle.  
         @param[in/OPT] fig_handle - handle to figure to plot points on  
         @param[in/OPT] magnitude - magnitude of vector positions to plot  
         '''
@@ -387,9 +387,9 @@ class ApertureBuilder():
         
     def change_reference_frame(self,rotation_matrix,external_positions=None):
         '''
-        @brief change our reference frame using a rotation matrix. This matrix should be 6 by 6  
+        @brief Change our reference frame using a rotation matrix. This matrix should be 6 by 6.  
         @param[in] rotation_matrix - 6 by 6 matrix for rotation  
-        @param[in/OPT] external_positions - external positions to change. If none operate on self.positions  
+        @param[in/OPT] external_positions - External positions to change. If none operate on self.positions.
         '''
         if external_positions is None:
             self.positions = np.matmul(self.positions,rotation_matrix)
@@ -441,7 +441,7 @@ def gen_offset_positions(start_plane,shift_value_list,flip_flg=True):
     '''
     pass
     '''
-    @todo reimpliment with class
+    @todo re-implement with class
     shifted_planes = []
     i = 0 #shift plane count
     for shift_val in shift_value_list:

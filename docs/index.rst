@@ -13,28 +13,28 @@ Welcome to SAMURAI's documentation!
 - [A]ngle of
 - [I]ncidence
 
-Intoduction
+Introduction
 ----------------------
 
 The National Institute of Standards and Technology (NIST) Communication Technology Laboratory (CTL) developed the Synthetic Aperture Measurement with Uncertainties
-and Angle of Arrival (SAMURAI) millimeter-wave testbed and technique. SAMURAI utilizes a synthetic aperture method using a robotic arm and vector network analyzer/large signal network analyzer (VNA/LSNA) for flexible and accurate propagation channel and device measurements as a function of both frequency and angle. Note: this technique can use a measurement tool.
+and Angle of Arrival (SAMURAI) millimeter-wave testbed and technique. SAMURAI utilizes a synthetic aperture method using a robotic arm and vector network analyzer/large signal network analyzer (VNA/LSNA) for flexible and accurate propagation channel and device measurements as a function of both frequency and angle.
 
-In the NIST configuration of SAMURAI, linear and non-linear measurements are possible leveraging the LSNA measurement capability. We perform wideband measurements from 26.5 to 40 GHz on an optical table in a controlled laboratory to ensure stability during our measurements. The robotic arm allows for multiple configuration scan types from rectangular to cylindrical.
+In the NIST configuration of SAMURAI, linear and non-linear measurements are possible leveraging the large signal network LSNA measurement capability. We perform wideband measurements from 26.5 to 40 GHz on an optical table in a controlled laboratory to ensure stability during our measurements. The robotic arm allows for multiple configuration scan types from rectangular to cylindrical.
 
-In this documentation, we provide a getting started documentation, software for both data acquisition and data analysis. We also provide past measurement campaigns data from an Angle-of-Arrival measurements to the Central Utility Plant measurements. Finally, we provide base software libraries and frequency asked questions.
+In this documentation we provide a "Getting Started" guide, information on the SAMURAI software for both data acquisition and data analysis, and some frequently asked questions.
 
 
 
 .. image:: ./external_data/image_authors.jpg
 
-*SAMURAI System Set up to test the scattering off of two cylinders. This test is used to test the angular resolution of different angle of arrival (AoA) algorithms.*
+*Rod Leonhardt, Alec Weiss, and Jeanne Quimby (left to right) setting up the SAMURAI system.*
 
 This documentation describes how the system is run, the data is stored, and options on how it can be processed.
 
 Getting started
 ++++++++++++++++++++
 
-For first time users trying to get up and started please go to :ref:`quick_start`.
+For first time users, please go to :ref:`quick_start`.
 
 Documentation Layout
 ++++++++++++++++++++++++++
@@ -44,9 +44,10 @@ This documentation is separated into a few main sections:
 - :ref:`quick_start` provides a brief introduction on how to get started measuring and processing data.
 - :ref:`data_acquisition` includes information on how to set up a measurement system utilizing similar hardware and software to the NIST system.
 - :ref:`analysis` includes information on how to calibrate, load, and process data taken with the SAMURAI (or similar) system.
-- :ref:`samurai_data` provides data and information on measurements taken with the NIST SAMURAI system.
 - :ref:`api` gives in depth information on each module, class, and function of the code.
 - :ref:`faq` answers some commonly asked questions.
+..
+   - :ref:`samurai_data` provides data and information on measurements taken with the NIST SAMURAI system.
 
 Table of Contents
 ------------------------
@@ -54,21 +55,37 @@ Table of Contents
 .. toctree::
    quick_start/index
    :maxdepth: 2
+   :numbered:
    :caption: Quick Start:
 
 .. toctree::
    acquisition/index
    analysis/index
-   data/index
    :maxdepth: 2
+   :numbered:
    :caption: Contents:
+..
+   data/index
 
 .. toctree::
    api/index
    faq
-   authors
    :maxdepth: 1
+   :numbered:
    :caption: Other Information:
+
+
+Authors
+-----------------
+- Alec Weiss (alec.weiss@nist.gov)
+- Jeanne Quimby (jeanne.quimby@nist.gov)
+- Ben Jamroz (benjamin.jamroz@nist.gov)
+- Rod Leonhardt (rodney.leonhardt@nist.gov)
+- Peter Vouras (peter.vouras@nist.gov)
+- Kate Remley (kate.remley@nist.gov)
+- Dylan Williams (dylan.williams@nist.gov) 
+- NIST SAMURAI Team
+
 
 Copyright Notice
 -----------------------

@@ -202,8 +202,8 @@ class SamuraiMetafile(OrderedDict):
 
     def load_json_template(self,metafile_path):
         '''
-        @brief load an already created json template (metafile without measurements)
-            This is usually done in case of failure of a mesurement. It will overwrite our options for this class too  
+        @brief Load an already created json template (metafile without measurements). 
+            This is usually done in case of failure of a measurement. It will overwrite our options for this class too.  
         @param[in] metafile_path - path to the metafile template (*.json) to load  
         '''
         #load the json data
@@ -220,7 +220,7 @@ class SamuraiMetafile(OrderedDict):
         '''
         @brief 'load' an already created raw (*.raw) file from a measurement.
             Again usually used in case self.finalize is not reached in a measurement. 
-            This actually just sets the self.tempfpath property  
+            This actually just sets the self.tempfpath property.  
         @param[in] raw_path - path to the raw (*.raw) file  
         '''
         self.raw_path = raw_path
@@ -399,9 +399,9 @@ class SamuraiMetafile(OrderedDict):
     #take the data from our temporary metaFile and put into JSON file
     def finalize(self,json_path=None,raw_path=None):
         '''
-        @brief write our data from our temp file back to the json file
+        @brief Write our data from our temp file back to the json file. 
             This finishes the measurement. After this is called the data from 
-            the '.raw' measurement file will be put into our json file  
+            the '.raw' measurement file will be put into our json file.  
         @param[in/OPT] json_path - path to json file. If None (default) get from self.jsonPath
         @param[in/OPT] raw_path - path to \*.raw file. If None (default) get from self.raw_path
         '''
@@ -496,8 +496,8 @@ def clean_file_name(file_path,num=-1):
 
 def finalize_metafile(metafile_path,raw_path,**kwargs):
     '''
-    @brief finalize a metafile in case of failure. 
-        This will finalize a metafile given the metafile path and the raw data path  
+    @brief Finalize a metafile in case of failure. 
+        This will finalize a metafile given the metafile path and the raw data path.  
     @param[in] metafile_path - path to the metafile (.json) template create at the beginning of the measurement  
     @param[in] raw_path - path to the raw file (.raw) created from the mesaurements taken  
     '''

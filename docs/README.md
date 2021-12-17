@@ -18,6 +18,6 @@ In the sphinx `config.py` file, make sure to set the correct root directories fo
 - commonmark - run `pip install commonmark`
 - recommonmark - run `pip install recommonmark`
 - sphinx_rtd_theme - run `pip install sphinx_rtd_theme` or `conda install -c anaconda sphinx_rtd_theme`
-- MATLAB Sphinx support - run `pip install sphinxcontrib-matlabdomain` or go to https://pypi.org/project/sphinxcontrib-matlabdomain/
+- MATLAB Sphinx support - run `pip install -U sphinxcontrib-matlabdomain` or go to https://pypi.org/project/sphinxcontrib-matlabdomain/
 
 

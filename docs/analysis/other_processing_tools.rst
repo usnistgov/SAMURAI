@@ -32,7 +32,7 @@ beamforming on SAMURAI data using this class at a single measured frequency (40 
    
    #perform beamforming
    calc_synthetic_aperture = my_samurai_beamform.beamforming_farfield_azel(
-                                   np.arange(-90,90,1),np.arange(-90,90,1),freq_list=[40e9])
+                                   np.deg2rad(np.arange(-90,90,1)),np.deg2rad(np.arange(-90,90,1)),freq_list=[40e9])
    
    #plot our data in 3D
    myplot = calc_synthetic_aperture.plot_3d()
@@ -51,7 +51,7 @@ beamforming on SAMURAI data using this class at a single measured frequency (40 
 Leveraging for Custom algorithms
 ------------------------------------
 
-The previous example utilizes abstracted libraries to perform coventional beamforming.
+The previous example utilizes abstracted libraries to perform conventional beamforming.
 Custom post processing algorithms can easily be implemented by inheriting from the samurai.analysis.support.SamuraiPostProcess.SamuraiSyntheticApertureAlgorithm class.
 Inheriting from this class provides the flexibility to define custom post processing functions while still providing the convenience
 of tools for data IO, tapering, and plotting. Once the output data has been processed, it can be packed into the 

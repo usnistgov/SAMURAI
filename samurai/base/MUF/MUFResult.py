@@ -201,10 +201,10 @@ class MUFResult(MUFModuleController):
     def __init__(self,meas_path=None,**arg_options):
         '''
         @brief load up and initialize the *.meas file
-        @param[in] meas_path - path to the *.meas file to load. 
+        @param[in] meas_path - Path to the *.meas file to load. 
             This can be passed as None if self.create_meas() is going to be run.
-            if a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
-            file will be created with the loaded measurement as the nominal result
+            If a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
+            file will be created with the loaded measurement as the nominal result.
         @param[in/OPT] arg_options - keyword arguments as follows:
             - - all arguments passed to MUFResult.load() method
             - - all arguments also passed to MUFModuleController constructor
@@ -272,9 +272,7 @@ class MUFResult(MUFModuleController):
     ##########################################################################
         
     def calculate_statistics(self):
-        '''
-        @brief calculate statistics for monte carlo and perturbed data
-        '''
+        '''@brief calculate statistics for monte carlo and perturbed data'''
         self.monte_carlo.calculate_statistics()
         self.perturbed.calculate_statistics()
         
@@ -304,18 +302,13 @@ class MUFResult(MUFModuleController):
     ### parts to create a new *.meas file from a *.snp or *.wnp
     ##########################################################################
     def create_meas(self):
-        '''
-        @brief create a *.meas file xml setup. This will be an empty measurement
-        '''
+        '''@brief create a *.meas file xml setup. This will be an empty measurement'''
         self._create_meas() #create the skeleton        
         
     def _create_meas(self):
         import getpass
         import datetime
-        '''
-        @brief create a skeleton (main nodes) for a *.meas file
-        This includes everything except the menustripheader
-        '''
+        '''@brief create a skeleton (main nodes) for a *.meas file including everything except the menustripheader'''
         #root node
         root_elem = ET.Element('CorrectedMeasurement')
         root_elem.set('FileName','./')
@@ -360,9 +353,7 @@ class MUFResult(MUFModuleController):
     set_nominal_path = set_nominal
         
     def set_monte_carlo(self,mc_path_list):
-        '''
-        @brief overwrite our monte carlo items
-        '''
+        '''@brief overwrite our monte carlo items'''
         self.monte_carlo.clear_items()
         self.monte_carlo.add_items(mc_path_list)
             
@@ -373,9 +364,7 @@ class MUFResult(MUFModuleController):
         self.monte_carlo.filepaths
         
     def set_perturbed(self,pt_path_list):
-        '''
-        @brief overwrite perturbed paths
-        '''
+        '''@brief overwrite perturbed paths'''
         self.perturbed.clear_items()
         self.perturbed.add_items(pt_path_list)
             
@@ -428,7 +417,7 @@ class MUFResult(MUFModuleController):
     def load(self,meas_path,**kwargs):
         '''
         @brief load our meas file and its corresponding data
-        @param[in/OPT] meas_path - path to *.meas file to load in. This will overwrite self.meas_path
+        @param[in/OPT] meas_path - path to *.meas file to load in and overwrite self.meas_path
         @param[in/OPT] kwargs - keyword arguments as follows:
             load_nominal - load our data from the nominal solution(s) (default True)
             load_statistics - load our statistics (monte carlo and perturbed) (default False)
@@ -467,7 +456,7 @@ class MUFResult(MUFModuleController):
     def write_xml(self,out_path,**kwargs):
         '''
         @brief write out our current xml file and corresponding measurements
-        @param[in] out_path - path to writ ethe file out to 
+        @param[in] out_path - path to write the file out to 
         @param[in/OPT] kwargs - keyword arguments as follows
             - relative - write out data with paths relative to the \*.meas file (default False)
         '''
@@ -556,9 +545,9 @@ class MUFResult(MUFModuleController):
         
     def write(self,out_path,**kwargs):
         '''
-        @brief write out all information on the MUF Statistic. This will create a copy
+        @brief write out all information on the MUF Statistic and create a copy
             of the nominal value and all statistics snp/wnp files
-        @param[in] out_path - path to write xml file to. 
+        @param[in] out_path - path to write xml file to, 
             all other data will be stored in a similar structure to the MUF in here
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
@@ -593,7 +582,7 @@ class MUFStatistic(MUFItemList):
         '''
         @brief constructor for the class. 
         @param[in] xml_element - parent element for MUF statistic xml
-        @param[in/OPT] arg_options - keyword arguemnts as follows
+        @param[in/OPT] arg_options - keyword arguments as follows
                 ci_percentage - confidence interval percentage (default is 95)
         '''
         super().__init__(xml_element)
@@ -693,8 +682,8 @@ class MUFStatistic(MUFItemList):
     ###################################################        
     def calculate_statistics(self):
         '''
-        @brief calculate and store all statistics. If self.data has been loaded use that
-            Otherwise load the data
+        @brief Calculate and store all statistics. If self.data has been loaded use that, 
+            otherwise load the data.
         '''
         if len(self.file_paths) > 2: #make sure we have enough to make a statistic
             if not self.data or self.data[0] is None:
@@ -716,7 +705,7 @@ class MUFStatistic(MUFItemList):
         '''
         @brief return statistics for a given key value 
         @param[in] key - measurement key to get stats for (e.g. 11,12,21,22,etc...)
-        @return aestimate,ci_+,ci_-,std_+,std_- (WnpParams)
+        @return estimate,ci_+,ci_-,std_+,std_- (WnpParams)
         '''
         est = self.estimate.S[key]
         cip = self.confidence_interval['+'].S[key]
@@ -784,9 +773,7 @@ class MUFStatistic(MUFItemList):
             
     @property
     def freq_list(self):
-        '''
-        @brief get the frequency list from the estimate value
-        '''
+        '''@brief get the frequency list from the estimate value'''
         return self.estimate.freq_list
     
 #%%  
@@ -798,7 +785,7 @@ class MUFNominalValue(MUFStatistic):
         '''
         @brief constructor
         @param[in] xml_element - parent element for MUF statistic xml
-        @param[in/OPT] arg_options - keyword arguemnts as follows
+        @param[in/OPT] arg_options - keyword arguments as follows
                 plotter - SamuraiPlotter object to use
         '''
         super().__init__(xml_element,**arg_options)

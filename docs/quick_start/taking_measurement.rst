@@ -13,7 +13,7 @@ Define an Aperture
 --------------------------------
 
     A comma separated value (CSV) file must then be created or downloaded that describes the positions for the sweep.
-    Examples sweep files and more information on generating custom sweeps can be found in :ref:`creating-apertures`. 
+    Examples of sweep files and more information on generating custom sweeps can be found in :ref:`creating-apertures`. 
     The planar apertures can be downloaded and moved into :code:`<working_directory>`. For this example lets assume it is placed at
     :code:`<working_directory>/position_templates/samurai_planar_dp.csv`.
 
@@ -117,7 +117,7 @@ Run a Sweep
 
 
     The :meth:`samurai.acquisition.SamuraiSystem.SamuraiSystem.csv_sweep` method performs the coordination of multiple systems used in the NIST SAMURAI system and sets many values by default.
-    The robot can also be controlled using :class:`samurai.acquisition.instrument_control.Meca500`, but this removes many of the checks in place to insure damage to the system and therefore extra caution should be taken when controlling the robot directly.
+    The robot can also be controlled using :class:`samurai.acquisition.instrument_control.Meca500`, but this removes many of the checks in place to help prevent damaging the system and therefore extra caution should be taken when controlling the robot directly.
     The metafiles can also be created without :meth:`samurai.acquisition.SamuraiSystem.SamuraiSystem.csv_sweep` by directly using the 
     :class:`samurai.acquision.support.SamuraiMetafile.SamuraiMetafile` with the :code:`SamuraiMetafile.init()`, :code:`SamuraiMetafile.update()`, and :code:`SamuraiMetafile.finalize()` methods.
     More information on running these measurements along with a sample script for controlling the NIST SAMURAI system can be found at :ref:`running-samurai`.

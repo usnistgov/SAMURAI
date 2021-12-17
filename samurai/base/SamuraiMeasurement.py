@@ -32,7 +32,7 @@ import sys
 def SamuraiMeasurement2MUFResult(sam_meas):
     '''
     @brief Convert data into a MUFResult object from a SamuraiMeasurement (shallow copy of any loaded data)
-    @param[in] sam_meas - SamuraiMeasuremnt Object to convert
+    @param[in] sam_meas - SamuraiMeasurement Object to convert
     '''
     mr = MUFResult() #empty data structure
     for mt in sam_meas.meas_types: #go through each meas type
@@ -64,13 +64,13 @@ def MUFResult2SamuraiMeasurement(mr_obj):
 ################################################################
 def set_meas_relative(meas_path,out_path=None):
     '''
-    @brief change all paths in a \*.smeas file to relative paths and save.
+    @brief Change all paths in a \*.smeas file to relative paths and save.
         The paths will assume all paths are relative to the \*.meas file.
     @param[in] meas_path - path to \*.meas file
     @param[in/OPT] out_path - path to write out to. If not provided, overwrite the input
     @note This will overwrite the provided file if a new path is not provided
     @note This assumes that all Monte Carlo are in the same folder as are Perturbed
-    @return return the updated MUFResult
+    @return the updated MUFResult
     '''
     if out_path is None:
         out_path = meas_path
@@ -92,7 +92,7 @@ def set_meas_relative(meas_path,out_path=None):
 
 def set_meas_absolute(meas_path,out_path=None):
     '''
-    @brief change all paths in a \*.smeas file to absolute paths and save.
+    @brief Change all paths in a \*.smeas file to absolute paths and save.
         The paths will assume all paths are relative to the \*.meas file.
     @param[in] meas_path - path to \*.meas file
     @param[in/OPT] out_path - path to write out to. If not provided, overwrite the input
@@ -117,12 +117,12 @@ def set_meas_absolute(meas_path,out_path=None):
 
 def combine_measurements(*args,**kwargs):
     '''
-    @brief Combine all parameters of a mesaurement into a single measurement
+    @brief combine all parameters of a measurement into a single measurement
     @param[in] args - paths or Measurement objects to combine (\*.meas or \*.smeas) 
     @param[in/OPT] kwargs - keyword arguments as follows:
         - fill_value - what value to fill undefined parameters (default 0+0j)
     @note This assumes each measurement has the same number of each parameter (e.g. 100 monte carlos)
-    @note This currenlty assumes that ports are consecutive (e.g. 11,12,21,22 NOT 11,13,31,33)
+    @note This currently assumes that ports are consecutive (e.g. 11,12,21,22 NOT 11,13,31,33)
     @note This only supports up to 10 ports
     '''
     options = {}
@@ -170,9 +170,9 @@ def calculate_time_domain(fd_w_uncert,key=21,window=None,verbose=False):
     @brief Calculate the fft of a frequency domain value with uncertainties
     @param[in] fd_w_uncert - frequency domain values with uncertainty (e.g. MUFResult instance)
     @param[in/OPT] key - what key (e.g. 21,11,12,22) to calculate fft  (default 21)
-    @param[in/OPT] window - windowing to add to the fft calculation. can be 'sinc2' for sinc 
+    @param[in/OPT] window - Windowing to add to the fft calculation. Can be 'sinc2' for sinc 
             squared or any input of first arg to of scipy.signal.windows.get_window (e.g. 'hamming', ('chebwin',100)),
-            or a callable with input (len(self.raw))
+            or a callable with input (len(self.raw)).
     @param[in/OPT] verbose - whether or not to be verbose on calculations
     @return MUFResult class 
     '''
@@ -200,9 +200,9 @@ ifft = calculate_time_domain
 
 class SamuraiMeasurement(SamuraiDict):
     '''
-    @brief A class to deal with measurements with uncertianties. This is written to be capable 
-        of interfacing with data from the MUF. should be drop in replacement for MUFResult class. 
-        But more clear and better
+    @brief A class to deal with measurements with uncertainties. This is written to be capable 
+        of interfacing with data from the MUF. Should be drop in replacement for MUFResult class, 
+        but more clear and better.
     @example
         #Load in a *.meas file (or *.smeas for json) 
         meas_path = './test.meas' #path to *.meas file
@@ -222,9 +222,9 @@ class SamuraiMeasurement(SamuraiDict):
     def __init__(self,meas_path=None,**arg_options):
         '''
         @brief load up and initialize the *.meas file
-        @param[in] meas_path - path to the *.meas file to load. 
+        @param[in] meas_path - Path to the *.meas file to load. 
             This can be passed as None if self.create_meas() is going to be run.
-            if a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
+            If a *.snp or *.wnp file are provided, it will be loaded and a *.meas 
             file will be created with the loaded measurement as the nominal result
         @param[in/OPT] arg_options - keyword arguments as follows:
             - - all arguments passed to MUFResult.load() method
@@ -276,7 +276,7 @@ class SamuraiMeasurement(SamuraiDict):
     def run_touchstone_function(self,funct_name,*args,**kwargs):
         '''
         @brief run a function on all loaded touchstone files
-        @param[in] funct_name - the name of the method to run. Should be in TouchstoneEditor
+        @param[in] funct_name - the name of the method to run, should be in TouchstoneEditor
         @param[in/OPT] *args,**kwargs - arguments to pass to function
         @return list of names for what the data was operated on
         '''
@@ -379,7 +379,7 @@ class SamuraiMeasurement(SamuraiDict):
     def write_xml(self,out_path,**kwargs):
         '''
         @brief write out our current xml file and corresponding measurements
-        @param[in] out_path - path to writ ethe file out to 
+        @param[in] out_path - path to write the file out to 
         @param[in/OPT] kwargs - keyword arguments as follows
             - relative - write out data with paths relative to the \*.meas file (default False)
         '''
@@ -392,9 +392,7 @@ class SamuraiMeasurement(SamuraiDict):
         return mr.write_xml(out_path,**options)
         
     def write_json(self,out_path,**kwargs):
-        '''
-        @brief write our current data to a json file (should be a *.smeas file)
-        '''
+        '''@brief write our current data to a json file (should be a *.smeas file)'''
         options = {}
         options['relative'] = False
         for k,v in kwargs.items():
@@ -483,10 +481,10 @@ class SamuraiMeasurement(SamuraiDict):
         
     def write(self,out_path,**kwargs):
         '''
-        @brief write out all information on the MUF Statistic. This will create a copy
-            of the nominal value and all statistics snp/wnp files
-        @param[in] out_path - path to write xml file to. 
-            all other data will be stored in a similar structure to the MUF in here
+        @brief Write out all information on the MUF Statistic. This will create a copy
+            of the nominal value and all statistics snp/wnp files.
+        @param[in] out_path - Path to write xml file to. 
+            All other data will be stored in a similar structure to the MUF in here
         @param[in/OPT] kwargs - keyword arguments as follows:
             write_nominal - write out our nominal value file in a subfolder of meas_path (default True)
             write_stats - write out our statistics to a subfolder of meas_path (default True)
@@ -568,7 +566,7 @@ class SamuraiMeasurement(SamuraiDict):
 #%%    
 class SamMeasStatistic(list):
     '''
-    @brief a class to generically calculate and hold statistics that the MUF does
+    @brief A class to generically calculate and hold statistics that the MUF does.
          This will calculate and store the following statistics:
              -upper and lower n percent (default 95) confidence interval
              -nominal solution +- standard uncertainty (standard deviation)
@@ -578,7 +576,7 @@ class SamMeasStatistic(list):
     def __init__(self,*args,**kwargs):
         '''
         @brief constructor for the class. 
-        @param[in/OPT] arg_options - keyword arguemnts as follows
+        @param[in/OPT] arg_options - keyword arguments as follows
                 ci_percentage - confidence interval percentage (default is 95)
         '''
         if len(args)==1: #assume its a list of SamMeasItems
@@ -724,7 +722,7 @@ class SamMeasStatistic(list):
     def data_operation(self,funct,*args):
         '''
         @brief perform an operation on loaded data
-        @param[in] funct - function to be performed. if its a string, assume its a method of self[i].data
+        @param[in] funct - function to be performed, if its a string, assume its a method of self[i].data
         @param[in] args - arguments to the function
         '''
         argsl = list(args)
@@ -741,9 +739,9 @@ class SamMeasStatistic(list):
 #%%  
 class SamMeasItem(SamuraiDict):
     '''
-    @brief Class to hold info on an item in a samurai Measurement
+    @brief Class to hold info on an item in a samurai Measurement.
         The point of this is to allow loading of data without being in the json file.
-        It also adds some other extensions
+        It also adds some other extensions.
     '''
     def __init__(self,*args,**kwargs):
         '''@brief Constructor definition. Same as for a dictionary'''
@@ -755,7 +753,7 @@ class SamMeasItem(SamuraiDict):
         @brief load the data from the path subitem to self.data
         @param[in] load_funct - function to load the data given a file path (can also be a class constructor)
         @param[in] subitem_idx - which index the path is to load (typically its self[0])
-        @param[in] kwargs - keyword arguements as follows
+        @param[in] kwargs - keyword arguments as follows
             - working_directory - root point for relative paths. Typically should be the menu file directory
             - | - The rest of the results will be passed to load_funct
         '''
@@ -773,7 +771,7 @@ class SamMeasItem(SamuraiDict):
     def get_filepath(self,**kwargs):
         '''
         @brief getter for filepath
-        @param[in/OPT] kwargs - keyword arguements as follows:
+        @param[in/OPT] kwargs - keyword arguments as follows:
             - working_directory - working directory for relative paths (default '')
         '''
         options = {}

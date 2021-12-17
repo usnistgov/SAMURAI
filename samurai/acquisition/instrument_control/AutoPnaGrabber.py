@@ -151,7 +151,7 @@ class LoopTimeReport:
 #check to see if the directory exists, if it does increment and do unitl it doesnt
 def clean_dir_name(dir_name):
     '''
-    @brief clean a directory name. if the directory exists increment until it doesnt (appends '_#')  
+    @brief Clean a directory name. If the directory exists increment until it doesnt (appends '_#').
     @param[in] dir_name - name of the directory to clean  
     @return name for cleaned directory  
     '''

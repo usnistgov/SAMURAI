@@ -14,7 +14,7 @@ SAMURAI Measurement Layout
 SAMURAI measurements taken at NIST consist of two parts, a metafile (\*.json) and measured data (\*.snp, \*.wnp, \*.meas).
 When first opening the data folder for measurements taken at NIST, the folder will contain a metafile (\*.json) multiple measurement files (\*.meas),
 along with a folder called :code:`touchstone`. 
-The :code:`touchstone` sub-directory contains its own metafile (\*.json) along with a copy of all of the nominal measurement results as touchstone files (e.g. \*.snp_binary).
+The :code:`touchstone` sub-directory contains its own metafile (\*.json) along with a copy of all of the nominal measurement results as touchstone files (e.g., \*.snp_binary).
 This folder can also be used when uncertainties are not of interest. 
 If using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor` or :mat:func:`read_touchstone`, the data from both directories
 (and therefore the data when using either metafile) should return the same values when loaded.
@@ -49,7 +49,7 @@ position can be accessed with :code:`metafile['measurements'][aperture_position_
 The Data
 +++++++++++
 
-Each entry in the :code:`metafile['measurements']` list correspods to a measurement at a position in the aperture.
+Each entry in the :code:`metafile['measurements']` list corresponds to a measurement at a position in the aperture.
 These entries include the position of the robot along with a path to the measurement taken by the VNA/LSNA.
 These filepaths can be extracted with :code:`data_paths = metafile.file_paths`.
 
@@ -165,7 +165,7 @@ Python
 
 Touchstone files can be worked with in Python using :class:`samurai.base.TouchstoneEditor.TouchstoneEditor`.
 This class loads data into a pandas DataFrame and places it in an attribute :code:`S` for s-parameters and :code:`A` and :code:`B` for wave parameters.
-The following code then demonstrates how to access each of the S parameters of a 2 port S-parameter file (\*.s2p).
+The following code then demonstrates how to access each of the S parameters of a 2-port S-parameter file (\*.s2p).
 
 .. code-block:: python
 
@@ -199,7 +199,7 @@ MATLAB
 
 In MATLAB, touchstone data is loaded using the :mat:func:`TouchstoneEditor` function. 
 This function takes a file path and returns a MATLAB table object with all of the loaded data.
-The following code again demonstrates how to access each of the S parameters of a 2 port S-parameter file.
+The following code again demonstrates how to access each of the S parameters of a 2-port S-parameter file.
 
 .. code-block:: MATLAB
 
@@ -220,8 +220,8 @@ The following code again demonstrates how to access each of the S parameters of 
 Loading external positioning information
 -----------------------------------------
 
-Later SAMURAI measurements use an Optitrack optical positioning system to provide positoning information on multiple points in the measurement such
-as the transmit and recieve antennas, and possible scatterers in the scene. A dictionary with data on each marker can quickly be extracted from the metafile using the 
+Later SAMURAI measurements use an Optitrack optical positioning system to provide positioning information on multiple points in the measurement such
+as the transmit and receive antennas, and possible scatterers in the scene. A dictionary with data on each marker can quickly be extracted from the metafile using the 
 the metafile using the :code:`MetaFileController.get_external_positions()` method.
 
 

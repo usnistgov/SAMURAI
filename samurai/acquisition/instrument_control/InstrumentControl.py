@@ -62,28 +62,28 @@ class Instrument(SamuraiDict):
             
     def _connect(self,address):
         '''
-        @brief internal function to connect to device. This prevents from requiring
-            the connection to have self.connection.connect() to run self.connect()  
+        @brief Internal function to connect to device. This prevents from requiring
+            the connection to have self.connection.connect() to run self.connect().
         '''
         self.connection.connect(address)
         
     def disconnect(self):
         '''
-        @brief template for instrument disconnect. calls self.connection.disconnect()  
+        @brief Template for instrument disconnect. Calls self.connection.disconnect().
         '''
         self._disconnect()
         
     def _disconnect(self,address):
         '''
-        @brief internal function to connect to device. This prevents from requiring
-            the connection to have self.connection.connect() to run self.connect()  
+        @brief Internal function to connect to device. This prevents from requiring
+            the connection to have self.connection.connect() to run self.connect(). 
         '''
         if self.connection is not None:
             self.connection.disconnect(address)
             
     def read(self,cast=False,**kwargs):
         '''
-        @brief template for an instrument read. calls self._read()  
+        @brief Template for an instrument read. Calls self._read().
         @param[in/OPT] binary_xfer - whether or not to use binary transfer (calls self._read_binary)  
         @param[in/OPT] cast - whether or not to try and cast the data  
         @param[in/OPT] kwargs - keyword args to pass to _read_binary  
@@ -173,7 +173,7 @@ class Instrument(SamuraiDict):
         
     def get_command_from_dict(self,command,*args,**kwargs):
         '''
-        @brief search our dictionary for the command. If it isnt there, return the command  
+        @brief Search our dictionary for the command. If it isnt there, return the command.
         @param[in] command - command to search the dictionary for  
         @param[in] *args - arguments to pass to command if found  
         @param[in] **kwargs -kwargs to pass to command if found  
@@ -189,7 +189,7 @@ class Instrument(SamuraiDict):
     
     def cast_return_value(self,value_str):
         '''
-        @brief try and cast a return value. return float or string depending
+        @brief Try and cast a return value. Return float or string depending
             on what works.  
         @param[in] value_str - value string to cast  
         '''
@@ -205,8 +205,8 @@ class Instrument(SamuraiDict):
         
     def get_settings(self,*args,**kwargs):
         '''
-        @brief get our settings from the device. These values will be pulled from
-            self.setting_params  
+        @brief Get our settings from the device. These values will be pulled from
+            self.setting_params. 
         @param[in/OPT] *args - arguments to pass to each of the commands  
         @param[in/OPT] **kwargs - keyword args to pass to each of the commands  
         '''
@@ -277,7 +277,7 @@ class InstrumentCommandDict(SamuraiDict):
         
     def add_command(self,instrument_command,alias=None):
         '''
-        @brief add a command to the dictionary. default to key,val pairs  
+        @brief add a command to the dictionary (default to key,val pairs)
         @param[in] instrument_command - InstrumentCommand Class  
         @param[in] alias - alias to add to this command  
         '''
@@ -296,8 +296,8 @@ class InstrumentCommandDict(SamuraiDict):
         
     def _get_default_command_name(self,instrument_command):
         '''
-        @brief generate a default command name. This is going to be
-            by default '' passed to all arguments and then stripped of whitespace  
+        @brief Generate a default command name. This is going to be
+            by default '' passed to all arguments and then stripped of whitespace.
         @param[in] instrument_command - InstrumentCommandClass to get default name  
         '''
         default_format = ''
@@ -308,9 +308,9 @@ class InstrumentCommandDict(SamuraiDict):
         
     def get(self,key,*args):
         '''
-        @brief get a command from a key or an alias. This syntax is the same as dict.get()  
+        @brief get a command from a key or an alias (syntax is the same as dict.get())
         @param[in] key - key to get the command of  
-        @param[in/OPT] default - adefault argument can also be passed in if the key is not found  
+        @param[in/OPT] default - default argument can also be passed in if the key is not found  
         @note this also allows nested aliases (e.g. alias1->alias2->command)  
         @return InstrumentCommand class of the command  
         '''
@@ -325,8 +325,8 @@ class InstrumentCommandDict(SamuraiDict):
     
     def find_command(self,search_str,case_sensitive=False):
         '''
-        @brief search our command dictionary for values values that contain
-            search_str. this just looks through the default keys  
+        @brief Search our command dictionary for values values that contain
+            search_str. This just looks through the default keys.
         @param[in] search_str - substring or regex expression to find   
         @param[in/OPT] case_sensitive - is the search case sensitive  
         @return list of commands with the substring,list of aliases with substring  
@@ -437,7 +437,7 @@ class InstrumentCommand(SamuraiDict):
     def add_arg(self,arg_name,optional_flg,return_type=None,description='',**other_options):
         '''
         @brief add argument to this command  
-        @param[in] arg_name - the name of the argument. This should be the whole string (e.g. <cnum> NOT cnum)
+        @param[in] arg_name - The name of the argument. This should be the whole string (e.g. <cnum> NOT cnum). 
             This is important because these names will be searched when creating the template  
         @param[in] optional_flg - True if the arg is optional  
         @param[in/OPT] description - brief description of the argument  

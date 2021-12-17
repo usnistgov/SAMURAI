@@ -18,7 +18,7 @@ class SamuraiPlotter:
         @param[in/OPT] plot_program - What program to use to plot 
             ('matlab','matplotlib','plotly')
             some plotting types may only be supported with some programs  
-        @param[in/OPT] *args - arguments to pass to plot_program initailzer  
+        @param[in/OPT] *args - arguments to pass to plot_program initializer  
         @param[in/OPT] arg_options - keyword arguments as follows:  
             - verbose - whether or not to be verbose  
             - debug - extra verbose debug statements  
@@ -174,9 +174,9 @@ class SamuraiPlotter:
     
 class SamuraiPlotEngine:
     '''
-    @brief superclass for defining a plot program
-        The process of plotting here is figure(),(plot_function)(),show()
-        These three steps allow working with most plotting library flows  
+    @brief Superclass for defining a plot program.
+        The process of plotting here is figure(),(plot_function)(),show(). 
+        These three steps allow working with most plotting library flows.
     '''
     def __init__(self):
         self.options = {}
@@ -243,9 +243,9 @@ class SamuraiPlotEngine:
     
     def _run_arg_functions_on_object(self,obj,**kwargs):
         '''
-        @brief take a list of input kwargs. If the object has that attribute, 
+        @brief Take a list of input kwargs. If the object has that attribute, 
             run the function with the value of that function key and remove it from
-            the argument dictionary. Otherwise leave it  
+            the argument dictionary, otherwise leave it.
         @param[in] obj - object to run functions on  
         @param[in] **kwargs - arguemenbt dictionary to find functions from  
         '''

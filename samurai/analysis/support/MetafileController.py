@@ -46,8 +46,8 @@ def get_metafile_info(metafile_path):
 #%% Useful functions for Metafiles
 def set_metafile_meas_relative(metafile_path,verbose=True):
     '''
-    @brief Change all \*.meas file paths to be relative to the \*.meas file.
-        This will be done for all \*.meas files in the metafile
+    @brief Change all \*.meas file paths to be relative to the \*.meas file. 
+        This will be done for all \*.meas files in the metafile.
     @param[in] metafile_path - metafile pointing to measurements
     @param[in/OPT] verbose - whether to be verbose or not when changing the paths
     @return The list of file paths that have been edited
@@ -179,10 +179,10 @@ class MetafileController(SamuraiDict):
     '''
     @brief Class to control metafile to get and change values
     @note This is also aliased to samurai.analysis.support.MetaFileController.MetaFileController for backward compatability.
-    @param[in] metafile_path - path to the metafile to load 
+    @param[in] metafile_path - Path to the metafile to load. 
         This can also be passed as None. If this is done, a
         OrderedDict will be created from samurai_metaFile acquisition code
-        with a blank measurements list
+        with a blank measurements list.
     @example
         # Import the file
         from samurai.analysis.support.MetafileController import MetafileController
@@ -353,7 +353,7 @@ class MetafileController(SamuraiDict):
         '''
         @brief add a measurement to the measurements list
         @param[in] filename - path to the file to add
-        @param[in/OPT] kwargs - keyword arguements as follows:
+        @param[in/OPT] kwargs - keyword arguments as follows:
             - ID - id of the measurement
             - units - units for the positions
             - position - position of the SA
@@ -420,10 +420,10 @@ class MetafileController(SamuraiDict):
     
     def get_external_positions(self,label=None,meas_num=-1):
         '''
-        @brief get externally measured positions.
+        @brief Get externally measured positions. 
             If label is specified, a list of positional data for the data point
             or rigid body with that label will be returned. This return value
-            will be a list of dictionaries with the entries various entries providing info on the measurements
+            will be a list of dictionaries with the entries various entries providing info on the measurements.
         @param[in/OPT] meas_num - which measurement position to load (-1 for all)
         @param[in/OPT] label - what marker label to pull out (if none, get all)
         '''
@@ -602,7 +602,7 @@ class MetafileController(SamuraiDict):
         
     def plot_external_positions(self,label_names=None,ax=None):
         '''
-        @brief plot all of our external positions.
+        @brief Plot all of our external positions.
             This most likely will only work with MatlabPlotter for quite a while...
         @param[in/OPT] label_names - a list of label names to plot. If none, all labels will be plotted
         @param[in/OPT] ax - axis to plot on. if not available a new figure will be created
@@ -725,7 +725,7 @@ class MetafileController(SamuraiDict):
     def set_meas(self,measurements,measNum=-1):
         '''
         @brief set measurement data
-        @param[in] measurement - dictionary of list of dictionaries describing th emeasurements
+        @param[in] measurement - dictionary of list of dictionaries describing the measurements
         @param[in/OPT] measNum - which measurement to change. if -1, set the whole 'measurement' list
         '''
         self.saved = 0
@@ -854,7 +854,7 @@ def copy_touchstone_from_muf(metafile,out_dir='./touchstone'):
     @brief take a metafile with *.meas data and copy the touchstone (*.snp/wnp) files
         to a new directory with a new metafile (for backward compatability with peter)
     @param[in] metafile - metafile containing the *.meas files
-    @param[in/OPT] out_dir - output directory to save the new files to realtive to old metafile path. Defaults to './touchstone'
+    @param[in/OPT] out_dir - output directory to save the new files to relative to old metafile path. Defaults to './touchstone'
     '''
     #open the metafile
     mf = MetaFileController(metafile)
@@ -940,7 +940,7 @@ def evenly_split_metafile(metafile_path,num_splits,label='split'):
     '''
     @brief Evenly split .json metafile into num_splits different files. 
         split files are named in the following form <name>_<label>_#.json.
-        Files will be written to same diretory as json file
+        Files will be written to same diretory as json file.
     @param[in] metafile_path - .json file with metafile information
     @param[in] num_splits    - number of even splits to make
     @param[in] label         - label to append to filename when written out

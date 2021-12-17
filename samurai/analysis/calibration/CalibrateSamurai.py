@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon May 14 08:34:24 2018
+@date Mon May 14 08:34:24 2018
 
-This script edits our metafile and moves our data and new copy of metafile to outDir
-This assumes our data has been calibrated with the MUF and DUTs are within that output directory form the MUF
+@brief This script edits our metafile and moves our data and new copy of metafile to outDir
+@note This assumes our data has been calibrated with the MUF and DUTs are within that output directory form the MUF
 
-Before running 
+@note Before running 
  - calibrate all data with muf
  - Ensure calibrated data folder is in same folder as measurements
 
@@ -39,20 +39,21 @@ DEFAULT_PP_CAL_TEMPLATE_WNP = os.path.join(file_dir,'templates/cal_template_wave
 CAL_TEMPLATE_100MC       = os.path.join(file_dir,'templates/cal_template_100mc.post')
 
 class CalibrateSamurai:
-    
+    '''
+    @brief calibration class for SAMURAI data
+    @param[in] metaFile - path to metafile of measurement to calibrate
+    @param[in] out_dir  - output directory to place the calibrated measurements
+    @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
+    @param[in/OPT] gthru_file_path - path to gthru file (switch terms)
+    @param[in/OPT] post_proc_template_override - path to a template to override defaults.
+    @param[in/OPT] kwargs - keyword arguments for the class options. these are also forwarded to PostProcPy
+    '''
+
 ##load in our metadata file
 #with open(metaPath,'r') as jsonFile:
 #    jsonData = json.load(jsonFile, object_pairs_hook=OrderedDict)
     def __init__(self, metaFile,out_dir,in_cal_path,gthru_file_path='',post_proc_template_override=None,**kwargs):
-        '''
-        @brief initialize the class
-        @param[in] metaFile - path to metafile of measurement to calibrate
-        @param[in] out_dir  - output directory to place the calibrated measurements
-        @param[in] in_cal_path - solution file (.s4p or .meas) file to calibrate with 
-        @param[in/OPT] gthru_file_path - path to gthru file (switch terms)
-        @param[in/OPT] post_proc_template_override - path to a template to override defaults.
-        @param[in/OPT] kwargs - keyword arguments for the class options. these are also forwarded to PostProcPy
-        '''
+        '''@brief Initialize the class'''
         #options dictionaruy
         self.options = {}
         for k,v in kwargs.items():
@@ -86,6 +87,7 @@ class CalibrateSamurai:
   
     #calibrate in post processor and save in output directory
     def populate_post_proc_and_calibrate(self):
+        '''@brief calibrate in the MUF post processor and save the output'''
         #ensure our metafile is updated to the current folder it is in
         self.mfc.wdir = os.path.dirname(self.metaFile)
         #get our list of values from the old folder both with and without absolute path
@@ -114,7 +116,7 @@ class CalibrateSamurai:
         return mf_out_path
         
     def update_metafile_and_move(self):
-        
+        '''@brief update the metafile with the calibrated results and copy them to our desired output directory'''
         print("Moving calibrated results")
         new_mf_path = self.move_calibrated_results() #this now also updates and writes the metafile
         print("Metafile at {}".format(new_mf_path))
@@ -172,8 +174,8 @@ class CalibrateSamurai:
     
     def move_calibrated_nominal_results_touchstone(self,metafile_path):
         '''
-        @brief move our calibrated snp or wnp files to a provided subdirectory
-            This will pull the nominal results from the *.meas files in the newly updated metafile
+        @brief Move our calibrated snp or wnp files to a provided subdirectory. 
+            This will pull the nominal results from the *.meas files in the newly updated metafile.
         '''
         copy_touchstone_from_muf(metafile_path)
         '''

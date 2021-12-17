@@ -4,7 +4,7 @@
 Running from script
 -------------------------
 
-This section shows how to run from a premade python script. This requires the lowest amount of user input and is therefore the recommended method of control.
+This section shows how to run from a pre-made python script. This requires the lowest amount of user input and is therefore the recommended method of control.
 
 
 .. _running-samurai-wdir:

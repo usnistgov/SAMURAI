@@ -51,9 +51,9 @@ class SamuraiPositionDataDict(SamuraiDict):
     def add_sample(self,data,**kwargs):
         '''
         @brief add a raw data sample or samples.   
-        @param[in] data - sample to add. This should be a list of 
+        @param[in] data - Sample to add. This should be a list of 
                 lists where len(data[i])==len(self). This assumes input ordering 
-                is the same as self.keys  
+                is the same as self.keys.
         @param[in/OPT] arg_options - keyword args as follows  
             - key_order - list of key orders to save the data. otherwise just get self.keys()
         '''
